@@ -130,6 +130,21 @@ var Firera = function($el){
     }
     
     return function(selector){
+	if(selector instanceof Object){
+	    for(var i in selector){
+		var cell = new Cell(i);
+		if(selector[i] instanceof Array){
+		    if(selector[i][0] instanceof Function){
+			cell['is'].apply(cell, selector[i]);
+		    } else {
+			cell[selector[i][0]].apply(cell, selector[i].slice(1));
+		    }
+		} else {
+		    cell.is(selector[i]);
+		}
+	    }
+	    return true;
+	}
 	return vars[selector] || new Cell(selector);
     }
 }
