@@ -1,5 +1,4 @@
 
-
 ### Firera is small Javascript FRP library
 
 FRP is functional reactive programming. It allows to work with variables like Excel cells: you create some cells, some of them rely on other with formulas, and when the value of one cell changes, the values of dependent cells change also.
@@ -69,3 +68,36 @@ Another example is a value of input field: fr("input[type=text]|value") will alw
 	</script>
 
 ~~~~~~
+You can also use batch assignment, which is robust. 
+~~~~~~
+
+    fr({
+	a: '3',
+	b: [
+	    function(a){ return a*2;},
+	    'a'
+	],
+	c: [
+	    function(a, b){ return Math.pow(a, b)}, 
+	    'a', 
+	    'b'
+	],
+	logged_in: false,
+	".logout|visibility": ['as', 'logged_in'],
+	".login|visibility": ['notAs', 'logged_in'],
+	".full-info|html": [
+	    function(a, b, c){
+		if(a.length > 1 || b.length > 1 || c > 0){
+		    return 'You are ' + a + ' ' + b + ', your age is ' + c + '!';
+		} else {
+		    return 'Enter more info!';
+		}
+	    },
+	    ".name|val",
+	    ".surname|val",
+	    ".age|val"
+	],
+    })
+
+~~~~~~
+
