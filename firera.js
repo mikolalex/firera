@@ -25,7 +25,7 @@ var Firera = function($el){
 	    startObserving: function(){
 		var self = this;
 		$(this.jquerySelector, $scope).keyup(function(val){
-		    self.val = val;
+		    self.val = val;		    
 		    self.compute();
 		})
 	    }
@@ -53,7 +53,6 @@ var Firera = function($el){
 		    this.val = modifiers[this.type].getter.apply(this);
 		    if(this.observers){
 			for(var i=0; i<this.observers.length;i++){
-			    //console.log('we call for observers of ' + func.toString() + ' : ' + i);
 			    this.observers[i].compute();
 			}
 		    } 
@@ -92,10 +91,17 @@ var Firera = function($el){
 	this.is.call(this, function(flag){ return !flag;}, cell);
     }
     
-    Cell.prototype.is = function(func, vars){
+    Cell.prototype.is = function(func){
 	var args = Array.prototype.slice.call(arguments, 1);
-	if(vars){
+	if(args.length){
 	    for(var i= 0;i<args.length;i++){
+		if(!(args[i] instanceof Cell)){
+		    if(vars[args[i]]){
+			args[i] = vars[args[i]];
+		    } else {
+			args[i] = new Cell(args[i]);
+		    }
+		}
 		args[i].addObserver(this);
 	    }
 	    this.func = func;
@@ -108,21 +114,18 @@ var Firera = function($el){
 		for(var i=0; i<args.length;i++){
 		    args1.push(args[i].get());
 		}
-		//console.log('func is' + func);
 		this.val = func.apply(this, args1);
-		//console.log('we call ' + func.toString() + ' with ' + args1 + ' and set val to ' + this.val);
 		if(this.modifier.setter){
 		    this.modifier.setter.call(this, this.val);
 		}
 	    }
 	    if(this.observers){
 		for(var i=0; i<this.observers.length;i++){
-		    //console.log('we call for observers of ' + func.toString() + ' : ' + i);
 		    this.observers[i].compute();
 		}
 	    } 
 	}
-	if(vars) this.compute();
+	if(args.length) this.compute();
 	return this;
     }
     
