@@ -1,38 +1,39 @@
-var Firera = function($el, custom_drivers){
-    var $scope = $el || $(document);
+var Firera = function(context, custom_drivers){
+    var scope = context || false;
     var vars = [];
     var drivers = {
 	cell: {
 	    
 	},
 	visibility: {
-	    setter: function(val){
+	    setter: function(val, selector, context){
 		if(val){
-		    $(this.jquerySelector, $scope).show();
+		    $(selector, context).show();
 		} else {
-		    $(this.jquerySelector, $scope).hide();
+		    $(selector, context).hide();
 		}
 	    }
 	},
 	val: {
 	    selfRefresh: true,
-	    setter: function(val){
-		$(this.jquerySelector, $scope).val(val);
+	    setter: function(val, selector, context){
+		$(selector, context).val(val);
 	    },
-	    getter: function(){
-		return $(this.jquerySelector, $scope).val();
+	    getter: function(selector, context){
+		console.log('getter is called ' + selector + ' ' + context + ": " + $(selector, context).val());
+		return $(selector, context).val();
 	    },
-	    startObserving: function(){
+	    startObserving: function(selector, context){
 		var self = this;
-		$(this.jquerySelector, $scope).keyup(function(val){
+		$(selector, context).bind("keyup, change", function(val){
 		    self.val = val;		    
 		    self.compute();
 		})
 	    }
 	},
 	html: {
-	    setter: function(val){
-		$(this.jquerySelector, $scope).html(val);
+	    setter: function(val, selector, context){
+		$(selector, context).html(val);
 	    }
 	}
     }
@@ -42,6 +43,10 @@ var Firera = function($el, custom_drivers){
 	}
     }
     
+    var error = function(str){
+	console.log("EROOR: " + str);
+    }
+    
     var Cell = function(selector){
 	this.selector = selector;
 	vars[selector] = this;
@@ -49,6 +54,9 @@ var Firera = function($el, custom_drivers){
 	    // this is a dom selector
 	    var parts = selector.split("|");
 	    this.jquerySelector = parts[0];
+	    if(!$(this.jquerySelector, scope).length){
+		error('Selected element "' + this.jquerySelector + '" not found in scope(' + scope + ')');
+	    }
 	    if(!drivers[parts[1]]){
 		error('Unknown html driver: ' + parts[1]);
 	    } else {
@@ -56,14 +64,10 @@ var Firera = function($el, custom_drivers){
 	    }
 	    if(drivers[this.type].selfRefresh){
 		this.compute = function(){
-		    this.val = drivers[this.type].getter.apply(this);
-		    if(this.observers){
-			for(var i=0; i<this.observers.length;i++){
-			    this.observers[i].compute();
-			}
-		    } 
+		    this.val = drivers[this.type].getter.call(this, this.jquerySelector, scope);
+		    this.updateObservers();
 		}
-		drivers[this.type].startObserving.apply(this);
+		drivers[this.type].startObserving.call(this, this.jquerySelector, scope);
 		this.compute();
 	    }
 	} else { // this is just custom abstract varname
@@ -84,7 +88,7 @@ var Firera = function($el, custom_drivers){
     Cell.prototype.set = function(val){
 	this.val = val;
 	if(this.driver.setter){
-	    this.driver.setter.apply(this, val);
+	    this.driver.setter.call(this, val, this.jquerySelector, scope);
 	}
 	this.updateObservers();
 	return this;
@@ -129,7 +133,7 @@ var Firera = function($el, custom_drivers){
 	    }
 	    this.val = formula.apply(this, args1);
 	    if(this.driver.setter){
-		this.driver.setter.call(this, this.val);
+		this.driver.setter.call(this, this.val, this.jquerySelector, scope);
 	    }
 	    this.updateObservers();
 	}

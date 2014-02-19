@@ -25,10 +25,18 @@
 	    <input type="text" class="name"> - name<br>
 	    <input type="text" class="surname"> - surname<br>
 	    <input type="text" class="age"> - age<br>
-	    <div class="full-info" style="padding:2em;margin:2em;border:1px solid black;"></div>
+	    <div class="full-info" style="padding:2em;margin:2em;border:1px solid black;">
+		
+	    </div>
+	    <input type="checkbox" name="evil" /> - am I Evil?
+	    <div class="your-evilness">
+
+	    </div>
 	</div>
 	<script>
 	    var fr = new Firera(".container");// ".container" is a scope, which this instance will operate within
+	    
+	    fr(".your-evilness|html").as("input[name=evil]|val");
 	    
 	    fr("a").is(3);
 	    fr("b").is(function(a){ return a*2;}, 'a');
