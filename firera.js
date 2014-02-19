@@ -43,6 +43,7 @@ var Firera = function($el, custom_drivers){
     }
     
     var Cell = function(selector){
+	this.selector = selector;
 	vars[selector] = this;
 	if(selector.indexOf("|") !== -1){
 	    // this is a dom selector
@@ -82,10 +83,10 @@ var Firera = function($el, custom_drivers){
     
     Cell.prototype.set = function(val){
 	this.val = val;
-	this.updateObservers();
 	if(this.driver.setter){
 	    this.driver.setter.apply(this, val);
 	}
+	this.updateObservers();
 	return this;
     }
     
@@ -139,7 +140,7 @@ var Firera = function($el, custom_drivers){
     return function(selector){
 	if(selector instanceof Object){
 	    for(var i in selector){
-		var cell = new Cell(i);
+		var cell = vars[i] ? vars[i] : new Cell(i);
 		if(selector[i] instanceof Array){
 		    if(selector[i][0] instanceof Function){
 			cell['is'].apply(cell, selector[i]);

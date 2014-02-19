@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width">
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
-        <script src="/firera.js"></script>
+        <script src="firera.js"></script>
 	<style>
 	    body {
 		font-size: 16px;
@@ -30,7 +30,7 @@
 	<script>
 	    var fr = new Firera(".container");// ".container" is a scope, which this instance will operate within
 	    
-	    /*fr("a").is(3);
+	    fr("a").is(3);
 	    fr("b").is(function(a){ return a*2;}, 'a');
 	    fr("c").is(function(a, b){ return Math.pow(a, b);}, 'a', 'b');
 	    
@@ -41,7 +41,7 @@
 	    console.log(fr('b').get()); // 4
 	    console.log(fr('c').get()); // 16
 	    
-	    fr("logged_in").is(false);
+	    //fr("logged_in").is(false);
 	    
 	    fr(".logout|visibility").as('logged_in');
 	    fr(".login|visibility").notAs('logged_in');
@@ -59,7 +59,7 @@
 		".name|val",
 		".surname|val",
 		".age|val"
-	    );*/
+	    );
 	    
 	     
 	    fr({
