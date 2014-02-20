@@ -61,9 +61,9 @@ Another example is a value of input field: fr("input[type=text]|value") will alw
     			    return 'Enter more info!';
     		    }
     		},
-    		".name|val",
-    		".surname|val",
-    		".age|val"
+    		".name|value",
+    		".surname|value",
+    		".age|value"
       );
 	</script>
 
@@ -93,9 +93,9 @@ You can also use batch assignment, which is robust.
 		    return 'Enter more info!';
 		}
 	    },
-	    ".name|val",
-	    ".surname|val",
-	    ".age|val"
+	    ".name|value",
+	    ".surname|value",
+	    ".age|value"
 	],
     })
 

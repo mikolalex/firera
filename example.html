@@ -4,17 +4,28 @@
         <title></title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width">
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+	<script src="../jquery.min.js">
+	    
+	    </script>
         <script src="firera.js"></script>
 	<style>
 	    body {
 		font-size: 16px;
 		font-family: sans-serif;
 	    }
+	    
+	    .selected {
+		background-color: whitesmoke;
+		border-radius: 10px;
+	    }
 	</style>
     </head>
     <body>
 	<div class="container">
+	    <h2>
+		Button visibility
+	    </h2>
 	    <div class="login">
 		<a href="/login">Login</a>
 	    </div>
@@ -22,21 +33,60 @@
 		<a href="/logout">Logout</a>
 	    </div>
 	    <br><br>
+	    <h2>
+		Input values
+	    </h2>
 	    <input type="text" class="name"> - name<br>
 	    <input type="text" class="surname"> - surname<br>
 	    <input type="text" class="age"> - age<br>
 	    <div class="full-info" style="padding:2em;margin:2em;border:1px solid black;">
 		
 	    </div>
-	    <input type="checkbox" name="evil" /> - am I Evil?
+	    <input type="checkbox" name="evil" /> - am I checked?
 	    <div class="your-evilness">
 
+	    </div>
+	    <h2>
+		Working with lists
+	    </h2>
+	    <div class="list-test">
+		<ul>
+		    <li data-value="ene">
+			ene
+		    </li>
+		    <li data-value="bene">
+			bene
+		    </li>
+		    <li data-value="raba">
+			raba
+		    </li>
+		    <li data-value="kvinter">
+			kvinter
+		    </li>
+		    <li data-value="finter">
+			finter
+		    </li>
+		    <li data-value="zhaba">
+			zhaba
+		    </li>
+		</ul>
+		<div class="selected-item">
+		    
+		</div>
 	    </div>
 	</div>
 	<script>
 	    var fr = new Firera(".container");// ".container" is a scope, which this instance will operate within
 	    
-	    fr(".your-evilness|html").as("input[name=evil]|val");
+	    fr(".your-evilness|html").as("input[name=evil]|value");
+	    
+	    fr(".selected-item|html").is(
+		function(str){ 
+		    if(str) return 'Selected item value is ' + str;
+		    else return 'No item selected';
+		}, 
+		".list-test ul|selectedItem"
+	    )
 	    
 	    fr("a").is(3);
 	    fr("b").is(function(a){ return a*2;}, 'a');
@@ -64,9 +114,9 @@
 			return 'Enter more info!';
 		    }
 		},
-		".name|val",
-		".surname|val",
-		".age|val"
+		".name|value",
+		".surname|value",
+		".age|value"
 	    );
 	    
 	     
@@ -92,9 +142,9 @@
 			    return 'Enter more info!';
 			}
 		    },
-		    ".name|val",
-		    ".surname|val",
-		    ".age|val"
+		    ".name|value",
+		    ".surname|value",
+		    ".age|value"
 		],
 	    })
 	  

@@ -1,4 +1,11 @@
-var Firera = function(context, custom_drivers){
+var Firera = function(context, custom_drivers, $){
+    if(!$){
+	if(jQuery){
+	    $ = jQuery;
+	} else {
+	    error('No DOM library provided!');
+	}
+    }
     var scope = context || false;
     var vars = [];
     var drivers = {
@@ -14,19 +21,58 @@ var Firera = function(context, custom_drivers){
 		}
 	    }
 	},
-	val: {
+	value: {
 	    selfRefresh: true,
 	    setter: function(val, selector, context){
-		$(selector, context).val(val);
+		var $el = $(selector, context);
+		switch($el.prop('type')){
+		    case 'checkbox':
+			$el.prop('checked', !!val);
+		    break;
+		    default:
+			$el.val(val);
+		    break;
+		}
 	    },
 	    getter: function(selector, context){
-		console.log('getter is called ' + selector + ' ' + context + ": " + $(selector, context).val());
-		return $(selector, context).val();
+		var $el = $(selector, context);
+		switch($el.prop('type')){
+		    case 'checkbox':
+			return $el.prop('checked');
+		    break;
+		    default:
+			return $el.val();
+		    break;
+		}
 	    },
 	    startObserving: function(selector, context){
 		var self = this;
 		$(selector, context).bind("keyup, change", function(val){
 		    self.val = val;		    
+		    self.compute();
+		})
+	    }
+	},
+	selectedItem: {
+	    selfRefresh: true,
+	    setter: function(val, selector, context){
+		var list = $(selector, context);
+		list.children().removeClass('selected');
+		list.children("[data-value=" + val + "]").addClass("selected");
+	    },
+	    getter: function(selector, context){
+		return $(selector + " > .selected", context).attr('data-value');
+	    },
+	    startObserving: function(selector, context){
+		if(!$(selector, context).length){
+		    error("No element found by selector " + selector);
+		}
+		var self = this;
+		var items = $(selector, context).children();
+		items.click(function(){
+		    items.removeClass('selected');
+		    self.val = $(this).attr('data-value');
+		    $(this).addClass('selected');
 		    self.compute();
 		})
 	    }
@@ -44,7 +90,7 @@ var Firera = function(context, custom_drivers){
     }
     
     var error = function(str){
-	console.log("EROOR: " + str);
+	console.log("Firera error: " + str);
     }
     
     var Cell = function(selector){
@@ -58,13 +104,13 @@ var Firera = function(context, custom_drivers){
 		error('Selected element "' + this.jquerySelector + '" not found in scope(' + scope + ')');
 	    }
 	    if(!drivers[parts[1]]){
-		error('Unknown html driver: ' + parts[1]);
+		error('Unknown driver: ' + parts[1]);
 	    } else {
 		this.type = parts[1];
 	    }
 	    if(drivers[this.type].selfRefresh){
 		this.compute = function(){
-		    this.val = drivers[this.type].getter.call(this, this.jquerySelector, scope);
+		    this.val = drivers[this.type].getter(this.jquerySelector, scope);
 		    this.updateObservers();
 		}
 		drivers[this.type].startObserving.call(this, this.jquerySelector, scope);
@@ -88,7 +134,7 @@ var Firera = function(context, custom_drivers){
     Cell.prototype.set = function(val){
 	this.val = val;
 	if(this.driver.setter){
-	    this.driver.setter.call(this, val, this.jquerySelector, scope);
+	    this.driver.setter(val, this.jquerySelector, scope);
 	}
 	this.updateObservers();
 	return this;
@@ -103,10 +149,10 @@ var Firera = function(context, custom_drivers){
     }
     
     Cell.prototype.as = function(cell){
-	this.is.call(this, function(flag){ return !!flag;}, cell);
+	this.is(function(flag){ return !!flag;}, cell);
     }
     Cell.prototype.notAs = function(cell){
-	this.is.call(this, function(flag){ return !flag;}, cell);
+	this.is(function(flag){ return !flag;}, cell);
     }
     
     Cell.prototype.is = function(formula){
@@ -133,7 +179,7 @@ var Firera = function(context, custom_drivers){
 	    }
 	    this.val = formula.apply(this, args1);
 	    if(this.driver.setter){
-		this.driver.setter.call(this, this.val, this.jquerySelector, scope);
+		this.driver.setter(this.val, this.jquerySelector, scope);
 	    }
 	    this.updateObservers();
 	}
