@@ -5,9 +5,9 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width">
 	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
-	<script src="../jquery.min.js">
+	<script src="../jquery.js">
 	    
-	    </script>
+	</script>
         <script src="firera.js"></script>
 	<style>
 	    body {
@@ -73,6 +73,16 @@
 		<div class="selected-item">
 		    
 		</div>
+	    </div>
+	    <h2>
+		ifAll and ifAny
+	    </h2>
+	    <div>
+		<div style="margin:10px;padding:10px;background-color:whitesmoke;border-radius:10px;" class="some-area">
+		    some area
+		</div>
+		<input type="text" class="if-all"> - all<br>
+		<input type="text" class="if-any"> - any<br>
 	    </div>
 	</div>
 	<script>
@@ -147,6 +157,18 @@
 		    ".age|value"
 		],
 	    })
+	    
+	    var hub2 = new Firera();
+	    
+	    hub2("a").is(true);
+	    hub2("b").as(".some-area|mouseover");
+	    hub2("c").is(true);
+	    
+	    hub2(".if-all|value").ifAll('a', 'b', 'c');
+	    hub2(".if-any|value").ifAny('a', 'b', 'c');
+	    
+	    
+	    
 	  
 	     
 	</script>

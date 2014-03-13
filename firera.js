@@ -53,6 +53,22 @@ var Firera = function(context, custom_drivers, $){
 		})
 	    }
 	},
+	mouseover: {
+	    selfRefresh: true,
+	    getter: function(selector, context){
+		return $(selector, context).is(":hover");
+	    },
+	    startObserving: function(selector, context){
+		var self = this;
+		$(selector, context).mouseenter(function(){
+		    self.val = true;		    
+		    self.compute();
+		}).mouseleave(function(){
+		    self.val = false;		    
+		    self.compute();
+		})
+	    }
+	},
 	selectedItem: {
 	    selfRefresh: true,
 	    setter: function(val, selector, context){
@@ -149,10 +165,34 @@ var Firera = function(context, custom_drivers, $){
     }
     
     Cell.prototype.as = function(cell){
-	this.is(function(flag){ return !!flag;}, cell);
+	return this.is(function(flag){ return !!flag;}, cell);
     }
     Cell.prototype.notAs = function(cell){
-	this.is(function(flag){ return !flag;}, cell);
+	return this.is(function(flag){ return !flag;}, cell);
+    }
+    Cell.prototype.ifAll = function(){
+	var args = Array.prototype.slice.call(arguments, 0);
+	args.unshift(function(){
+	    var args = Array.prototype.slice.call(arguments, 0);
+	    var res = true;
+	    for(var i = 0; i< args.length;i++){
+		res = res && args[i];
+	    }
+	    return res;
+	});
+	return this.is.apply(this, args);
+    }
+    Cell.prototype.ifAny = function(){
+	var args = Array.prototype.slice.call(arguments, 0);
+	args.unshift(function(){
+	    var args = Array.prototype.slice.call(arguments, 0);
+	    var res = false;
+	    for(var i = 0; i< args.length;i++){
+		res = res || args[i];
+	    }
+	    return res;
+	});
+	return this.is.apply(this, args);
     }
     
     Cell.prototype.is = function(formula){
