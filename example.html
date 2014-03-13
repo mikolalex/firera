@@ -77,7 +77,7 @@
 	    <h2>
 		ifAll and ifAny
 	    </h2>
-	    <div>
+	    <div class="test-if">
 		<div style="margin:10px;padding:10px;background-color:whitesmoke;border-radius:10px;" class="some-area">
 		    some area
 		</div>
@@ -86,7 +86,7 @@
 	    </div>
 	</div>
 	<script>
-	    var fr = new Firera(".container");// ".container" is a scope, which this instance will operate within
+	    var fr = Firera.hub(".container");// ".container" is a scope, which this instance will operate within
 	    
 	    fr(".your-evilness|html").as("input[name=evil]|value");
 	    
@@ -158,14 +158,21 @@
 		],
 	    })
 	    
-	    var hub2 = new Firera();
+	    var hub2 = Firera.hub({
+		a: true,
+		b: ['as', ".some-area|mouseover"],
+		c: true,
+		".if-all|value": ['ifAll', 'a', 'b', 'c'],
+		".if-any|value": ['ifAny', 'a', 'b', 'c'],
+		
+	    }, ".test-if");
 	    
-	    hub2("a").is(true);
+	    /*hub2("a").is(true);
 	    hub2("b").as(".some-area|mouseover");
 	    hub2("c").is(true);
 	    
 	    hub2(".if-all|value").ifAll('a', 'b', 'c');
-	    hub2(".if-any|value").ifAny('a', 'b', 'c');
+	    hub2(".if-any|value").ifAny('a', 'b', 'c');*/
 	    
 	    
 	    
