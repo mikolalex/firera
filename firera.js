@@ -1,22 +1,30 @@
 (function(){
+    /*
+     * @todo: змінити синтаксис хтмл драйверів, передавати у них лише один селектор, і функції - сеттер і оновлювач)
+     * @todo: unbind previous bindings
+     * 
+     * 
+     * 
+     */
     var $ = window['jQuery'] || window['$'] || false;
     var drivers = {
 	cell: {
 	    
 	},
 	visibility: {
-	    setter: function(val, selector, context){
+	    setter: function(val, selector){
 		if(val){
-		    $(selector, context).show();
+		    $(selector).show();
 		} else {
-		    $(selector, context).hide();
+		    $(selector).hide();
 		}
 	    }
 	},
 	value: {
+	    def: '',
 	    selfRefresh: true,
-	    setter: function(val, selector, context){
-		var $el = $(selector, context);
+	    setter: function(val, selector){
+		var $el = $(selector);
 		switch($el.prop('type')){
 		    case 'checkbox':
 			$el.prop('checked', !!val);
@@ -26,8 +34,8 @@
 		    break;
 		}
 	    },
-	    getter: function(selector, context){
-		var $el = $(selector, context);
+	    getter: function(selector){
+		var $el = $(selector);
 		switch($el.prop('type')){
 		    case 'checkbox':
 			return $el.prop('checked');
@@ -37,22 +45,23 @@
 		    break;
 		}
 	    },
-	    startObserving: function(selector, context){
+	    startObserving: function(selector){
 		var self = this;
-		$(selector, context).bind("keyup, change", function(val){
+		$(selector).bind("keyup, change", function(val){
 		    self.val = val;		    
 		    self.compute();
 		})
 	    }
 	},
 	mouseover: {
+	    def: false,
 	    selfRefresh: true,
-	    getter: function(selector, context){
-		return $(selector, context).is(":hover");
+	    getter: function(selector){
+		return $(selector).is(":hover");
 	    },
-	    startObserving: function(selector, context){
+	    startObserving: function(selector){
 		var self = this;
-		$(selector, context).mouseenter(function(){
+		$(selector).mouseenter(function(){
 		    self.val = true;		    
 		    self.compute();
 		}).mouseleave(function(){
@@ -62,21 +71,22 @@
 	    }
 	},
 	selectedItem: {
+	    def: false,
 	    selfRefresh: true,
-	    setter: function(val, selector, context){
-		var list = $(selector, context);
+	    setter: function(val, selector){
+		var list = $(selector);
 		list.children().removeClass('selected');
 		list.children("[data-value=" + val + "]").addClass("selected");
 	    },
-	    getter: function(selector, context){
-		return $(selector + " > .selected", context).attr('data-value');
+	    getter: function(selector){
+		return $(selector + " > .selected").attr('data-value');
 	    },
-	    startObserving: function(selector, context){
-		if(!$(selector, context).length){
+	    startObserving: function(selector){
+		if(!$(selector).length){
 		    error("No element found by selector " + selector);
 		}
 		var self = this;
-		var items = $(selector, context).children();
+		var items = $(selector).children();
 		items.click(function(){
 		    items.removeClass('selected');
 		    self.val = $(this).attr('data-value');
@@ -86,8 +96,8 @@
 	    }
 	},
 	html: {
-	    setter: function(val, selector, context){
-		$(selector, context).html(val);
+	    setter: function(val, selector){
+		$(selector).html(val);
 	    }
 	}
     }
@@ -101,12 +111,13 @@
 	this.scope = scope;
 	this.vars = vars;
 	vars[selector] = this;
-	if(selector.indexOf("|") !== -1){
+	if(selector.indexOf("|") !== -1){// HTML selector
 	    // this is a dom selector
 	    var parts = selector.split("|");
 	    this.jquerySelector = parts[0];
-	    if(!$(this.jquerySelector, scope).length){
-		error('Selected element "' + this.jquerySelector + '" not found in scope(' + scope + ')');
+	    this.scopedSelector = this.scope + " " + this.jquerySelector;
+	    if(!$(parts[0], this.scope).length){
+		error('Selected element "' + this.scopedSelector + '" not found');
 	    }
 	    if(!drivers[parts[1]]){
 		error('Unknown driver: ' + parts[1]);
@@ -114,12 +125,20 @@
 		this.type = parts[1];
 	    }
 	    if(drivers[this.type].selfRefresh){
+		this.val = drivers[this.type].def;
 		this.compute = function(){
-		    this.val = drivers[this.type].getter(this.jquerySelector, scope);
+		    this.val = drivers[this.type].getter(this.scopedSelector);
 		    this.updateObservers();
+		    return this;
 		}
-		drivers[this.type].startObserving.call(this, this.jquerySelector, scope);
-		this.compute();
+		this.rebind = function(){
+		    //console.log('now the scope is ' + this.scope+', rebinding');
+		    drivers[this.type].startObserving.call(this, this.scopedSelector);
+		    this.compute();
+		    return this;
+		}
+		this.scope && this.rebind();
+		
 	    }
 	} else { // this is just custom abstract varname
 	    this.type = 'cell';
@@ -136,11 +155,13 @@
 	return this.val;
     }
     
+    Cell.prototype.rebind = function(){
+	/* empty for default cell, will be overwritten for self-refreshing cells */
+    }
+    
     Cell.prototype.set = function(val){
 	this.val = val;
-	if(this.driver.setter){
-	    this.driver.setter(val, this.jquerySelector, this.scope);
-	}
+	this.driver.setter && this.driver.setter(val, this.scopedSelector);
 	this.updateObservers();
 	return this;
     }
@@ -151,6 +172,12 @@
 		this.observers[i].compute();
 	    }
 	} 
+    }
+    
+    Cell.prototype.setScope = function(scope){
+	this.scope = scope;
+	this.scopedSelector = this.scope + " " + this.jquerySelector;
+	return this;
     }
     
     Cell.prototype.as = function(cell){
@@ -208,9 +235,10 @@
 	    }
 	    this.val = formula.apply(this, args1);
 	    if(this.driver.setter){
-		this.driver.setter(this.val, this.jquerySelector, this.scope);
+		this.driver.setter(this.val, this.jquerySelector);
 	    }
 	    this.updateObservers();
+	    return this;
 	}
 	if(args.length) this.compute();
 	return this;
@@ -222,7 +250,7 @@
 	throw new Exception('Cant assign library, varname already taken: ' + lib_var_name);
     } else {
 	window[lib_var_name] = {
-	    hub: function(a, b){// a, b = hash, context | a(object) = hash | a(string) = context | 
+	    hash: function(a, b){// a, b = hash, context | a(object) = hash | a(string) = context | 
 		var vars = [];
 		var init_hash, context;
 		if(!b){
@@ -253,13 +281,23 @@
 		if(init_hash){
 		    init_with_hash(init_hash);
 		}
-		    
-		return function(selector){
+		
+		var hash = function(selector){
 		    if(selector instanceof Object){
 			return init_with_hash(selector);
 		    }
 		    return vars[selector] || new Cell(selector, scope, vars);
 		}
+		hash.applyTo = function(selector){
+		    for(var i in vars){
+			vars[i].setScope(selector).rebind();
+		    }
+		}
+		    
+		return hash;
+	    },
+	    list: function(){/* */
+		
 	    },
 	    config: function(obj){
 		if(obj.dom_lib) $ = obj.dom_lib;
