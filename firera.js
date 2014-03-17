@@ -3,7 +3,7 @@
      * @todo: змінити синтаксис хтмл драйверів, передавати у них лише один селектор, і функції - сеттер і оновлювач)
      * @todo: unbind previous bindings
      * 
-     * 
+     * можливо, замість frp("a").is(...) писати var a = frp(function(){}, b, c);
      * 
      */
     var $ = window['jQuery'] || window['$'] || false;
@@ -107,9 +107,13 @@
     }
     
     var Cell = function(selector, scope, vars){
+	this.inited = false;
 	this.selector = selector;
 	this.scope = scope;
+	this.original = false;
+	this.observables = {};
 	this.vars = vars;
+	this.observers = [];
 	vars[selector] = this;
 	if(selector.indexOf("|") !== -1){// HTML selector
 	    // this is a dom selector
@@ -125,10 +129,12 @@
 		this.type = parts[1];
 	    }
 	    if(drivers[this.type].selfRefresh){
+		this.original = true;
 		this.val = drivers[this.type].def;
 		this.compute = function(){
 		    this.val = drivers[this.type].getter(this.scopedSelector);
-		    this.updateObservers();
+		    this.invalidateObservers(this.getName());
+		    this.updateObservers(this.getName());
 		    return this;
 		}
 		this.rebind = function(){
@@ -143,8 +149,22 @@
 	} else { // this is just custom abstract varname
 	    this.type = 'cell';
 	}
-	this.observers = [];
 	this.driver = drivers[this.type];
+    }
+    
+    Cell.prototype.getName = function(){
+	return this.selector;
+    }
+    
+    Cell.prototype.addObservable = function(cellname){
+	this.observables[cellname] = 0;
+    }
+    
+    Cell.prototype.invalidateObservers = function(name){
+	if(this.getName() != name) this.observables[name]++;
+	for(var i=0; i<this.observers.length;i++){
+	    this.observers[i].invalidateObservers(name);
+	}
     }
     
     Cell.prototype.addObserver = function(cell){
@@ -161,15 +181,16 @@
     
     Cell.prototype.set = function(val){
 	this.val = val;
-	this.driver.setter && this.driver.setter(val, this.scopedSelector);
-	this.updateObservers();
+	//this.driver.setter && this.driver.setter(val, this.scopedSelector);
+	this.invalidateObservers(this.getName());
+	this.updateObservers(this.getName());
 	return this;
     }
     
-    Cell.prototype.updateObservers = function(){
+    Cell.prototype.updateObservers = function(name){
 	if(this.observers){
 	    for(var i=0; i<this.observers.length;i++){
-		this.observers[i].compute();
+		this.observers[i].compute(name);
 	    }
 	} 
     }
@@ -181,7 +202,7 @@
     }
     
     Cell.prototype.as = function(cell){
-	return this.is(function(flag){ return !!flag;}, cell);
+	return this.is(function(flag){ return flag;}, cell);
     }
     Cell.prototype.notAs = function(cell){
 	return this.is(function(flag){ return !flag;}, cell);
@@ -212,6 +233,12 @@
     }
     
     Cell.prototype.is = function(formula){
+	if(this.inited){
+	    error('Cell already inited!'); 
+	    return;
+	} else {
+	    this.inited = true;
+	}
 	var args = Array.prototype.slice.call(arguments, 1);
 	if(args.length){
 	    for(var i= 0;i<args.length;i++){
@@ -222,13 +249,38 @@
 			args[i] = new Cell(args[i], this.scope, this.vars);
 		    }
 		}
+		
+		if(!(Object.keys(args[i].observables).length)){
+		    //console.log('we add observable ' + args[i].getName() +' for ' + this.getName());
+		    this.addObservable(args[i].getName());
+		} else {
+		    for(var x in args[i].observables){
+			//console.log('we add observable ' + args[i].observables[x] +' for ' + this.getName());
+			this.addObservable(x);
+		    }
+		}
 		args[i].addObserver(this);
 	    }
 	    this.formula = formula;
 	} else {
-	    this.val = formula;
+	    this.val = formula;// just a value
+	    this.original = true;
 	}
-	this.compute = function(){
+	this.compute = function(name){
+	    if(name){
+		if(!this.observables[name]){
+		    error('observable not found: ' + name + ' in cell ' + this.getName());
+		} else {
+		    //console.log('observable FOUND: ' + name + ' in cell ' + this.getName() + ', value is ' + this.observables[name]);
+		    this.observables[name]--;
+		    if(this.observables[name] > 0) {
+			//console.log('skipping computing for ' + this.getName());
+			return;
+		    } else {
+			//console.log('now ' + name + " is 0 in " + this.getName() + ", so, computing!");
+		    }
+		}
+	    }
 	    var args1 = [];
 	    for(var i=0; i<args.length;i++){
 		args1.push(args[i].get());
@@ -237,7 +289,7 @@
 	    if(this.driver.setter){
 		this.driver.setter(this.val, this.jquerySelector);
 	    }
-	    this.updateObservers();
+	    this.updateObservers(name);
 	    return this;
 	}
 	if(args.length) this.compute();
@@ -245,6 +297,22 @@
     }
     
     var lib_var_name = 'Firera';
+    
+    var collect_values = function(method, obj){
+	var res = {};
+	for(var i in obj){
+	    if(i.indexOf("|") != -1) continue;
+	    res[i] = obj[i][method]();
+	}
+	return res;
+    }
+    
+    var make_template = function(obj, templ){
+	for(var i in obj){
+	    templ = templ.replace("{" + i + "}", obj[i]);
+	}
+	return templ;
+    }
     
     if(window[lib_var_name]){
 	throw new Exception('Cant assign library, varname already taken: ' + lib_var_name);
@@ -278,26 +346,51 @@
 		    return true;
 		}
 		//////////////////////////////////////////		
-		if(init_hash){
-		    init_with_hash(init_hash);
-		}
+		init_hash && init_with_hash(init_hash);
 		
-		var hash = function(selector){
+		var self = function(selector){
 		    if(selector instanceof Object){
 			return init_with_hash(selector);
 		    }
 		    return vars[selector] || new Cell(selector, scope, vars);
 		}
-		hash.applyTo = function(selector){
+		self.applyTo = function(selector, template){
+		    if(template){
+			var values = collect_values('get', vars);
+			$(selector).append(make_template(values, template));
+		    }
 		    for(var i in vars){
 			vars[i].setScope(selector).rebind();
 		    }
 		}
 		    
-		return hash;
+		return self;
 	    },
-	    list: function(){/* */
+	    list: function(a, b){/* */
+		var list = [];
 		
+		var self = function(){
+		    // apply all arguments to the list of hashes
+		}
+		
+		self.applyTo = function(selector){
+		    for(var i in vars){
+			vars[i].setScope(selector).rebind();
+		    }
+		}
+		
+		var init_list = [], context = false;
+		if(!b){
+		    if(a instanceof Array) init_list = a;
+		    else context = a;
+		} else {
+		    init_list = a;
+		    context = b;
+		}
+		for(var i = 0;i<=init_list.length;i++){
+		    list.push(window[lib_var_name].hash(init_list[i], context));
+		}
+		return self;
 	    },
 	    config: function(obj){
 		if(obj.dom_lib) $ = obj.dom_lib;
