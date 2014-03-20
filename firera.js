@@ -113,7 +113,8 @@
 	console.log("Firera error: " + str);
     }
     
-    var Cell = function(selector, scope, vars){
+    var Cell = function(selector, scope, vars, host){
+	this.host = host;
 	this.inited = false;
 	this.modifiers = [];
 	this.selector = selector;
@@ -256,15 +257,18 @@
 	return this.is.apply(this, args);
     }
     Cell.prototype.template = function(){
-	var vars = Array.prototype.slice.call(arguments, 1);
-	var template = arguments[0];
+	//console.log('args are', arguments);
+	var vars = Array.prototype.slice.call(arguments, 0);
 	vars.unshift(function(){
 	    var obj = {};
-	    for(var i = 0;i<arguments.length;i++){
+	    for(var i = 1;i<arguments.length;i++){
 		obj[vars[i+1]] = arguments[i];
 	    }
-	    return make_template(obj, template);
+	    //console.log('html is', 'obj is', obj, 'template is', arguments[0]);
+	    var html = make_template(obj, arguments[0]);
+	    return html;
 	});
+	//console.log('vars are', vars);
 	return this.is.apply(this, vars);
     }
     Cell.prototype.ifAny = function(){
@@ -281,7 +285,7 @@
     }
     
     Cell.prototype.are = function(arr){
-	List.call(this, arr, this.scope);
+	List.call(this, arr, this.scope, this.host);
 	for(var i in List.prototype){
 	    this[i] = List.prototype[i];
 	}
@@ -317,7 +321,7 @@
 		if(this.vars[args[i]]){
 		    args[i] = this.vars[args[i]];
 		} else {
-		    args[i] = new Cell(args[i], this.scope, this.vars);
+		    args[i] = new Cell(args[i], this.scope, this.vars, this);
 		}
 	    }
 
@@ -409,7 +413,7 @@
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
 		for(var i in selector){
-		    var cell = vars[i] ? vars[i] : new Cell(i, scope, vars);
+		    var cell = vars[i] ? vars[i] : new Cell(i, scope, vars, self);
 		    if(selector[i] instanceof Array){
 			if(selector[i][0] instanceof Function){
 			    cell['is'].apply(cell, selector[i]);
@@ -429,13 +433,14 @@
 		if(selector instanceof Object){
 		    return init_with_hash(selector);
 		}
-		return vars[selector] || new Cell(selector, scope, vars);
+		return vars[selector] || new Cell(selector, scope, vars, self);
 	    }
 	    self.applyTo = function(selector, template){
 		if(template){
 		    var names = collect_names(vars);
+		    //console.log('names are', names);
 		    names.unshift(template);
-		    self(selector + "|html").template(names);
+		    self(selector + "|html").template.apply(self(selector + "|html"), names);
 		    self(selector + "|html").onChange = function(){
 			    self.rebind();
 		    };
@@ -443,11 +448,18 @@
 		}
 		self.setScope(selector);
 	    }
+	    
+	    self.rebind = function(){
+		for(var i in vars){
+		    vars[i].rebind();
+		}
+	    }
 
 	    self.setScope = function(scope){
 		for(var i in vars){
 		    vars[i].setScope(scope).rebind();
 		}
+		return this;
 	    }
 
 	    return self;
@@ -475,9 +487,10 @@
 	}
     }
     
-    var List = function(init_list, context){
+    var List = function(init_list, context, host){
+	this.host = host;
 	this.list = [];
-	for(var i = 0;i<=init_list.length;i++){
+	for(var i = 0;i<init_list.length;i++){
 	    this.list.push(window[lib_var_name].hash(init_list[i], context));
 	}
     };
@@ -492,8 +505,9 @@
     };
     	    
     List.prototype.setScope = function(scope){
+	this.scope = scope;
 	for(var i in this.list){
-	    this.list[i].setScope(scope).rebind();
+	    this.list[i].setScope(scope);
 	}
 	return this;
     }
@@ -504,13 +518,26 @@
 	}
 	return this;
     }
+    List.prototype.rebind = function(){
+	for(var i in this.list){
+	    this.list[i].rebind();
+	}
+    }
 
     List.prototype.renderTo = function(node, template){// actually, mixin
+	this.setScope(node);
 	var res = [];
-	for(var i = 0;i<=this.list.length;i++){
+	console.dir(this.list);
+	for(var i = 0;i<this.list.length;i++){
 	    res.push('<div class="firera-item"></div>');
 	}
 	$(node).html(res.join(""));
+	for(i = 0;i<this.list.length;i++){
+	    //console.log('list i ' + i + ' is', this.list[i]);
+	    //console.log('host is ' + this.host);
+	    this.list[i].applyTo(this.scope + " > div:nth-child(" + (i + 1) + ")", this.host(template));
+	}
+	console.dir(this.list);
 	return this;
     }
 	
