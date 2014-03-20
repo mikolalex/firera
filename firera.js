@@ -1,6 +1,5 @@
 (function(){
-    /*
-     * @todo: змінити синтаксис хтмл драйверів, передавати у них лише один селектор, і функції - сеттер і оновлювач)
+    /* @todo: змінити синтаксис хтмл драйверів, передавати у них лише один селектор, і функції - сеттер і оновлювач)
      * @todo: unbind previous bindings
      * @todo: обгортка до хттп запитів як змінна. Можна зробити запит один раз, можна регулярно(інтервал).
      * можливо, замість frp("a").is(...) писати var a = frp(function(){}, b, c);
@@ -113,15 +112,69 @@
 	console.log("Firera error: " + str);
     }
     
+    var changeble = {
+	__init: function(){
+	    this.changers = [];
+	},
+	change: function(prev_val, new_val){
+	    for(var i = 0;i< this.changers.length;i++){
+		this.changers[i].call(this, prev_val, new_val);
+	    }
+	},
+	onChange: function(func){
+	    this.changers.push(func);
+	}
+    }
+    
+    var pour = function(obj, mixin){
+	if(mixin.__init){
+	    mixin.__init.call(obj);
+	}
+	for(var i in mixin){
+	    if(i == '__init') continue;
+	    if(obj[i]){
+		error('conflict, property ' + i + ' already exists in mixin!');
+	    }
+	    if(mixin[i] instanceof Function){
+		obj[i] = mixin[i];
+	    }
+	}
+    }
+    
+    var get_map_func = function(func){
+	var res;
+	if(func && !(func instanceof Function)){// its object property , like "name" or "!completed"
+	    if(func.indexOf("!") === 0){
+		res = (function(field){
+		    return function(){
+			return !this[field];
+		    }
+		}(func.replace("!", "")))
+	    } else {
+		res = (function(field){
+		    return function(){
+			return !!this[field];
+		    }
+		}(func))
+	    }
+	} else {
+	    res = func;
+	}
+	return res;
+    }
+    
     var Cell = function(selector, scope, vars, host){
+	if(!host){
+	    error('no host in cell ' + selector);
+	}
 	this.host = host;
 	this.inited = false;
 	this.modifiers = [];
 	this.selector = selector;
 	this.scope = scope;
-	this.original = false;
 	this.observables = {};
 	this.vars = vars;
+	this.changers = [];
 	this.observers = [];
 	vars[selector] = this;
 	if(selector.indexOf("|") !== -1){// HTML selector
@@ -138,7 +191,6 @@
 		this.type = parts[1];
 	    }
 	    if(drivers[this.type].selfRefresh){
-		this.original = true;
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
 		    drivers[this.type].startObserving.call(this, this.scopedSelector);
@@ -177,23 +229,18 @@
 	return this.val;
     }
     
-    Cell.prototype.onChange = function(prev_val, new_val){
-	//console.log(this.getName() + ' changed from ' + prev_val + ' to ' + new_val + '!');
-    }
-    
     Cell.prototype.rebind = function(){
 	/* empty for default cell, will be overwritten for self-refreshing cells */
     }
     
-    Cell.prototype.addModifier = function(func){
+    Cell.prototype.then = function(func){
 	this.modifiers.push(func);
     }
     
     Cell.prototype.map = function(map){
-	this.addModifier(function(val){
+	this.then(function(val){
 	    if(map[val] !== undefined) return map[val];
-	    if(map['*'] !== undefined) return map['*'];
-	    return undefined;
+	    return val;
 	})
     }
     
@@ -204,10 +251,11 @@
 	    new_val = this.modifiers[i](new_val);
 	}
 	this.val = new_val;
-	this.onChange(old_val, new_val);
+	this.change(old_val, new_val);
 	//this.driver.setter && this.driver.setter(val, this.scopedSelector);
 	this.invalidateObservers(this.getName());
 	this.updateObservers(this.getName());
+	this.host.change();
 	return this;
     }
     
@@ -227,7 +275,6 @@
     
     Cell.prototype.just = function(val){
 	this.val = val;// just a value
-	this.original = true;
 	return this;
     }
     
@@ -285,11 +332,37 @@
     }
     
     Cell.prototype.are = function(arr){
-	List.call(this, arr, this.scope, this.host);
+	List.call(this, arr, this.scope, this.host, this.getName());
 	for(var i in List.prototype){
 	    this[i] = List.prototype[i];
 	}
 	return this;	
+    }
+    
+    Cell.prototype.counts = function(pred, arr){
+	var listname = arr ? arr : pred;
+	var func = arr ? pred : false;
+	if(!this.vars[listname]){
+	    error('Wrong parameter provided(' + listname +') for counts()');
+	}
+	var list = this.vars[listname];
+	list.addObserver(this);
+	func = get_map_func(func);
+	this.compute = function(){
+	    var old_val = this.val;
+	    var new_val = list.count(func);
+	    for(var i = 0; i< this.modifiers.length;i++){
+		new_val = this.modifiers[i](new_val);
+	    }
+	    this.val = new_val;
+	    if(this.driver.setter){
+		this.driver.setter(this.val, this.jquerySelector);
+	    }
+	    this.change(old_val, this.val);
+	    this.updateObservers(listname);
+	    return this;
+	}	
+	return this.compute();
     }
         
     Cell.prototype.is = function(f){
@@ -302,7 +375,7 @@
 	}
 	
 	if(formula instanceof Array){// creating new Firera hash
-	    console.log('array is ', formula);
+	    //console.log('array is ', formula);
 	    this.self = Firera.list(formula, arguments[1]/* scope */);
 	    return this;	    	    
 	}
@@ -315,7 +388,7 @@
 	if(!args.length){// is just an another cell
 	    args[0] = formula;
 	    formula = function(val){ return val;};
-	}
+	}	
 	for(var i= 0;i<args.length;i++){
 	    if(!(args[i] instanceof Cell)){
 		if(this.vars[args[i]]){
@@ -365,7 +438,7 @@
 	    if(this.driver.setter){
 		this.driver.setter(this.val, this.jquerySelector);
 	    }
-	    this.onChange(old_val, this.val);
+	    this.change(old_val, this.val);
 	    this.updateObservers(name);
 	    return this;
 	}
@@ -373,6 +446,7 @@
 	return this;
     }
     
+    pour(Cell.prototype, changeble);
     
     var collect_values = function(obj){
 	var res = {};
@@ -398,8 +472,74 @@
 	return templ;
     }
     
+    var Event = function(selector, scope, vars, host){
+	vars[selector] = this;
+	this.host = host;
+	this.vars = vars;// not needed?..
+	this.scope = scope;
+	this.selector = selector.split("|")[0];
+	this.scopedSelector = this.scope + " " + this.selector;
+	this.event = selector.split("|")[1];
+	this.handlers = [];
+	if(this.scope){
+	    this.rebind();
+	}
+    }
+    
+    Event.prototype.rebind = function(){
+	var self = this;
+	var val = null;
+	$(this.scopedSelector).bind(this.event, function(){
+	    for(var i = 0;i<self.handlers.length;i++){
+		var sup = self.host.host || false;
+		val = self.handlers[i](self.host, val, sup);
+	    }
+	})
+	//console.log('we bind ' + this.event + ' to ' + this.scopedSelector);
+	//console.dir(this);
+	return this;
+    }
+    
+    Event.prototype.setScope = function(scope){
+	this.scope = scope;
+	this.scopedSelector = this.scope + " " + this.selector;
+	return this;
+    }
+    
+    Event.prototype.removes = function(pred, list){
+	var arr = list ? list : pred;
+	var func = list ? pred : false;
+	var mass = this.host(arr);
+	this.handlers.push(function(){
+	    mass.remove(func);
+	})	
+	return this;
+    }
+    
+    Event.prototype.sets = function(cell, val){
+	var cell2 = this.host(cell);
+	this.handlers.push(function(){
+	    cell2.set(val);
+	})		
+	return this;
+    }
+    
+    var types = {
+	cell: Cell,
+	event: Event
+    }
+    
+    var events = ['click'];
+    
+    var create_cell_or_event = function(selector, scope, vars, self){
+	var type = (selector.indexOf("|") === -1 || events.indexOf(selector.split("|")[1]) === -1) ? 'cell' : 'event';
+	return new types[type](selector, scope, vars, self);
+    }
+    
+   
+    
     var Firera = {
-	hash: function(a, b){// a, b = hash, context | a(object) = hash | a(string) = context | 
+	hash: function(a, b, host){// a, b = hash, context | a(object) = hash | a(string) = context | 
 	    var vars = [];
 	    var init_hash, context;
 	    if(!b){
@@ -410,10 +550,17 @@
 		context = b;
 	    }
 	    var scope = context || false;
+	    
+	    var self = function(selector){
+		if(selector instanceof Object){
+		    return init_with_hash(selector);
+		}
+		return vars[selector] || create_cell_or_event(selector, scope, vars, self);
+	    }
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
 		for(var i in selector){
-		    var cell = vars[i] ? vars[i] : new Cell(i, scope, vars, self);
+		    var cell = vars[i] ? vars[i] : create_cell_or_event(i, scope, vars, self);
 		    if(selector[i] instanceof Array){
 			if(selector[i][0] instanceof Function){
 			    cell['is'].apply(cell, selector[i]);
@@ -429,24 +576,21 @@
 	    //////////////////////////////////////////		
 	    init_hash && init_with_hash(init_hash);
 
-	    var self = function(selector){
-		if(selector instanceof Object){
-		    return init_with_hash(selector);
-		}
-		return vars[selector] || new Cell(selector, scope, vars, self);
+	    if(host){
+		self.host = host;
 	    }
 	    self.applyTo = function(selector, template){
+		self.setScope(selector);
 		if(template){
 		    var names = collect_names(vars);
 		    //console.log('names are', names);
 		    names.unshift(template);
 		    self(selector + "|html").template.apply(self(selector + "|html"), names);
-		    self(selector + "|html").onChange = function(){
+		    self(selector + "|html").onChange(function(){
 			    self.rebind();
-		    };
+		    });
 		    //$(selector).append(make_template(values, template));
 		}
-		self.setScope(selector);
 	    }
 	    
 	    self.rebind = function(){
@@ -454,13 +598,30 @@
 		    vars[i].rebind();
 		}
 	    }
+	    
+	    self.remove = function(){
+		$(scope).remove();
+	    }
+	    
+	    self.emit = function(){
+		return collect_values(vars);
+	    }
 
-	    self.setScope = function(scope){
+	    self.setScope = function(scope2){
+		scope = scope2;
 		for(var i in vars){
-		    vars[i].setScope(scope).rebind();
+		    vars[i].setScope(scope2).rebind();
 		}
 		return this;
 	    }
+	    
+	    pour(self, changeble);
+	    
+	    self.onChange(function(){
+		if(this.host){
+		    this.host.change();
+		}
+	    })
 
 	    return self;
 	},
@@ -490,10 +651,58 @@
     var List = function(init_list, context, host){
 	this.host = host;
 	this.list = [];
+	this.map_funcs = [];
+	this.reduce_funcs = [];
+	this.count_funcs = [];
+	this._counter = 0;
 	for(var i = 0;i<init_list.length;i++){
-	    this.list.push(window[lib_var_name].hash(init_list[i], context));
+	    var index = this.list.push(window[lib_var_name].hash(init_list[i], false, this)) - 1;
+	    this.list[index]._index = this._counter;
+	    this._counter++;
 	}
+	var self = this;
+	this.onChange(function(){
+	    self.updateObservers();
+	})
+
     };
+    
+    List.prototype.map = function(func){
+	
+    }
+    
+    List.prototype.reduce = function(func){
+	
+    }
+    
+    List.prototype.remove = function(func){
+	if(!func){
+	    // Hm... remove all or nothing?
+	    return;
+	}
+	var f = get_map_func(func);
+	for(var i = 0;i<this.list.length;i++){
+	    if(f.apply(this.list[i].emit())){
+		console.log('res is', f.apply(this.list[i].emit()), 'for', this.list[i].emit());
+		this.list[i].remove();
+		delete this.list[i];
+	    }
+	}
+    }
+    
+    List.prototype.count = function(func){
+	if(!func) return this.list.length;
+	var total = 0;
+	for(var i=0;i<this.list.length;i++){
+	    var obj = this.list[i].emit();
+	    if(!!func.apply(obj)) total++;
+	}
+	return total;
+    }
+    
+    List.prototype.get = function(type/* reduce, count or map */, index){
+	return this[type + '_funcs'][index]('ololo');
+    }
     	    
     List.prototype.filter = function(){
 	
@@ -506,9 +715,6 @@
     	    
     List.prototype.setScope = function(scope){
 	this.scope = scope;
-	for(var i in this.list){
-	    this.list[i].setScope(scope);
-	}
 	return this;
     }
 
@@ -519,25 +725,22 @@
 	return this;
     }
     List.prototype.rebind = function(){
-	for(var i in this.list){
-	    this.list[i].rebind();
+	if(this.root_node && this.template){
+	    var res = [];
+	    for(var i = 0;i<this.list.length;i++){
+		res.push('<div class="firera-item" data-firera-num="' + this.list[i]._index + '"></div>');
+	    }
+	    $(this.root_node).html(res.join(""));
+	    for(i = 0;i<this.list.length;i++){
+		var nested_scope = this.scope + " " + this.root_node + " > div[data-firera-num=" + this.list[i]._index + "]";
+		this.list[i].applyTo(nested_scope, this.host(this.template));
+	    }
 	}
     }
 
     List.prototype.renderTo = function(node, template){// actually, mixin
-	this.setScope(node);
-	var res = [];
-	console.dir(this.list);
-	for(var i = 0;i<this.list.length;i++){
-	    res.push('<div class="firera-item"></div>');
-	}
-	$(node).html(res.join(""));
-	for(i = 0;i<this.list.length;i++){
-	    //console.log('list i ' + i + ' is', this.list[i]);
-	    //console.log('host is ' + this.host);
-	    this.list[i].applyTo(this.scope + " > div:nth-child(" + (i + 1) + ")", this.host(template));
-	}
-	console.dir(this.list);
+	this.root_node = node;
+	this.template = template;
 	return this;
     }
 	
