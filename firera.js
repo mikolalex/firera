@@ -1,9 +1,9 @@
 (function(){
-    /* @todo: змінити синтаксис хтмл драйверів, передавати у них лише один селектор, і функції - сеттер і оновлювач)
+    /* @todo: Р·РјС–РЅРёС‚Рё СЃРёРЅС‚Р°РєСЃРёСЃ С…С‚РјР» РґСЂР°Р№РІРµСЂС–РІ, РїРµСЂРµРґР°РІР°С‚Рё Сѓ РЅРёС… Р»РёС€Рµ РѕРґРёРЅ СЃРµР»РµРєС‚РѕСЂ, С– С„СѓРЅРєС†С–С— - СЃРµС‚С‚РµСЂ С– РѕРЅРѕРІР»СЋРІР°С‡)
      * @todo: unbind previous bindings
-     * @todo: обгортка до хттп запитів як змінна. Можна зробити запит один раз, можна регулярно(інтервал).
-     * можливо, замість frp("a").is(...) писати var a = frp(function(){}, b, c);
-     * 
+     * @todo: РѕР±РіРѕСЂС‚РєР° РґРѕ С…С‚С‚Рї Р·Р°РїРёС‚С–РІ СЏРє Р·РјС–РЅРЅР°. РњРѕР¶РЅР° Р·СЂРѕР±РёС‚Рё Р·Р°РїРёС‚ РѕРґРёРЅ СЂР°Р·, РјРѕР¶РЅР° СЂРµРіСѓР»СЏСЂРЅРѕ(С–РЅС‚РµСЂРІР°Р»).
+     * РјРѕР¶Р»РёРІРѕ, Р·Р°РјС–СЃС‚СЊ frp("a").is(...) РїРёСЃР°С‚Рё var a = frp(function(){}, b, c);
+     * @todo: fix pour() to .prototype - common arrays!
      */
     var $ = window['jQuery'] || window['$'] || false;
     var drivers = {
@@ -102,11 +102,15 @@
 	    }
 	},
 	html: {
-	    setter: function(val, selector){
+	    setter: function(val, selector, self){
 		var el = $(selector);
 		if(!el.length){
 		    error('Empty selector: ' + selector);
 		    return;
+		}
+		if(el.html()){
+		    //console.log('we put new html to ' + selector + ' ' + el.html());
+		    //console.dir(self);
 		}
 		el.html(val);
 	    }
@@ -181,6 +185,7 @@
 	this.vars = vars;
 	this.changers = [];
 	this.observers = [];
+	this.name = this.getName();
 	vars[selector] = this;
 	if(selector.indexOf("|") !== -1){// HTML selector
 	    // this is a dom selector
@@ -204,12 +209,14 @@
 		    //this.compute();
 		    return this;
 		}
-		this.scope && this.rebind();
+		this.scope && this.rebind('cell constructor');
 	    } else {
 		var self = this;
-		this.rebind = function(){		    
+		this.rebind = function(source){	
+		    // Not needed!?
+		    //console.log('we rebind ' +  this.getName() + ' by ' + source);
 		    if(self.driver.setter && self.scope){
-			self.driver.setter(self.val, self.scopedSelector);
+			self.driver.setter(self.val, self.scopedSelector, self);
 		    }
 		}
 	    }
@@ -273,7 +280,6 @@
 	}
 	this.val = new_val;
 	this.change(old_val, new_val);
-	//this.driver.setter && this.driver.setter(val, this.scopedSelector);
 	this.invalidateObservers(this.getName());
 	this.updateObservers(this.getName());
 	this.host.change();
@@ -385,6 +391,53 @@
 	}	
 	return this.compute();
     }
+    
+    Cell.prototype.compute = function(name){
+	if(name){
+	    if(!this.observables[name]){
+		error('observable not found: ' + name + ' in cell ' + this.getName());
+	    } else {
+		//console.log('observable FOUND: ' + name + ' in cell ' + this.getName() + ', value is ' + this.observables[name]);
+		this.observables[name]--;
+		if(this.observables[name] > 0) {
+		    //console.log('skipping computing for ' + this.getName());
+		    return;
+		} else {
+		    //console.log('now ' + name + " is 0 in " + this.getName() + ", so, computing!");
+		}
+	    }
+	}
+	var args1 = [];
+	for(var i=0; i<this.args.length;i++){
+	    args1.push(this.args[i].get());
+	}
+	var old_val = this.val;
+	var new_val = this.formula.apply(this, args1);
+	for(var i = 0; i< this.modifiers.length;i++){
+	    new_val = this.modifiers[i](new_val);
+	}
+	this.val = new_val;
+	if(this.driver && this.driver.setter && this.scope){
+	    this.driver.setter(this.val, this.scopedSelector);
+	}
+	this.change(old_val, this.val);
+	this.updateObservers(name);
+	return this;
+    }
+    
+    Cell.prototype.depend = function(cells){
+	var arr = (cells instanceof Array)?cells:[cells];
+	for(var i=0;i<cells.length;i++){
+	    if(!(Object.keys(cells[i].observables).length)){
+		this.addObservable(cells[i].getName());
+	    } else {
+		for(var x in cells[i].observables){
+		    this.addObservable(x);
+		}
+	    }
+	    cells[i].addObserver(this);
+	}
+    }
         
     Cell.prototype.is = function(f){
 	var formula = f;
@@ -418,51 +471,12 @@
 		    args[i] = new Cell(args[i], this.scope, this.vars, this);
 		}
 	    }
-
-	    if(!(Object.keys(args[i].observables).length)){
-		//console.log('we add observable ' + args[i].getName() +' for ' + this.getName());
-		this.addObservable(args[i].getName());
-	    } else {
-		for(var x in args[i].observables){
-		    //console.log('we add observable ' + args[i].observables[x] +' for ' + this.getName());
-		    this.addObservable(x);
-		}
-	    }
-	    args[i].addObserver(this);
 	}
+	this.args = args;
 	this.formula = formula;
-	this.compute = function(name){
-	    if(name){
-		if(!this.observables[name]){
-		    error('observable not found: ' + name + ' in cell ' + this.getName());
-		} else {
-		    //console.log('observable FOUND: ' + name + ' in cell ' + this.getName() + ', value is ' + this.observables[name]);
-		    this.observables[name]--;
-		    if(this.observables[name] > 0) {
-			//console.log('skipping computing for ' + this.getName());
-			return;
-		    } else {
-			//console.log('now ' + name + " is 0 in " + this.getName() + ", so, computing!");
-		    }
-		}
-	    }
-	    var args1 = [];
-	    for(var i=0; i<args.length;i++){
-		args1.push(args[i].get());
-	    }
-	    var old_val = this.val;
-	    var new_val = formula.apply(this, args1);
-	    for(var i = 0; i< this.modifiers.length;i++){
-		new_val = this.modifiers[i](new_val);
-	    }
-	    this.val = new_val;
-	    if(this.driver && this.driver.setter && this.scope){
-		this.driver.setter(this.val, this.scopedSelector);
-	    }
-	    this.change(old_val, this.val);
-	    this.updateObservers(name);
-	    return this;
-	}
+	
+	this.depend(this.args);
+	    
 	if(args.length) this.compute();
 	return this;
     }
@@ -503,7 +517,7 @@
 	this.event = selector.split("|")[1];
 	this.handlers = [];
 	if(this.scope){
-	    this.rebind();
+	    this.rebind('event constructor');
 	}
     }
     
@@ -513,11 +527,9 @@
 	$(this.scopedSelector).bind(this.event, function(){
 	    for(var i = 0;i<self.handlers.length;i++){
 		var sup = self.host.host || false;
-		val = self.handlers[i](self.host, val, sup);
+		val = self.handlers[i](self.host, self.host._index, sup);
 	    }
 	})
-	//console.log('we bind ' + this.event + ' to ' + this.scopedSelector);
-	//console.dir(this);
 	return this;
     }
     
@@ -545,6 +557,11 @@
 	return this;
     }
     
+    Event.prototype.then = function(func){
+	this.handlers.push(func);		
+	return this;
+    }
+    
     var types = {
 	cell: Cell,
 	event: Event
@@ -553,9 +570,20 @@
     var events = ['click'];
     
     var create_cell_or_event = function(selector, scope, vars, self){
-	var type = (selector.indexOf("|") === -1 || events.indexOf(selector.split("|")[1]) === -1) ? 'cell' : 'event';
+	var type = get_cell_type(selector);
 	return new types[type](selector, scope, vars, self);
     }
+    
+    var get_cell_type = function(cellname){
+	var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
+	return type;
+    }
+    
+    var is_int = function(joe){
+	return Number(joe) == joe;
+    }
+    
+    
     
    
     
@@ -582,14 +610,39 @@
 	    var init_with_hash = function(selector){
 		for(var i in selector){
 		    var cell = vars[i] ? vars[i] : create_cell_or_event(i, scope, vars, self);
-		    if(selector[i] instanceof Array){
-			if(selector[i][0] instanceof Function){
-			    cell['is'].apply(cell, selector[i]);
+		    var cell_type = get_cell_type(i);
+		    if(cell_type === 'cell'){
+			if(selector[i] instanceof Array){
+			    if(selector[i][0] instanceof Function){
+				cell['is'].apply(cell, selector[i]);
+			    } else {
+				cell[selector[i][0]].apply(cell, selector[i].slice(1));
+			    }
 			} else {
-			    cell[selector[i][0]].apply(cell, selector[i].slice(1));
+			    cell.just(selector[i]);
 			}
 		    } else {
-			cell.just(selector[i]);
+			if(selector[i] instanceof Function){
+			    cell.then(selector[i]);
+			} else {
+			    if(selector[i] instanceof Array){
+				if(!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)){
+				    selector[i][0] = [selector[i]];
+				}
+				for(var i=0;i<selector[i].length;i++){
+				    if(selector[i] instanceof Function){
+					cell.then(selector[i]);
+				    } else {
+					if(selector[i] instanceof Array){
+					    var func = selector[i].shift();
+					    cell[func].apply(cell, selector[i]);
+					} else {
+					    error('wrong parameter type for cell creation!');
+					}
+				    }
+				}
+			    }
+			}
 		    }
 		}
 		return true;
@@ -600,28 +653,42 @@
 	    if(host){
 		self.host = host;
 	    }
+	    
 	    self.applyTo = function(selector, template){
 		self.setScope(selector);
 		if(template){
 		    if(vars["root|html"]){// already inited
-			vars["root|html"].rebind();
+			vars["root|html"].rebind(23);
 		    } else {
 			var names = collect_names(vars);
 			//console.log('names are', names);
 			names.unshift(template);
 			self("root|html").template.apply(self("root|html"), names);
-			self("root|html").onChange(function(){
-				self.rebind();
+			self("root|html").onChange(function(prev, neww){
+				self.rebind('root|html changed from ' + prev + ' to ' + neww);
 			});
 			//$(selector).append(make_template(values, template));
 		    }
 		}
 	    }
 	    
-	    self.rebind = function(){
+	    self.rebind = function(source){
+		//console.log('rebind called by ' + source);
 		for(var i in vars){
-		    vars[i].rebind();
+		    if(i == 'root|html') continue;
+		    vars[i].rebind(source);
 		}
+	    }
+	    
+	    self.update = function(hash){
+		init_with_hash(hash);
+		//console.log('now we have', vars);
+		/*for(var i in hash){
+		    if(this.vars[i]){
+			this.vars[i].set(hash[i]);
+		    }
+		}*/
+		this.rebind('update');
 	    }
 	    
 	    self.remove = function(){
@@ -635,7 +702,7 @@
 	    self.setScope = function(scope2){
 		scope = scope2;
 		for(var i in vars){
-		    vars[i].setScope(scope2).rebind();
+		    vars[i].setScope(scope2).rebind('changing scope to ' + scope2);
 		}
 		return this;
 	    }
@@ -683,6 +750,7 @@
 	for(var i = 0;i<init_list.length;i++){
 	    var hash = window[lib_var_name].hash(init_list[i], false, this);
 	    this.list[this._counter] = hash;
+	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
 	}
 	var self = this;
@@ -694,9 +762,14 @@
     
     List.prototype.push = function(obj){
 	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
+	this.list[this._counter]._index = this._counter;
 	this._counter++;
-	this.rebind();
+	this.rebind('push');
 	this.change();
+    }
+    
+    List.prototype.show = function(func){
+	
     }
     
     List.prototype.map = function(func){
@@ -712,6 +785,10 @@
 	    // Hm... remove all or nothing?
 	    return;
 	}
+	if(is_int(func)){
+	    this.list[func] && this.list[func].remove() && delete this.list[func];
+	    return;
+	}
 	var f = get_map_func(func);
 	for(var i in this.list){
 	    if(f.apply(this.list[i].emit())){
@@ -719,6 +796,7 @@
 		delete this.list[i];
 	    }
 	}
+	this.change();
     }
     
     List.prototype.count = function(func){
@@ -740,7 +818,10 @@
 	return this;
     };
     	    
-    List.prototype.each = function(){
+    List.prototype.each = function(hash){
+	for(var i in this.list){
+	    this.list[i].update(hash);
+	}
 	return this;
     };
     	    
@@ -751,7 +832,7 @@
 
     List.prototype.applyTo = function(selector, template){
 	for(var i in this.list){
-	    this.list[i].setScope(selector).rebind();
+	    this.list[i].setScope(selector).rebind('applyTo');
 	}
 	return this;
     }
