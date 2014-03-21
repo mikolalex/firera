@@ -103,7 +103,12 @@
 	},
 	html: {
 	    setter: function(val, selector){
-		$(selector).html(val);
+		var el = $(selector);
+		if(!el.length){
+		    error('Empty selector: ' + selector);
+		    return;
+		}
+		el.html(val);
 	    }
 	}
     }
@@ -181,8 +186,9 @@
 	    // this is a dom selector
 	    var parts = selector.split("|");
 	    this.jquerySelector = parts[0];
-	    this.scopedSelector = this.scope + " " + this.jquerySelector;
-	    if(!$(parts[0], this.scope).length){
+	    this.setScopedSelector(this.scope, this.jquerySelector);
+	    //this.scopedSelector = this.scope + " " + this.jquerySelector;
+	    if(this.scope && !$(this.scopedSelector).length){
 		error('Selected element "' + this.scopedSelector + '" not found');
 	    }
 	    if(!drivers[parts[1]]){
@@ -190,6 +196,7 @@
 	    } else {
 		this.type = parts[1];
 	    }
+	    this.driver = drivers[this.type];
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
@@ -198,12 +205,26 @@
 		    return this;
 		}
 		this.scope && this.rebind();
-		
+	    } else {
+		var self = this;
+		this.rebind = function(){		    
+		    if(self.driver.setter && self.scope){
+			self.driver.setter(self.val, self.scopedSelector);
+		    }
+		}
 	    }
 	} else { // this is just custom abstract varname
 	    this.type = 'cell';
 	}
 	this.driver = drivers[this.type];
+    }
+    
+    Cell.prototype.setScopedSelector = function(a, b){
+	if(b == 'root'){
+	    this.scopedSelector = a;
+	} else {
+	    this.scopedSelector = a + " " + b;
+	}
     }
     
     Cell.prototype.getName = function(){
@@ -269,7 +290,7 @@
     
     Cell.prototype.setScope = function(scope){
 	this.scope = scope;
-	this.scopedSelector = this.scope + " " + this.jquerySelector;
+	this.setScopedSelector(this.scope, this.jquerySelector);
 	return this;
     }
     
@@ -305,7 +326,7 @@
     }
     Cell.prototype.template = function(){
 	//console.log('args are', arguments);
-	var vars = Array.prototype.slice.call(arguments, 0);
+	var vars = Array.prototype.slice.call(arguments);
 	vars.unshift(function(){
 	    var obj = {};
 	    for(var i = 1;i<arguments.length;i++){
@@ -355,8 +376,8 @@
 		new_val = this.modifiers[i](new_val);
 	    }
 	    this.val = new_val;
-	    if(this.driver.setter){
-		this.driver.setter(this.val, this.jquerySelector);
+	    if(this.scope && this.driver.setter){
+		this.driver.setter(this.val, this.scopedSelector);
 	    }
 	    this.change(old_val, this.val);
 	    this.updateObservers(listname);
@@ -368,7 +389,7 @@
     Cell.prototype.is = function(f){
 	var formula = f;
 	if(this.inited){
-	    error('Cell already inited!'); 
+	    error('Cell already inited!'); console.dir(this);
 	    return;
 	} else {
 	    this.inited = true;
@@ -435,8 +456,8 @@
 		new_val = this.modifiers[i](new_val);
 	    }
 	    this.val = new_val;
-	    if(this.driver.setter){
-		this.driver.setter(this.val, this.jquerySelector);
+	    if(this.driver && this.driver.setter && this.scope){
+		this.driver.setter(this.val, this.scopedSelector);
 	    }
 	    this.change(old_val, this.val);
 	    this.updateObservers(name);
@@ -582,14 +603,18 @@
 	    self.applyTo = function(selector, template){
 		self.setScope(selector);
 		if(template){
-		    var names = collect_names(vars);
-		    //console.log('names are', names);
-		    names.unshift(template);
-		    self(selector + "|html").template.apply(self(selector + "|html"), names);
-		    self(selector + "|html").onChange(function(){
-			    self.rebind();
-		    });
-		    //$(selector).append(make_template(values, template));
+		    if(vars["root|html"]){// already inited
+			vars["root|html"].rebind();
+		    } else {
+			var names = collect_names(vars);
+			//console.log('names are', names);
+			names.unshift(template);
+			self("root|html").template.apply(self("root|html"), names);
+			self("root|html").onChange(function(){
+				self.rebind();
+			});
+			//$(selector).append(make_template(values, template));
+		    }
 		}
 	    }
 	    
@@ -656,8 +681,8 @@
 	this.count_funcs = [];
 	this._counter = 0;
 	for(var i = 0;i<init_list.length;i++){
-	    var index = this.list.push(window[lib_var_name].hash(init_list[i], false, this)) - 1;
-	    this.list[index]._index = this._counter;
+	    var hash = window[lib_var_name].hash(init_list[i], false, this);
+	    this.list[this._counter] = hash;
 	    this._counter++;
 	}
 	var self = this;
@@ -666,6 +691,13 @@
 	})
 
     };
+    
+    List.prototype.push = function(obj){
+	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
+	this._counter++;
+	this.rebind();
+	this.change();
+    }
     
     List.prototype.map = function(func){
 	
@@ -681,9 +713,8 @@
 	    return;
 	}
 	var f = get_map_func(func);
-	for(var i = 0;i<this.list.length;i++){
+	for(var i in this.list){
 	    if(f.apply(this.list[i].emit())){
-		console.log('res is', f.apply(this.list[i].emit()), 'for', this.list[i].emit());
 		this.list[i].remove();
 		delete this.list[i];
 	    }
@@ -691,9 +722,9 @@
     }
     
     List.prototype.count = function(func){
-	if(!func) return this.list.length;
+	if(!func) return Object.keys(this.list).length;
 	var total = 0;
-	for(var i=0;i<this.list.length;i++){
+	for(var i in this.list){
 	    var obj = this.list[i].emit();
 	    if(!!func.apply(obj)) total++;
 	}
@@ -727,12 +758,12 @@
     List.prototype.rebind = function(){
 	if(this.root_node && this.template){
 	    var res = [];
-	    for(var i = 0;i<this.list.length;i++){
-		res.push('<div class="firera-item" data-firera-num="' + this.list[i]._index + '"></div>');
+	    for(var i in this.list){
+		res.push('<div class="firera-item" data-firera-num="' + i + '"></div>');
 	    }
 	    $(this.root_node).html(res.join(""));
-	    for(i = 0;i<this.list.length;i++){
-		var nested_scope = this.scope + " " + this.root_node + " > div[data-firera-num=" + this.list[i]._index + "]";
+	    for(var i in this.list){
+		var nested_scope = this.scope + " " + this.root_node + " > div[data-firera-num=" + i + "]";
 		this.list[i].applyTo(nested_scope, this.host(this.template));
 	    }
 	}
