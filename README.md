@@ -1,4 +1,5 @@
-
+### [Attention!] The library is in active development now, it's API changes, so these examples are out of date!
+They will be updated soon. So you can read the following only as the general description of library.
 ### Firera is small Javascript FRP library
 
 FRP is functional reactive programming. It allows to work with variables like Excel cells: you create some cells, some of them rely on other with formulas, and when the value of one cell changes, the values of dependent cells change also.
