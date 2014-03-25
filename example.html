@@ -125,6 +125,9 @@
 		<div class="remove-completed">
 		    Remove completed
 		</div>
+		<div class="add-task">
+		    <input type="text" name="title" /> <input type="submit" value="Add task" />
+		</div>
 		<div class="console">
 		    
 		</div>
@@ -151,6 +154,13 @@
 	    
 	    .completed {
 		background-color: whitesmoke;
+	    }
+	    
+	    .add-task {
+		padding: 20px;
+		margin: 20px;
+		background-color: whitesmoke;
+		border-radius: 10px;
 	    }
 	    
 	</style>
@@ -194,7 +204,7 @@
 	    }])
 	    .renderTo('.tasks', "task-template")
 	    //.onChange(function(){ console.log('Im changed!')})
-	    //.show('completed', "what_to_show")
+	    .show('ifEqual', 'completed', "what_to_show")
 	    .each({
 		
 		//"_template": ['load', 'task-template.html'] ???
@@ -217,9 +227,11 @@
     // app.attach(tasks, 'tasks', '.tasks'); ??
 
     //app(".how_much|html").counts(function(name){ return name.length > 3}, 'title', 'tasks');
-    //app(".remove-completed|click").removes('completed', 'tasks').sets('what_to_show', 'All');
+    app(".remove-completed|click").removes('completed', 'tasks').sets('what_to_show', 'All');
     //app(".remove-completed .num|html").counts('completed', 'tasks');
-    //app(".add-task|submit").validate({active: {completed: false}}).pushTo('tasks');*/
+    app(".add-task|submit")
+	    //.emit({completed: false})
+	    .pushTo('tasks');
 
     app.applyTo(".todo");
 

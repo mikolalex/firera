@@ -95,7 +95,6 @@
 		    return;
 		}
 		if(el.html()){
-		    //console.log('we put new html to ' + selector + ' ' + el.html());
 		    //console.dir(self);
 		}
 		el.html(val);
@@ -308,6 +307,10 @@
 	return this.is(function(flag){ return !flag;}, cell);
     }
     
+    Cell.prototype.ifEqual = function(c1, c2){
+	return this.is(function(a, b){ return a == b;}, c1, c2);
+    }
+    
     Cell.prototype.load = function(url){
 	var self = this;
 	$.get(url, function(data){
@@ -343,8 +346,8 @@
 	    for(var i = 1;i<arguments.length;i++){
 		obj[vars[i+1]] = arguments[i];
 	    }
-	    //console.log('html is', 'obj is', obj, 'template is', arguments[0]);
 	    var html = make_template(obj, arguments[0]);
+	    //console.log('html is', html, 'obj is', obj, 'template is', arguments[0]);
 	    return html;
 	});
 	//console.log('vars are', vars);
@@ -395,6 +398,9 @@
 	    return this;
 	}	
 	return this.compute();
+    }
+    Cell.prototype.force = function(){
+	this.compute();
     }
     
     Cell.prototype.compute = function(name){
@@ -513,6 +519,47 @@
 	return templ;
     }
     
+    var gather_form_values = function(selector, clear){
+	var res = {};
+	$(selector + " input").each(function(){
+	    var val = '';
+	    switch($(this).attr('type')){
+		case 'checkbox':
+		    val = !!$(this).prop('checked');
+		break;
+		case 'text': 
+		    val = $(this).val();
+		    if(clear){
+			$(this).val('');
+		    }
+		break;
+	    }
+	    res[$(this).attr('name')] = val;
+	})
+	return res;
+    }
+    
+    var custom_event_drivers = {
+	submit: function(selector, callback){
+	    var submitters = $(selector + " input[type=submit]");
+	    if(submitters.length < 1){		
+		submitters = $(selector + " .firera-submitter");
+	    }
+	    if(submitters.length === 1){// ok, binding
+		submitters.bind('click', function(){
+		    var hash = gather_form_values(selector, true);
+		    callback(hash);
+		});
+	    } else {
+		if(submitters.length > 1){
+		    error('Multiple submitters found!');
+		} else {
+		    error('No submitters found!');
+		}
+	    }
+	}
+    }
+    
     var Event = function(selector, scope, vars, host){
 	vars[selector] = this;
 	this.host = host;
@@ -528,15 +575,19 @@
     }
     
     Event.prototype.rebind = function(){
-	$(this.scopedSelector).bind(this.event, this.process.bind(this))
+	if(custom_event_drivers[this.event]){
+	    custom_event_drivers[this.event](this.scopedSelector, this.process.bind(this));
+	} else {
+	    $(this.scopedSelector).bind(this.event, this.process.bind(this))
+	}
 	return this;
     }
     
-    Event.prototype.process = function(){
-	var val = null;
+    Event.prototype.process = function(initial_val){
+	var val = initial_val || null;
 	for(var i = 0;i<this.handlers.length;i++){
 	    var sup = this.host.host || false;
-	    val = this.handlers[i](this.host, this.host._index, sup);
+	    val = this.handlers[i](this.host, this.host._index, sup, val);
 	    if(val === false) {
 		break;
 	    }
@@ -572,6 +623,13 @@
 	return this;
     }
     
+    Event.prototype.pushTo = function(arr){
+	this.handlers.push(function(self, _, _, val){
+	    self(arr).push(val);
+	});
+	return this;
+    }
+    
     Event.prototype.filter = function(func){
 	if(!(func instanceof Function)){
 	    var field = func.replace("!", "");
@@ -594,7 +652,7 @@
 	event: Event
     }
     
-    var events = ['click'];
+    var events = ['click', 'submit'];
     
     var create_cell_or_event = function(selector, scope, vars, self, params){
 	var type = get_cell_type(selector);
@@ -689,22 +747,18 @@
 			vars["root|html"].rebind(23);
 		    } else {
 			var names = collect_names(vars);
-			//console.log('names are', names);
 			names.unshift(template);
-			
-			//@todo: subscribe on changes only on variables, meant in template!			
-			
+			//@todo: subscribe on changes only on variables, meant in template!	
 			self("root|html").template.apply(self("root|html"), names);
 			self("root|html").onChange(function(prev, neww){
 				self.rebind('root|html changed from ' + prev + ' to ' + neww);
 			});
-			//$(selector).append(make_template(values, template));
 		    }
 		}
+		self.rebind();
 	    }
 	    
 	    self.rebind = function(source){
-		//console.log('rebind called by ' + source);
 		for(var i in vars){
 		    if(i == 'root|html') continue;
 		    vars[i].rebind(source);
@@ -713,13 +767,7 @@
 	    
 	    self.update = function(hash){
 		init_with_hash(hash);
-		//console.log('now we have', vars);
-		/*for(var i in hash){
-		    if(this.vars[i]){
-			this.vars[i].set(hash[i]);
-		    }
-		}*/
-		this.rebind('update');
+		if(scope) this.rebind('update');
 	    }
 	    
 	    self.remove = function(){
@@ -733,7 +781,7 @@
 	    self.setScope = function(scope2){
 		scope = scope2;
 		for(var i in vars){
-		    vars[i].setScope(scope2).rebind('changing scope to ' + scope2);
+		    vars[i].setScope(scope2);
 		}
 		return this;
 	    }
@@ -774,6 +822,8 @@
     var List = function(init_list, context, host){
 	this.host = host;
 	this.list = [];
+	this.each_is_set = false;
+	this.each_hash = null;
 	this.map_funcs = [];
 	this.reduce_funcs = [];
 	this.count_funcs = [];
@@ -794,8 +844,12 @@
     List.prototype.push = function(obj){
 	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
 	this.list[this._counter]._index = this._counter;
+	if(this.each_is_set){
+	    this.list[this._counter].update(this.each_hash);
+	    console.log('we update', this.list[this._counter]);
+	}
+	this.rebind('push', this._counter);
 	this._counter++;
-	this.rebind('push');
 	this.change();
     }
     
@@ -850,11 +904,28 @@
     };
     	    
     List.prototype.each = function(hash){
+	this.each_is_set = true;
+	this.each_hash = hash;
 	for(var i in this.list){
 	    this.list[i].update(hash);
 	}
 	return this;
     };
+    
+    List.prototype.show = function(cond, val){
+	if(cond instanceof Function){
+	    error('Not implemented yet'); return;
+	} else {
+	    if(val){
+		
+	    } else {
+		this.each({
+		    //"root|visibility": ['is', '']
+		})
+	    }
+	}
+	return this;
+    }
     	    
     List.prototype.setScope = function(scope){
 	this.scope = scope;
@@ -867,15 +938,21 @@
 	}
 	return this;
     }
-    List.prototype.rebind = function(){
+    List.prototype.rebind = function(msg, start_index, end_index){
+	//console.log('we rebind by ' + msg);
 	if(this.root_node && this.template){
-	    var res = [];
+	    /*var res = [];
 	    for(var i in this.list){
 		res.push('<div class="firera-item" data-firera-num="' + i + '"></div>');
 	    }
-	    $(this.root_node).html(res.join(""));
+	    $(this.root_node).html(res.join(""));*/
 	    for(var i in this.list){
+		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 		var nested_scope = this.scope + " " + this.root_node + " > div[data-firera-num=" + i + "]";
+		if($(nested_scope).length === 0){
+		    $(this.root_node).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+		}
+		//console.log('we rebind ', this.list[i], i, 'nested is', $(nested_scope).length);
 		this.list[i].applyTo(nested_scope, this.host(this.template));
 	    }
 	}
