@@ -33,17 +33,6 @@
 		    break;
 		}
 	    },
-	    /*getter: function(selector){
-		var $el = $(selector);
-		switch($el.prop('type')){
-		    case 'checkbox':
-			return $el.prop('checked');
-		    break;
-		    default:
-			return $el.val();
-		    break;
-		}
-	    },*/
 	    startObserving: function(selector){
 		var self = this;
 		var $el = $(selector);
@@ -63,9 +52,6 @@
 	mouseover: {
 	    def: false,
 	    selfRefresh: true,
-	    /*getter: function(selector){
-		return $(selector).is(":hover");
-	    },*/
 	    startObserving: function(selector){
 		var self = this;
 		$(selector).mouseenter(function(){
@@ -102,7 +88,7 @@
 	    }
 	},
 	html: {
-	    setter: function(val, selector, self){
+	    setter: function(val, selector){
 		var el = $(selector);
 		if(!el.length){
 		    error('Empty selector: ' + selector);
@@ -113,6 +99,15 @@
 		    //console.dir(self);
 		}
 		el.html(val);
+	    }
+	},
+	toggleClass: {
+	    setter: function(val, selector, classname){
+		if(val){
+		    $(selector).addClass(classname);
+		} else {
+		    $(selector).removeClass(classname);
+		}
 	    }
 	}
     }
@@ -176,6 +171,7 @@
 	if(!host){
 	    error('no host in cell ' + selector);
 	}
+	this.params = [];
 	this.host = host;
 	this.inited = false;
 	this.modifiers = [];
@@ -196,6 +192,12 @@
 	    if(this.scope && !$(this.scopedSelector).length){
 		error('Selected element "' + this.scopedSelector + '" not found');
 	    }
+	    if(parts[1].indexOf("(") !== -1){
+		// there are some params
+		var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+		this.params = m[2].split(",");
+		parts[1] = m[1];
+	    }
 	    if(!drivers[parts[1]]){
 		error('Unknown driver: ' + parts[1]);
 	    } else {
@@ -205,18 +207,15 @@
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
-		    drivers[this.type].startObserving.call(this, this.scopedSelector);
-		    //this.compute();
+		    drivers[this.type].startObserving.apply(this, [this.scopedSelector].concat(this.params));
 		    return this;
 		}
 		this.scope && this.rebind('cell constructor');
 	    } else {
 		var self = this;
 		this.rebind = function(source){	
-		    // Not needed!?
-		    //console.log('we rebind ' +  this.getName() + ' by ' + source);
 		    if(self.driver.setter && self.scope){
-			self.driver.setter(self.val, self.scopedSelector, self);
+			self.driver.setter.apply(self.driver, [self.val, self.scopedSelector].concat(this.params));
 		    }
 		}
 	    }
@@ -316,6 +315,12 @@
 	})
 	this.set('');
 	return this;
+    }
+    
+    Cell.prototype.if = function(cond, then, otherwise){
+	return this.is.call(this, function(flag){
+	    return flag ? then : otherwise;
+	}, cond);
     }
     
     Cell.prototype.ifAll = function(){
@@ -418,7 +423,8 @@
 	}
 	this.val = new_val;
 	if(this.driver && this.driver.setter && this.scope){
-	    this.driver.setter(this.val, this.scopedSelector);
+	    //console.log('call setter by COMPUTE', this.getName());
+	    this.driver.setter.apply(this.driver, [this.val, this.scopedSelector].concat(this.params));
 	}
 	this.change(old_val, this.val);
 	this.updateObservers(name);
@@ -522,15 +528,19 @@
     }
     
     Event.prototype.rebind = function(){
-	var self = this;
-	var val = null;
-	$(this.scopedSelector).bind(this.event, function(){
-	    for(var i = 0;i<self.handlers.length;i++){
-		var sup = self.host.host || false;
-		val = self.handlers[i](self.host, self.host._index, sup);
-	    }
-	})
+	$(this.scopedSelector).bind(this.event, this.process.bind(this))
 	return this;
+    }
+    
+    Event.prototype.process = function(){
+	var val = null;
+	for(var i = 0;i<this.handlers.length;i++){
+	    var sup = this.host.host || false;
+	    val = this.handlers[i](this.host, this.host._index, sup);
+	    if(val === false) {
+		break;
+	    }
+	}
     }
     
     Event.prototype.setScope = function(scope){
@@ -562,6 +572,23 @@
 	return this;
     }
     
+    Event.prototype.filter = function(func){
+	if(!(func instanceof Function)){
+	    var field = func.replace("!", "");
+	    if(func.indexOf("!") === 0){
+		this.handlers.push(function(obj){
+		    return obj(field).get() ? false : true;
+		})
+	    } else {
+		this.handlers.push(function(obj){
+		    return obj(field).get() ? true : false;
+		})
+	    }
+	} else {
+	    error(func + 'not implemented yet');
+	}
+    }
+    
     var types = {
 	cell: Cell,
 	event: Event
@@ -569,9 +596,9 @@
     
     var events = ['click'];
     
-    var create_cell_or_event = function(selector, scope, vars, self){
+    var create_cell_or_event = function(selector, scope, vars, self, params){
 	var type = get_cell_type(selector);
-	return new types[type](selector, scope, vars, self);
+	return new types[type](selector, scope, vars, self, params);
     }
     
     var get_cell_type = function(cellname){
@@ -601,10 +628,11 @@
 	    var scope = context || false;
 	    
 	    var self = function(selector){
+		var pars = Array.prototype.slice.call(arguments, 1);
 		if(selector instanceof Object){
 		    return init_with_hash(selector);
 		}
-		return vars[selector] || create_cell_or_event(selector, scope, vars, self);
+		return vars[selector] || create_cell_or_event(selector, scope, vars, self, pars);
 	    }
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
@@ -627,15 +655,15 @@
 			} else {
 			    if(selector[i] instanceof Array){
 				if(!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)){
-				    selector[i][0] = [selector[i]];
+				    selector[i][0] = [selector[i][0]];
 				}
-				for(var i=0;i<selector[i].length;i++){
-				    if(selector[i] instanceof Function){
-					cell.then(selector[i]);
+				for(var j=0;j<selector[i].length;j++){
+				    if(selector[i][j] instanceof Function){
+					cell.then(selector[i][j]);
 				    } else {
-					if(selector[i] instanceof Array){
-					    var func = selector[i].shift();
-					    cell[func].apply(cell, selector[i]);
+					if(selector[i][j] instanceof Array){
+					    var func = selector[i][j][0];
+					    cell[func].apply(cell, selector[i][j].slice(1));
 					} else {
 					    error('wrong parameter type for cell creation!');
 					}
@@ -663,6 +691,9 @@
 			var names = collect_names(vars);
 			//console.log('names are', names);
 			names.unshift(template);
+			
+			//@todo: subscribe on changes only on variables, meant in template!			
+			
 			self("root|html").template.apply(self("root|html"), names);
 			self("root|html").onChange(function(prev, neww){
 				self.rebind('root|html changed from ' + prev + ' to ' + neww);

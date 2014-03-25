@@ -39,6 +39,7 @@
 	    <input type="text" class="name"> - name<br>
 	    <input type="text" class="surname"> - surname<br>
 	    <input type="text" class="age"> - age<br>
+	    <input type="text" class="fullname" disabled> - fullname<br>
 	    <div class="full-info" style="padding:2em;margin:2em;border:1px solid black;">
 		
 	    </div>
@@ -79,105 +80,269 @@
 	    </h2>
 	    <div class="test-if">
 		<div style="margin:10px;padding:10px;background-color:whitesmoke;border-radius:10px;" class="some-area">
-		    some area
+		    some area #1
+		</div>
+		<div style="margin:10px;padding:10px;background-color:whitesmoke;border-radius:10px;" class="some-area2">
+		    some area #2
 		</div>
 		<input type="text" class="if-all"> - all<br>
 		<input type="text" class="if-any"> - any<br>
 	    </div>
+	    <div class="man-container">
+		<h1>
+		    Man
+		</h1>
+		<div class="man">
+		    
+		</div>
+	    </div>
+	    <hr>
+	    <div class="todo">
+		<div class="tasks">
+		    
+		</div>
+		Show:
+		<ul class="controls">
+		    <li>
+			All
+		    </li>
+		    <li>
+			Completed
+		    </li>
+		    <li>
+			Active
+		    </li>
+		</ul>
+		<div>
+		    Totally:<span class="how_much"></span> tasks
+		</div>
+		<div>
+		    Completed:<span class="how_much_completed"></span> tasks
+		</div>
+		<div>
+		    Now <span class="task-type"></span> are shown
+		</div>
+		<div class="remove-completed">
+		    Remove completed
+		</div>
+		<div class="console">
+		    
+		</div>
+	    </div>
 	</div>
-	<script>
-	    var fr = Firera.hub(".container");// ".container" is a scope, which this instance will operate within
+	<style>
+	    .complete {
+		cursor: pointer;
+	    }
+	    .complete:hover {
+		color: whitesmoke;
+		background-color: black;
+	    }
 	    
-	    fr(".your-evilness|html").as("input[name=evil]|value");
+	    .tasks {
+		border: 10px solid whitesmoke;
+		padding: 20px;
+		margin: 20px;
+	    }
+	    body {
+		width: 600px;
+		margin: auto;
+	    }
 	    
-	    fr(".selected-item|html").is(
-		function(str){ 
-		    if(str) return 'Selected item value is ' + str;
-		    else return 'No item selected';
-		}, 
-		".list-test ul|selectedItem"
-	    )
+	    .completed {
+		background-color: whitesmoke;
+	    }
 	    
-	    fr("a").is(3);
-	    fr("b").is(function(a){ return a*2;}, 'a');
-	    fr("c").is(function(a, b){ return Math.pow(a, b);}, 'a', 'b');
+	</style>
+<script>
 	    
-	    console.log(fr('b').get()); //  6
-	    
-	    fr('a').set(2);
-	    
-	    console.log(fr('b').get()); // 4
-	    console.log(fr('c').get()); // 16
-	    
-	    //fr("logged_in").is(false);
-	    
-	    fr(".logout|visibility").as('logged_in');
-	    fr(".login|visibility").notAs('logged_in');
-	    
-	    fr("logged_in").set(true); // now you see "Logout" button
-    
-	    fr(".full-info|html").is(
-		function(a, b, c){
-		    if(a.length > 1 || b.length > 1 || c > 0){
-			return 'You are ' + a + ' ' + b + ', your age is ' + c + '!';
-		    } else {
-			return 'Enter more info!';
-		    }
-		},
-		".name|value",
-		".surname|value",
-		".age|value"
-	    );
-	    
-	     
-	    fr({
-		a: '3',
-		b: [
-		    function(a){ return a*2;},
-		    'a'
-		],
-		c: [
-		    function(a, b){ return Math.pow(a, b)}, 
-		    'a', 
-		    'b'
-		],
-		logged_in: false,
-		".logout|visibility": ['as', 'logged_in'],
-		".login|visibility": ['notAs', 'logged_in'],
-		".full-info|html": [
-		    function(a, b, c){
-			if(a.length > 1 || b.length > 1 || c > 0){
-			    return 'You are ' + a + ' ' + b + ', your age is ' + c + '!';
-			} else {
-			    return 'Enter more info!';
-			}
-		    },
-		    ".name|value",
-		    ".surname|value",
-		    ".age|value"
-		],
-	    })
-	    
-	    var hub2 = Firera.hub({
-		a: true,
-		b: ['as', ".some-area|mouseover"],
-		c: true,
-		".if-all|value": ['ifAll', 'a', 'b', 'c'],
-		".if-any|value": ['ifAny', 'a', 'b', 'c'],
+    var toLowerCase = function(str){
+	return str.toLowerCase();
+    }    
+
+    var todo = Firera.hash(".todo");
+
+    todo("what_to_show").is("ul.controls|selectedItem").map({    
+	'All': '*',    
+	'Completed': true,    
+	'Active': false
+    });
+    todo(".task-type|html").is("ul.controls|selectedItem").then(toLowerCase);
+
+    var app = Firera.hash();
+    app("man").is({
+	name: 'Mykola',
+	surname: 'Oleksienko'
+    });
+
+    //app("other-tasks").are("tasks").filter("!completed");
+
+    app("task-template").load("task-template.html");// loaded by HTTP request
+    app("tasks")
+	    .are([{
+		    title: 'Fuck Putin',
+		    completed: false,
+	    }, {
+		    title: 'Fuck Yanukovich',
+		    completed: true,
+	    }, {
+		    title: 'Fuck Ruzke',
+		    completed: false,
+	    }, {
+		    title: 'Fuck vatniks',
+		    completed: false,
+	    }])
+	    .renderTo('.tasks', "task-template")
+	    //.onChange(function(){ console.log('Im changed!')})
+	    //.show('completed', "what_to_show")
+	    .each({
 		
-	    }, ".test-if");
-	    
-	    /*hub2("a").is(true);
-	    hub2("b").as(".some-area|mouseover");
-	    hub2("c").is(true);
-	    
-	    hub2(".if-all|value").ifAll('a', 'b', 'c');
-	    hub2(".if-any|value").ifAny('a', 'b', 'c');*/
-	    
-	    
-	    
-	  
-	     
-	</script>
+		//"_template": ['load', 'task-template.html'] ???
+		
+		".complete|click": [
+		    ['filter', '!completed'],
+		    function(item){ 
+			item("completed").set(true);
+		    }
+		],
+		".remove|click": function(item, key, coll){ 
+		    coll.remove(key);
+		},
+		'root|toggleClass(completed)': ['is', 'completed'],
+	    })
+
+    app(".how_much|html").counts('tasks');
+    app(".how_much_completed|html").counts("completed", 'tasks');
+    
+    // app.attach(tasks, 'tasks', '.tasks'); ??
+
+    //app(".how_much|html").counts(function(name){ return name.length > 3}, 'title', 'tasks');
+    //app(".remove-completed|click").removes('completed', 'tasks').sets('what_to_show', 'All');
+    //app(".remove-completed .num|html").counts('completed', 'tasks');
+    //app(".add-task|submit").validate({active: {completed: false}}).pushTo('tasks');*/
+
+    app.applyTo(".todo");
+
+
+
+    var fr = Firera.hash();// ".container" is a scope, which this instance will operate within
+
+    fr(".your-evilness|html").is("input[name=evil]|value");
+
+    fr(".selected-item|html").is(
+	function(str){ 
+	    if(str) return 'Selected item value is ' + str;
+	    else return 'No item selected';
+	}, 
+	".list-test ul|selectedItem"
+    )
+
+    fr("a").just(3);
+    fr("b").is(function(a){ return a*2;}, 'a');
+    fr("c").is(function(a, b){ return Math.pow(a, b);}, 'a', 'b');
+
+    //console.log(fr('b').get()); //  6
+
+    fr('a').set(2);
+
+    //console.log(fr('b').get()); // 4
+    //console.log(fr('c').get()); // 16
+
+    //fr("logged_in").is(false);
+
+    fr(".logout|visibility").is('logged_in');
+    fr(".login|visibility").isNot('logged_in');
+
+    fr("fullname").is(function(a, b){return a + " " + b;}, ".name|value", ".surname|value");
+    fr(".fullname|value").is("fullname");
+
+    fr("logged_in").set(true); // now you see "Logout" button
+
+    fr(".full-info|html").is(
+	function(a, b, c, d){
+	    if(a.length > 1 || b.length > 1 || c > 0){
+		return 'You are ' + a + ' ' + b + ', your age is ' + c + ', your fullname is ' + d + '!';
+	    } else {
+		return 'Enter more info!';
+	    }
+	},
+	".name|value",
+	".surname|value",
+	".age|value",
+	"fullname"
+    );
+
+
+    /*fr({
+	a: '3',
+	b: [
+	    function(a){ return a*2;},
+	    'a'
+	],
+	c: [
+	    function(a, b){ return Math.pow(a, b)}, 
+	    'a', 
+	    'b'
+	],
+	logged_in: false,
+	".logout|visibility": ['as', 'logged_in'],
+	".login|visibility": ['notAs', 'logged_in'],
+	".full-info|html": [
+	    function(a, b, c){
+		if(a.length > 1 || b.length > 1 || c > 0){
+		    return 'You are ' + a + ' ' + b + ', your age is ' + c + '!';
+		} else {
+		    return 'Enter more info!';
+		}
+	    },
+	    ".name|value",
+	    ".surname|value",
+	    ".age|value"
+	],
+    })*/
+    //console.log('--------');
+
+    fr.applyTo("body");
+
+    var hub2 = Firera.hash({
+	a: true,
+	b: ['ifAny', ".some-area|mouseover", ".some-area2|mouseover"],
+	c: true,
+	".if-all|value": ['ifAll', 'a', 'b', 'c'],
+	".if-any|value": ['ifAny', 'a', 'b', 'c'],
+
+    }, ".test-if");
+
+    var tasks = [{
+	name: 'Fuck Putin',
+	completed: false,
+    },
+    {
+	name: 'Fuck Yanukovich',
+	completed: true,
+    },
+    {
+	name: 'Fuck russian fascists',
+	completed: false
+    }];  
+
+    var man = Firera.hash({
+	name: "Mykola",
+	surname: "Oleksienko",
+	template: '<div class="name">{name}</div><div class="surname">{surname}</div><div class="fullname">Fullname is {fullname}</div>',
+	fullname: [function(a, b){return a + " " + b;}, "name", "surname"],
+	".man|html": ['template', 'template', 'name', 'surname', 'fullname']
+    });
+
+    man.applyTo(".man-container");
+
+    var math = Firera.hash({
+	a: 3,
+	b: [function(a){ return a*10}, "a"],
+	d: [function(a){ return a*10}, "b"],
+	e: [function(a){ return a*4}, "a"],
+	c: [function(a, b){ return b - a;}, "d", "e"]
+    })     
+</script>
     </body>
 </html>
