@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+	<script src="../jquery.js"></script>
+        <script src="isLike.js"></script>
+    </head>
+    <body>
+<script>
+    var Eater = isLike({
+	stomach: [],
+	eat: function(meal){
+	    this.stomach.push(meal);
+	},
+	look: function(){
+	    return this.stomach.slice();
+	}
+    })
+    
+    var Shiter = isLike(Eater, {
+	shit: function(){
+	    this.stomach.splice(0, 1);
+	}
+    })
+    
+    var Drinker = isLike(Eater, {
+	drink: function(drink){
+	    if(this.possible_drinks.indexOf(drink) !== -1){
+		this.stomach.push(drink);
+	    } else {
+		console.log('This drink(', drink, ')is not allowed!');
+	    }
+	},
+	__static: {
+	    possible_drinks: ['beer', 'wine']
+	}
+    })
+    
+    var GoodBoy = isLike(Eater, {
+	__init: function(name, surname, meal){
+	    this.fname = name; 
+	    this.surname = surname;
+	    this.eat(meal);
+	},
+	__call: function(){
+	    console.log('Hello! I am ' + this.fname + ' ' + this.surname);
+	    console.log(this);
+	},
+	greet: function(){
+	    if(this.stomach.length > 2){
+		console.log('Beeee...');
+	    } else {
+		console.log('Hello, I am ' + this.fname + ' ' + this.surname);
+	    }
+	}
+    })
+    
+    var Man = isLike(Shiter, Drinker, GoodBoy);
+    
+    var Ivan = new Eater;
+    var fruit = 'apple';
+    var fruit2 = 'pear';
+    var fruit3 = 'banana';
+    var drink = 'water';
+    var drink2 = 'wine';
+    Ivan.eat(fruit);
+    Ivan.eat(fruit2);
+    
+    var Petro = new Shiter;
+    Petro.eat(fruit);
+    Petro.eat(fruit3);
+    Petro.shit();
+    
+    console.log(Ivan.look());
+    console.log(Petro.look());
+    
+    
+    var me = new Man('Mykola', 'Oleksienko');
+    
+    me.eat(fruit2);
+    me.eat(fruit3);
+    me.drink(drink);
+    me.drink(drink2);
+    
+    me.greet();
+    
+    me.shit();
+    me.shit();
+    
+    me.greet();
+    
+    var he = new GoodBoy('Ivan', 'Ivanov', 'kasha');
+    he();
+    
+    console.dir(he.look());
+    
+    //console.dir(Ivan);
+    //console.dir(Petro);
+
+</script>	
+    </body>
+</html>
