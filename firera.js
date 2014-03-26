@@ -35,6 +35,7 @@
 		var self = this;
 		var $el = $(selector);
 		var type = $el.prop('type');
+		//console.log('we bind to ' + selector);
 		$el.bind("keyup, change", function(){
 		    switch(type){
 			case 'checkbox':
@@ -170,7 +171,7 @@
 	return res;
     }
     
-    var Cell = function(selector, vars, host){
+    var Cell = function(selector, host){
 	if(!host){
 	    error('no host in cell ' + selector);
 	}
@@ -180,11 +181,9 @@
 	this.modifiers = [];
 	this.selector = selector;
 	this.observables = {};
-	this.vars = vars;
 	this.changers = [];
 	this.observers = [];
 	this.name = this.getName();
-	vars[selector] = this;
 	if(selector.indexOf("|") !== -1){// HTML selector
 	    // this is a dom selector
 	    var parts = selector.split("|");
@@ -207,6 +206,7 @@
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
+		    console.log('we rebind ', this.getScopedSelector());
 		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector()].concat(this.params));
 		    return this;
 		}
@@ -351,11 +351,8 @@
 		obj[vars[i+1]] = arguments[i];
 	    }
 	    var html = make_template(obj, arguments[0]);
-	    //console.log('HTML CHANGED to ' + html, 'this is', this);
-	    //console.log('html is', html, 'obj is', obj, 'template is', arguments[0]);
 	    return html;
 	});
-	//console.log('vars are', vars);
 	return this.is.apply(this, vars);
     }
     Cell.prototype.ifAny = function(){
@@ -383,10 +380,10 @@
     Cell.prototype.counts = function(pred, arr){
 	var listname = arr ? arr : pred;
 	var func = arr ? pred : false;
-	if(!this.vars[listname]){
+	if(!this.host.getVar(listname)){
 	    error('Wrong parameter provided(' + listname +') for counts()');
 	}
-	var list = this.vars[listname];
+	var list = this.host.getVar(listname);
 	list.addObserver(this);
 	func = get_map_func(func);
 	this.compute = function(){
@@ -482,11 +479,7 @@
 	}	
 	for(var i= 0;i<args.length;i++){
 	    if(!(args[i] instanceof Cell)){
-		if(this.vars[args[i]]){
-		    args[i] = this.vars[args[i]];
-		} else {
-		    args[i] = new Cell(args[i], this.vars, this);
-		}
+		args[i] = this.host.create_cell_or_event(args[i]);
 	    }
 	}
 	this.args = args;
@@ -566,10 +559,8 @@
 	}
     }
     
-    var Event = function(selector, vars, host){
-	vars[selector] = this;
+    var Event = function(selector, host){
 	this.host = host;
-	this.vars = vars;// not needed?..
 	this.selector = selector.split("|")[0];
 	this.scopedSelector = this.getScope() + " " + this.selector;
 	this.event = selector.split("|")[1];
@@ -666,10 +657,6 @@
     
     var events = ['click', 'submit'];
     
-    var create_cell_or_event = function(selector, vars, self, params){
-	var type = get_cell_type(selector);
-	return new types[type](selector, vars, self, params);
-    }
     
     var get_cell_type = function(cellname){
 	var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
@@ -682,7 +669,6 @@
     
     var Firera = {
 	hash: function(a, b, host){// a, b = hash, context | a(object) = hash | a(string) = context | 
-	    var vars = [];
 	    var init_hash, context;
 	    if(!b){
 		if(a instanceof Object) init_hash = a;
@@ -699,7 +685,30 @@
 		if(selector instanceof Object){
 		    return init_with_hash(selector);
 		}
-		return vars[selector] || create_cell_or_event(selector, vars, self, pars);
+		return self.create_cell_or_event(selector, pars);
+	    }
+	    
+	    self.create_cell_or_event = function(selector, params){
+		if(self.getVar(selector)) return self.getVar(selector);
+		var type = get_cell_type(selector);
+		
+		var new_cell = new types[type](selector, self, params);
+		self.setVar(selector, new_cell);
+		return new_cell;
+	    }
+	    
+	    self.vars = [];
+	    
+	    self.getVar = function(name){
+		return self.vars[name] ? self.vars[name] : false;
+	    }
+	    
+	    self.setVar = function(name, val){
+		self.vars[name] = val;
+	    }
+	    
+	    self.getAllVars = function(){
+		return self.vars;
 	    }
 	    
 	    self.scope = context || false;
@@ -722,7 +731,7 @@
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
 		for(var i in selector){
-		    var cell = vars[i] ? vars[i] : create_cell_or_event(i, vars, self);
+		    var cell = self.create_cell_or_event(i);
 		    var cell_type = get_cell_type(i);
 		    if(cell_type === 'cell'){
 			if(selector[i] instanceof Array){
@@ -771,10 +780,10 @@
 		//console.log('we apply to ' + selector);
 		self.setScope(selector);
 		if(template){
-		    if(vars["root|html"]){// already inited
-			vars["root|html"].rebind(23);
+		    if(self.getVar("root|html")){// already inited
+			self.getVar("root|html").rebind(23);
 		    } else {
-			var names = collect_names(vars);
+			var names = collect_names(self.getAllVars());
 			names.unshift(template);
 			//@todo: subscribe on changes only on variables, meant in template!	
 			self("root|html").template.apply(self("root|html"), names);
@@ -787,8 +796,10 @@
 	    }
 	    
 	    self.rebind = function(source){
+		var vars = self.getAllVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
+		    console.log('we rebind VAR: ' + i);
 		    vars[i].rebind(source);
 		}
 	    }
@@ -804,7 +815,7 @@
 	    }
 	    
 	    self.emit = function(){
-		return collect_values(vars);
+		return collect_values(self.getAllVars());
 	    }
 	    
 	    pour(self, changeble);

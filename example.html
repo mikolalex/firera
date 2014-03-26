@@ -201,8 +201,8 @@
 	    }, {
 		    title: 'Fuck vatniks',
 		    completed: false,
-	    }])
-	    .renderTo('.tasks', "task-template")
+	    }], '.tasks')
+	    .template("task-template")
 	    //.onChange(function(){ console.log('Im changed!')})
 	    .show('ifEqual', 'completed', "what_to_show")
 	    .each({
@@ -227,10 +227,8 @@
     // app.attach(tasks, 'tasks', '.tasks'); ??
 
     //app(".how_much|html").counts(function(name){ return name.length > 3}, 'title', 'tasks');
-    app(".remove-completed|click").removes('completed', 'tasks').sets('what_to_show', 'All');
-    //app(".remove-completed .num|html").counts('completed', 'tasks');
+    app(".remove-completed|click").removes('completed', 'tasks').sets('ul.controls|selectedItem', 'All');
     app(".add-task|submit")
-	    //.emit({completed: false})
 	    .pushTo('tasks');
 
     app.applyTo(".todo");
@@ -284,6 +282,7 @@
 	"fullname"
     );
 
+    fr.applyTo("body");
 
     /*fr({
 	a: '3',
@@ -314,7 +313,6 @@
     })*/
     //console.log('--------');
 
-    fr.applyTo("body");
 
     var hub2 = Firera.hash({
 	a: true,
