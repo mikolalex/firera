@@ -283,6 +283,15 @@
     );
 
     fr.applyTo("body");
+    
+    // Imagine a widget: input with autofill
+    
+    var i = Firera.hash();
+    i("inp").is("input[type=text]|value");
+    i("cities").are([], ".sugg").show('ifStartsWith', 'name', 'inp').each({
+	"li|click": ['pushTo', 'input[type=text]|value']
+    })
+    //i.applyTo();
 
     /*fr({
 	a: '3',
