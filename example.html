@@ -170,20 +170,23 @@
 	return str.toLowerCase();
     }    
 
-    var todo = Firera.hash(".todo");
 
-    todo("what_to_show").is("ul.controls|selectedItem").map({    
-	'All': '*',    
-	'Completed': true,    
-	'Active': false
-    });
-    todo(".task-type|html").is("ul.controls|selectedItem").then(toLowerCase);
 
     var app = Firera.hash();
     app("man").is({
 	name: 'Mykola',
 	surname: 'Oleksienko'
     });
+    
+    app("what_to_show").is("ul.controls|selectedItem").map({    
+	'All': '*',    
+	'Completed': true,    
+	'Active': false
+    });
+    console.log(1);
+    app("ul.controls|selectedItem").set("All");
+    console.log(2);
+    app(".task-type|html").is("ul.controls|selectedItem").then(toLowerCase);
 
     //app("other-tasks").are("tasks").filter("!completed");
 
@@ -204,7 +207,7 @@
 	    }], '.tasks')
 	    .template("task-template")
 	    //.onChange(function(){ console.log('Im changed!')})
-	    .show('ifEqual', 'completed', "what_to_show")
+	    .show('selectIf', 'completed', app("what_to_show"))
 	    .each({
 		
 		//"_template": ['load', 'task-template.html'] ???
@@ -285,7 +288,7 @@
     fr.applyTo("body");
     
     // Imagine a widget: input with autofill
-    
+    /*
     var i = Firera.hash();
     i("inp").is("input[type=text]|value");
     i("cities").are([], ".sugg").show('ifStartsWith', 'name', 'inp').each({

@@ -66,6 +66,10 @@ describe('HTML values', function(){
 })
 
 describe('Todo MVC)', function(){
+     
+    var toLowerCase = function(str){
+	return str.toLowerCase();
+    }    
     
     app = Firera.hash();
     app("task-template").load("../task-template.html");
@@ -100,10 +104,20 @@ describe('Todo MVC)', function(){
     app(".how_much_completed|html").counts("completed", 'tasks');
     app(".remove-completed|click").removes('completed', 'tasks').sets('ul.controls|selectedItem', 'All');
     app(".add-task|submit").pushTo('tasks');
+    
+    app("what_to_show").is("ul.controls|selectedItem").map({    
+	'All': '*',    
+	'Completed': true,    
+	'Active': false
+    });
+    
+    app("ul.controls|selectedItem").set("All");
+    app(".task-type|html").is("ul.controls|selectedItem").then(toLowerCase);
 	
     it('Testing list', function(){
 	app.applyTo(".todo");
 	assert.equal($(".tasks > *").length, 4);
+	
 	
 	$(".remove-completed").click();
 	assert.equal($(".tasks > *").length, 3);
@@ -111,9 +125,14 @@ describe('Todo MVC)', function(){
 	$(".add-task input[type=text]").val("Fight fire with fire");
 	$(".add-task input[type=submit]").click();
 	setTimeout(function(){
-	    assert.equal($(".tasks > *").length, 4);
-	    assert.equal($.trim($(".tasks > *:nth-child(4) .title").html()), 'Fight fire with fire');
-	}, 1000)
+	    $(".tasks > div:nth-child(1) .complete").click();
+	    $(".tasks > div:nth-child(2) .complete").click();
+	    $(".tasks > div:nth-child(3) .complete").click();
+	    app("tasks").remove('completed');
+	    assert.equal($(".tasks > *").length, 1);
+	    assert.equal($.trim($(".tasks > *:nth-child(1) .title").html()), 'Fight fire with fire');
+	}.bind(this), 1000)
+	app("ul.controls|selectedItem").set("All");
     })    
 })
 describe('OR modificator', function(){

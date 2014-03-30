@@ -213,6 +213,9 @@
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
 		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector()].concat(this.params));
+		    if(this.driver && this.driver.setter && this.getScope()){
+			this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
+		    }
 		    return this;
 		}
 		this.getScope() && this.rebind('cell constructor');
@@ -288,7 +291,6 @@
 	this.val = new_val;
 	//////////
 	if(this.driver && this.driver.setter && this.getScope()){
-	    //console.log('call setter by COMPUTE', this.getName());
 	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
 	}
 	//////////
@@ -326,6 +328,14 @@
     
     Cell.prototype.ifEqual = function(c1, c2){
 	return this.is(function(a, b){ return a == b;}, c1, c2);
+    }
+    
+    Cell.prototype.selectIf = function(c1, c2){
+	return this.is(function(a, b){
+	    console.log('!!!', a, b, c1, c2);
+	    if(b === '*') return true;
+	    return a == b;
+	}, c1, c2);
     }
     
     Cell.prototype.load = function(url){
@@ -870,7 +880,7 @@
 	this.scope = scope || false;
 	this.list = [];
 	this.each_is_set = false;
-	this.each_hash = null;
+	this.each_hash = {};
 	this.map_funcs = [];
 	this.reduce_funcs = [];
 	this.count_funcs = [];
@@ -905,10 +915,6 @@
 	this.rebind('push', this._counter);
 	this._counter++;
 	this.change();
-    }
-    
-    List.prototype.show = function(func){
-	
     }
     
     List.prototype.map = function(func){
@@ -966,7 +972,9 @@
     	    
     List.prototype.each = function(hash){
 	this.each_is_set = true;
-	this.each_hash = hash;
+	for(var i in hash){
+	    this.each_hash[i] = hash[i];
+	}
 	for(var i in this.list){
 	    this.list[i].update(hash);
 	}
@@ -974,17 +982,14 @@
     };
     
     List.prototype.show = function(cond, val){
+	var args = Array.prototype.slice.call(arguments);
 	if(cond instanceof Function){
-	    error('Not implemented yet'); return;
-	} else {
-	    if(val){
-		
-	    } else {
-		this.each({
-		    //"root|visibility": ['is', '']
-		})
-	    }
+	    args.shift('is');
 	}
+	this.each({
+	    "root|visibility": args
+	})
+	console.log('we set each visibility to', args);
 	return this;
     }
 
