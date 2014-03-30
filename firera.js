@@ -2,8 +2,14 @@
     /* @todo: unbind previous bindings
      * var a = frp(function(){}, b, c);
      * @todo: fix pour() to .prototype - common arrays!
+     * @todo: refactor for(var i = 0;i< this.changers.length;i++){ to for(var i = 0, changer;changer = this.changers[i];i++){
      */
     var $ = window['jQuery'] || window['$'] || false;
+
+    var existy = function(a){
+	return (a !== undefined) && (a !== null);
+    }
+    
     var drivers = {
 	cell: {
 	    
@@ -206,7 +212,6 @@
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
-		    console.log('we rebind ', this.getScopedSelector());
 		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector()].concat(this.params));
 		    return this;
 		}
@@ -311,6 +316,14 @@
 	return this.is(function(flag){ return !flag;}, cell);
     }
     
+    Cell.prototype.or = function(){
+	return this;
+    }
+    
+    Cell.prototype.orJust = function(){
+	return this;
+    }
+    
     Cell.prototype.ifEqual = function(c1, c2){
 	return this.is(function(a, b){ return a == b;}, c1, c2);
     }
@@ -326,7 +339,7 @@
     
     Cell.prototype.if = function(cond, then, otherwise){
 	return this.is.call(this, function(flag){
-	    return flag ? then : otherwise;
+	    return flag ? (existy(then)? then : true) : (existy(otherwise)? otherwise : false);
 	}, cond);
     }
     
@@ -524,7 +537,9 @@
 	    switch($(this).attr('type')){
 		case 'checkbox':
 		    val = !!$(this).prop('checked');
+		break;
 		case 'submit':
+		    return;
 		break;
 		case 'text': 
 		    val = $(this).val();
@@ -799,7 +814,6 @@
 		var vars = self.getAllVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
-		    console.log('we rebind VAR: ' + i);
 		    vars[i].rebind(source);
 		}
 	    }
@@ -814,7 +828,7 @@
 		return true;
 	    }
 	    
-	    self.emit = function(){
+	    self.get = function(){
 		return collect_values(self.getAllVars());
 	    }
 	    
@@ -917,7 +931,7 @@
 	}
 	var f = get_map_func(func);
 	for(var i in this.list){
-	    if(f.apply(this.list[i].emit())){
+	    if(f.apply(this.list[i].get())){
 		this.list[i].remove();
 		delete this.list[i];
 	    }
@@ -931,14 +945,18 @@
 	}
 	var total = 0;
 	for(var i in this.list){
-	    var obj = this.list[i].emit();
+	    var obj = this.list[i].get();
 	    if(!!func.apply(obj)) total++;
 	}
 	return total;
     }
     
-    List.prototype.get = function(type/* reduce, count or map */, index){
-	return this[type + '_funcs'][index]('ololo');
+    List.prototype.get = function(){
+	var res = [];
+	for(var i in this.list){
+	    res.push(this.list[i].get());
+	}
+	return res;
     }
     	    
     List.prototype.filter = function(){
@@ -972,18 +990,21 @@
 
     List.prototype.applyTo = function(selector, template){
 	this.scope = selector;
+	if($(this.getScope().length === 0)){
+	    error('Cant apply list to empty selector: ' + this.getScope());
+	    return;
+	}
 	for(var i in this.list){
 	    this.list[i].rebind('applyTo');
 	}
 	return this;
     }
     List.prototype.rebind = function(msg, start_index, end_index){
-	//console.log('we rebind by ' + msg + ', scope is' + this.getScope());
 	if(this.getScope() && this.template){
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 		var nested_scope = " > div[data-firera-num=" + i + "]";
-		if($(nested_scope).length === 0){
+		if($(this.getScope() + " " + nested_scope).length === 0){
 		    $(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 		}
 		//console.log('we rebind ', this.getScope(), 'nested is', $(nested_scope).length);
