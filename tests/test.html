@@ -1,4 +1,5 @@
-﻿<html>
+<!doctype html>
+<html>
 <head>
   <meta charset="utf-8">
   <title>Mocha Tests</title>
@@ -11,6 +12,7 @@
 <script src="mocha.js"></script>
 <script>mocha.setup('bdd')</script>
 <script src="../firera.js"></script>
+<script src="../chock.js"></script>
 <script src="test.js"></script>
 <script>
     mocha.checkLeaks();
@@ -120,7 +122,90 @@
 	<div class="console">
 
 	</div>
-    </div>
+    </div>   
 </div>
+
+<div id="template">
+|.todoer
+	|/.taskers
+	Show:
+	|ul.controlers
+		| All
+		| Completed
+		ewfweg
+		| Active
+	|
+		Totally
+		|span/.how_mucher
+		tasks
+	|
+		Completed:
+		|span/.how_mucher_completed
+		tasks
+		|.other
+			Some other tasks:
+			|ul
+				| 1
+				| 2
+				| 3
+	| Now
+		|span.task-type-select/task-type
+	|.remove-completed Remove-completed
+	|.console
+</div>
+	<div id="template-result" style="display:none;">
+<div class="todoer">
+	<div class="taskers fir-taskers">
+	</div>
+	Show:
+	<ul class="controlers">
+		<li>
+		 All
+		</li>
+		<li>
+		 Completed
+		</li>
+		ewfweg
+		<li>
+		 Active
+		</li>
+	</ul>
+	<div>
+		Totally
+		<span class="how_mucher fir-how_mucher">
+		</span>
+		tasks
+	</div>
+	<div>
+		Completed:
+		<span class="how_mucher_completed fir-how_mucher_completed">
+		</span>
+		tasks
+		<div class="other">
+			Some other tasks:
+			<ul>
+				<li>
+				 1
+				</li>
+				<li>
+				 2
+				</li>
+				<li>
+				 3
+				</li>
+			</ul>
+		</div>
+	</div>
+	<div>
+	 Now
+		<span class="task-type-select fir-task-type">
+		</span>
+	</div>
+	<div class="remove-completed">
+	 Remove-completed
+	</div>
+	<div class="console">
+	</div>
+</div> </div>
 </body>
 </html>

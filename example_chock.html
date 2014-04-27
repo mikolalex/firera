@@ -8,7 +8,7 @@
         <script src="chock.js"></script>
     </head>
     <body>
-    <div id="template">
+<div id="template">
 |.todo
 	|/.tasks
 	Show:
@@ -35,14 +35,77 @@
 		|span.task-type-select/task-type
 	|.remove-completed Remove-completed
 	|.add-task
-		|text:title(autofocus;value=Fuck Putin)
+		|text:title(autofocus;value=Fuck Putin;font-size:12px;font-family:'Comic Sans', serif;)
 		|submit(value=Add task)
 	|.console
-    </div>
+</div>
+	    Other possible syntaxes
+<div id="template4">
+|.todo
+	||.tasks
+	Show:
+	|ul.controls
+		| All
+		| Completed
+		ewfweg
+		| Active
+	|
+		Totally
+		|span|.how_much
+		tasks
+	|
+		Completed:
+		|span|how_much_completed
+		tasks
+		||.other
+			Some other tasks:
+			|ul
+				| 1
+				| 2
+				| 3
+	| Now
+		|span.task-type-select|task-type
+	|.remove-completed Remove-completed
+	|.add-task
+		|text:title(autofocus;value=Fuck Putin;font-size:12px;font-family:'Comic Sans', serif;)
+		|submit(value=Add task)
+	|.console
+</div>
+<div id="template3">
+.todo>
+	>.tasks
+	Show:
+	ul.controls>
+		> All
+		> Completed
+		ewfweg
+		> Active
+	>
+		Totally
+		span>.how_much
+		tasks
+	>
+		Completed:
+		span>.how_much_completed
+		tasks
+		.other>
+			Some other tasks:
+			ul>
+				> 1
+				> 2
+				> 3
+	> Now
+		span.task-type-select>task-type
+	.remove-completed> Remove-completed
+	.add-task>
+		text:title(autofocus;value=Fuck Putin;font-size:12px;font-family:'Comic Sans', serif;)>
+		|submit(value=Add task)
+	|.console
+</div>
 <script>
 (function () {
     var tmpl = $("#template").html();
-    var res = chock(tmpl);
+    var res = chock.parse(tmpl);
     console.log(res.html);
 }());
 

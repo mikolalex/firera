@@ -144,3 +144,10 @@ describe('OR modificator', function(){
 	//assert.equal(a("b").get(), '42');
     })    
 })
+describe('Chock template engine', function(){
+    it('Testing parse()', function(){
+	var tmpl = $("#template").html();
+	var res = chock.parse(tmpl);
+	assert.equal($.trim(res.html), $.trim($("#template-result").html()));
+    })    
+})
