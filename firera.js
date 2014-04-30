@@ -183,6 +183,7 @@
 	}
 	this.params = [];
 	this.host = host;
+	this.deps = [];
 	this.inited = false;
 	this.modifiers = [];
 	this.selector = selector;
@@ -248,19 +249,33 @@
 	return this.getScope() + " " + (this.jquerySelector === 'root' ? '' : this.jquerySelector);
     }
     
+    Cell.prototype.remove = function(){
+	  for(var i in this.deps){
+		  this.deps[i].removeObserver(this);
+	  }  
+    }
+    
     Cell.prototype.addObservable = function(cellname){
 	this.observables[cellname] = 0;
     }
     
     Cell.prototype.invalidateObservers = function(name){
 	if(this.getName() != name) this.observables[name]++;
-	for(var i=0; i<this.observers.length;i++){
+	for(var i in this.observers){
 	    this.observers[i].invalidateObservers(name);
 	}
     }
     
     Cell.prototype.addObserver = function(cell){
 	this.observers.push(cell);
+    }
+    
+    Cell.prototype.removeObserver = function(cell){
+	for(var i in this.observers){
+	    if(this.observers[i] == cell){
+		    delete this.observers[i];
+	    }
+	}
     }
     
     Cell.prototype.get = function(){
@@ -303,7 +318,7 @@
     
     Cell.prototype.updateObservers = function(name){
 	if(this.observers){
-	    for(var i=0; i<this.observers.length;i++){
+	    for(var i in this.observers){
 		this.observers[i].compute(name);
 	    }
 	} 
@@ -332,7 +347,6 @@
     
     Cell.prototype.selectIf = function(c1, c2){
 	return this.is(function(a, b){
-	    console.log('!!!', a, b, c1, c2);
 	    if(b === '*') return true;
 	    return a == b;
 	}, c1, c2);
@@ -465,6 +479,7 @@
     Cell.prototype.depend = function(cells){
 	var arr = (cells instanceof Array)?cells:[cells];
 	for(var i=0;i<cells.length;i++){
+		this.deps.push(cells[i]);
 	    if(!(Object.keys(cells[i].observables).length)){
 		this.addObservable(cells[i].getName());
 	    } else {
@@ -835,6 +850,12 @@
 	    
 	    self.remove = function(){
 		$(self.getScope()).remove();
+		for(var i in self.vars){
+			// unbind each cell
+			if(self.vars[i] instanceof Cell){
+				self.vars[i].remove();
+			}
+		}
 		return true;
 	    }
 	    

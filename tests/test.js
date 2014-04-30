@@ -73,6 +73,11 @@ describe('Todo MVC)', function(){
     
     app = Firera.hash();
     app("task-template").load("../task-template.html");
+    app("what_to_show").is("ul.controls|selectedItem").map({    
+	'All': '*',    
+	'Completed': true,    
+	'Active': false
+    });
     app("tasks")
 	    .are([{
 		    title: 'Fuck Putin',
@@ -88,6 +93,7 @@ describe('Todo MVC)', function(){
 		    completed: false,
 	    }], '.tasks')
 	    .template("task-template")
+	    .show('selectIf', 'completed', app("what_to_show"))
 	    .each({
 		".complete|click": [
 		    ['filter', '!completed'],
@@ -105,15 +111,10 @@ describe('Todo MVC)', function(){
     app(".remove-completed|click").removes('completed', 'tasks').sets('ul.controls|selectedItem', 'All');
     app(".add-task|submit").pushTo('tasks');
     
-    app("what_to_show").is("ul.controls|selectedItem").map({    
-	'All': '*',    
-	'Completed': true,    
-	'Active': false
-    });
     
     app("ul.controls|selectedItem").set("All");
     app(".task-type|html").is("ul.controls|selectedItem").then(toLowerCase);
-	
+
     it('Testing list', function(){
 	app.applyTo(".todo");
 	assert.equal($(".tasks > *").length, 4);

@@ -67,6 +67,26 @@
 	background-color: grey;	
 	color: white;
     }
+    
+    .controls {
+	    list-style: none;
+	    display: inline-block;
+    }
+    
+    .controls li {
+	    display: inline-block;
+	    padding: 10px;
+	    background-color: whitesmoke;
+	    cursor: pointer;
+    }
+    .controls li:hover {
+	    text-decoration: underline;
+    }
+    
+    .controls li.selected {
+	background-color: black;
+	color: white;
+    }
 
 </style>
 <div class="container">
@@ -90,7 +110,7 @@
 	<div class="tasks">
 
 	</div>
-	<div style="display:none;">
+	<div>
 	    Show:
 	    <ul class="controls">
 		<li>
@@ -110,8 +130,8 @@
 	<div>
 	    Completed:<span class="how_much_completed"></span> tasks
 	</div>
-	<div style="display:none;">
-	    Now <span class="task-type"></span> are shown
+	<div>
+	    Now <span class="task-type"></span> tasks are shown
 	</div>
 	<div class="remove-completed button">
 	    Remove completed
