@@ -92,6 +92,7 @@
 		</div>
 		<div class="add-task">
 		    <input type="text" name="title" /> <input type="submit" value="Add task" />
+		    <input type="hidden" name="completed" value="1" />
 		</div>
 		<div class="console">
 		    
@@ -127,13 +128,13 @@ var TaskList = {
 
 //TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
 
-var task_list = new Firera.list(TaskList, [
+var task_list = new Firera.list([
 	{
 		title: 'Fuck Putin',
 		completed: false,
 	}, {
 		title: 'Fuck Yanukovich',
-		completed: true,
+		completed: 1,
 	}, {
 		title: 'Fuck Ruzke',
 		completed: false,
@@ -141,7 +142,7 @@ var task_list = new Firera.list(TaskList, [
 		title: 'Fuck vatniks',
 		completed: false,
 	}
-]);
+], TaskList);
 	
 	
 var app = new Firera.hash;

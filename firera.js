@@ -229,7 +229,7 @@
 		this.getScope() && this.rebind('cell constructor');
 	    } else {
 		var self = this;
-		this.rebind = function(source){	
+		this.rebind = function(source){
 		    if(self.driver.setter && self.getScope()){
 			self.driver.setter.apply(self.driver, [self.val, self.getScopedSelector()].concat(this.params));
 		    }
@@ -286,6 +286,8 @@
     }
     
     Cell.prototype.get = function(){
+	    //console.log('we call get, got', this.val, 'in', this.getName());
+	    //console.dir(this.host);
 	return this.val;
     }
     
@@ -599,6 +601,9 @@
 			$(this).val('');
 		    }
 		break;
+		case 'hidden': 
+		    val = $(this).val();
+		break;
 	    }
 	    res[$(this).attr('name')] = val;
 	})
@@ -695,6 +700,7 @@
     
     Event.prototype.pushTo = function(arr){
 	this.handlers.push(function(self, _, _, val){
+		console.log('we push', val);
 	    self(arr).push(val);
 	});
 	return this;
@@ -726,7 +732,7 @@
     
     
     var get_cell_type = function(cellname){
-	    !cellname.indexOf && console.log('we are given', cellname);
+	!cellname.indexOf && console.log('we are given', cellname);
 	var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
 	return type;
     }
@@ -736,7 +742,7 @@
     }
     
     var Firera = {
-	hash: function(init_hash, data){
+	hash: function(data, init_hash){
 	    
 	    var get_context = function(){};
 	    
@@ -831,6 +837,30 @@
 			    }
 			}
 		    }
+		}
+		return true;
+	    }
+	    //////////////////////////////////////////
+	    var init_with_data = function(hash){
+		for(var i in hash){
+			var cell = self.create_cell_or_event(i);
+			if(hash[i] instanceof Array){
+				for(var j in hash[i]){
+					if(!(hash[i][j] instanceof Object)){
+						hash[i][j] = {item: hash[i][j]};
+					}
+				}				
+				var list = new window[lib_var_name].list(hash[i], {});
+				list.setHost(self);
+				cell.are(list);
+			} else {
+				if(hash[i] instanceof Object){
+					// Ready Firera List object
+				} else {
+					cell.just(hash[i]);
+				}
+			}
+		    
 		}
 		return true;
 	    }
@@ -929,12 +959,12 @@
 		}
 	    })
 	    
-	    if(init_hash){
-		init_with_hash(init_hash);
+	    if(data){
+		init_with_data(data);
 	    } 
 	    
-	    if(data instanceof Object){
-		    self.update(data);
+	    if(init_hash instanceof Object){
+		    self.update(init_hash);
 	    }
 
 	    return self;
@@ -953,26 +983,30 @@
 	}
     }
     
-    var List = function(init_hash, data){
+    var List = function(data, init_hash){
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
+	this.props_hash = {};
 	this.map_funcs = [];
 	this.reduce_funcs = [];
 	this.count_funcs = [];
 	this._counter = 0;
-	if(init_hash.each){
+	if(init_hash && init_hash.each){
 		this.each_is_set = true;
 		this.each_hash = init_hash.each;
 	}
+	if(init_hash && init_hash.props){
+		this.props_hash = init_hash.props;
+	}
 	for(var i = 0;i<data.length;i++){
-	    var hash = new window[lib_var_name].hash(this.each_hash, data[i]);
+	    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
 	    hash.setHost(this);
 	    this.list[this._counter] = hash;
 	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
 	}
-	this.props = new Firera.hash(init_hash.props);
+	this.props = new Firera.hash(this.props_hash);
 	this.props.setHost(this);
 	var self = this;
 	this.onChange(function(){
@@ -1096,10 +1130,10 @@
 	    return;
 	}
 	// update template, if not provided previously
-	var inline_template = $.trim($(this.scope).html());
+	var inline_template = $.trim($(this.getScope()).html());
 	if(!this.props.getVar('_template') && inline_template){
 		this.props('_template').just(inline_template);
-		$(this.scope).html('');
+		$(this.getScope()).html('');
 	}
 	
 	for(var i in this.list){
