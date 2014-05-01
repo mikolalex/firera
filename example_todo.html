@@ -53,7 +53,18 @@
 	<div class="container">
 	    <div class="todo">
 		<div data-fr="tasks" class="tasks">
-		    
+			<div class="task">
+				<div class="title" data-fr="title">
+
+				</div>
+				<div class="complete">
+					Complete
+				</div>
+				<div class="remove">
+					Remove
+				</div>
+				<hr>
+			</div>
 		</div>
 		Show:
 		<ul class="controls">
@@ -95,21 +106,6 @@ var toLowerCase = function(str){
 }    
 
 var TaskList = {
-	data: [
-		{
-			title: 'Fuck Putin',
-			completed: false,
-		}, {
-			title: 'Fuck Yanukovich',
-			completed: true,
-		}, {
-			title: 'Fuck Ruzke',
-			completed: false,
-		}, {
-			title: 'Fuck vatniks',
-			completed: false,
-		}
-	],
 	each: {
 		".complete|click": [
 			['filter', '!completed'],
@@ -121,17 +117,31 @@ var TaskList = {
 			coll.remove(key);
 		},
 		'root|toggleClass(completed)': ['is', 'completed'],
-		'root|visibility': ['selectIf', 'completed', 'what_to_show'],
+		//'root|visibility': ['selectIf', 'completed', 'what_to_show'],
 	},
-	fields: {
+	props: {
 		what_to_show: true,
-		template: ['load', "task-template.html"],
+		//template: ['load', "task-template.html"],
 	}
 }
 
-TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
+//TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
 
-var task_list = new Firera.list(TaskList);
+var task_list = new Firera.list(TaskList, [
+	{
+		title: 'Fuck Putin',
+		completed: false,
+	}, {
+		title: 'Fuck Yanukovich',
+		completed: true,
+	}, {
+		title: 'Fuck Ruzke',
+		completed: false,
+	}, {
+		title: 'Fuck vatniks',
+		completed: false,
+	}
+]);
 	
 	
 var app = new Firera.hash;

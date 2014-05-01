@@ -392,6 +392,11 @@
 	return this;
     }
     
+    Cell.prototype.unbindToDOM = function(){
+	this.DOMElement = false;
+	return this;
+    }
+    
     Cell.prototype.updateDOMElement = function(){
 	this.DOMElement.innerHTML = this.get();
     }
@@ -445,6 +450,10 @@
 		new_val = this.modifiers[i](new_val);
 	    }
 	    this.val = new_val;
+	    
+	    if(this.DOMElement){
+		this.updateDOMElement();
+	    }
 	    if(this.getScope() && this.driver.setter){
 		this.driver.setter(this.val, this.getScopedSelector());
 	    }
@@ -717,6 +726,7 @@
     
     
     var get_cell_type = function(cellname){
+	    !cellname.indexOf && console.log('we are given', cellname);
 	var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
 	return type;
     }
@@ -726,13 +736,18 @@
     }
     
     var Firera = {
-	hash: function(init_hash){
+	hash: function(init_hash, data){
 	    
 	    var get_context = function(){};
 	    
 	    var self = function(selector){
+		    if(selector instanceof Function){
+			    console.log(selector);
+			    console.log('Why?!');
+		    }
 		var pars = Array.prototype.slice.call(arguments, 1);
-		if(selector instanceof Object){
+		if(selector instanceof Object && !(selector instanceof Function)){
+			console.log('INIT!', selector);
 		    return init_with_hash(selector);
 		}
 		return self.create_cell_or_event(selector, pars);
@@ -819,17 +834,49 @@
 		}
 		return true;
 	    }
+	    
+	    self.update = function(hash){
+		init_with_hash(hash);
+		if(self.getScope()) this.rebind('update');
+	    }
+	    
 	    //////////////////////////////////////////		
-	    init_hash && init_with_hash(init_hash);
 
 	    self.setHost = function(host){
 		self.host = host;
 	    }
 	    
+	    self.unbindToDOM = function(){
+		var vars = self.getAllVars();
+		for(var i in vars) {
+			if(vars[i].unbindToDOM) vars[i].unbindToDOM();
+		}
+	    }
+	    
 	    self.applyTo = function(selector, template){
-		//console.log('we apply to ' + selector);
 		self.setScope(selector);
-		if(template){
+		//console.log('we apply to ', self.getScope());
+		// vsio huinya, davai snachala
+		self.unbindToDOM();
+		var template = $.trim($(self.getScope()).html());
+		if(!template){
+			if(self.getVar('_template')){
+				template = self('_template').get();
+				$(self.getScope()).html(template);
+			}
+			if(self.host && self.host && self.host.props && self.host.props.getVar('_template')){
+				template = self.host.props('_template').get();
+				$(self.getScope()).html(template);
+			}
+		}
+		$(self.getScope() + " [data-fr]").each(function(){
+			var cell, field = $(this).attr('data-fr');
+			if(cell = self.getVar(field)){
+				cell.bindToDOM($(this)[0], field);
+			}
+		})
+		
+		/*if(template){
 		    if(self.getVar("root|html")){// already inited
 			self.getVar("root|html").rebind(23);
 		    } else {
@@ -842,17 +889,8 @@
 			});
 		    }
 		} else {// maybe, template is within the scope!
-			if($.trim($(selector).html())){
-				$("[data-fr]").each(function(){
-					var cell, field = $(this).attr('data-fr');
-					if(cell = self.getVar(field)){
-						cell.bindToDOM($(this)[0]);
-					}
-				})
-			} else {
-				error('No template provided!');
-			}
-		}
+			
+		}*/
 		self.rebind('applyTo');
 	    }
 	    
@@ -860,13 +898,12 @@
 		var vars = self.getAllVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
-		    vars[i].rebind(source);
+		    if(vars[i].applyTo){
+			vars[i].applyTo();
+		    } else {
+			vars[i].rebind(source);
+		    }
 		}
-	    }
-	    
-	    self.update = function(hash){
-		init_with_hash(hash);
-		if(self.getScope()) this.rebind('update');
 	    }
 	    
 	    self.remove = function(){
@@ -891,11 +928,19 @@
 		    this.host.change();
 		}
 	    })
+	    
+	    if(init_hash){
+		init_with_hash(init_hash);
+	    } 
+	    
+	    if(data instanceof Object){
+		    self.update(data);
+	    }
 
 	    return self;
 	},
-	list: function(config){
-	    var self = new List(config);
+	list: function(config, data){
+	    var self = new List(config, data);
 	    return self;
 	},
 	config: function(obj){
@@ -908,7 +953,7 @@
 	}
     }
     
-    var List = function(init_list){
+    var List = function(init_hash, data){
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
@@ -916,13 +961,19 @@
 	this.reduce_funcs = [];
 	this.count_funcs = [];
 	this._counter = 0;
-	for(var i = 0;i<init_list.length;i++){
-	    var hash = new window[lib_var_name].hash(init_list[i]);
+	if(init_hash.each){
+		this.each_is_set = true;
+		this.each_hash = init_hash.each;
+	}
+	for(var i = 0;i<data.length;i++){
+	    var hash = new window[lib_var_name].hash(this.each_hash, data[i]);
 	    hash.setHost(this);
 	    this.list[this._counter] = hash;
 	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
 	}
+	this.props = new Firera.hash(init_hash.props);
+	this.props.setHost(this);
 	var self = this;
 	this.onChange(function(){
 	    self.updateObservers();
@@ -945,6 +996,7 @@
     List.prototype.push = function(obj){
 	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
 	this.list[this._counter]._index = this._counter;
+	this.list[this._counter].setHost(this);
 	if(this.each_is_set){
 	    this.list[this._counter].update(this.each_hash);
 	}
@@ -1027,34 +1079,51 @@
 	})
 	return this;
     }
+    
+    List.prototype.bindToDOM = function(htmlelement, field){
+	this.scope = '[data-fr=' + field + ']';
+	return this;
+    }
+    
+    List.prototype.unbindToDOM = function(){
 
-    List.prototype.applyTo = function(selector, template){
-	this.scope = selector;
-	if($(this.getScope().length === 0)){
+    }
+
+    List.prototype.applyTo = function(selector, start_index, end_index){
+	if(selector) this.scope = selector;
+	if($(this.getScope()).length === 0){
 	    error('Cant apply list to empty selector: ' + this.getScope());
 	    return;
 	}
+	// update template, if not provided previously
+	var inline_template = $.trim($(this.scope).html());
+	if(!this.props.getVar('_template') && inline_template){
+		this.props('_template').just(inline_template);
+		$(this.scope).html('');
+	}
+	
 	for(var i in this.list){
-	    this.list[i].rebind('applyTo');
+	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
+	    var nested_scope = " > div[data-firera-num=" + i + "]";
+	    if($(this.getScope() + " " + nested_scope).length === 0){
+		$(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+	    }
+	    this.list[i].applyTo(nested_scope);
 	}
 	return this;
     }
+    
     List.prototype.rebind = function(msg, start_index, end_index){
-	if(this.getScope() && this.template){
+	if(this.getScope()){
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 		var nested_scope = " > div[data-firera-num=" + i + "]";
 		if($(this.getScope() + " " + nested_scope).length === 0){
 		    $(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 		}
-		this.list[i].applyTo(nested_scope, this.host(this.template));
+		this.list[i].applyTo(nested_scope);
 	    }
 	}
-    }
-
-    List.prototype.template = function(template){// actually, mixin
-	this.template = template;
-	return this;
     }
     
     List.prototype.updateDOMElement = function(){
