@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+	<script src="../jquery.js"></script>
+        <script src="firera.js"></script>
+	<style>
+	    body {
+		font-size: 16px;
+		font-family: sans-serif;
+	    }
+	    
+	    .selected {
+		background-color: whitesmoke;
+		border-radius: 10px;
+	    }
+	    
+	    .complete {
+		cursor: pointer;
+	    }
+	    .complete:hover {
+		color: whitesmoke;
+		background-color: black;
+	    }
+	    
+	    .tasks {
+		border: 10px solid whitesmoke;
+		padding: 20px;
+		margin: 20px;
+	    }
+	    body {
+		width: 600px;
+		margin: auto;
+	    }
+	    
+	    .completed {
+		background-color: whitesmoke;
+	    }
+	    
+	    .add-task {
+		padding: 20px;
+		margin: 20px;
+		background-color: whitesmoke;
+		border-radius: 10px;
+	    }
+	    
+	</style>
+    </head>
+    <body>
+	<div class="container">
+	    <div class="todo">
+		<div data-fr="tasks" class="tasks">
+		    
+		</div>
+		Show:
+		<ul class="controls">
+		    <li>
+			All
+		    </li>
+		    <li>
+			Completed
+		    </li>
+		    <li>
+			Active
+		    </li>
+		</ul>
+		<div>
+		    Totally:<span data-fr="how_much"></span> tasks
+		</div>
+		<div>
+		    Completed:<span data-fr="how_much_completed"></span> tasks
+		</div>
+		<div>
+		    Now <span data-fr="task-type"></span> are shown
+		</div>
+		<div class="remove-completed">
+		    Remove completed
+		</div>
+		<div class="add-task">
+		    <input type="text" name="title" /> <input type="submit" value="Add task" />
+		</div>
+		<div class="console">
+		    
+		</div>
+	    </div>
+	</div>
+<script> 
+
+	    
+var toLowerCase = function(str){
+    return str.toLowerCase();
+}    
+
+var TaskList = {
+	data: [
+		{
+			title: 'Fuck Putin',
+			completed: false,
+		}, {
+			title: 'Fuck Yanukovich',
+			completed: true,
+		}, {
+			title: 'Fuck Ruzke',
+			completed: false,
+		}, {
+			title: 'Fuck vatniks',
+			completed: false,
+		}
+	],
+	each: {
+		".complete|click": [
+			['filter', '!completed'],
+			function(item){ 
+			    item("completed").set(true);
+			}
+		],
+		".remove|click": function(item, key, coll){ 
+			coll.remove(key);
+		},
+		'root|toggleClass(completed)': ['is', 'completed'],
+		'root|visibility': ['selectIf', 'completed', 'what_to_show'],
+	},
+	fields: {
+		what_to_show: true,
+		template: ['load', "task-template.html"],
+	}
+}
+
+TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
+
+var task_list = new Firera.list(TaskList);
+	
+	
+var app = new Firera.hash;
+
+app("what_to_show").is("ul.controls|selectedItem").map({    
+    'All': '*',    
+    'Completed': true,    
+    'Active': false
+});
+
+app("tasks").are(task_list);
+app("ul.controls|selectedItem").set("All");
+app("task-type").is("ul.controls|selectedItem").then(toLowerCase);
+app("how_much").counts('tasks');
+app("how_much_completed").counts("completed", 'tasks');
+app(".remove-completed|click").removes('completed', 'tasks').sets('ul.controls|selectedItem', 'All');
+app(".add-task|submit").pushTo('tasks');
+
+app.applyTo(".todo");
+
+</script>
+    </body>
+</html>

@@ -3,6 +3,7 @@
      * var a = frp(function(){}, b, c);
      * @todo: fix pour() to .prototype - common arrays!
      * @todo: refactor for(var i = 0;i< this.changers.length;i++){ to for(var i = 0, changer;changer = this.changers[i];i++){
+     * prohibit direct use of |html modifier! Use vars instead!
      */
     var $ = window['jQuery'] || window['$'] || false;
 
@@ -138,6 +139,12 @@
 	onChange: function(func){
 	    this.changers.push(func);
 	}
+    }
+    
+    var obj_join = function(a, b, overwrite){
+	    for(var i in a){
+		    if(!b[i] || overwrite) b[i] = a[i];
+	    }
     }
     
     var pour = function(obj, mixin){
@@ -379,6 +386,16 @@
 	});
 	return this.is.apply(this, args);
     }
+    Cell.prototype.bindToDOM = function(htmlelement){
+	this.DOMElement = htmlelement;
+	this.updateDOMElement();
+	return this;
+    }
+    
+    Cell.prototype.updateDOMElement = function(){
+	this.DOMElement.innerHTML = this.get();
+    }
+    
     Cell.prototype.template = function(){
 	//console.log('args are', arguments);
 	var vars = Array.prototype.slice.call(arguments);
@@ -405,12 +422,10 @@
 	return this.is.apply(this, args);
     }
     
-    Cell.prototype.are = function(arr, scope){
-	var arr_scope =  scope ? scope : false;
-	List.call(this, arr, arr_scope, this.host, this.getName());
-	for(var i in List.prototype){
-	    this[i] = List.prototype[i];
-	}
+    Cell.prototype.are = function(arr){
+	obj_join(this, arr);
+	this.host.setVar(this.getName(), arr);
+	arr.setHost(this.host);
 	return this;	
     }
     
@@ -468,6 +483,9 @@
 	    new_val = this.modifiers[i](new_val);
 	}
 	this.val = new_val;
+	if(this.DOMElement){
+		this.updateDOMElement();
+	}
 	if(this.driver && this.driver.setter && this.getScope()){
 	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
 	}
@@ -708,15 +726,7 @@
     }
     
     var Firera = {
-	hash: function(a, b, host){// a, b = hash, context | a(object) = hash | a(string) = context | 
-	    var init_hash, context;
-	    if(!b){
-		if(a instanceof Object) init_hash = a;
-		else context = a;
-	    } else {
-		init_hash = a;
-		context = b;
-	    }
+	hash: function(init_hash){
 	    
 	    var get_context = function(){};
 	    
@@ -751,7 +761,7 @@
 		return self.vars;
 	    }
 	    
-	    self.scope = context || false;
+	    self.scope = false;
     
 	    self.getScope = function(func){
 		if(self.host){
@@ -812,7 +822,7 @@
 	    //////////////////////////////////////////		
 	    init_hash && init_with_hash(init_hash);
 
-	    if(host){
+	    self.setHost = function(host){
 		self.host = host;
 	    }
 	    
@@ -831,6 +841,17 @@
 				self.rebind('root|html changed from ' + prev + ' to ' + neww);
 			});
 		    }
+		} else {// maybe, template is within the scope!
+			if($.trim($(selector).html())){
+				$("[data-fr]").each(function(){
+					var cell, field = $(this).attr('data-fr');
+					if(cell = self.getVar(field)){
+						cell.bindToDOM($(this)[0]);
+					}
+				})
+			} else {
+				error('No template provided!');
+			}
 		}
 		self.rebind('applyTo');
 	    }
@@ -873,17 +894,8 @@
 
 	    return self;
 	},
-	list: function(a, b){/* */
-
-	    var init_list = [], context = false;
-	    if(!b){
-		if(a instanceof Array) init_list = a;
-		else context = a;
-	    } else {
-		init_list = a;
-		context = b;
-	    }
-	    var self = new List(init_list, context);
+	list: function(config){
+	    var self = new List(config);
 	    return self;
 	},
 	config: function(obj){
@@ -896,9 +908,7 @@
 	}
     }
     
-    var List = function(init_list, scope, host){
-	this.host = host;
-	this.scope = scope || false;
+    var List = function(init_list){
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
@@ -907,7 +917,8 @@
 	this.count_funcs = [];
 	this._counter = 0;
 	for(var i = 0;i<init_list.length;i++){
-	    var hash = window[lib_var_name].hash(init_list[i], false, this);
+	    var hash = new window[lib_var_name].hash(init_list[i]);
+	    hash.setHost(this);
 	    this.list[this._counter] = hash;
 	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
@@ -917,6 +928,10 @@
 	    self.updateObservers();
 	})
     }
+    
+	List.prototype.setHost = function(host){
+	    this.host = host;
+	}
     
     List.prototype.getScope = function(func){
 	if(this.host){
@@ -1010,7 +1025,6 @@
 	this.each({
 	    "root|visibility": args
 	})
-	console.log('we set each visibility to', args);
 	return this;
     }
 
@@ -1033,7 +1047,6 @@
 		if($(this.getScope() + " " + nested_scope).length === 0){
 		    $(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 		}
-		//console.log('we rebind ', this.getScope(), 'nested is', $(nested_scope).length);
 		this.list[i].applyTo(nested_scope, this.host(this.template));
 	    }
 	}
@@ -1043,6 +1056,12 @@
 	this.template = template;
 	return this;
     }
+    
+    List.prototype.updateDOMElement = function(){
+	// Do nothing!
+    }
+    
+    pour(List.prototype, changeble);
 	
     var lib_var_name = 'Firera';
     if(window[lib_var_name] !== undefined){
