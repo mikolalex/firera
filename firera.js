@@ -291,6 +291,10 @@
 	return this.val;
     }
     
+    Cell.prototype.getType = function(){
+	return 'cell';
+    }
+    
     Cell.prototype.rebind = function(){
 	/* empty for default cell, will be overwritten for self-refreshing cells */
     }
@@ -675,6 +679,10 @@
 	}
     }
     
+    Event.prototype.getType = function(){
+	return 'event';
+    }
+    
     Event.prototype.removes = function(pred, list){
 	var arr = list ? list : pred;
 	var func = list ? pred : false;
@@ -747,10 +755,10 @@
 	    var get_context = function(){};
 	    
 	    var self = function(selector){
-		    if(selector instanceof Function){
-			    console.log(selector);
-			    console.log('Why?!');
-		    }
+		if(selector instanceof Function){
+			console.log(selector);
+			console.log('Why?!');
+		}
 		var pars = Array.prototype.slice.call(arguments, 1);
 		if(selector instanceof Object && !(selector instanceof Function)){
 			console.log('INIT!', selector);
@@ -792,6 +800,9 @@
 		    return self.scope;
 		}
 	    }
+	    self.getType = function(){
+		return 'hash';
+	    }
 	    
 	    get_context = self.getScope.bind(self);
 
@@ -803,39 +814,45 @@
 	    var init_with_hash = function(selector){
 		for(var i in selector){
 		    var cell = self.create_cell_or_event(i);
-		    var cell_type = get_cell_type(i);
-		    if(cell_type === 'cell'){
-			if(selector[i] instanceof Array){
-			    if(selector[i][0] instanceof Function){
-				cell['is'].apply(cell, selector[i]);
-			    } else {
-				cell[selector[i][0]].apply(cell, selector[i].slice(1));
-			    }
-			} else {
-			    cell.just(selector[i]);
-			}
-		    } else {
-			if(selector[i] instanceof Function){
-			    cell.then(selector[i]);
-			} else {
-			    if(selector[i] instanceof Array){
-				if(!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)){
-				    selector[i][0] = [selector[i][0]];
-				}
-				for(var j=0;j<selector[i].length;j++){
-				    if(selector[i][j] instanceof Function){
-					cell.then(selector[i][j]);
+		    var cell_type = cell.getType();
+		    switch(cell_type){
+			case 'cell':
+				if(selector[i] instanceof Array){
+				    if(selector[i][0] instanceof Function){
+					cell['is'].apply(cell, selector[i]);
 				    } else {
-					if(selector[i][j] instanceof Array){
-					    var func = selector[i][j][0];
-					    cell[func].apply(cell, selector[i][j].slice(1));
-					} else {
-					    error('wrong parameter type for cell creation!');
+					cell[selector[i][0]].apply(cell, selector[i].slice(1));
+				    }
+				} else {
+				    cell.just(selector[i]);
+				}
+			break;
+			case 'event':
+				if(selector[i] instanceof Function){
+				    cell.then(selector[i]);
+				} else {
+				    if(selector[i] instanceof Array){
+					if(!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)){
+					    selector[i][0] = [selector[i][0]];
+					}
+					for(var j=0;j<selector[i].length;j++){
+					    if(selector[i][j] instanceof Function){
+						cell.then(selector[i][j]);
+					    } else {
+						if(selector[i][j] instanceof Array){
+						    var func = selector[i][j][0];
+						    cell[func].apply(cell, selector[i][j].slice(1));
+						} else {
+						    error('wrong parameter type for cell creation!');
+						}
+					    }
 					}
 				    }
 				}
-			    }
-			}
+			break;
+			case 'list':
+				cell.each(selector[i]);
+			break;
 		    }
 		}
 		return true;
@@ -1016,6 +1033,10 @@
     
 	List.prototype.setHost = function(host){
 	    this.host = host;
+	}
+	
+	List.prototype.getType = function(){
+	    return 'list';
 	}
     
     List.prototype.getScope = function(func){
