@@ -78,10 +78,12 @@ var app = new Firera.hash(
 	{
 		'cart-num': ['counts', 'added_to_cart', 'goods'],
 		goods: {
-			".add-to-cart|click": [['filter', '!added_to_cart'], function(item){ 
-				item("added_to_cart").set(true);
-			}],
-			'root|toggleClass(added-to-cart)': ['is', 'added_to_cart'],
+			each: {
+				".add-to-cart|click": [['filter', '!added_to_cart'], function(item){ 
+					item("added_to_cart").set(true);
+				}],
+				'root|toggleClass(added-to-cart)': ['is', 'added_to_cart'],
+			}
 		}
 	}
 );

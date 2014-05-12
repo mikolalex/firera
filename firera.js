@@ -436,6 +436,7 @@
     Cell.prototype.are = function(arr){
 	obj_join(this, arr);
 	this.host.setVar(this.getName(), arr);
+	if(!arr.setHost) console.log('ups', arr);
 	arr.setHost(this.host);
 	return this;	
     }
@@ -852,7 +853,7 @@
 				}
 			break;
 			case 'list':
-				cell.each(selector[i]);
+				cell.update(selector[i]);
 			break;
 		    }
 		}
@@ -1005,7 +1006,7 @@
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
-	this.props_hash = {};
+	this.shared_hash = {};
 	this.map_funcs = [];
 	this.reduce_funcs = [];
 	this.count_funcs = [];
@@ -1014,8 +1015,8 @@
 		this.each_is_set = true;
 		this.each_hash = init_hash.each;
 	}
-	if(init_hash && init_hash.props){
-		this.props_hash = init_hash.props;
+	if(init_hash && init_hash.shared){
+		this.shared_hash = init_hash.shared;
 	}
 	for(var i = 0;i<data.length;i++){
 	    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
@@ -1024,13 +1025,24 @@
 	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
 	}
-	this.props = new Firera.hash(this.props_hash);
-	this.props.setHost(this);
+	this.shared = new Firera.hash(this.shared_hash);
+	this.shared.setHost(this);
 	var self = this;
 	this.onChange(function(){
 	    self.updateObservers();
 	})
     }
+    
+	List.prototype.update = function(init_hash){
+		if(init_hash.each){
+			this.each_is_set = true;
+			this.each(init_hash.each)
+			obj_join(init_hash.each, this.each_hash, true);
+		}
+		if(init_hash.shared){
+			this.shared.update(init_hash.shared);
+		}
+	}
     
 	List.prototype.setHost = function(host){
 	    this.host = host;
