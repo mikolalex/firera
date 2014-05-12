@@ -16,19 +16,19 @@
 	    
 	},
 	visibility: {
-	    setter: function(val, selector){
+	    setter: function(val, selector, scope){
 		if(val){
-		    $(selector).show();
+		    $(selector, scope).show();
 		} else {
-		    $(selector).hide();
+		    $(selector, scope).hide();
 		}
 	    }
 	},
 	value: {
 	    def: '',
 	    selfRefresh: true,
-	    setter: function(val, selector){
-		var $el = $(selector);
+	    setter: function(val, selector, scope){
+		var $el = $(selector, scope);
 		switch($el.prop('type')){
 		    case 'checkbox':
 			$el.prop('checked', !!val);
@@ -38,9 +38,9 @@
 		    break;
 		}
 	    },
-	    startObserving: function(selector){
+	    startObserving: function(selector, scope){
 		var self = this;
-		var $el = $(selector);
+		var $el = $(selector, scope);
 		var type = $el.prop('type');
 		//console.log('we bind to ' + selector);
 		$el.bind("keyup, change", function(){
@@ -58,9 +58,9 @@
 	mouseover: {
 	    def: false,
 	    selfRefresh: true,
-	    startObserving: function(selector){
+	    startObserving: function(selector, scope){
 		var self = this;
-		$(selector).mouseenter(function(){
+		$(selector, scope).mouseenter(function(){
 		    self.set(true);	
 		}).mouseleave(function(){
 		    self.set(false);
@@ -70,8 +70,8 @@
 	selectedItem: {
 	    def: false,
 	    selfRefresh: true,
-	    setter: function(val, selector){
-		var list = $(selector);
+	    setter: function(val, selector, scope){
+		var list = $(selector, scope);
 		var new_chosen = list.children("[data-value=" + val + "]");
 		if(!new_chosen.length){
 		    error('No list selection found: ' + selector + " [data-value=" + val + "]");
@@ -79,12 +79,12 @@
 		list.children().removeClass('selected');
 		new_chosen.addClass("selected");
 	    },
-	    startObserving: function(selector){
-		if(!$(selector).length){
+	    startObserving: function(selector, scope){
+		if(!$(selector, scope).length){
 		    error("No element found by selector " + selector);
 		}
 		var self = this;
-		var items = $(selector).children();
+		var items = $(selector, scope).children();
 		items.each(function(){
 		    if(!$(this).attr('data-value')){
 			$(this).attr('data-value', $.trim($(this).html()))
@@ -99,8 +99,8 @@
 	    }
 	},
 	html: {
-	    setter: function(val, selector){
-		var el = $(selector);
+	    setter: function(val, selector, scope){
+		var el = $(selector, scope);
 		if(!el.length){
 		    error('Empty selector: ' + selector);
 		    return;
@@ -113,11 +113,12 @@
 	    }
 	},
 	toggleClass: {
-	    setter: function(val, selector, classname){
+	    setter: function(val, selector, scope, classname){
+		    console.log('we toggle class', selector);
 		if(val){
-		    $(selector).addClass(classname);
+		    $(selector, scope).addClass(classname);
 		} else {
-		    $(selector).removeClass(classname);
+		    $(selector, scope).removeClass(classname);
 		}
 	    }
 	}
@@ -202,9 +203,6 @@
 	    // this is a dom selector
 	    var parts = selector.split("|");
 	    this.jquerySelector = parts[0];
-	    if(this.getScope()){
-		//error('Selected element "' + this.getScopedSelector() + '" not found');
-	    }
 	    if(parts[1].indexOf("(") !== -1){
 		// there are some params
 		var m = parts[1].match(/([a-z]*)\((.*)\)/i);
@@ -220,9 +218,9 @@
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
-		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector()].concat(this.params));
+		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector(), this.getScope()].concat(this.params));
 		    if(this.driver && this.driver.setter && this.getScope()){
-			this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
+			this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
 		    }
 		    return this;
 		}
@@ -231,7 +229,7 @@
 		var self = this;
 		this.rebind = function(source){
 		    if(self.driver.setter && self.getScope()){
-			self.driver.setter.apply(self.driver, [self.val, self.getScopedSelector()].concat(this.params));
+			self.driver.setter.apply(self.driver, [self.val, self.getScopedSelector(), this.getScope()].concat(this.params));
 		    }
 		}
 	    }
@@ -253,7 +251,7 @@
     Cell.prototype.getScopedSelector = function(){
 	//console.log('host is', this.host);
 	//console.log('our scoped selector is ' + this.getScope() + " " + (this.jquerySelector === 'root' ? '' : this.jquerySelector));
-	return this.getScope() + " " + (this.jquerySelector === 'root' ? '' : this.jquerySelector);
+	return (this.jquerySelector === 'root' ? '' : this.jquerySelector);
     }
     
     Cell.prototype.remove = function(){
@@ -319,7 +317,7 @@
 	this.val = new_val;
 	//////////
 	if(this.driver && this.driver.setter && this.getScope()){
-	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
+	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
 	}
 	//////////
 	this.change(old_val, new_val);
@@ -462,7 +460,7 @@
 		this.updateDOMElement();
 	    }
 	    if(this.getScope() && this.driver.setter){
-		this.driver.setter(this.val, this.getScopedSelector());
+		this.driver.setter(this.val, this.getScopedSelector(), this.getScope());
 	    }
 	    this.change(old_val, this.val);
 	    this.updateObservers(listname);
@@ -503,7 +501,7 @@
 		this.updateDOMElement();
 	}
 	if(this.driver && this.driver.setter && this.getScope()){
-	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector()].concat(this.params));
+	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
 	}
 	this.change(old_val, this.val);
 	this.updateObservers(name);
@@ -589,9 +587,9 @@
 	return templ;
     }
     
-    var gather_form_values = function(selector, clear){
+    var gather_form_values = function(selector, scope, clear){
 	var res = {};
-	$(selector + " input").each(function(){
+	$(selector + " input", scope).each(function(){
 	    var val = '';
 	    switch($(this).attr('type')){
 		case 'checkbox':
@@ -616,14 +614,14 @@
     }
     
     var custom_event_drivers = {
-	submit: function(selector, callback){
-	    var submitters = $(selector + " input[type=submit]");
+	submit: function(selector, scope, callback){
+	    var submitters = $(selector + " input[type=submit]", scope);
 	    if(submitters.length < 1){		
 		submitters = $(selector + " .firera-submitter");
 	    }
 	    if(submitters.length === 1){// ok, binding
 		submitters.bind('click', function(){
-		    var hash = gather_form_values(selector, true);
+		    var hash = gather_form_values(selector, scope, true);
 		    callback(hash);
 		});
 	    } else {
@@ -639,7 +637,6 @@
     var Event = function(selector, host){
 	this.host = host;
 	this.selector = selector.split("|")[0];
-	this.scopedSelector = this.getScope() + " " + this.selector;
 	this.event = selector.split("|")[1];
 	this.handlers = [];
 	if(this.scope){
@@ -649,7 +646,7 @@
     
     Event.prototype.getScopedSelector = function(){
 	//console.log('host is', this.host);
-	return this.getScope() + " " + (this.selector === 'root' ? '' : this.selector);
+	return (this.selector === 'root' ? '' : this.selector);
     }
     
     Event.prototype.getScope = function(){
@@ -658,12 +655,12 @@
     
     Event.prototype.rebind = function(){
 	if(custom_event_drivers[this.event]){
-	    custom_event_drivers[this.event](this.getScopedSelector(), this.process.bind(this));
+	    custom_event_drivers[this.event](this.getScopedSelector(), this.getScope(), this.process.bind(this));
 	} else {
-	    if($(this.getScopedSelector()).length === 0){
-		//error('Empty selector for binding: ' + this.getScopedSelector());
+	    if($(this.getScopedSelector(), this.getScope()).length === 0){
+		error('Empty selector for binding: ' + this.getScopedSelector());
 	    }
-	    $(this.getScopedSelector())
+	    $(this.getScopedSelector(), this.getScope())
 		    .bind(this.event, this.process.bind(this))
 	}
 	return this;
@@ -709,7 +706,6 @@
     
     Event.prototype.pushTo = function(arr){
 	this.handlers.push(function(self, _, _, val){
-		console.log('we push', val);
 	    self(arr).push(val);
 	});
 	return this;
@@ -794,13 +790,17 @@
 	    self.scope = false;
     
 	    self.getScope = function(func){
-		if(self.host){
-		    var parent_scope = self.host.getScope();
-		    return parent_scope ? parent_scope + " " + self.scope : false
-		} else {
-		    return self.scope;
-		}
+		    if(!self.rootElement && self.scope){
+			if(self.host){
+			    var parent_scope = self.host.getScope();
+			    self.rootElement = $(self.scope, parent_scope);
+			} else {
+			    self.rootElement = $(self.scope);
+			}
+		    }
+		    return self.rootElement;
 	    }
+		
 	    self.getType = function(){
 		return 'hash';
 	    }
@@ -808,9 +808,8 @@
 	    get_context = self.getScope.bind(self);
 
 	    self.setScope = function(scope2){
-		    console.log('we set scope', scope2);
 		self.scope = scope2;
-		return this;
+		return self;
 	    }
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
@@ -904,42 +903,24 @@
 	    
 	    self.applyTo = function(selector, template){
 		self.setScope(selector);
-		//console.log('we apply to ', self.getScope());
-		// vsio huinya, davai snachala
 		self.unbindToDOM();
-		var template = $.trim($(self.getScope()).html());
+		var template = $.trim(self.getScope().html());
 		if(!template){
 			if(self.getVar('__template')){
 				template = self('__template').get();
-				$(self.getScope()).html(template);
+				self.getScope().html(template);
 			}
 			if(self.host && self.host && self.host.shared && self.host.shared.getVar('__template')){
 				template = self.host.shared('__template').get();
-				$(self.getScope()).html(template);
+				self.getScope().html(template);
 			}
 		}
-		$(self.getScope() + " [data-fr]").each(function(){
+		$("[data-fr]", self.getScope()).each(function(){
 			var cell, field = $(this).attr('data-fr');
 			if(cell = self.getVar(field)){
 				cell.bindToDOM($(this)[0], field);
 			}
 		})
-		
-		/*if(template){
-		    if(self.getVar("root|html")){// already inited
-			self.getVar("root|html").rebind(23);
-		    } else {
-			var names = collect_names(self.getAllVars());
-			names.unshift(template);
-			//@todo: subscribe on changes only on variables, meant in template!	
-			self("root|html").template.apply(self("root|html"), names);
-			self("root|html").onChange(function(prev, neww){
-				self.rebind('root|html changed from ' + prev + ' to ' + neww);
-			});
-		    }
-		} else {// maybe, template is within the scope!
-			
-		}*/
 		self.rebind('applyTo');
 	    }
 	    
@@ -956,7 +937,7 @@
 	    }
 	    
 	    self.remove = function(){
-		$(self.getScope()).remove();
+		self.getScope().remove();
 		for(var i in self.vars){
 			// unbind each cell
 			if(self.vars[i] instanceof Cell){
@@ -1053,12 +1034,15 @@
 	}
     
     List.prototype.getScope = function(func){
-	if(this.host){
-	    var parent_scope = this.host.getScope();
-	    return parent_scope ? parent_scope + " " + this.scope : false
-	} else {
-	    return this.scope;
+	if(!this.rootElement){
+	    if(this.host){
+		var parent_scope = this.host.getScope();
+		this.rootElement = $(this.scope, parent_scope);
+	    } else {
+		this.rootElement = $(this.scope);
+	    }
 	}
+	return this.rootElement;
     }
     
     List.prototype.push = function(obj){
@@ -1150,7 +1134,6 @@
     
     List.prototype.bindToDOM = function(htmlelement, field){
 	this.scope = '[data-fr=' + field + ']';
-	console.log('we bind list to DOM', this.scope);
 	return this;
     }
     
@@ -1159,24 +1142,24 @@
     }
 
     List.prototype.applyTo = function(selector, start_index, end_index){
-	    console.log('we spply list to', selector);
 	if(selector) this.scope = selector;
-	if($(this.getScope()).length === 0){
-	    error('Cant apply list to empty selector: ' + this.getScope());
+	if(this.getScope().length === 0){
+	    error('Cant apply list to empty selector: ' + this.getScope() + ' ,  ' + this.scope);
+	    console.dir(this);
 	    return;
 	}
 	// update template, if not provided previously
-	var inline_template = $.trim($(this.getScope()).html());
+	var inline_template = $.trim(this.getScope().html());
 	if(!this.shared.getVar('__template') && inline_template){
 		this.shared('__template').just(inline_template);
-		$(this.getScope()).html('');
+		this.getScope().html('');
 	}
 	
 	for(var i in this.list){
 	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 	    var nested_scope = " > div[data-firera-num=" + i + "]";
-	    if($(this.getScope() + " " + nested_scope).length === 0){
-		$(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+	    if($(nested_scope, this.getScope()).length === 0){
+		this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 	    }
 	    this.list[i].applyTo(nested_scope);
 	}
@@ -1188,8 +1171,8 @@
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 		var nested_scope = " > div[data-firera-num=" + i + "]";
-		if($(this.getScope() + " " + nested_scope).length === 0){
-		    $(this.getScope()).append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+		if($(nested_scope, this.getScope()).length === 0){
+		    this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 		}
 		this.list[i].applyTo(nested_scope);
 	    }
