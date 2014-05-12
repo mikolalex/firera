@@ -436,6 +436,7 @@
     Cell.prototype.are = function(arr){
 	obj_join(this, arr);
 	this.host.setVar(this.getName(), arr);
+	if(!arr.setHost) console.log('ups', arr);
 	arr.setHost(this.host);
 	return this;	
     }
@@ -807,6 +808,7 @@
 	    get_context = self.getScope.bind(self);
 
 	    self.setScope = function(scope2){
+		    console.log('we set scope', scope2);
 		self.scope = scope2;
 		return this;
 	    }
@@ -851,7 +853,7 @@
 				}
 			break;
 			case 'list':
-				cell.each(selector[i]);
+				cell.update(selector[i]);
 			break;
 		    }
 		}
@@ -907,12 +909,12 @@
 		self.unbindToDOM();
 		var template = $.trim($(self.getScope()).html());
 		if(!template){
-			if(self.getVar('_template')){
-				template = self('_template').get();
+			if(self.getVar('__template')){
+				template = self('__template').get();
 				$(self.getScope()).html(template);
 			}
-			if(self.host && self.host && self.host.props && self.host.props.getVar('_template')){
-				template = self.host.props('_template').get();
+			if(self.host && self.host && self.host.shared && self.host.shared.getVar('__template')){
+				template = self.host.shared('__template').get();
 				$(self.getScope()).html(template);
 			}
 		}
@@ -1004,7 +1006,7 @@
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
-	this.props_hash = {};
+	this.shared_hash = {};
 	this.map_funcs = [];
 	this.reduce_funcs = [];
 	this.count_funcs = [];
@@ -1013,8 +1015,8 @@
 		this.each_is_set = true;
 		this.each_hash = init_hash.each;
 	}
-	if(init_hash && init_hash.props){
-		this.props_hash = init_hash.props;
+	if(init_hash && init_hash.shared){
+		this.shared_hash = init_hash.shared;
 	}
 	for(var i = 0;i<data.length;i++){
 	    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
@@ -1023,13 +1025,24 @@
 	    this.list[this._counter]._index = this._counter;
 	    this._counter++;
 	}
-	this.props = new Firera.hash(this.props_hash);
-	this.props.setHost(this);
+	this.shared = new Firera.hash(this.shared_hash);
+	this.shared.setHost(this);
 	var self = this;
 	this.onChange(function(){
 	    self.updateObservers();
 	})
     }
+    
+	List.prototype.update = function(init_hash){
+		if(init_hash.each){
+			this.each_is_set = true;
+			this.each(init_hash.each)
+			obj_join(init_hash.each, this.each_hash, true);
+		}
+		if(init_hash.shared){
+			this.shared.update(init_hash.shared);
+		}
+	}
     
 	List.prototype.setHost = function(host){
 	    this.host = host;
@@ -1137,6 +1150,7 @@
     
     List.prototype.bindToDOM = function(htmlelement, field){
 	this.scope = '[data-fr=' + field + ']';
+	console.log('we bind list to DOM', this.scope);
 	return this;
     }
     
@@ -1145,6 +1159,7 @@
     }
 
     List.prototype.applyTo = function(selector, start_index, end_index){
+	    console.log('we spply list to', selector);
 	if(selector) this.scope = selector;
 	if($(this.getScope()).length === 0){
 	    error('Cant apply list to empty selector: ' + this.getScope());
@@ -1152,8 +1167,8 @@
 	}
 	// update template, if not provided previously
 	var inline_template = $.trim($(this.getScope()).html());
-	if(!this.props.getVar('_template') && inline_template){
-		this.props('_template').just(inline_template);
+	if(!this.shared.getVar('__template') && inline_template){
+		this.shared('__template').just(inline_template);
 		$(this.getScope()).html('');
 	}
 	
