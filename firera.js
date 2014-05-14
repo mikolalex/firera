@@ -16,19 +16,18 @@
 	    
 	},
 	visibility: {
-	    setter: function(val, selector, scope){
+	    setter: function(val, $el){
 		if(val){
-		    $(selector, scope).show();
+		    $el.show();
 		} else {
-		    $(selector, scope).hide();
+		    $el.hide();
 		}
 	    }
 	},
 	value: {
 	    def: '',
 	    selfRefresh: true,
-	    setter: function(val, selector, scope){
-		var $el = $(selector, scope);
+	    setter: function(val, $el){
 		switch($el.prop('type')){
 		    case 'checkbox':
 			$el.prop('checked', !!val);
@@ -38,9 +37,8 @@
 		    break;
 		}
 	    },
-	    startObserving: function(selector, scope){
+	    startObserving: function($el){
 		var self = this;
-		var $el = $(selector, scope);
 		var type = $el.prop('type');
 		//console.log('we bind to ' + selector);
 		$el.bind("keyup, change", function(){
@@ -58,9 +56,9 @@
 	mouseover: {
 	    def: false,
 	    selfRefresh: true,
-	    startObserving: function(selector, scope){
+	    startObserving: function($el){
 		var self = this;
-		$(selector, scope).mouseenter(function(){
+		$el.mouseenter(function(){
 		    self.set(true);	
 		}).mouseleave(function(){
 		    self.set(false);
@@ -70,21 +68,20 @@
 	selectedItem: {
 	    def: false,
 	    selfRefresh: true,
-	    setter: function(val, selector, scope){
-		var list = $(selector, scope);
+	    setter: function(val, list){
 		var new_chosen = list.children("[data-value=" + val + "]");
 		if(!new_chosen.length){
-		    error('No list selection found: ' + selector + " [data-value=" + val + "]");
+		    error("No list selection found: [data-value=" + val + "]");
 		}
 		list.children().removeClass('selected');
 		new_chosen.addClass("selected");
 	    },
-	    startObserving: function(selector, scope){
-		if(!$(selector, scope).length){
-		    error("No element found by selector " + selector);
+	    startObserving: function($el){
+		if(!$el.length){
+		    error("No element found by selector ");
 		}
 		var self = this;
-		var items = $(selector, scope).children();
+		var items = $el.children();
 		items.each(function(){
 		    if(!$(this).attr('data-value')){
 			$(this).attr('data-value', $.trim($(this).html()))
@@ -99,10 +96,10 @@
 	    }
 	},
 	html: {
-	    setter: function(val, selector, scope){
+	    setter: function(val, el){
 		var el = $(selector, scope);
 		if(!el.length){
-		    error('Empty selector: ' + selector);
+		    error('Empty selector in html');
 		    return;
 		}
 		if(el.html()){
@@ -113,12 +110,11 @@
 	    }
 	},
 	toggleClass: {
-	    setter: function(val, selector, scope, classname){
-		    console.log('we toggle class', selector);
+	    setter: function(val, $el, classname){
 		if(val){
-		    $(selector, scope).addClass(classname);
+		    $el.addClass(classname);
 		} else {
-		    $(selector, scope).removeClass(classname);
+		    $el.removeClass(classname);
 		}
 	    }
 	}
@@ -218,9 +214,10 @@
 	    if(drivers[this.type].selfRefresh){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
-		    drivers[this.type].startObserving.apply(this, [this.getScopedSelector(), this.getScope()].concat(this.params));
+		    this.HTMLElement = false;// abort link to old element
+		    drivers[this.type].startObserving.apply(this, [this.getElement()].concat(this.params));
 		    if(this.driver && this.driver.setter && this.getScope()){
-			this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
+			this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 		    }
 		    return this;
 		}
@@ -228,8 +225,9 @@
 	    } else {
 		var self = this;
 		this.rebind = function(source){
+		    this.HTMLElement = false;// abort link to old element
 		    if(self.driver.setter && self.getScope()){
-			self.driver.setter.apply(self.driver, [self.val, self.getScopedSelector(), this.getScope()].concat(this.params));
+			self.driver.setter.apply(self.driver, [self.val, self.getElement()].concat(this.params));
 		    }
 		}
 	    }
@@ -243,14 +241,24 @@
 	return this.selector;
     }
     
+    Cell.prototype.getElement = function(){
+	    if(!this.HTMLElement){
+		    var selector = this.getSelector();
+		    if(selector === 'root' || selector === ''){
+			    this.HTMLElement = this.getScope();
+		    } else {
+			    this.HTMLElement = $(this.getSelector(), this.getScope());
+		    }
+		   
+	    }
+	    return this.HTMLElement;
+    }
+    
     Cell.prototype.getScope = function(){
-	//console.log('host is', this.host);
 	return this.host.getScope();
     }
     
-    Cell.prototype.getScopedSelector = function(){
-	//console.log('host is', this.host);
-	//console.log('our scoped selector is ' + this.getScope() + " " + (this.jquerySelector === 'root' ? '' : this.jquerySelector));
+    Cell.prototype.getSelector = function(){
 	return (this.jquerySelector === 'root' ? '' : this.jquerySelector);
     }
     
@@ -317,7 +325,7 @@
 	this.val = new_val;
 	//////////
 	if(this.driver && this.driver.setter && this.getScope()){
-	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
+	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
 	//////////
 	this.change(old_val, new_val);
@@ -460,7 +468,7 @@
 		this.updateDOMElement();
 	    }
 	    if(this.getScope() && this.driver.setter){
-		this.driver.setter(this.val, this.getScopedSelector(), this.getScope());
+		this.driver.setter(this.val, this.getElement());
 	    }
 	    this.change(old_val, this.val);
 	    this.updateObservers(listname);
@@ -501,7 +509,7 @@
 		this.updateDOMElement();
 	}
 	if(this.driver && this.driver.setter && this.getScope()){
-	    this.driver.setter.apply(this.driver, [this.val, this.getScopedSelector(), this.getScope()].concat(this.params));
+	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
 	this.change(old_val, this.val);
 	this.updateObservers(name);
@@ -644,7 +652,7 @@
 	}
     }
     
-    Event.prototype.getScopedSelector = function(){
+    Event.prototype.getSelector = function(){
 	//console.log('host is', this.host);
 	return (this.selector === 'root' ? '' : this.selector);
     }
@@ -655,12 +663,12 @@
     
     Event.prototype.rebind = function(){
 	if(custom_event_drivers[this.event]){
-	    custom_event_drivers[this.event](this.getScopedSelector(), this.getScope(), this.process.bind(this));
+	    custom_event_drivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
 	} else {
-	    if($(this.getScopedSelector(), this.getScope()).length === 0){
-		error('Empty selector for binding: ' + this.getScopedSelector());
+	    if($(this.getSelector(), this.getScope()).length === 0){
+		error('Empty selector for binding: ' + this.getSelector());
 	    }
-	    $(this.getScopedSelector(), this.getScope())
+	    $(this.getSelector(), this.getScope())
 		    .bind(this.event, this.process.bind(this))
 	}
 	return this;
