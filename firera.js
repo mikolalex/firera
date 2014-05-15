@@ -120,8 +120,8 @@
 	}
     }
     
-    var error = function(str){
-	console.log("Firera error: " + str);
+    var error = function(){
+	console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
     }
     
     var changeble = {
@@ -398,8 +398,8 @@
 	});
 	return this.is.apply(this, args);
     }
-    Cell.prototype.bindToDOM = function(htmlelement){
-	this.DOMElement = htmlelement;
+    Cell.prototype.bindToDOM = function($el){
+	this.DOMElement = $el;
 	this.updateDOMElement();
 	return this;
     }
@@ -410,7 +410,7 @@
     }
     
     Cell.prototype.updateDOMElement = function(){
-	this.DOMElement.innerHTML = this.get();
+	this.DOMElement.html(this.get());
     }
     
     Cell.prototype.template = function(){
@@ -798,14 +798,6 @@
 	    self.scope = false;
     
 	    self.getScope = function(func){
-		    if(!self.rootElement && self.scope){
-			if(self.host){
-			    var parent_scope = self.host.getScope();
-			    self.rootElement = $(self.scope, parent_scope);
-			} else {
-			    self.rootElement = $(self.scope);
-			}
-		    }
 		    return self.rootElement;
 	    }
 		
@@ -909,8 +901,12 @@
 		}
 	    }
 	    
-	    self.applyTo = function(selector, template){
-		self.setScope(selector);
+	    self.applyTo = function(selector_or_element){
+		if(selector_or_element instanceof Object){// HTMLElement
+			this.rootElement = selector_or_element;
+		} else {// rare case, only for root objects
+			this.rootElement = $(selector_or_element);
+		}
 		self.unbindToDOM();
 		var template = $.trim(self.getScope().html());
 		if(!template){
@@ -926,7 +922,7 @@
 		$("[data-fr]", self.getScope()).each(function(){
 			var cell, field = $(this).attr('data-fr');
 			if(cell = self.getVar(field)){
-				cell.bindToDOM($(this)[0], field);
+				cell.bindToDOM($(this), field);
 			}
 		})
 		self.rebind('applyTo');
@@ -974,6 +970,14 @@
 	    if(init_hash instanceof Object){
 		    self.update(init_hash);
 	    }
+	    
+	    self.getRoute = function(){
+		    if(!self.host){
+			    return 'root / ';
+		    } else {
+			    return self.host.getRoute() + self.getName() + ' / ';
+		    }
+	    }
 
 	    return self;
 	},
@@ -1000,6 +1004,7 @@
 	this.reduce_funcs = [];
 	this.count_funcs = [];
 	this._counter = 0;
+	this.rootElement = false;
 	if(init_hash && init_hash.each){
 		this.each_is_set = true;
 		this.each_hash = init_hash.each;
@@ -1012,6 +1017,7 @@
 	    hash.setHost(this);
 	    this.list[this._counter] = hash;
 	    this.list[this._counter]._index = this._counter;
+	    this.list[this._counter].getName = function(){ return this._index;};
 	    this._counter++;
 	}
 	this.shared = new Firera.hash(this.shared_hash);
@@ -1022,6 +1028,14 @@
 	})
     }
     
+	List.prototype.getRoute = function(){
+		if(!this.host){
+			return 'root / ';
+		} else {
+			return this.host.getRoute() + this.getName() + ' / ';
+		}
+	}
+	    
 	List.prototype.update = function(init_hash){
 		if(init_hash.each){
 			this.each_is_set = true;
@@ -1042,14 +1056,6 @@
 	}
     
     List.prototype.getScope = function(func){
-	if(!this.rootElement){
-	    if(this.host){
-		var parent_scope = this.host.getScope();
-		this.rootElement = $(this.scope, parent_scope);
-	    } else {
-		this.rootElement = $(this.scope);
-	    }
-	}
 	return this.rootElement;
     }
     
@@ -1140,8 +1146,8 @@
 	return this;
     }
     
-    List.prototype.bindToDOM = function(htmlelement, field){
-	this.scope = '[data-fr=' + field + ']';
+    List.prototype.bindToDOM = function(htmlelement){
+	this.rootElement = htmlelement;
 	return this;
     }
     
@@ -1149,12 +1155,13 @@
 
     }
 
-    List.prototype.applyTo = function(selector, start_index, end_index){
-	if(selector) this.scope = selector;
-	if(this.getScope().length === 0){
-	    error('Cant apply list to empty selector: ' + this.getScope() + ' ,  ' + this.scope);
-	    console.dir(this);
-	    return;
+    List.prototype.applyTo = function(selector_or_element, start_index, end_index){
+	if(selector_or_element){
+	    if(selector_or_element instanceof Object){// HTMLElement
+		    this.rootElement = selector_or_element;
+	    } else {// rare case, only for root objects
+		    this.rootElement = $(selector_or_element);
+	    }   
 	}
 	// update template, if not provided previously
 	var inline_template = $.trim(this.getScope().html());
@@ -1166,10 +1173,12 @@
 	for(var i in this.list){
 	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 	    var nested_scope = " > div[data-firera-num=" + i + "]";
-	    if($(nested_scope, this.getScope()).length === 0){
+	    var nested_element = $(nested_scope, this.getScope());
+	    if(nested_element.length === 0){
 		this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+		nested_element = $(nested_scope, this.getScope());
 	    }
-	    this.list[i].applyTo(nested_scope);
+	    this.list[i].applyTo(nested_element);
 	}
 	return this;
     }
@@ -1179,10 +1188,11 @@
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
 		var nested_scope = " > div[data-firera-num=" + i + "]";
-		if($(nested_scope, this.getScope()).length === 0){
+		var nested_element = $(nested_scope, this.getScope());
+		if(nested_element.length === 0){
 		    this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
 		}
-		this.list[i].applyTo(nested_scope);
+		this.list[i].applyTo(nested_element);
 	    }
 	}
     }

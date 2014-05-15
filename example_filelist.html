@@ -41,12 +41,28 @@ var Folder = {
 	__template: $(".folder-template").html()
 }
 
+Folder.folders.each = Folder;
+
 var struct = {
 	folders: [{
-		folders: [],
+		folders: [
+		{
+			folders: [],
+			files: ['1.php',],
+			title: 'ololo2'	
+		}, {
+			folders: [],
+			files: ['10.php', '20.txt', 'ololo0'],
+			title: 'ololo3'	
+		}, {
+			folders: [],
+			files: ['1456.php', '---------.txt', 'ololo87'],
+			title: 'ololo4'	
+		}, 
+	],
 		files: ['1.php',],
 		title: 'ololo2'	
-	},/* {
+	}, {
 		folders: [],
 		files: ['10.php', '20.txt', 'ololo0'],
 		title: 'ololo3'	
@@ -54,7 +70,7 @@ var struct = {
 		folders: [],
 		files: ['1456.php', '2456546.txt', 'ololo87'],
 		title: 'ololo4'	
-	}, */],
+	}, ],
 	files: ['-1.php', '-2.txt', '-ololo'],
 	title: 'ololo'
 }
