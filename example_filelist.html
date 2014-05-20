@@ -9,7 +9,13 @@
         <script src="firera.js"></script>
 	<style>
 		.folders, .files {
-			padding-left: 20px;
+			padding-left: 40px;
+		}
+		
+		.title {
+			cursor: pointer;
+			text-decoration: underline;
+			width: auto;
 		}
 	</style>
     </head>
@@ -21,8 +27,10 @@
 			<div class="title" data-fr="title">
 
 			</div>
-			<div class="folders" data-fr="folders"></div>
-			<div class="files" data-fr="files"></div>			    
+			<div class="files-and-folders">
+				<div class="folders" data-fr="folders"></div>
+				<div class="files" data-fr="files"></div>
+			</div>
 		</div>
 	</div>
 <script> 
@@ -38,6 +46,11 @@ var Folder = {
 			'__template': '<div data-fr="item"></div>'
 		}
 	},
+	'.title|click': function(self){
+		console.log('is', self('.files-and-folders|visibility').get());
+		self('.files-and-folders|visibility').set(!self('.files-and-folders|visibility').get());
+	},
+			
 	__template: $(".folder-template").html()
 }
 

@@ -22,11 +22,13 @@
 		} else {
 		    $el.hide();
 		}
+	    },
+	    startObserving: function($el){
+		this.set($el.is(":visible"));
 	    }
 	},
 	value: {
 	    def: '',
-	    selfRefresh: true,
 	    setter: function(val, $el){
 		switch($el.prop('type')){
 		    case 'checkbox':
@@ -55,7 +57,6 @@
 	},
 	mouseover: {
 	    def: false,
-	    selfRefresh: true,
 	    startObserving: function($el){
 		var self = this;
 		$el.mouseenter(function(){
@@ -67,7 +68,6 @@
 	},
 	selectedItem: {
 	    def: false,
-	    selfRefresh: true,
 	    setter: function(val, list){
 		var new_chosen = list.children("[data-value=" + val + "]");
 		if(!new_chosen.length){
@@ -211,7 +211,7 @@
 		this.type = parts[1];
 	    }
 	    this.driver = drivers[this.type];
-	    if(drivers[this.type].selfRefresh){
+	    if(drivers[this.type].startObserving){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
 		    this.HTMLElement = false;// abort link to old element
@@ -380,6 +380,26 @@
 	return this;
     }
     
+    Cell.prototype.gets = function(){
+	var self = this;
+	var args = Array.prototype.slice.call(arguments);
+	var url = args.shift();
+	var get_request_hash = function(arr){
+		var res = {};
+		for(var i in arr){
+			res[args[i]] = arr[i];
+		}
+		console.log('REQ HASH is', res);
+		return res;
+	}
+	return this.is.call(this, function(vars){
+	    var request_hash = get_request_hash(vars);
+	    $.getJSON(url, request_hash, function(data){
+		    self.set(data);
+	    })
+	}, args);
+    }
+    
     Cell.prototype.if = function(cond, then, otherwise){
 	return this.is.call(this, function(flag){
 	    return flag ? (existy(then)? then : true) : (existy(otherwise)? otherwise : false);
@@ -440,6 +460,10 @@
     }
     
     Cell.prototype.are = function(arr){
+	    if(!(arr instanceof List)){
+		    arr = new Firera.list([], arr);
+		    console.log('ololo', arr);
+	    }
 	obj_join(this, arr);
 	this.host.setVar(this.getName(), arr);
 	if(!arr.setHost) console.log('ups', arr);
@@ -707,6 +731,14 @@
 	return this;
     }
     
+    Event.prototype.toggles = function(cell, val){
+	var cell2 = this.host(cell);
+	this.handlers.push(function(){
+	    cell2.set(!cell2.get());
+	})		
+	return this;
+    }
+    
     Event.prototype.then = function(func){
 	this.handlers.push(func);		
 	return this;
@@ -774,6 +806,7 @@
 	    
 	    self.create_cell_or_event = function(selector, params){
 		if(self.getVar(selector)) return self.getVar(selector);
+		console.log('we get type of', selector);
 		var type = get_cell_type(selector);
 		
 		var new_cell = new types[type](selector, self, params);
@@ -902,21 +935,24 @@
 	    }
 	    
 	    self.applyTo = function(selector_or_element){
+		    console.log('APPLY TO is called', selector_or_element);
 		if(selector_or_element instanceof Object){// HTMLElement
-			this.rootElement = selector_or_element;
+			self.rootElement = selector_or_element;
 		} else {// rare case, only for root objects
-			this.rootElement = $(selector_or_element);
+			self.rootElement = $(selector_or_element);
 		}
 		self.unbindToDOM();
 		var template = $.trim(self.getScope().html());
 		if(!template){
 			if(self.getVar('__template')){
+				console.log('we get from __template');
 				template = self('__template').get();
 				self.getScope().html(template);
 			}
 			if(self.host && self.host && self.host.shared && self.host.shared.getVar('__template')){
 				template = self.host.shared('__template').get();
 				self.getScope().html(template);
+				console.log('we get from SHARED __template', self.getScope(), template);
 			}
 		}
 		$("[data-fr]", self.getScope()).each(function(){
@@ -964,12 +1000,17 @@
 	    })
 	    
 	    if(data){
-		init_with_data(data);
+		    if(init_hash){
+			init_with_data(data);
+			if(init_hash instanceof Object){
+				self.update(init_hash);
+			}
+		    } else {
+			    // data IS init_hash
+			    self.update(data);
+		    }
 	    } 
 	    
-	    if(init_hash instanceof Object){
-		    self.update(init_hash);
-	    }
 	    
 	    self.getRoute = function(){
 		    if(!self.host){
@@ -1012,19 +1053,23 @@
 	if(init_hash && init_hash.shared){
 		this.shared_hash = init_hash.shared;
 	}
-	for(var i = 0;i<data.length;i++){
-	    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
-	    hash.setHost(this);
-	    this.list[this._counter] = hash;
-	    this.list[this._counter]._index = this._counter;
-	    this.list[this._counter].getName = function(){ return this._index;};
-	    this._counter++;
+	if(data){
+		for(var i = 0;i<data.length;i++){
+		    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
+		    hash.setHost(this);
+		    this.list[this._counter] = hash;
+		    this.list[this._counter]._index = this._counter;
+		    this.list[this._counter].getName = function(){ return this._index;};
+		    this._counter++;
+		}
 	}
 	this.shared = new Firera.hash(this.shared_hash);
 	this.shared.setHost(this);
 	var self = this;
 	this.onChange(function(){
-	    self.updateObservers();
+	    if(self.updateObservers){
+		self.updateObservers();
+	    }
 	})
     }
     
@@ -1069,6 +1114,10 @@
 	this.rebind('push', this._counter);
 	this._counter++;
 	this.change();
+    }
+    
+    List.prototype.addOne = function(){
+	this.push({});
     }
     
     List.prototype.map = function(func){
@@ -1169,6 +1218,7 @@
 		this.shared('__template').just(inline_template);
 		this.getScope().html('');
 	}
+	console.log('list apply to', this.shared.getVar('__template'));
 	
 	for(var i in this.list){
 	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
@@ -1187,10 +1237,14 @@
 	if(this.getScope()){
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
-		var nested_scope = " > div[data-firera-num=" + i + "]";
+		var nested_scope = "div[data-firera-num=" + i + "]";
 		var nested_element = $(nested_scope, this.getScope());
 		if(nested_element.length === 0){
 		    this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+		    nested_element = $(nested_scope, this.getScope());
+		}
+		if(nested_element.length < 1){
+			error('Cant apply to empty element!', nested_scope, this.getScope());
 		}
 		this.list[i].applyTo(nested_element);
 	    }
