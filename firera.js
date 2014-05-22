@@ -11,8 +11,22 @@
 	return (a !== undefined) && (a !== null);
     }
     
+    var tagName = function($el){
+	    if($el && $el.get().length && $el.get()[0].tagName) return $el.get()[0].tagName.toLowerCase()
+	    else return '';
+    }
+    
     var is_valuable = function(tag){
 	    return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
+    }
+    
+    var generate_default_template = function(vars){
+	    if(vars.length === 1 && vars[0] === '__item') return '';
+	    var res = [];
+	    for(var i in vars){
+		    res.push('<div data-fr="' + vars[i] + '"></div>');
+	    }
+	    return res.join('');
     }
     
     var drivers = {
@@ -46,7 +60,6 @@
 	    startObserving: function($el){
 		var self = this;
 		var type = $el.prop('type');
-		//console.log('we bind to ' + selector);
 		$el.bind("keyup, change", function(){
 		    switch(type){
 			case 'checkbox':
@@ -200,8 +213,13 @@
 	this.observers = [];
 	this.name = this.getName();
 	
+	var root_element;	
 	if(this.getScope()){
-		var root_element = $('[data-fr=' + this.getName() + ']', this.getScope());
+		if(this.getName() === '__item') {
+			root_element = this.getScope();
+		} else {
+			root_element = $('[data-fr=' + this.getName() + ']', this.getScope());
+		}
 		if(root_element.length){
 			this.bindToDOM(root_element, this.getName());
 		}
@@ -339,6 +357,10 @@
 	if(this.driver && this.driver.setter && this.getScope()){
 	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
+	
+	if(this.getScope() && this.DOMElement){
+		this.updateDOMElement();
+	}
 	//////////
 	this.change(old_val, new_val);
 	this.invalidateObservers(this.getName());
@@ -401,7 +423,6 @@
 		for(var i in arr){
 			res[args[i]] = arr[i];
 		}
-		console.log('REQ HASH is', res);
 		return res;
 	}
 	return this.is.call(this, function(vars){
@@ -431,8 +452,12 @@
 	return this.is.apply(this, args);
     }
     Cell.prototype.bindToDOM = function($el){
-	this.DOMElement = $el;
-	if(is_valuable($el.get()[0].tagName)){
+	if(this.DOMElement instanceof $){
+	     this.DOMElement = this.DOMElement.add($el)
+	} else {
+	    this.DOMElement = $el;
+	}
+	if(is_valuable(tagName($el))){
 		this.updateDOMElement = function(){
 			this.DOMElement.val(this.get());
 		}
@@ -477,13 +502,23 @@
     }
     
     Cell.prototype.are = function(arr){
+	var mass = [];
 	if(!(arr instanceof List)){
-		arr = new Firera.list(arr);
+		if(arr instanceof Array){
+			mass = arr;
+			arr = new Firera.list();
+		} else {
+			arr = new Firera.list(arr);
+		}
 	}
 	obj_join(this, arr);
 	arr.rootElement = this.DOMElement;
 	this.host.setVar(this.getName(), arr);
 	arr.setHost(this.host);
+	for(var i in mass){
+		var element = mass[i] instanceof Object ? mass[i] : {__item: mass[i]};
+		arr.push(element);
+	}
 	return arr;	
     }
     
@@ -847,6 +882,9 @@
 	    self.getAllVars = function(){
 		return self.vars;
 	    }
+	    self.getVarNames = function(){
+		return Object.keys(self.vars);
+	    }
 	    
 	    self.scope = false;
     
@@ -963,22 +1001,36 @@
 		self.unbindToDOM();
 		var template = $.trim(self.getScope().html());
 		if(!template){
-			if(self.getVar('__template')){
-				template = self('__template').get();
-				self.getScope().html(template);
+			if(!self.getVar('__template')){
+				//error('Cant render without template', self.getRoute(), self.getVarNames(), self.host.wrapperTag);
+				template = generate_default_template(self.getVarNames());
+				self("__template").set(template);
 			}
+			template = self('__template').get();
+			self.getScope().html(template);
 		}
-		$("[data-fr]", self.getScope()).each(function(){
-			var cell, field = $(this).attr('data-fr');
-			if(cell = self.getVar(field)){
-				cell.bindToDOM($(this), field);
-			}
-		})
+		if(self.getVar("__item")){
+			self.getVar("__item").bindToDOM(this.getScope());
+		} else {
+			$("[data-fr]", self.getScope()).each(function(){
+				var cell, field = $(this).attr('data-fr');
+				if(cell = self.getVar(field)){
+					cell.bindToDOM($(this), field);
+					//console.log('we found field', field, 'to bound in ', self.getRoute());
+				}
+			})
+		}
 		self.rebind('applyTo');
 	    }
 	    
 	    self.rebind = function(source){
 		var vars = self.getAllVars();
+		if(self.host && self.host.shared){
+			var shared_vars = self.host.shared.getAllVars();
+			for(var j in shared_vars){
+				vars[j] = shared_vars[j];
+			}
+		}
 		for(var i in vars){
 		    if(i == 'root|html') continue;
 		    if(vars[i].applyTo){
@@ -1023,6 +1075,9 @@
 			    self.update(data);
 		    }
 	    } 
+	    self.getName = function(){
+		    return (this._index  !== undefined ? this._index : '-');
+	    }
 	    
 	    
 	    self.getRoute = function(){
@@ -1088,6 +1143,8 @@
 	})
     }
     
+    List.prototype.wrapperTag = 'div';
+    
 	List.prototype.getRoute = function(){
 		if(!this.host){
 			return 'root / ';
@@ -1130,6 +1187,10 @@
     
     List.prototype.addOne = function(){
 	this.push({});
+    }
+    
+    List.prototype.getName = function(){
+	return this.selector;
     }
     
     List.prototype.map = function(func){
@@ -1207,8 +1268,25 @@
 	return this;
     }
     
-    List.prototype.bindToDOM = function(htmlelement){
-	this.rootElement = htmlelement;
+    List.prototype.bindToDOM = function($el){
+	if(this.rootElement instanceof $){
+	    this.rootElement = this.rootElement.add($el);
+	} else {
+	    this.rootElement = $el;
+	}
+	switch(tagName($el)){
+		case 'ul':
+		case 'ol':
+		case 'menu':
+			this.wrapperTag = 'li';
+		break;
+		case 'select':
+			this.wrapperTag = 'option';
+		break;
+		default:
+			this.wrapperTag = 'div';
+		break;
+	}
 	return this;
     }
     
@@ -1216,30 +1294,35 @@
 
     }
 
-    List.prototype.applyTo = function(selector_or_element, start_index, end_index){
+    List.prototype.applyTo = function(selector_or_element, start_index, end_index){ 
 	if(selector_or_element){
-	    if(selector_or_element instanceof Object){// HTMLElement
+	    if(selector_or_element instanceof Object){// $el
 		    this.rootElement = selector_or_element;
 	    } else {// rare case, only for root objects
 		    this.rootElement = $(selector_or_element);
 	    }   
 	}
-	// update template, if not provided previously
-	var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
-	if(!this.shared.getVar('__template') && inline_template){
-		this.shared('__template').just(inline_template);
-		this.getScope().html('');
-	}
-	
-	for(var i in this.list){
-	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
-	    var nested_scope = " > div[data-firera-num=" + i + "]";
-	    var nested_element = $(nested_scope, this.getScope());
-	    if(nested_element.length === 0){
-		this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
-		nested_element = $(nested_scope, this.getScope());
-	    }
-	    this.list[i].applyTo(nested_element);
+	if(this.getScope()){
+		// update template, if not provided previously
+		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
+		if(!this.shared.getVar('__template') && inline_template){
+			this.shared('__template').just(inline_template);
+			this.getScope().html('');
+		}
+
+		for(var i in this.list){
+		    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
+		    var nested_scope = " > " + this.wrapperTag + "[data-firera-num=" + i + "]";
+		    var nested_element = $(nested_scope, this.getScope());
+		    if(nested_element.length === 0){
+			this.getScope().append('<' + this.wrapperTag + ' class="firera-item" data-firera-num="' + i + '"></' + this.wrapperTag + '>');
+			nested_element = $(nested_scope, this.getScope());
+			if(nested_element.length === 0){
+				error('Still cant bind nested element: ', this.getRoute());
+			}
+		    }
+		    this.list[i].applyTo(nested_element);
+		}
 	}
 	return this;
     }
@@ -1248,10 +1331,10 @@
 	if(this.getScope()){
 	    for(var i in this.list){
 		if((start_index && i < start_index) || (end_index && i > end_index)) continue;
-		var nested_scope = "div[data-firera-num=" + i + "]";
+		var nested_scope = " > " + this.wrapperTag + "[data-firera-num=" + i + "]";
 		var nested_element = $(nested_scope, this.getScope());
 		if(nested_element.length === 0){
-		    this.getScope().append('<div class="firera-item" data-firera-num="' + i + '"></div>');
+		    this.getScope().append('<' + this.wrapperTag + ' class="firera-item" data-firera-num="' + i + '"></' + this.wrapperTag + '>');
 		    nested_element = $(nested_scope, this.getScope());
 		}
 		if(nested_element.length < 1){
