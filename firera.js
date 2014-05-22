@@ -11,6 +11,10 @@
 	return (a !== undefined) && (a !== null);
     }
     
+    var is_valuable = function(tag){
+	    return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
+    }
+    
     var drivers = {
 	cell: {
 	    
@@ -428,6 +432,11 @@
     }
     Cell.prototype.bindToDOM = function($el){
 	this.DOMElement = $el;
+	if(is_valuable($el.get()[0].tagName)){
+		this.updateDOMElement = function(){
+			this.DOMElement.val(this.get());
+		}
+	}
 	this.updateDOMElement();
 	return this;
     }
@@ -822,7 +831,13 @@
 	    self.vars = [];
 	    
 	    self.getVar = function(name){
-		return self.vars[name] ? self.vars[name] : false;
+		if(!self.vars[name]){
+			if(self.host && self.host && self.host.shared && (self.host.shared !== self/* ho-ho ;) */)){
+				return self.host.shared.getVar(name) || false;
+			}
+		} else {
+			return self.vars[name]
+		}
 	    }
 	    
 	    self.setVar = function(name, val){
@@ -950,10 +965,6 @@
 		if(!template){
 			if(self.getVar('__template')){
 				template = self('__template').get();
-				self.getScope().html(template);
-			}
-			if(self.host && self.host && self.host.shared && self.host.shared.getVar('__template')){
-				template = self.host.shared('__template').get();
 				self.getScope().html(template);
 			}
 		}
@@ -1090,9 +1101,6 @@
 			this.each_is_set = true;
 			this.each(init_hash.each)
 			obj_join(init_hash.each, this.each_hash, true);
-		}
-		if(init_hash.shared){
-			this.shared.update(init_hash.shared);
 		}
 	}
     
