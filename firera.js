@@ -195,6 +195,14 @@
 	this.changers = [];
 	this.observers = [];
 	this.name = this.getName();
+	
+	if(this.getScope()){
+		var root_element = $('[data-fr=' + this.getName() + ']', this.getScope());
+		if(root_element.length){
+			this.bindToDOM(root_element, this.getName());
+		}
+	}
+				
 	if(selector.indexOf("|") !== -1){// HTML selector
 	    // this is a dom selector
 	    var parts = selector.split("|");
@@ -460,15 +468,14 @@
     }
     
     Cell.prototype.are = function(arr){
-	    if(!(arr instanceof List)){
-		    arr = new Firera.list([], arr);
-		    console.log('ololo', arr);
-	    }
+	if(!(arr instanceof List)){
+		arr = new Firera.list(arr);
+	}
 	obj_join(this, arr);
+	arr.rootElement = this.DOMElement;
 	this.host.setVar(this.getName(), arr);
-	if(!arr.setHost) console.log('ups', arr);
 	arr.setHost(this.host);
-	return this;	
+	return arr;	
     }
     
     Cell.prototype.counts = function(pred, arr){
@@ -566,11 +573,11 @@
 	
 	if(formula instanceof Array){// creating new Firera hash
 	    //console.log('array is ', formula);
-	    this.self = Firera.list(formula, arguments[1]/* scope */);
+	    this.self = Firera.list(formula);
 	    return this;	    	    
 	}
 	if(formula instanceof Object && !(formula instanceof Function)){// creating new Firera hash
-	    this.self = Firera.hash(formula, arguments[1]/* scope */);
+	    this.self = Firera.hash(formula);
 	    return this;	
 	}
 	
@@ -798,7 +805,6 @@
 		}
 		var pars = Array.prototype.slice.call(arguments, 1);
 		if(selector instanceof Object && !(selector instanceof Function)){
-			console.log('INIT!', selector);
 		    return init_with_hash(selector);
 		}
 		return self.create_cell_or_event(selector, pars);
@@ -806,7 +812,6 @@
 	    
 	    self.create_cell_or_event = function(selector, params){
 		if(self.getVar(selector)) return self.getVar(selector);
-		console.log('we get type of', selector);
 		var type = get_cell_type(selector);
 		
 		var new_cell = new types[type](selector, self, params);
@@ -901,7 +906,7 @@
 						hash[i][j] = {item: hash[i][j]};
 					}
 				}				
-				var list = new window[lib_var_name].list(hash[i], {});
+				var list = new window[lib_var_name].list({data: hash[i]});
 				list.setHost(self);
 				cell.are(list);
 			} else {
@@ -935,7 +940,6 @@
 	    }
 	    
 	    self.applyTo = function(selector_or_element){
-		    console.log('APPLY TO is called', selector_or_element);
 		if(selector_or_element instanceof Object){// HTMLElement
 			self.rootElement = selector_or_element;
 		} else {// rare case, only for root objects
@@ -945,14 +949,12 @@
 		var template = $.trim(self.getScope().html());
 		if(!template){
 			if(self.getVar('__template')){
-				console.log('we get from __template');
 				template = self('__template').get();
 				self.getScope().html(template);
 			}
 			if(self.host && self.host && self.host.shared && self.host.shared.getVar('__template')){
 				template = self.host.shared('__template').get();
 				self.getScope().html(template);
-				console.log('we get from SHARED __template', self.getScope(), template);
 			}
 		}
 		$("[data-fr]", self.getScope()).each(function(){
@@ -1016,7 +1018,7 @@
 		    if(!self.host){
 			    return 'root / ';
 		    } else {
-			    return self.host.getRoute() + self.getName() + ' / ';
+			    return self.host.getRoute() + (self.getName ? self.getName() : '???') + ' / ';
 		    }
 	    }
 
@@ -1036,7 +1038,7 @@
 	}
     }
     
-    var List = function(data, init_hash){
+    var List = function(init_hash){
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
@@ -1046,21 +1048,23 @@
 	this.count_funcs = [];
 	this._counter = 0;
 	this.rootElement = false;
-	if(init_hash && init_hash.each){
-		this.each_is_set = true;
-		this.each_hash = init_hash.each;
-	}
-	if(init_hash && init_hash.shared){
-		this.shared_hash = init_hash.shared;
-	}
-	if(data){
-		for(var i = 0;i<data.length;i++){
-		    var hash = new window[lib_var_name].hash(data[i], this.each_hash);
-		    hash.setHost(this);
-		    this.list[this._counter] = hash;
-		    this.list[this._counter]._index = this._counter;
-		    this.list[this._counter].getName = function(){ return this._index;};
-		    this._counter++;
+	if(init_hash){
+		if(init_hash.each){
+			this.each_is_set = true;
+			this.each_hash = init_hash.each;
+		}
+		if(init_hash.shared){
+			this.shared_hash = init_hash.shared;
+		}
+		if(init_hash.data){
+			for(var i = 0;i<init_hash.data.length;i++){
+			    var hash = new window[lib_var_name].hash(init_hash.data[i], this.each_hash);
+			    hash.setHost(this);
+			    this.list[this._counter] = hash;
+			    this.list[this._counter]._index = this._counter;
+			    this.list[this._counter].getName = function(){ return this._index;};
+			    this._counter++;
+			}
 		}
 	}
 	this.shared = new Firera.hash(this.shared_hash);
@@ -1213,12 +1217,11 @@
 	    }   
 	}
 	// update template, if not provided previously
-	var inline_template = $.trim(this.getScope().html());
+	var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
 	if(!this.shared.getVar('__template') && inline_template){
 		this.shared('__template').just(inline_template);
 		this.getScope().html('');
 	}
-	console.log('list apply to', this.shared.getVar('__template'));
 	
 	for(var i in this.list){
 	    if((start_index && i < start_index) || (end_index && i > end_index)) continue;
