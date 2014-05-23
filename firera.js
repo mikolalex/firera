@@ -16,6 +16,22 @@
 	    else return '';
     }
     
+    var search_attr_not_nested = function(element, attr, skip_root){
+	    var res = [];
+	    var searcher = function(el, skip_root){
+		    if(!el) return;
+		    if(el.getAttribute(attr) && !skip_root){
+			    res.push({name:el.getAttribute(attr), el: el})
+		    } else {
+			    for(var i = 0; i < el.children.length; i++){
+				    searcher(el.children[i]);
+			    }
+		    }
+	    }
+	    searcher(element, skip_root);
+	    return res;
+    }
+    
     var is_valuable = function(tag){
 	    return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
     }
@@ -32,6 +48,15 @@
     var drivers = {
 	cell: {
 	    
+	},
+	datasource: {
+		setter: function(val){
+			if(this.cell.host && this.cell.host.host){// should be a list
+				this.cell.host.host.push(val);
+			} else {
+				error('No host in datasource cell', this.cell.host.host);
+			}
+		}
 	},
 	visibility: {
 	    setter: function(val, $el){
@@ -133,6 +158,11 @@
 		} else {
 		    $el.removeClass(classname);
 		}
+	    }
+	},
+	attr: {
+	    setter: function(val, $el, atrname){
+		$el.attr(atrname, val);
 	    }
 	}
     }
@@ -262,9 +292,21 @@
 		}
 	    }
 	} else { // this is just custom abstract varname
-	    this.type = 'cell';
+		switch(this.getName()){
+			case '__datasource':
+				this.type = 'datasource';
+				this.rebind = function(){
+					this.driver.setter.apply(this.driver, [this.val].concat(this.params));
+					return this;
+				}
+			break;
+			default:
+				this.type = 'cell';
+			break;
+		}
 	}
 	this.driver = drivers[this.type];
+	this.driver.cell = this;
     }
     
     Cell.prototype.getName = function(){
@@ -354,7 +396,7 @@
 	}
 	this.val = new_val;
 	//////////
-	if(this.driver && this.driver.setter && this.getScope()){
+	if(this.driver && this.driver.setter){
 	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
 	
@@ -408,6 +450,15 @@
     Cell.prototype.load = function(url){
 	var self = this;
 	$.get(url, function(data){
+	    self.set(data);
+	})
+	this.set('');
+	return this;
+    }
+    
+    Cell.prototype.loadJSON = function(url){
+	var self = this;
+	$.getJSON(url, function(data){
 	    self.set(data);
 	})
 	this.set('');
@@ -583,6 +634,7 @@
 	if(this.DOMElement){
 		this.updateDOMElement();
 	}
+	console.log('compute is called on', this.getName());
 	if(this.driver && this.driver.setter && this.getScope()){
 	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
@@ -1000,7 +1052,6 @@
 		var template = $.trim(self.getScope().html());
 		if(!template){
 			if(!self.getVar('__template')){
-				//error('Cant render without template', self.getRoute(), self.getVarNames(), self.host.wrapperTag);
 				template = generate_default_template(self.getVarNames());
 				self("__template").set(template);
 			}
@@ -1010,13 +1061,12 @@
 		if(self.getVar("__item")){
 			self.getVar("__item").bindToDOM(this.getScope());
 		} else {
-			$("[data-fr]", self.getScope()).each(function(){
-				var cell, field = $(this).attr('data-fr');
-				if(cell = self.getVar(field)){
-					cell.bindToDOM($(this), field);
-					//console.log('we found field', field, 'to bound in ', self.getRoute());
+			var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
+			for(var i in frs){
+				if(cell = self.getVar(frs[i].name)){
+					cell.bindToDOM($(frs[i].el));
 				}
-			})
+			}
 		}
 		self.rebind('applyTo');
 	    }
@@ -1026,7 +1076,9 @@
 		if(self.host && self.host.shared){
 			var shared_vars = self.host.shared.getAllVars();
 			for(var j in shared_vars){
-				vars[j] = shared_vars[j];
+				if(j.indexOf('__') !== 0){
+					vars[j] = shared_vars[j];
+				}
 			}
 		}
 		for(var i in vars){
@@ -1082,6 +1134,9 @@
 		    if(!self.host){
 			    return 'root / ';
 		    } else {
+			    if(!self.host){
+				    error('Who I am?'); return;
+			    }
 			    return self.host.getRoute() + (self.getName ? self.getName() : '???') + ' / ';
 		    }
 	    }
@@ -1171,16 +1226,32 @@
 	return this.rootElement;
     }
     
-    List.prototype.push = function(obj){
+    List.prototype.push = function(obj, nochange){
+	if(obj instanceof Array){
+		var c = this._counter;
+		for(var i in obj){
+			this.push(obj[i], true)
+		}
+		this.rebind('push', c);
+		this.change();
+		return;
+	}
+	if(!(obj instanceof Object)){
+		error('Cant create new hash in list with', obj);
+		return;
+	}
 	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
 	this.list[this._counter]._index = this._counter;
 	this.list[this._counter].setHost(this);
 	if(this.each_is_set){
 	    this.list[this._counter].update(this.each_hash);
 	}
-	this.rebind('push', this._counter);
+	if(!nochange){
+		this.rebind('push', this._counter);
+		this.change();
+	}
 	this._counter++;
-	this.change();
+	return this;
     }
     
     List.prototype.addOne = function(){
