@@ -722,13 +722,12 @@
 	this.selector = selector.split("|")[0];
 	this.event = selector.split("|")[1];
 	this.handlers = [];
-	if(this.scope){
+	if(this.getScope()){
 	    this.rebind('event constructor');
 	}
     }
     
     Event.prototype.getSelector = function(){
-	//console.log('host is', this.host);
 	return (this.selector === 'root' ? '' : this.selector);
     }
     
@@ -743,8 +742,7 @@
 	    if($(this.getSelector(), this.getScope()).length === 0){
 		error('Empty selector for binding: ' + this.getSelector());
 	    }
-	    $(this.getSelector(), this.getScope())
-		    .bind(this.event, this.process.bind(this))
+	    $(this.getSelector(), this.getScope()).bind(this.event, this.process.bind(this))
 	}
 	return this;
     }
