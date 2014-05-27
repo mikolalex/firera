@@ -6,6 +6,8 @@
      * prohibit direct use of |html modifier! Use vars instead!
      */
     var $ = window['jQuery'] || window['$'] || false;
+    
+    var reserved_words = ['datasource', 'template', 'data'];
 
     var existy = function(a){
 	return (a !== undefined) && (a !== null);
@@ -53,8 +55,6 @@
 		setter: function(val){
 			if(this.cell.host && this.cell.host.host){// should be a list
 				this.cell.host.host.push(val);
-			} else {
-				error('No host in datasource cell', this.cell.host.host);
 			}
 		}
 	},
@@ -293,7 +293,7 @@
 	    }
 	} else { // this is just custom abstract varname
 		switch(this.getName()){
-			case '__datasource':
+			case 'datasource':
 				this.type = 'datasource';
 				this.rebind = function(){
 					this.driver.setter.apply(this.driver, [this.val].concat(this.params));
@@ -634,7 +634,6 @@
 	if(this.DOMElement){
 		this.updateDOMElement();
 	}
-	console.log('compute is called on', this.getName());
 	if(this.driver && this.driver.setter && this.getScope()){
 	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
 	}
@@ -963,6 +962,9 @@
 				    if(selector[i][0] instanceof Function){
 					cell['is'].apply(cell, selector[i]);
 				    } else {
+					if(!cell[selector[i][0]]){
+						error('Using unknown function:', selector[i][0]);
+					}
 					cell[selector[i][0]].apply(cell, selector[i].slice(1));
 				    }
 				} else {
@@ -1051,11 +1053,11 @@
 		self.unbindToDOM();
 		var template = $.trim(self.getScope().html());
 		if(!template){
-			if(!self.getVar('__template')){
+			if(!self.getVar('template')){
 				template = generate_default_template(self.getVarNames());
-				self("__template").set(template);
+				self("template").set(template);
 			}
-			template = self('__template').get();
+			template = self('template').get();
 			self.getScope().html(template);
 		}
 		if(self.getVar("__item")){
@@ -1071,16 +1073,21 @@
 		self.rebind('applyTo');
 	    }
 	    
-	    self.rebind = function(source){
+	    self.getRebindableVars = function(){
 		var vars = self.getAllVars();
 		if(self.host && self.host.shared){
 			var shared_vars = self.host.shared.getAllVars();
 			for(var j in shared_vars){
-				if(j.indexOf('__') !== 0){
+				if(reserved_words.indexOf(j) === -1){
 					vars[j] = shared_vars[j];
 				}
 			}
 		}
+		return vars;
+	    }
+	    
+	    self.rebind = function(source){
+		var vars = self.getRebindableVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
 		    if(vars[i].applyTo){
@@ -1171,9 +1178,7 @@
 		if(init_hash.each){
 			this.each_is_set = true;
 			this.each_hash = init_hash.each;
-		}
-		if(init_hash.shared){
-			this.shared_hash = init_hash.shared;
+			delete init_hash.each;
 		}
 		if(init_hash.data){
 			for(var i = 0;i<init_hash.data.length;i++){
@@ -1184,9 +1189,10 @@
 			    this.list[this._counter].getName = function(){ return this._index;};
 			    this._counter++;
 			}
+			delete init_hash.data;
 		}
 	}
-	this.shared = new Firera.hash(this.shared_hash);
+	this.shared = new Firera.hash(init_hash);
 	this.shared.setHost(this);
 	var self = this;
 	this.onChange(function(){
@@ -1374,8 +1380,8 @@
 	if(this.getScope()){
 		// update template, if not provided previously
 		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
-		if(!this.shared.getVar('__template') && inline_template){
-			this.shared('__template').just(inline_template);
+		if(!this.shared.getVar('template') && inline_template){
+			this.shared('template').just(inline_template);
 			this.getScope().html('');
 		}
 
