@@ -54,6 +54,7 @@
 	datasource: {
 		setter: function(val){
 			if(this.host && this.host.host){// should be a list
+				if(!val) val = [];
 				this.host.host.push(val);
 			}
 		}
@@ -555,15 +556,14 @@
 	if(!(arr instanceof List)){
 		if(arr instanceof Array){
 			mass = arr;
-			arr = new Firera.list();
+			arr = new Firera.list({}, {host: this.host, selector: this.selector});
 		} else {
-			arr = new Firera.list(arr);
+			arr = new Firera.list(arr, {host: this.host, selector: this.selector});
 		}
 	}
 	obj_join(this, arr);
 	arr.rootElement = this.DOMElement;
 	this.host.setVar(this.getName(), arr);
-	arr.setHost(this.host);
 	for(var i in mass){
 		var element = mass[i] instanceof Object ? mass[i] : {__item: mass[i]};
 		arr.push(element);
@@ -666,7 +666,7 @@
 	
 	if(formula instanceof Array){// creating new Firera hash
 	    //console.log('array is ', formula);
-	    this.self = Firera.list(formula);
+	    this.self = Firera.list(formula, {host: this.host});
 	    return this;	    	    
 	}
 	if(formula instanceof Object && !(formula instanceof Function)){// creating new Firera hash
@@ -888,7 +888,7 @@
     }
     
     var Firera = {
-	hash: function(data, init_hash){
+	hash: function(init_hash, params){
 	    
 	    var get_context = function(){};
 	    
@@ -904,8 +904,16 @@
 		return self.create_cell_or_event(selector, pars);
 	    }
 	    
-	    self.create_cell_or_event = function(selector, params){
-		if(self.getVar(selector)) return self.getVar(selector);
+	    if(params && params.host){
+		    self.host = params.host;
+	    }
+	    
+	    if(params && params.window){
+		    self.window = params.window;
+	    }
+	    
+	    self.create_cell_or_event = function(selector, params, dont_check_if_already_exists){
+		if(!dont_check_if_already_exists && self.getVar(selector)) return self.getVar(selector);
 		var type = get_cell_type(selector);
 		
 		var new_cell = new types[type](selector, self, params);
@@ -915,14 +923,42 @@
 	    
 	    self.vars = [];
 	    
+	    self.getName = function(){
+		    if(this.host && this.host.getAllVars && !this._index){
+			    var parent_vars = this.host.getAllVars();
+			    for(var i = 0; i< parent_vars.length; i++){
+				    if(parent_vars[i] === self){
+					    return i;
+				    }
+			    }
+			    return '?!?';
+		    } else return this._index;
+	    }
+	    
+	    self.getRoute = function(){
+		    if(!self.host){
+			    return 'root / ';
+		    } else {
+			    if(!self.host){
+				    error('Who I am?'); return;
+			    }
+			    return self.host.getRoute() + (self.getName ? self.getName() : '???') + ' / ';
+		    }
+	    }
+	    
 	    self.getVar = function(name){
-		if(!self.vars[name]){
-			if(self.host && self.host && self.host.shared && (self.host.shared !== self/* ho-ho ;) */)){
-				return self.host.shared.getVar(name) || false;
-			}
-		} else {
-			return self.vars[name]
+		var vr = self.vars[name];
+		if(!vr && self.window){// maybe some common vars
+			//vr = params.window.getVar(name) || false;
+			//console.log('Hm, maybe try some shared hasH', self.getRoute(), name);
+			//console.dir(params.window);
 		}
+		if(!vr){// if this is a part of List, search in it's SHARED vars
+			if(self.host && self.host && self.host.shared && (self.host.shared !== self/* ho-ho ;) */)){
+				vr = self.host.shared.getVar(name) || false;
+			}
+		}		
+		return vr;
 	    }
 	    
 	    self.setVar = function(name, val){
@@ -954,10 +990,14 @@
 	    }
 	    
 	    self.mix = function(mixed_obj, vars, context){
-		    var hash = new Firera.hash(mixed_obj);
-		    console.log(mixed_obj);
+		    var config = {host: self};
+		    if(!vars){// we should take vars of the host!
+			    config.window = self;
+		    }
+		    console.log('MIX started!---------', mixed_obj);
+		    var hash = new Firera.hash(mixed_obj, config);
+		    console.log('---------MIX ENDED!');
 		    hash.noTemplateRenderingAllowed = true;
-		    hash.host = self;
 		    var root = context ? $(context, self.getScope()) :  self.getScope();
 		    if(!root) error('No proper element found for mixin', hash);
 		    hash.applyTo(root);
@@ -972,7 +1012,7 @@
 				}
 				continue;
 			}
-		    var cell = self.create_cell_or_event(i);
+		    var cell = self.create_cell_or_event(i, undefined, true);
 		    var cell_type = cell.getType();
 		    switch(cell_type){
 			case 'cell':
@@ -1029,8 +1069,7 @@
 						hash[i][j] = {item: hash[i][j]};
 					}
 				}				
-				var list = new window[lib_var_name].list({data: hash[i]});
-				list.setHost(self);
+				var list = new window[lib_var_name].list({data: hash[i]}, {host: self});
 				cell.are(list);
 			} else {
 				if(hash[i] instanceof Object){
@@ -1141,31 +1180,12 @@
 		}
 	    })
 	    
-	    if(data){
-		    if(init_hash){
-			init_with_data(data);
-			if(init_hash instanceof Object){
-				self.update(init_hash);
-			}
-		    } else {
-			    // data IS init_hash
-			    self.update(data);
-		    }
-	    } 
-	    self.getName = function(){
-		    return (this._index  !== undefined ? this._index : '-');
-	    }
-	    
-	    
-	    self.getRoute = function(){
-		    if(!self.host){
-			    return 'root / ';
-		    } else {
-			    if(!self.host){
-				    error('Who I am?'); return;
-			    }
-			    return self.host.getRoute() + (self.getName ? self.getName() : '???') + ' / ';
-		    }
+	    if(init_hash){
+		if(init_hash.data){
+			    init_with_data(init_hash.data);
+			    delete init_hash.data;
+		} 
+		self.update(init_hash);
 	    }
 
 	    return self;
@@ -1184,7 +1204,7 @@
 	}
     }
     
-    var List = function(init_hash){
+    var List = function(init_hash, config){
 	this.list = [];
 	this.each_is_set = false;
 	this.each_hash = {};
@@ -1194,6 +1214,18 @@
 	this.count_funcs = [];
 	this._counter = 0;
 	this.rootElement = false;
+	this.shared_config = {host: this};
+	if(config){
+		config.host && this.setHost(config.host);
+		if(config.selector){
+			this.selector = config.selector;
+		}
+		if(config.share){
+			// share SOME variables with host
+		} else {
+			this.shared_config.window = this.host;
+		}
+	}
 	if(init_hash){
 		if(init_hash.each){
 			this.each_is_set = true;
@@ -1202,8 +1234,8 @@
 		}
 		if(init_hash.data){
 			for(var i = 0;i<init_hash.data.length;i++){
-			    var hash = new window[lib_var_name].hash(init_hash.data[i], this.each_hash);
-			    hash.setHost(this);
+			    this.each_hash.data = init_hash.data[i];
+			    var hash = new window[lib_var_name].hash(this.each_hash, {host: this});
 			    this.list[this._counter] = hash;
 			    this.list[this._counter]._index = this._counter;
 			    this.list[this._counter].getName = function(){ return this._index;};
@@ -1212,8 +1244,8 @@
 			delete init_hash.data;
 		}
 	}
-	this.shared = new Firera.hash(init_hash);
-	this.shared.setHost(this);
+	
+	this.shared = new Firera.hash(init_hash, this.shared_config);
 	var self = this;
 	this.onChange(function(){
 	    if(self.updateObservers){
@@ -1263,12 +1295,11 @@
 		return;
 	}
 	if(!(obj instanceof Object)){
-		error('Cant create new hash in list with', obj);
+		error('Cant create new hash in list with' + obj + '!!!');
 		return;
 	}
-	this.list[this._counter] = window[lib_var_name].hash(obj, false, this);
+	this.list[this._counter] = window[lib_var_name].hash(obj, {host: this});
 	this.list[this._counter]._index = this._counter;
-	this.list[this._counter].setHost(this);
 	if(this.each_is_set){
 	    this.list[this._counter].update(this.each_hash);
 	}
