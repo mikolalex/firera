@@ -53,8 +53,8 @@
 	},
 	datasource: {
 		setter: function(val){
-			if(this.cell.host && this.cell.host.host){// should be a list
-				this.cell.host.host.push(val);
+			if(this.host && this.host.host){// should be a list
+				this.host.host.push(val);
 			}
 		}
 	},
@@ -277,7 +277,7 @@
 		    this.HTMLElement = false;// abort link to old element
 		    drivers[this.type].startObserving.apply(this, [this.getElement()].concat(this.params));
 		    if(this.driver && this.driver.setter && this.getScope()){
-			this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
+			this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
 		    }
 		    return this;
 		}
@@ -296,7 +296,7 @@
 			case 'datasource':
 				this.type = 'datasource';
 				this.rebind = function(){
-					this.driver.setter.apply(this.driver, [this.val].concat(this.params));
+					this.driver.setter.apply(this, [this.val].concat(this.params));
 					return this;
 				}
 			break;
@@ -306,7 +306,6 @@
 		}
 	}
 	this.driver = drivers[this.type];
-	this.driver.cell = this;
     }
     
     Cell.prototype.getName = function(){
@@ -397,7 +396,7 @@
 	this.val = new_val;
 	//////////
 	if(this.driver && this.driver.setter){
-	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
+	    this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
 	}
 	
 	if(this.getScope() && this.DOMElement){
@@ -457,10 +456,9 @@
     }
     
     Cell.prototype.loadJSON = function(url){
-	var self = this;
 	$.getJSON(url, function(data){
-	    self.set(data);
-	})
+	    this.set(data);
+	}.bind(this))
 	this.set('');
 	return this;
     }
@@ -594,7 +592,7 @@
 		this.updateDOMElement();
 	    }
 	    if(this.getScope() && this.driver.setter){
-		this.driver.setter(this.val, this.getElement());
+		this.driver.setter.apply(this, [this.val, this.getElement()]);
 	    }
 	    this.change(old_val, this.val);
 	    this.updateObservers(listname);
@@ -635,7 +633,7 @@
 		this.updateDOMElement();
 	}
 	if(this.driver && this.driver.setter && this.getScope()){
-	    this.driver.setter.apply(this.driver, [this.val, this.getElement()].concat(this.params));
+	    this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
 	}
 	this.change(old_val, this.val);
 	this.updateObservers(name);
@@ -957,6 +955,7 @@
 	    
 	    self.mix = function(mixed_obj, vars, context){
 		    var hash = new Firera.hash(mixed_obj);
+		    console.log(mixed_obj);
 		    hash.noTemplateRenderingAllowed = true;
 		    hash.host = self;
 		    var root = context ? $(context, self.getScope()) :  self.getScope();
