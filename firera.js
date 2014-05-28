@@ -7,7 +7,7 @@
      */
     var $ = window['jQuery'] || window['$'] || false;
     
-    var reserved_words = ['datasource', 'template', 'data'];
+    var reserved_words = ['datasource', 'template', 'data', 'sync'];
 
     var existy = function(a){
 	return (a !== undefined) && (a !== null);
@@ -73,9 +73,9 @@
 	value: {
 	    def: '',
 	    setter: function(val, $el){
-		switch($el.prop('type')){
+		switch($el.attr('type')){
 		    case 'checkbox':
-			$el.prop('checked', !!val);
+			$el.attr('checked', !!val);
 		    break;
 		    default:
 			$el.val(val);
@@ -84,11 +84,11 @@
 	    },
 	    startObserving: function($el){
 		var self = this;
-		var type = $el.prop('type');
+		var type = $el.attr('type');
 		$el.bind("keyup, change", function(){
 		    switch(type){
 			case 'checkbox':
-			    self.set($(this).prop('checked'));
+			    self.set($(this).attr('checked'));
 			break;
 			default:
 			    self.set($(this).val());
@@ -139,7 +139,6 @@
 	},
 	html: {
 	    setter: function(val, el){
-		var el = $(selector, scope);
 		if(!el.length){
 		    error('Empty selector in html');
 		    return;
@@ -271,6 +270,7 @@
 		this.type = parts[1];
 	    }
 	    this.driver = drivers[this.type];
+	    if(!this.driver) error('No driver found for:', this.type);
 	    if(drivers[this.type].startObserving){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
@@ -472,16 +472,16 @@
 	var get_request_hash = function(arr){
 		var res = {};
 		for(var i in arr){
-			res[args[i]] = arr[i];
+			res[args[i]] = self.host.getVar(arr[i]) ? self.host.getVar(arr[i]).get() : null;
 		}
 		return res;
 	}
-	return this.is.call(this, function(vars){
-	    var request_hash = get_request_hash(vars);
+	return this.is.call(this, function(){
+	    var request_hash = get_request_hash(args);
 	    $.getJSON(url, request_hash, function(data){
 		    self.set(data);
 	    })
-	}, args);
+	}, '>>OLOLO<<');
     }
     
     Cell.prototype.if = function(cond, then, otherwise){
@@ -680,8 +680,11 @@
 	if(!args.length){// is just an another cell
 	    args[0] = formula;
 	    formula = function(val){ return val;};
-	}	
-	for(var i= 0;i<args.length;i++){
+	}
+	if((args[0] instanceof Array) && !(args[1])){
+		args = args[0];
+	}
+	for(var i = 0;i<args.length;i++){
 	    if(!(args[i] instanceof Cell)){
 		args[i] = this.host.create_cell_or_event(args[i]);
 	    }
@@ -727,7 +730,7 @@
 	    var val = '';
 	    switch($(this).attr('type')){
 		case 'checkbox':
-		    val = !!$(this).prop('checked');
+		    val = !!$(this).attr('checked');
 		break;
 		case 'submit':
 		    return;
@@ -951,9 +954,25 @@
 		self.scope = scope2;
 		return self;
 	    }
+	    
+	    self.mix = function(mixed_obj, vars, context){
+		    var hash = new Firera.hash(mixed_obj);
+		    hash.noTemplateRenderingAllowed = true;
+		    hash.host = self;
+		    var root = context ? $(context, self.getScope()) :  self.getScope();
+		    if(!root) error('No proper element found for mixin', hash);
+		    hash.applyTo(root);
+	    }
+	    
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector){
 		for(var i in selector){
+			if(i === '__mixins'){// special case)
+				for(var j = 0; j < selector[i].length; j++){
+					self.mix(selector[i][j].hash, selector[i][j].vars, selector[i][j].context)
+				}
+				continue;
+			}
 		    var cell = self.create_cell_or_event(i);
 		    var cell_type = cell.getType();
 		    switch(cell_type){
@@ -1045,20 +1064,22 @@
 	    }
 	    
 	    self.applyTo = function(selector_or_element){
-		if(selector_or_element instanceof Object){// HTMLElement
+		if(selector_or_element instanceof Object){// JQuery object
 			self.rootElement = selector_or_element;
 		} else {// rare case, only for root objects
 			self.rootElement = $(selector_or_element);
 		}
 		self.unbindToDOM();
-		var template = $.trim(self.getScope().html());
-		if(!template){
-			if(!self.getVar('template')){
-				template = generate_default_template(self.getVarNames());
-				self("template").set(template);
+		if(!self.noTemplateRenderingAllowed){
+			var template = $.trim(self.getScope().html());
+			if(!template){
+				if(!self.getVar('template')){
+					template = generate_default_template(self.getVarNames());
+					self("template").set(template);
+				}
+				template = self('template').get();
+				self.getScope().html(template);
 			}
-			template = self('template').get();
-			self.getScope().html(template);
 		}
 		if(self.getVar("__item")){
 			self.getVar("__item").bindToDOM(this.getScope());
