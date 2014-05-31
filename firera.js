@@ -905,18 +905,15 @@
 	    var get_context = function(){};
 	    
 	    var self = function(selector){
-		if(selector instanceof Function){
-			console.log(selector);
-			console.log('Why?!');
+		if(selector instanceof Function) return self({__setup: selector});
+		if(selector instanceof Object){
+			return init_with_hash(selector, self.config);
 		}
 		var pars = Array.prototype.slice.call(arguments, 1);
-		if(selector instanceof Object && !(selector instanceof Function)){
-		    return init_with_hash(selector);
-		}
 		return self.create_cell_or_event(selector, pars);
 	    }
 	    if(params){
-		var possible_params = ['host', 'window', 'isSingleVar', 'noTemplateRenderingAllowed']
+		var possible_params = ['host', 'window', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
 		for(var i in possible_params){
 			if(params[possible_params[i]]){
 				self[possible_params[i]] = params[possible_params[i]];
@@ -973,9 +970,6 @@
 			vr = self.host.shared.getVar(name) || false;
 		}	
 		// search in shared cells!
-		if(!name.indexOf){
-			console.log('WTF', name);
-		}
 		if(!vr && self.window && (name != 'template') && name.indexOf("|") == -1){
 			vr = params.window.getVar(name) || false;
 		}		
@@ -1010,8 +1004,8 @@
 		return self;
 	    }
 	    
-	    self.mix = function(mixed_obj, vars, context){
-		    var config = {host: self, noTemplateRenderingAllowed: true};
+	    self.mix = function(mixed_obj, vars, context, config){
+		    var config = {host: self, noTemplateRenderingAllowed: true, config: (config?config:{})};
 		    if(!vars){// we should take vars of the host!
 			    config.window = self;
 		    }
@@ -1023,13 +1017,16 @@
 	    }
 	    
 	    //////////////////////////////////////////
-	    var init_with_hash = function(selector){
+	    var init_with_hash = function(selector, params){
 		for(var i in selector){
 			if(i === '__mixins'){// special case)
 				for(var j = 0; j < selector[i].length; j++){
-					self.mix(selector[i][j].hash, selector[i][j].vars, selector[i][j].context)
+					self.mix(selector[i][j].hash, selector[i][j].vars, selector[i][j].context, selector[i][j].config)
 				}
 				continue;
+			}
+			if(i === '__setup'){// run setup function
+				selector[i].call(self, params);
 			}
 		    var cell = self.create_cell_or_event(i, undefined, true);
 		    var cell_type = cell.getType();
@@ -1103,7 +1100,7 @@
 	    }
 	    
 	    self.update = function(hash){
-		init_with_hash(hash);
+		init_with_hash(hash, self.config);
 		if(self.getScope()){
 			self.checkForTemplateAndRender();
 			self.updateVarsBindings();
