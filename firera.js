@@ -86,7 +86,7 @@
 	    startObserving: function($el){
 		var self = this;
 		var type = $el.attr('type');
-		$el.bind("keyup, change", function(){
+		$el.bind("change, keydown", function(){
 		    switch(type){
 			case 'checkbox':
 			    self.set($(this).attr('checked'));
@@ -468,19 +468,31 @@
 	var self = this;
 	var args = Array.prototype.slice.call(arguments);
 	var url = args.shift();
+	var skip_first = false;
 	var get_request_hash = function(arr){
 		var res = {};
 		for(var i in arr){
+			if(skip_first){
+				skip_first = false; continue;
+			}
 			res[args[i]] = self.host.getVar(arr[i]) ? self.host.getVar(arr[i]).get() : null;
 		}
+		skip_first = true;
 		return res;
 	}
-	return this.is.call(this, function(){
+	if(url.indexOf('/') ===  -1){// its varname
+		args.unshift(url);
+		url = false;
+		skip_first = true;
+	}
+	var ars = [function(u){
 	    var request_hash = get_request_hash(args);
-	    $.getJSON(url, request_hash, function(data){
+	    var uri = url || u;
+	    $.getJSON(uri, request_hash, function(data){
 		    self.set(data);
 	    })
-	}, '>>OLOLO<<');
+	}].concat(args);
+	return this.is.apply(this, ars);
     }
     
     Cell.prototype.if = function(cond, then, otherwise){
@@ -946,6 +958,10 @@
 		    }
 	    }
 	    
+	    self.getOwnVar = function(name){
+		return self.vars[name];
+	    }
+	    
 	    self.getVar = function(name){
 		var vr = self.vars[name];
 		if(
@@ -957,6 +973,9 @@
 			vr = self.host.shared.getVar(name) || false;
 		}	
 		// search in shared cells!
+		if(!name.indexOf){
+			console.log('WTF', name);
+		}
 		if(!vr && self.window && (name != 'template') && name.indexOf("|") == -1){
 			vr = params.window.getVar(name) || false;
 		}		
@@ -996,14 +1015,11 @@
 		    if(!vars){// we should take vars of the host!
 			    config.window = self;
 		    }
-		    self.mixins = self.mixins || [];
+		    self.mixins = self.mixins || {};
+		    context = context || 'root';
+		    self.mixins[context] = self.mixins[context] || [];
 		    var hash = new Firera.hash(mixed_obj, config);
-		    var root = context ? $(context, self.getScope()) :  self.getScope();
-		    if(!root) error('No proper element found for mixin', hash);
-		    //console.log('ATO started!---------', mixed_obj);
-		    hash.applyTo(root);
-		    //console.log('---------ATO ENDED!');
-		    self.mixins.push(hash);
+		    self.mixins[context].push(hash);
 	    }
 	    
 	    //////////////////////////////////////////
@@ -1091,7 +1107,8 @@
 		if(self.getScope()){
 			self.checkForTemplateAndRender();
 			self.updateVarsBindings();
-			self.refreshBindings();
+			self.updateDOMBindings();
+			self.updateMixins();
 		}
 	    }
 	    
@@ -1117,7 +1134,8 @@
 		self.unbindToDOM();
 		self.checkForTemplateAndRender();
 		self.updateVarsBindings();
-		self.refreshBindings();
+		self.updateDOMBindings();
+		self.updateMixins();
 	    }
 	    
 	    self.updateVarsBindings = function(){
@@ -1131,6 +1149,19 @@
 				}
 			}
 		}
+	    }
+	    
+	    self.updateMixins = function(){
+		    for(var context in self.mixins){
+			    for(var j in self.mixins[context]){
+				if(context == 'root'){
+					self.mixins[context][j].applyTo(self.getScope())
+				} else {
+					var root = $(context, self.getScope());
+					self.mixins[context][j].applyTo(root);
+				}
+			    }
+		    }
 	    }
 	    
 	    self.checkForTemplateAndRender = function(){		    
@@ -1160,14 +1191,14 @@
 		return vars;
 	    }
 	    
-	    self.refreshBindings = function(source){
+	    self.updateDOMBindings = function(){
 		var vars = self.getRebindableVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
 		    if(vars[i].applyTo){
 			vars[i].applyTo();
 		    } else {
-			vars[i].rebind(source);
+			vars[i].rebind();
 		    }
 		}
 	    }
