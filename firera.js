@@ -903,13 +903,13 @@
 		}
 		return self.create_cell_or_event(selector, pars);
 	    }
-	    
-	    if(params && params.host){
-		    self.host = params.host;
-	    }
-	    
-	    if(params && params.window){
-		    self.window = params.window;
+	    if(params){
+		var possible_params = ['host', 'window', 'isSingleVar', 'noTemplateRenderingAllowed']
+		for(var i in possible_params){
+			if(params[possible_params[i]]){
+				self[possible_params[i]] = params[possible_params[i]];
+			}
+		}
 	    }
 	    
 	    self.create_cell_or_event = function(selector, params, dont_check_if_already_exists){
@@ -948,15 +948,17 @@
 	    
 	    self.getVar = function(name){
 		var vr = self.vars[name];
-		if(!vr && self.window){// maybe some common vars
-			//vr = params.window.getVar(name) || false;
-			//console.log('Hm, maybe try some shared hasH', self.getRoute(), name);
-			//console.dir(params.window);
-		}
-		if(!vr){// if this is a part of List, search in it's SHARED vars
-			if(self.host && self.host && self.host.shared && (self.host.shared !== self/* ho-ho ;) */)){
-				vr = self.host.shared.getVar(name) || false;
-			}
+		if(
+			!vr 
+			&& self.host 
+			&& self.host.shared 
+			&& (self.host.shared !== self/* ho-ho ;) */)
+		){// if this is a part of List, search in it's SHARED vars
+			vr = self.host.shared.getVar(name) || false;
+		}	
+		// search in shared cells!
+		if(!vr && self.window && (name != 'template') && name.indexOf("|") == -1){
+			vr = params.window.getVar(name) || false;
 		}		
 		return vr;
 	    }
@@ -990,17 +992,18 @@
 	    }
 	    
 	    self.mix = function(mixed_obj, vars, context){
-		    var config = {host: self};
+		    var config = {host: self, noTemplateRenderingAllowed: true};
 		    if(!vars){// we should take vars of the host!
 			    config.window = self;
 		    }
-		    console.log('MIX started!---------', mixed_obj);
+		    self.mixins = self.mixins || [];
 		    var hash = new Firera.hash(mixed_obj, config);
-		    console.log('---------MIX ENDED!');
-		    hash.noTemplateRenderingAllowed = true;
 		    var root = context ? $(context, self.getScope()) :  self.getScope();
 		    if(!root) error('No proper element found for mixin', hash);
+		    //console.log('ATO started!---------', mixed_obj);
 		    hash.applyTo(root);
+		    //console.log('---------ATO ENDED!');
+		    self.mixins.push(hash);
 	    }
 	    
 	    //////////////////////////////////////////
@@ -1085,7 +1088,11 @@
 	    
 	    self.update = function(hash){
 		init_with_hash(hash);
-		if(self.getScope()) this.rebind('update');
+		if(self.getScope()){
+			self.checkForTemplateAndRender();
+			self.updateVarsBindings();
+			self.refreshBindings();
+		}
 	    }
 	    
 	    //////////////////////////////////////////		
@@ -1108,6 +1115,25 @@
 			self.rootElement = $(selector_or_element);
 		}
 		self.unbindToDOM();
+		self.checkForTemplateAndRender();
+		self.updateVarsBindings();
+		self.refreshBindings();
+	    }
+	    
+	    self.updateVarsBindings = function(){
+		if(self.isSingleVar){
+			self.getVar("__item").bindToDOM(this.getScope());
+		} else {
+			var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
+			for(var i in frs){
+				if(cell = self.getVar(frs[i].name)){
+					cell.bindToDOM($(frs[i].el));
+				}
+			}
+		}
+	    }
+	    
+	    self.checkForTemplateAndRender = function(){		    
 		if(!self.noTemplateRenderingAllowed){
 			var template = $.trim(self.getScope().html());
 			if(!template){
@@ -1119,17 +1145,6 @@
 				self.getScope().html(template);
 			}
 		}
-		if(self.getVar("__item")){
-			self.getVar("__item").bindToDOM(this.getScope());
-		} else {
-			var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
-			for(var i in frs){
-				if(cell = self.getVar(frs[i].name)){
-					cell.bindToDOM($(frs[i].el));
-				}
-			}
-		}
-		self.rebind('applyTo');
 	    }
 	    
 	    self.getRebindableVars = function(){
@@ -1145,7 +1160,7 @@
 		return vars;
 	    }
 	    
-	    self.rebind = function(source){
+	    self.refreshBindings = function(source){
 		var vars = self.getRebindableVars();
 		for(var i in vars){
 		    if(i == 'root|html') continue;
@@ -1298,7 +1313,11 @@
 		error('Cant create new hash in list with' + obj + '!!!');
 		return;
 	}
-	this.list[this._counter] = window[lib_var_name].hash(obj, {host: this});
+	var confa = {host: this};
+	if(obj.__item){
+		confa.isSingleVar = true;
+	}
+	this.list[this._counter] = window[lib_var_name].hash(obj, confa);
 	this.list[this._counter]._index = this._counter;
 	if(this.each_is_set){
 	    this.list[this._counter].update(this.each_hash);
