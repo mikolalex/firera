@@ -13,6 +13,10 @@
 	return (a !== undefined) && (a !== null);
     }
     
+    function isInt(n) {
+	return n % 1 == 0;
+    }
+    
     var tagName = function($el){
 	    if($el && $el.get().length && $el.get()[0].tagName) return $el.get()[0].tagName.toLowerCase()
 	    else return '';
@@ -55,7 +59,7 @@
 		setter: function(val){
 			if(this.host && this.host.host){// should be a list
 				if(!val) val = [];
-				this.host.host.push(val);
+				this.host.host.clear().push(val);
 			}
 		}
 	},
@@ -111,14 +115,15 @@
 	},
 	selectedItem: {
 	    def: false,
-	    setter: function(val, list){
+	    /*setter: function(val, list){
+		    alert('we set' + val + ' to ' + list);
 		var new_chosen = list.children("[data-value=" + val + "]");
 		if(!new_chosen.length){
 		    error("No list selection found: [data-value=" + val + "]");
 		}
 		list.children().removeClass('selected');
 		new_chosen.addClass("selected");
-	    },
+	    },*/
 	    startObserving: function($el){
 		if(!$el.length){
 		    error("No element found by selector ");
@@ -130,25 +135,29 @@
 			$(this).attr('data-value', $.trim($(this).html()))
 		    }
 		});
-		items.click(function(){
-		    items.removeClass('selected');
-		    $(this).addClass('selected');
-		    var val = $(this).attr('data-value');
-		    self.set(val);
-		})
+		if(tagName($el) === 'select'){
+			var onChange = function(){
+				self.set($el.val());
+			}
+			$el.change(onChange);
+			onChange();
+		} else {
+			items.click(function(){
+			    items.removeClass('selected');
+			    $(this).addClass('selected');
+			    var val = $(this).attr('data-value');
+			    self.set(val);
+			})
+		}
 	    }
 	},
 	html: {
-	    setter: function(val, el){
-		if(!el.length){
+	    setter: function(val, $el){
+		if(!$el.length){
 		    error('Empty selector in html');
 		    return;
 		}
-		if(el.html()){
-		    //console.dir(self);
-		}
-		//console.log('we write html to', selector, el.length)
-		el.html(val);
+		$el.html(val);
 	    }
 	},
 	toggleClass: {
@@ -632,7 +641,7 @@
     Cell.prototype.compute = function(name){
 	if(name){
 	    if(!this.observables[name]){
-		error('observable not found: ' + name + ' in cell ' + this.getName());
+		//error('observable not found: ' + name + ' in cell ' + this.getName());
 	    } else {
 		//console.log('observable FOUND: ' + name + ' in cell ' + this.getName() + ', value is ' + this.observables[name]);
 		this.observables[name]--;
@@ -681,6 +690,10 @@
     }
         
     Cell.prototype.is = function(f){
+	if(f instanceof Cell){
+		// just link his var to that)
+		return this.is.call(this, function(a){ return a }, f);
+	}
 	var formula = f;
 	if(this.inited){
 	    error('Cell already inited!'); console.dir(this);
@@ -816,10 +829,16 @@
 	if(custom_event_drivers[this.event]){
 	    custom_event_drivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
 	} else {
-	    if($(this.getSelector(), this.getScope()).length === 0){
-		error('Empty selector for binding: ' + this.getSelector());
-	    }
-	    $(this.getSelector(), this.getScope()).bind(this.event, this.process.bind(this))
+		var $el, sel = this.getSelector();
+		if(sel === 'root' || sel === ''){
+			$el = $(this.getScope());
+		} else {
+			$el = $(this.getSelector(), this.getScope());
+		}
+		if($el.length === 0){
+		    error('Empty selector for binding: ' + this.getSelector(), this);
+		}
+		$el.bind(this.event, this.process.bind(this))
 	}
 	return this;
     }
@@ -983,9 +1002,9 @@
 			vr = self.host.shared.getVar(name) || false;
 		}	
 		// search in shared cells!
-		if(!vr && self.window && (name != 'template') && name.indexOf("|") == -1){
+		if(!vr && self.window && (name != 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */){
 			vr = params.window.getVar(name) || false;
-		}		
+		}
 		return vr;
 	    }
 	    
@@ -1017,7 +1036,7 @@
 		return self;
 	    }
 	    
-	    self.mix = function(mixed_obj, vars, context, config){
+	    self.mix = function(mixed_obj, vars, context, config, vars){
 		    var config = {host: self, noTemplateRenderingAllowed: true, config: (config?config:{})};
 		    if(!vars){// we should take vars of the host!
 			    config.window = self;
@@ -1026,6 +1045,18 @@
 		    context = context || 'root';
 		    self.mixins[context] = self.mixins[context] || [];
 		    var hash = new Firera.hash(mixed_obj, config);
+			if(vars && vars.takes){
+				for(var i in vars.takes){
+				    var varname = isInt(i) ? vars.takes[i] : i;
+				    hash(varname).is(self(vars.takes[i]));
+				}
+			}
+			if(vars && vars.gives){
+				for(var i in vars.gives){
+				    var varname = isInt(i) ? vars.gives[i] : i;
+				    self(varname).is(hash(vars.takes[i]));
+				}
+			}
 		    self.mixins[context].push(hash);
 	    }
 	    
@@ -1042,7 +1073,7 @@
 					cell['is'].apply(cell, selector[i]);
 				    } else {
 					if(!cell[selector[i][0]]){
-						error('Using unknown function:', selector[i][0]);
+						error('Using unknown function:', selector[i], selector);
 					}
 					cell[selector[i][0]].apply(cell, selector[i].slice(1));
 				    }
@@ -1081,7 +1112,8 @@
 		}
 		if(selector.__mixins){// special case)
 			for(var j = 0; j < selector.__mixins.length; j++){
-				self.mix(selector.__mixins[j].hash, selector.__mixins[j].vars, selector.__mixins[j].context, selector.__mixins[j].config)
+				var mx = selector.__mixins[j];
+				self.mix(mx.hash, mx.vars, mx.context, mx.config, mx.vars)
 			}
 		}
 		if(selector.__setup){// run setup function
@@ -1156,7 +1188,12 @@
 			var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
 			for(var i in frs){
 				if(cell = self.getVar(frs[i].name)){
-					cell.bindToDOM($(frs[i].el));
+					if(cell.bindToDOM){
+						cell.bindToDOM($(frs[i].el));
+					} else {// it's probably event...
+						//console.log('No BTD method in', cell);
+					}
+					
 				} else {
 					//console.log('we coudnt bind var', frs[i].name);
 				}
@@ -1207,7 +1244,7 @@
 	    self.updateDOMBindings = function(){
 		var vars = self.getRebindableVars();
 		for(var i in vars){
-		    if(i == 'root|html') continue;
+		    //if(i == 'root|html') continue;
 		    if(vars[i].applyTo){
 			vars[i].applyTo();
 		    } else {
@@ -1293,7 +1330,6 @@
 		if(init_hash.each){
 			this.each_is_set = true;
 			this.each_hash = init_hash.each;
-			delete init_hash.each;
 		}
 		if(init_hash.data){
 			for(var i = 0;i<init_hash.data.length;i++){
@@ -1304,8 +1340,8 @@
 			    this.list[this._counter].getName = function(){ return this._index;};
 			    this._counter++;
 			}
-			delete init_hash.data;
 		}
+		// maybe delete .data and .each?
 	}
 	
 	this.shared = new Firera.hash(init_hash, this.shared_config);
@@ -1376,6 +1412,12 @@
 	}
 	this._counter++;
 	return this;
+    }
+    
+    List.prototype.clear = function(){
+	    this.list = [];
+	    this.getScope() && this.getScope().html('');
+	    return this;
     }
     
     List.prototype.addOne = function(){
@@ -1498,6 +1540,9 @@
 	if(this.getScope()){
 		// update template, if not provided previously
 		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
+		if(this.wrapperTag === 'option'){// this is SELECT tag
+			this.shared('template').just('');
+		}
 		if(!this.shared.getVar('template') && inline_template){
 			this.shared('template').just(inline_template);
 			this.getScope().html('');
