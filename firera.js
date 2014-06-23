@@ -468,6 +468,18 @@
 	var self = this;
 	var args = Array.prototype.slice.call(arguments);
 	var url = args.shift();
+	var aliases = false;
+	if(args.length == 1){
+		if(args[0] instanceof Array){
+			args = args[0];
+		} else {
+			if(args[0] instanceof Object){
+				aliases = args[0];
+				args = Object.keys(args[0]);
+			}
+		}
+	}
+	
 	var skip_first = false;
 	var get_request_hash = function(arr){
 		var res = {};
@@ -475,7 +487,8 @@
 			if(skip_first){
 				skip_first = false; continue;
 			}
-			res[args[i]] = self.host.getVar(arr[i]) ? self.host.getVar(arr[i]).get() : null;
+			var varname = aliases ? aliases[arr[i]] : arr[i];
+			res[args[i]] = self.host(varname).get();
 		}
 		skip_first = true;
 		return res;
@@ -1019,15 +1032,7 @@
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector, params){
 		for(var i in selector){
-			if(i === '__mixins'){// special case)
-				for(var j = 0; j < selector[i].length; j++){
-					self.mix(selector[i][j].hash, selector[i][j].vars, selector[i][j].context, selector[i][j].config)
-				}
-				continue;
-			}
-			if(i === '__setup'){// run setup function
-				selector[i].call(self, params);
-			}
+		    if(i === '__setup' || i === '__mixins') continue;
 		    var cell = self.create_cell_or_event(i, undefined, true);
 		    var cell_type = cell.getType();
 		    switch(cell_type){
@@ -1072,6 +1077,15 @@
 				cell.update(selector[i]);
 			break;
 		    }
+		    
+		}
+		if(selector.__mixins){// special case)
+			for(var j = 0; j < selector.__mixins.length; j++){
+				self.mix(selector.__mixins[j].hash, selector.__mixins[j].vars, selector.__mixins[j].context, selector.__mixins[j].config)
+			}
+		}
+		if(selector.__setup){// run setup function
+			selector.__setup.call(self, params);
 		}
 		return true;
 	    }
@@ -1143,6 +1157,8 @@
 			for(var i in frs){
 				if(cell = self.getVar(frs[i].name)){
 					cell.bindToDOM($(frs[i].el));
+				} else {
+					//console.log('we coudnt bind var', frs[i].name);
 				}
 			}
 		}
@@ -1222,6 +1238,10 @@
 		    this.host.change();
 		}
 	    })
+	    
+	    if(init_hash instanceof Function){
+		    init_hash = {__setup: init_hash};
+	    }
 	    
 	    if(init_hash){
 		if(init_hash.data){
