@@ -46,6 +46,7 @@
 	    if(vars.length === 1 && vars[0] === '__item') return '';
 	    var res = [];
 	    for(var i in vars){
+		    if(vars[i].indexOf('|') !== -1) continue;
 		    res.push('<div data-fr="' + vars[i] + '"></div>');
 	    }
 	    return res.join('');
@@ -276,11 +277,13 @@
 	    }
 	    if(!drivers[parts[1]]){
 		error('Unknown driver: ' + parts[1]);
+		return;
 	    } else {
 		this.type = parts[1];
 	    }
 	    this.driver = drivers[this.type];
 	    if(!this.driver) error('No driver found for:', this.type);
+	    if(!drivers[this.type]) error('No driver type:', this.type);
 	    if(drivers[this.type].startObserving){
 		this.val = drivers[this.type].def;
 		this.rebind = function(){
@@ -918,7 +921,7 @@
 	event: Event
     }
     
-    var events = ['click', 'submit'];
+    var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dbclick'];
     
     
     var get_cell_type = function(cellname){
@@ -972,8 +975,22 @@
 					    return i;
 				    }
 			    }
+			    var parent_mixins = this.host.mixins;
+			    for(var i in parent_mixins){
+				    if(parent_mixins[i] === self){
+					    return 'mixin-' + i;
+				    }
+			    }
 			    return '?!?';
-		    } else return this._index;
+		    } else {
+			    if(this.host instanceof List){
+				    for(var i = 0; i < this.host.list.length; i++){
+					    if(this.host.list[i] == this) return i;
+				    }
+			    }
+			    if(this._index !== undefined) return this._index;
+			    return '><';
+		    }
 	    }
 	    
 	    self.getRoute = function(){
@@ -1044,26 +1061,26 @@
 		    self.mixins = self.mixins || {};
 		    context = context || 'root';
 		    self.mixins[context] = self.mixins[context] || [];
-		    var hash = new Firera.hash(mixed_obj, config);
+		    var mixin_hash = new Firera.hash(mixed_obj, config);
 			if(vars && vars.takes){
 				for(var i in vars.takes){
 				    var varname = isInt(i) ? vars.takes[i] : i;
-				    hash(varname).is(self(vars.takes[i]));
+				    mixin_hash(varname).is(self(vars.takes[i]));
 				}
 			}
 			if(vars && vars.gives){
 				for(var i in vars.gives){
 				    var varname = isInt(i) ? vars.gives[i] : i;
-				    self(varname).is(hash(vars.takes[i]));
+				    self(varname).is(mixin_hash(vars.takes[i]));
 				}
 			}
-		    self.mixins[context].push(hash);
+		    self.mixins[context].push(mixin_hash);
 	    }
 	    
 	    //////////////////////////////////////////
 	    var init_with_hash = function(selector, params){
 		for(var i in selector){
-		    if(i === '__setup' || i === '__mixins') continue;
+		    if(i === '__setup' || i === '__mixins' || i === 'each' || i === 'vars' || i === 'data') continue;
 		    var cell = self.create_cell_or_event(i, undefined, true);
 		    var cell_type = cell.getType();
 		    switch(cell_type){
@@ -1111,6 +1128,9 @@
 		    
 		}
 		if(selector.__mixins){// special case)
+			if(!(selector.__mixins instanceof Array)){
+				error('Mixins should be contained in array!');
+			}
 			for(var j = 0; j < selector.__mixins.length; j++){
 				var mx = selector.__mixins[j];
 				self.mix(mx.hash, mx.vars, mx.context, mx.config, mx.vars)
@@ -1283,7 +1303,6 @@
 	    if(init_hash){
 		if(init_hash.data){
 			    init_with_data(init_hash.data);
-			    delete init_hash.data;
 		} 
 		self.update(init_hash);
 	    }
@@ -1326,6 +1345,7 @@
 			this.shared_config.window = this.host;
 		}
 	}
+	this.shared = new Firera.hash(init_hash, this.shared_config);
 	if(init_hash){
 		if(init_hash.each){
 			this.each_is_set = true;
@@ -1343,8 +1363,6 @@
 		}
 		// maybe delete .data and .each?
 	}
-	
-	this.shared = new Firera.hash(init_hash, this.shared_config);
 	var self = this;
 	this.onChange(function(){
 	    if(self.updateObservers){
