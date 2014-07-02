@@ -16,7 +16,6 @@ describe('Simple values', function(){
     it('Testing arrays', function(){
 	    var app = new Firera.hash;
 	    app('items').are([1, 2, 3]);
-	    console.dir(app('items'));
     })
     
     it('Testing templates and input bindings', function(){

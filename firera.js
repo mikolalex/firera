@@ -606,14 +606,17 @@
 		return this.is.apply(this, args);
 	}
 
-	Cell.prototype.are = function(arr) {
+	Cell.prototype.are = function(arr, config) {
 		var mass = [];
 		if (!(arr instanceof List)) {
+			var conf = config || {};
+			conf.host = this.host;
+			conf.selector = this.selector;
 			if (arr instanceof Array) {
 				mass = arr;
-				arr = new Firera.list({}, {host: this.host, selector: this.selector});
+				arr = new Firera.list({}, conf);
 			} else {
-				arr = new Firera.list(arr, {host: this.host, selector: this.selector});
+				arr = new Firera.list(arr, conf);
 			}
 		}
 		obj_join(this, arr);
@@ -951,6 +954,21 @@
 		return Number(joe) == joe;
 	}
 
+	var make_window_between_hashes = function(parent, child, config) {
+		if (config.takes) {
+			for (var i in config.takes) {
+				var varname = isInt(i) ? config.takes[i] : i;
+				child(varname).is(parent(config.takes[i]));
+			}
+		}
+		if (config && config.gives) {
+			for (var i in config.gives) {
+				var varname = isInt(i) ? config.gives[i] : i;
+				parent(varname).is(child(config.takes[i]));
+			}
+		}
+	}
+
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
 			if (!dont_check_if_already_exists && this.getVar(selector))
@@ -1046,18 +1064,7 @@
 			context = context || 'root';
 			this.mixins[context] = this.mixins[context] || [];
 			var mixin_hash = new Firera.hash(mixed_obj, config);
-			if (vars && vars.takes) {
-				for (var i in vars.takes) {
-					var varname = isInt(i) ? vars.takes[i] : i;
-					mixin_hash(varname).is(this(vars.takes[i]));
-				}
-			}
-			if (vars && vars.gives) {
-				for (var i in vars.gives) {
-					var varname = isInt(i) ? vars.gives[i] : i;
-					this(varname).is(mixin_hash(vars.takes[i]));
-				}
-			}
+			make_window_between_hashes(this, mixin_hash, config.vars);
 			this.mixins[context].push(mixin_hash);
 		},
 	}
@@ -1086,8 +1093,8 @@
 			}
 			self.vars = [];
 			self.scope = false;
-			
-			for(var i in hash_methods){
+
+			for (var i in hash_methods) {
 				self[i] = hash_methods[i];
 			}
 
@@ -1354,27 +1361,20 @@
 		this._counter = 0;
 		this.rootElement = false;
 		this.shared_config = {host: this};
-		if (config) {
+		if (config && config.share === true) {
+			this.shared_config.linked_hash = this.host;
+		}
+		this.shared = new Firera.hash(init_hash, this.shared_config);
+		if(config) {
 			config.host && this.setHost(config.host);
 			if (config.selector) {
 				this.selector = config.selector;
 			}
-			if (config.share) {
+			if (config.share && config.share instanceof Object) {
 				// share SOME variables with host
-				if (config.share === true) {
-					this.shared_config.linked_hash = this.host;
-				} else {
-					if (config.share instanceof Object) {
-						if (config.share.takes) {
-
-						}
-					}
-				}
-			} else {
-				this.shared_config.linked_hash = this.host;
+				make_window_between_hashes(this.host, this.shared, config.share);
 			}
 		}
-		this.shared = new Firera.hash(init_hash, this.shared_config);
 		if (init_hash) {
 			if (init_hash.each) {
 				this.each_is_set = true;
