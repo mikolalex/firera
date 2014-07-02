@@ -96,7 +96,7 @@
 			startObserving: function($el) {
 				var self = this;
 				var type = $el.attr('type');
-				$el.bind("change, keydown", function() {
+				$el.bind("change, keyup, input", function() {
 					switch (type) {
 						case 'checkbox':
 							self.set($(this).attr('checked'));
@@ -565,6 +565,7 @@
 			this.updateDOMElement = function() {
 				this.DOMElement.val(this.get());
 			}
+			drivers['value'].startObserving.apply(this, [$el]);
 		}
 		this.updateDOMElement();
 		return this;
@@ -1599,6 +1600,7 @@
 		if (this.getScope()) {
 			// update template, if not provided previously
 			var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
+			this.getScope().html('');
 			if (this.wrapperTag === 'option') {// this is SELECT tag
 				this.shared('template').just('');
 			}
