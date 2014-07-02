@@ -956,12 +956,18 @@
 
 	var make_window_between_hashes = function(parent, child, config) {
 		if (config.takes) {
+			if(!(config.takes instanceof Array)){
+				config.takes = [config.takes];
+			}
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
 				child(varname).is(parent(config.takes[i]));
 			}
 		}
 		if (config && config.gives) {
+			if(!(config.gives instanceof Array)){
+				config.gives = [config.gives];
+			}
 			for (var i in config.gives) {
 				var varname = isInt(i) ? config.gives[i] : i;
 				parent(varname).is(child(config.takes[i]));
@@ -1104,8 +1110,9 @@
 			//////////////////////////////////////////
 			var init_with_hash = function(selector, params) {
 				for (var i in selector) {
-					if (i === '__setup' || i === '__mixins' || i === 'each' || i === 'vars' || i === 'data')
+					if (i === '__setup' || i === '__mixins' || i === 'each' || i === 'vars' || i === 'data'){
 						continue;
+					}
 					var cell = self.create_cell_or_event(i, undefined, true);
 					var cell_type = cell.getType();
 					switch (cell_type) {
@@ -1327,7 +1334,7 @@
 			}
 
 			if (init_hash) {
-				if (init_hash.data) {
+				if (init_hash.data && !params.skip_data) {
 					init_with_data(init_hash.data);
 				}
 				self.update(init_hash);
@@ -1360,7 +1367,7 @@
 		this.count_funcs = [];
 		this._counter = 0;
 		this.rootElement = false;
-		this.shared_config = {host: this};
+		this.shared_config = {host: this, skip_data: true};
 		this.how_to_share_config = {takes: [], gives: []};
 		if(config && config.share) {
 			if(config.share === true){
