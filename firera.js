@@ -1361,18 +1361,21 @@
 		this._counter = 0;
 		this.rootElement = false;
 		this.shared_config = {host: this};
-		if (config && config.share === true) {
-			this.shared_config.linked_hash = this.host;
+		this.how_to_share_config = {takes: [], gives: []};
+		if(config && config.share) {
+			if(config.share === true){
+				this.shared_config.linked_hash = this.host;
+			} else {
+				if(config.share instanceof Object){
+					this.how_to_share_config = config.share;
+				}
+			}
 		}
 		this.shared = new Firera.hash(init_hash, this.shared_config);
 		if(config) {
 			config.host && this.setHost(config.host);
 			if (config.selector) {
 				this.selector = config.selector;
-			}
-			if (config.share && config.share instanceof Object) {
-				// share SOME variables with host
-				make_window_between_hashes(this.host, this.shared, config.share);
 			}
 		}
 		if (init_hash) {
@@ -1422,6 +1425,7 @@
 
 	List.prototype.setHost = function(host) {
 		this.host = host;
+		make_window_between_hashes(this.host, this.shared, this.how_to_share_config);
 	}
 
 	List.prototype.getType = function() {
