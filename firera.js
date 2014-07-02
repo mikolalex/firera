@@ -1343,7 +1343,7 @@
 			return self;
 		},
 		list: function(config, data) {
-			var self = new List(config, data);
+			var self = new List(config, data);// deprecated!
 			return self;
 		},
 		config: function(obj) {
@@ -1353,6 +1353,21 @@
 				for (var i in obj.custom_drivers) {
 					drivers[i] = obj.custom_drivers[i];
 				}
+			}
+		},
+		addPredicate: function(name, func){
+			if(Cell.prototype[name]){
+				error('Predicate already assigned!'); 
+				return;
+			}
+			Cell.prototype[name] = function(){
+				var args = Array.prototype.slice.call(arguments);
+				args.unshift(function(){
+					var args = Array.prototype.slice.call(arguments);
+					var res = func.apply(null, args);
+					return res;
+				});
+				this.is.apply(this, args);
 			}
 		}
 	}
