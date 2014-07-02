@@ -261,7 +261,7 @@
 		this.name = this.getName();
 
 		var root_element;
-		if (this.getScope()) {
+		if (this.getScope() && selector.indexOf("|") === -1) {
 			if (this.getName() === '__item') {
 				root_element = this.getScope();
 			} else {
