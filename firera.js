@@ -660,19 +660,10 @@
 	}
 
 	Cell.prototype.compute = function(name) {
-		if (name) {
-			if (!this.observables[name]) {
-				//error('observable not found: ' + name + ' in cell ' + this.getName());
-			} else {
-				//console.log('observable FOUND: ' + name + ' in cell ' + this.getName() + ', value is ' + this.observables[name]);
-				this.observables[name]--;
-				if (this.observables[name] > 0) {
-					//console.log('skipping computing for ' + this.getName());
-					return;
-				} else {
-					//console.log('now ' + name + " is 0 in " + this.getName() + ", so, computing!");
-				}
-			}
+		if (name && this.observables[name]) {
+			this.observables[name]--;
+			if (this.observables[name] > 0)
+				return;
 		}
 		var args1 = [];
 		for (var i = 0; i < this.args.length; i++) {
@@ -960,57 +951,119 @@
 		return Number(joe) == joe;
 	}
 
-	var create_cell_or_event = function(selector, params, dont_check_if_already_exists) {
-		if (!dont_check_if_already_exists && this.getVar(selector))
-			return this.getVar(selector);
-		var type = get_cell_type(selector);
-		var new_cell = new types[type](selector, this, params);
-		this.setVar(selector, new_cell);
-		return new_cell;
-	}
-
-	var getName = function() {
-		if (this.host && this.host.getAllVars && !this._index) {
-			var parent_vars = this.host.getAllVars();
-			for (var i = 0; i < parent_vars.length; i++) {
-				if (parent_vars[i] === self) {
-					return i;
-				}
-			}
-			var parent_mixins = this.host.mixins;
-			for (var i in parent_mixins) {
-				if (parent_mixins[i] === self) {
-					return 'mixin-' + i;
-				}
-			}
-			return '?!?';
-		} else {
-			if (this.host instanceof List) {
-				for (var i = 0; i < this.host.list.length; i++) {
-					if (this.host.list[i] == this)
+	var hash_methods = {
+		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
+			if (!dont_check_if_already_exists && this.getVar(selector))
+				return this.getVar(selector);
+			var type = get_cell_type(selector);
+			var new_cell = new types[type](selector, this, params);
+			this.setVar(selector, new_cell);
+			return new_cell;
+		},
+		getName: function() {
+			if (this.host && this.host.getAllVars && !this._index) {
+				var parent_vars = this.host.getAllVars();
+				for (var i = 0; i < parent_vars.length; i++) {
+					if (parent_vars[i] === self) {
 						return i;
+					}
+				}
+				var parent_mixins = this.host.mixins;
+				for (var i in parent_mixins) {
+					if (parent_mixins[i] === self) {
+						return 'mixin-' + i;
+					}
+				}
+				return '?!?';
+			} else {
+				if (this.host instanceof List) {
+					for (var i = 0; i < this.host.list.length; i++) {
+						if (this.host.list[i] == this)
+							return i;
+					}
+				}
+				if (this._index !== undefined)
+					return this._index;
+				return '><';
+			}
+		},
+		getRoute: function() {
+			if (!this.host) {
+				return 'root / ';
+			} else {
+				if (!this.host) {
+					error('Who I am?');
+					return;
+				}
+				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
+			}
+		},
+		///// NEW
+		getOwnVar: function(name) {
+			return this.vars[name];
+		},
+		getVar: function(name) {
+			var vr = this.vars[name];
+			if (
+				!vr
+				&& this.host
+				&& this.host.shared
+				&& (this.host.shared !== this/* ho-ho ;) */)
+				) {// if this is a part of List, search in it's SHARED vars
+				vr = this.host.shared.getVar(name) || false;
+			}
+			// search in shared cells!
+			if (!vr && this.linked_hash && (name != 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
+				vr = this.linked_hash.getVar(name) || false;
+			}
+			return vr;
+		},
+		setVar: function(name, val) {
+			this.vars[name] = val;
+		},
+		getAllVars: function() {
+			return this.vars;
+		},
+		getVarNames: function() {
+			return Object.keys(this.vars);
+		},
+		getScope: function(func) {
+			return this.rootElement;
+		},
+		getType: function() {
+			return 'hash';
+		},
+		setScope: function(scope2) {
+			this.scope = scope2;
+			return this;
+		},
+		mix: function(mixed_obj, vars, context, config, vars) {
+			var config = {host: this, noTemplateRenderingAllowed: true, config: (config ? config : {})};
+			if (!vars) {// we should take vars of the host!
+				config.linked_hash = this;
+			}
+			this.mixins = this.mixins || {};
+			context = context || 'root';
+			this.mixins[context] = this.mixins[context] || [];
+			var mixin_hash = new Firera.hash(mixed_obj, config);
+			if (vars && vars.takes) {
+				for (var i in vars.takes) {
+					var varname = isInt(i) ? vars.takes[i] : i;
+					mixin_hash(varname).is(this(vars.takes[i]));
 				}
 			}
-			if (this._index !== undefined)
-				return this._index;
-			return '><';
-		}
-	}
-	var getRoute = function() {
-		if (!this.host) {
-			return 'root / ';
-		} else {
-			if (!this.host) {
-				error('Who I am?');
-				return;
+			if (vars && vars.gives) {
+				for (var i in vars.gives) {
+					var varname = isInt(i) ? vars.gives[i] : i;
+					this(varname).is(mixin_hash(vars.takes[i]));
+				}
 			}
-			return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
-		}
+			this.mixins[context].push(mixin_hash);
+		},
 	}
 
 	var Firera = {
 		hash: function(init_hash, params) {
-
 			var get_context = function() {
 			};
 
@@ -1024,94 +1077,22 @@
 				return self.create_cell_or_event(selector, pars);
 			}
 			if (params) {
-				var possible_params = ['host', 'window', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
+				var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
 				for (var i in possible_params) {
 					if (params[possible_params[i]]) {
 						self[possible_params[i]] = params[possible_params[i]];
 					}
 				}
 			}
-
-			self.create_cell_or_event = create_cell_or_event;
-
 			self.vars = [];
-
-			self.getName = getName;
-
-			self.getRoute = getRoute;
-
-			self.getOwnVar = function(name) {
-				return self.vars[name];
-			}
-
-			self.getVar = function(name) {
-				var vr = self.vars[name];
-				if (
-					!vr
-					&& self.host
-					&& self.host.shared
-					&& (self.host.shared !== self/* ho-ho ;) */)
-					) {// if this is a part of List, search in it's SHARED vars
-					vr = self.host.shared.getVar(name) || false;
-				}
-				// search in shared cells!
-				if (!vr && self.window && (name != 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
-					vr = params.window.getVar(name) || false;
-				}
-				return vr;
-			}
-
-			self.setVar = function(name, val) {
-				self.vars[name] = val;
-			}
-
-			self.getAllVars = function() {
-				return self.vars;
-			}
-			self.getVarNames = function() {
-				return Object.keys(self.vars);
-			}
-
 			self.scope = false;
-
-			self.getScope = function(func) {
-				return self.rootElement;
-			}
-
-			self.getType = function() {
-				return 'hash';
+			
+			for(var i in hash_methods){
+				self[i] = hash_methods[i];
 			}
 
 			get_context = self.getScope.bind(self);
 
-			self.setScope = function(scope2) {
-				self.scope = scope2;
-				return self;
-			}
-
-			self.mix = function(mixed_obj, vars, context, config, vars) {
-				var config = {host: self, noTemplateRenderingAllowed: true, config: (config ? config : {})};
-				if (!vars) {// we should take vars of the host!
-					config.window = self;
-				}
-				self.mixins = self.mixins || {};
-				context = context || 'root';
-				self.mixins[context] = self.mixins[context] || [];
-				var mixin_hash = new Firera.hash(mixed_obj, config);
-				if (vars && vars.takes) {
-					for (var i in vars.takes) {
-						var varname = isInt(i) ? vars.takes[i] : i;
-						mixin_hash(varname).is(self(vars.takes[i]));
-					}
-				}
-				if (vars && vars.gives) {
-					for (var i in vars.gives) {
-						var varname = isInt(i) ? vars.gives[i] : i;
-						self(varname).is(mixin_hash(vars.takes[i]));
-					}
-				}
-				self.mixins[context].push(mixin_hash);
-			}
 
 			//////////////////////////////////////////
 			var init_with_hash = function(selector, params) {
@@ -1380,8 +1361,17 @@
 			}
 			if (config.share) {
 				// share SOME variables with host
+				if (config.share === true) {
+					this.shared_config.linked_hash = this.host;
+				} else {
+					if (config.share instanceof Object) {
+						if (config.share.takes) {
+
+						}
+					}
+				}
 			} else {
-				this.shared_config.window = this.host;
+				this.shared_config.linked_hash = this.host;
 			}
 		}
 		this.shared = new Firera.hash(init_hash, this.shared_config);

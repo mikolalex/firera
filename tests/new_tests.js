@@ -33,13 +33,17 @@ describe('Simple values', function(){
 	    ]);
 	    app('street').just('Khreshchatyk');
 	    app('cities').are(['Kyiv', 'Odesa', 'Lviv']);
+	    app('cities2').are(['Donetsk', 'Lutsk', 'Ternopil'], {share: {
+		takes: ['street'],	    
+	    }});
 	    
 	    app('street').set('Maidan');
 	    
 	    app.applyTo(".form1");
 	    $(".form1 input[type=text]").val('ololo').change();
 	    
-	    
+	    assert.equal(app('cities').shared('street').get(), undefined);
+	    assert.equal(app('cities2').shared('street').get(), 'Maidan');
 	    
 	    
     })
