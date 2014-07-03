@@ -59,4 +59,12 @@ describe('Simple values', function() {
 
 
 	})
+
+	it('Testing sync', function() {
+		var app = new Firera.hash;
+		app('items').are([]);
+		// to be continued...
+		//app('items').shared('datasource').sync();
+	})
+
 })

@@ -955,12 +955,19 @@
 	}
 
 	var make_window_between_hashes = function(parent, child, config) {
+		if(!config) return;
 		if (config.takes) {
 			if(!(config.takes instanceof Array)){
 				config.takes = [config.takes];
 			}
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
+				if(varname === 'city'){
+					console.log('we set', child(varname), 'to', parent(config.takes[i]), config.takes[i]);
+					ololo2 = child(varname);
+					ololo = parent;
+					ololo3 = child;
+				}
 				child(varname).is(parent(config.takes[i]));
 			}
 		}
@@ -1061,22 +1068,25 @@
 			this.scope = scope2;
 			return this;
 		},
-		mix: function(mixed_obj, vars, context, config, vars) {
+		mix: function(mixed_obj, context, share, config) {
 			var config = {host: this, noTemplateRenderingAllowed: true, config: (config ? config : {})};
-			if (!vars) {// we should take vars of the host!
+			if (!share) {// we should take vars of the host!
 				config.linked_hash = this;
 			}
 			this.mixins = this.mixins || {};
 			context = context || 'root';
 			this.mixins[context] = this.mixins[context] || [];
 			var mixin_hash = new Firera.hash(mixed_obj, config);
-			make_window_between_hashes(this, mixin_hash, config.vars);
+			make_window_between_hashes(this, mixin_hash, share);
 			this.mixins[context].push(mixin_hash);
 		},
 	}
 
 	var Firera = {
 		hash: function(init_hash, params) {
+			if(params && params.linked_hash){
+				console.log('WE HAVE linked hash');
+			}
 			var get_context = function() {
 			};
 
@@ -1165,7 +1175,7 @@
 					}
 					for (var j = 0; j < selector.__mixins.length; j++) {
 						var mx = selector.__mixins[j];
-						self.mix(mx.hash, mx.vars, mx.context, mx.config, mx.vars)
+						self.mix(mx.hash, mx.context, mx.share, mx.config)
 					}
 				}
 				if (selector.__setup) {// run setup function
@@ -1386,7 +1396,7 @@
 		this.how_to_share_config = {takes: [], gives: []};
 		if(config && config.share) {
 			if(config.share === true){
-				this.shared_config.linked_hash = this.host;
+				this.shared_config.linked_hash = config.host;
 			} else {
 				if(config.share instanceof Object){
 					this.how_to_share_config = config.share;
