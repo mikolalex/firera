@@ -46,8 +46,9 @@
 	}
 
 	var generate_default_template = function(vars) {
-		if (vars.length === 1 && vars[0] === '__item')
-			return '';
+		if (vars.length === 1 && vars[0] === '__item'){
+			//return '';
+		}
 		var res = [];
 		for (var i in vars) {
 			if (vars[i].indexOf('|') !== -1)
@@ -77,9 +78,6 @@
 					$el.hide();
 				}
 			},
-			startObserving: function($el) {
-				this.set($el.is(":visible"));
-			}
 		},
 		value: {
 			def: '',
@@ -412,6 +410,10 @@
 	}
 
 	Cell.prototype.set = function(val) {
+		if(Object.keys(this.observables).length){
+			error('Cant set dependent value manually: ', this.getName(), this);
+			return;
+		}
 		var old_val = this.val;
 		var new_val = val;
 		for (var i = 0; i < this.modifiers.length; i++) {
@@ -945,7 +947,6 @@
 
 
 	var get_cell_type = function(cellname) {
-		!cellname.indexOf && console.log('we are given', cellname);
 		var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
 		return type;
 	}
@@ -962,12 +963,6 @@
 			}
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
-				if(varname === 'city'){
-					console.log('we set', child(varname), 'to', parent(config.takes[i]), config.takes[i]);
-					ololo2 = child(varname);
-					ololo = parent;
-					ololo3 = child;
-				}
 				child(varname).is(parent(config.takes[i]));
 			}
 		}
@@ -1080,13 +1075,44 @@
 			make_window_between_hashes(this, mixin_hash, share);
 			this.mixins[context].push(mixin_hash);
 		},
+		setData: function(hash){
+			if(!(hash instanceof Object)){
+				hash = {__item: hash};
+			}
+			for(var i in hash){
+				if(hash[i] instanceof Array){
+					if(!this.getVar(i)){
+						this(i).are([]);
+					}
+					if(!(this(i) instanceof List)){
+						error('Could not assign array data to not-array!', this(i));
+						return;
+					}
+					this(i).setData(hash[i]);
+				}
+				else {
+					if(hash[i] instanceof Object){
+						
+					} else {
+						this(i).set(hash[i]);
+					}
+				}
+			}
+		}
 	}
 
 	var Firera = {
-		hash: function(init_hash, params) {
-			if(params && params.linked_hash){
-				console.log('WE HAVE linked hash');
+		join: function(a, b){
+			var c = {};
+			for(var i in a){
+				c[i] = a[i];
 			}
+			for(var i in b){
+				c[i] = b[i];
+			}
+			return c;
+		},
+		hash: function(init_hash, params) {
 			var get_context = function() {
 			};
 
@@ -1180,6 +1206,9 @@
 				}
 				if (selector.__setup) {// run setup function
 					selector.__setup.call(self, params);
+				}
+				if(selector.data){
+					self.setData(selector.data);
 				}
 				return true;
 			}
@@ -1287,6 +1316,8 @@
 						}
 						template = self('template').get();
 						self.getScope().html(template);
+					} else {
+						
 					}
 				}
 			}
@@ -1344,7 +1375,7 @@
 			}
 
 			if (init_hash) {
-				if (init_hash.data && !params.skip_data) {
+				if (init_hash.data && (!params || !params.skip_data)) {
 					init_with_data(init_hash.data);
 				}
 				self.update(init_hash);
@@ -1499,6 +1530,16 @@
 		return this;
 	}
 
+	List.prototype.setData = function(arr) {
+		this.clear();
+		for(var i in arr){
+			this.addOne();
+			var last = this._counter - 1;
+			this.get(last).setData(arr[i]);
+		}
+		return this;
+	}
+
 	List.prototype.clear = function() {
 		this.list = [];
 		this.getScope() && this.getScope().html('');
@@ -1554,7 +1595,10 @@
 		return total;
 	}
 
-	List.prototype.get = function() {
+	List.prototype.get = function(num) {
+		if(num || num === 0){
+			return this.list[num];
+		}
 		var res = [];
 		for (var i in this.list) {
 			res.push(this.list[i].get());

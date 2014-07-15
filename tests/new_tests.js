@@ -18,6 +18,28 @@ describe('Simple values', function() {
 		app('items').are([1, 2, 3]);
 	})
 
+	it('Testing join', function() {
+		var app = {
+			each: {
+				fullname: ['is', function(a, b){ return a + ' ' + b;}, 'name', 'surname'],
+			}
+		};
+		var data = {
+			data: [
+				{
+					name: 'Ivan',
+					surname: 'Petrenko',
+				},
+				{
+					name: 'Andryi',
+					surname: 'Biletskyi',
+				},
+			]
+		};		
+		var obj = new Firera.list(Firera.join(app, data));
+		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
+	})
+
 	it('Testing adding predicates', function() {
 		var app = new Firera.hash;
 		Firera.addPredicate('abs', function(num) {
@@ -62,7 +84,9 @@ describe('Simple values', function() {
 
 	it('Testing sync', function() {
 		var app = new Firera.hash;
-		app('items').are([]);
+		app('items').are([1, 2, 3]);
+		var first = app('items').get(0);
+		console.dir(first);
 		// to be continued...
 		//app('items').shared('datasource').sync();
 	})

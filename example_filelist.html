@@ -35,20 +35,24 @@
 		</div>
 		<script>
 
-			var Folder = {
-				folders: {
-					template: $(".folder-template").html()
-				},
-				files: {
-					template: '<div data-fr="item"></div>'
-				},
+			/*var Folder = {
+				folders: ['are', {}],
+				files: ['are', []],
 				'.title|click': function(self) {
 					self('.files-and-folders|visibility').set(!self('.files-and-folders|visibility').get());
 				},
 				template: $(".folder-template").html()
 			}
 
-			Folder.folders.each = Folder;
+			Folder.folders[1].each = Folder;*/
+	
+			var Folder = function(){
+				this('folders').are({
+					
+				})
+				this('template').just($(".folder-template").html());
+				this('files').are([]);
+			}
 
 			var struct = {
 				folders: [{
@@ -77,14 +81,14 @@
 						folders: [],
 						files: ['1456.php', '2456546.txt', 'ololo87'],
 						title: 'ololo4'
-					}, 
+					},
 				],
 				files: ['-1.php', '-2.txt', '-ololo'],
 				title: 'ololo'
 			}
 
 			var folder_struct = new Firera.hash(Folder);
-
+			folder_struct.setData(struct);
 			folder_struct.applyTo('.file-list');
 		</script>
 	</body>

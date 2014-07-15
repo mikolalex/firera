@@ -108,7 +108,7 @@
 
 			//TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
 
-			var task_list = new Firera.list({
+			var task_list = {
 				each: {
 					".complete|click": [
 						['filter', '!completed'],
@@ -120,7 +120,7 @@
 						coll.remove(key);
 					},
 					'root|toggleClass(completed)': ['is', 'completed'],
-					//'root|visibility': ['selectIf', 'completed', 'what_to_show'],
+					'root|visibility': ['selectIf', 'completed', 'what_to_show'],
 				},
 				data: [
 					{
@@ -137,13 +137,7 @@
 						completed: false,
 					}
 				]
-			},
-			{
-				share: {
-					takes: 'what_to_show',
-				}
-			}
-			);
+			};
 
 
 			var app = new Firera.hash;
@@ -154,7 +148,11 @@
 				'Active': false
 			});
 
-			app("tasks").are(task_list);
+			app("tasks").are(task_list, {
+				share: {
+					takes: 'what_to_show',
+				}
+			});
 			app("ul.controls|selectedItem").set("All");
 			app("task-type").is("ul.controls|selectedItem").then(toLowerCase);
 			app("how_much").counts('tasks');
