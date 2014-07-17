@@ -243,10 +243,11 @@
 		return res;
 	}
 
-	var Cell = function(selector, host) {
+	var Cell = function(selector, host, params) {
 		if (!host) {
 			error('no host in cell ' + selector);
 		}
+		this.free = true;
 		this.params = [];
 		this.host = host;
 		this.deps = [];
@@ -312,6 +313,7 @@
 				}
 			}
 		} else { // this is just custom abstract varname
+			params && params.dumb && (this.dumb = true);
 			switch (this.getName()) {
 				case 'datasource':
 					this.type = 'datasource';
@@ -377,7 +379,7 @@
 
 	Cell.prototype.removeObserver = function(cell) {
 		for (var i in this.observers) {
-			if (this.observers[i] == cell) {
+			if (this.observers[i] === cell) {
 				delete this.observers[i];
 			}
 		}
@@ -716,7 +718,6 @@
 		var formula = f;
 		if (this.inited) {
 			error('Cell already inited!');
-			console.dir(this);
 			return;
 		} else {
 			this.inited = true;
@@ -744,13 +745,14 @@
 		}
 		for (var i = 0; i < args.length; i++) {
 			if (!(args[i] instanceof Cell)) {
-				args[i] = this.host.create_cell_or_event(args[i]);
+				args[i] = this.host.create_cell_or_event(args[i], {dumb: true});
 			}
 		}
 		this.args = args;
 		this.formula = formula;
 
 		this.depend(this.args);
+		this.free = false;
 
 		if (args.length)
 			this.compute();
@@ -762,7 +764,7 @@
 	var collect_values = function(obj) {
 		var res = {};
 		for (var i in obj) {
-			if (i.indexOf("|") != -1)
+			if (i.indexOf("|") !== -1)
 				continue;
 			res[i] = obj[i].get();
 		}
@@ -771,7 +773,7 @@
 	var collect_names = function(obj) {
 		var res = [];
 		for (var i in obj) {
-			if (i.indexOf("|") != -1)
+			if (i.indexOf("|") !== -1)
 				continue;
 			res.push(i);
 		}
@@ -1039,7 +1041,7 @@
 				vr = this.host.shared.getVar(name) || false;
 			}
 			// search in shared cells!
-			if (!vr && this.linked_hash && (name != 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
+			if (!vr && this.linked_hash && (name !== 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
 				vr = this.linked_hash.getVar(name) || false;
 			}
 			return vr;
@@ -1111,6 +1113,68 @@
 				c[i] = b[i];
 			}
 			return c;
+		},
+		dump: function(hash){
+			var res = {
+				rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
+			}
+			var vars = hash.getAllVars();
+			for(var i in vars){
+				if(vars[i] instanceof Event){
+					if(!res.events) res.events = {};
+					res.events[i] = vars[i];
+				}
+				if(vars[i] instanceof Cell){
+					if(i === 'template'){
+						res.template = vars[i].get();
+						res.template_source = hash.template_source;
+						continue;
+					}
+					if(!vars[i].free){
+						if(!res.dependentVars) res.dependentVars = {};
+						res.dependentVars[i] = Firera.dumpCell(vars[i]);
+					} else {
+						if(vars[i].dumb){
+							if(!res.dumbVars) res.dumbVars = {};
+							res.dumbVars[i] = Firera.dumpCell(vars[i]);
+						} else {
+							if(!res.freeVars) res.freeVars = {};
+							res.freeVars[i] = Firera.dumpCell(vars[i]);
+						}
+					}
+				}
+				if(vars[i] instanceof List){
+					if(!res.lists) res.lists = {};
+					res.lists[i] = Firera.dumpList(vars[i]);
+				}
+			}
+			if(hash.mixins){
+				res.mixins = {};
+				for(var i in hash.mixins){
+					res.mixins[i] = {};
+					for(var j in hash.mixins[i]){
+						res.mixins[i][j] = Firera.dump(hash.mixins[i][j]);
+					}
+				}
+			}
+			return res;
+		},
+		dumpCell: function(cell){
+			var res = {val: cell.get()};
+			res.rootElement = cell.getElement().length ? cell.getElement().get() : false;
+			cell.DOMElement && (res.DOMElement = cell.DOMElement.get());
+			return res;
+		},
+		dumpList: function(list){
+			var res = {
+				rootElement: list.rootElement ? list.rootElement.get() : undefined,
+				shared: Firera.dump(list.shared),
+				list: []
+			};
+			for(var i in list.list){
+				res.list[i] = Firera.dump(list.list[i]);
+			}
+			return res;
 		},
 		hash: function(init_hash, params) {
 			var get_context = function() {
@@ -1309,15 +1373,17 @@
 			self.checkForTemplateAndRender = function() {
 				if (!self.noTemplateRenderingAllowed) {
 					var template = $.trim(self.getScope().html());
+					self.template_source = 'HTML';
 					if (!template) {
 						if (!self.getVar('template')) {
 							template = generate_default_template(self.getVarNames());
+							self.template_source = 'generated';
 							self("template").set(template);
+						} else {
+							self.template_source = 'props';
 						}
 						template = self('template').get();
 						self.getScope().html(template);
-					} else {
-						
 					}
 				}
 			}
@@ -1672,9 +1738,11 @@
 			var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
 			this.getScope().html('');
 			if (this.wrapperTag === 'option') {// this is SELECT tag
+				this.template_source = 'No template';
 				this.shared('template').just('');
 			}
 			if (!this.shared.getVar('template') && inline_template) {
+				this.template_source = 'HTML';
 				this.shared('template').just(inline_template);
 				this.getScope().html('');
 			}
