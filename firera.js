@@ -409,8 +409,8 @@
 		})
 	}
 
-	Cell.prototype.set = function(val) {
-		if(Object.keys(this.observables).length){
+	Cell.prototype.set = function(val, setanyway) {
+		if(Object.keys(this.observables).length && !setanyway){
 			error('Cant set dependent value manually: ', this.getName(), this);
 			return;
 		}
@@ -533,7 +533,7 @@
 				var request_hash = get_request_hash(args);
 				var uri = url || u;
 				$.getJSON(uri, request_hash, function(data) {
-					self.set(data);
+					self.set(data, true);
 				})
 			}].concat(args);
 		return this.is.apply(this, ars);
