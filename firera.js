@@ -7,7 +7,7 @@
 	 */
 	var $ = window['jQuery'] || window['$'] || false;
 
-	var reserved_words = ['datasource', 'template', 'data', 'sync'];
+	var reserved_cellnames = ['datasource', 'template', 'data', 'sync'];
 
 	var existy = function(a) {
 		return (a !== undefined) && (a !== null);
@@ -182,20 +182,6 @@
 
 	var error = function() {
 		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
-	}
-
-	var changeble = {
-		__init: function() {
-			this.changers = [];
-		},
-		change: function(prev_val, new_val) {
-			for (var i = 0; i < this.changers.length; i++) {
-				this.changers[i].call(this, prev_val, new_val);
-			}
-		},
-		onChange: function(func) {
-			this.changers.push(func);
-		}
 	}
 
 	var obj_join = function(a, b, overwrite) {
@@ -431,10 +417,9 @@
 			this.updateDOMElement();
 		}
 		//////////
-		this.change(old_val, new_val);
 		this.invalidateObservers(this.getName());
 		this.updateObservers(this.getName());
-		this.host.change();
+		this.change(old_val, new_val);
 		return this;
 	}
 
@@ -758,8 +743,17 @@
 			this.compute();
 		return this;
 	}
-
-	pour(Cell.prototype, changeble);
+	
+	Cell.prototype.change = function(prev_val, new_val) {
+		for (var i = 0; i < this.changers.length; i++) {
+			this.changers[i].call(this, prev_val, new_val);
+		}
+		this.host.change(this.getName(), new_val);
+	}
+	
+	Cell.prototype.onChange = function(func) {
+		this.changers.push(func);
+	}
 
 	var collect_values = function(obj) {
 		var res = {};
@@ -960,21 +954,23 @@
 	var make_window_between_hashes = function(parent, child, config) {
 		if(!config) return;
 		if (config.takes) {
-			if(!(config.takes instanceof Array)){
-				config.takes = [config.takes];
-			}
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
+				if(!parent.getVar(config.takes[i])){
+					error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
+					return;
+				}
 				child(varname).is(parent(config.takes[i]));
 			}
 		}
 		if (config && config.gives) {
-			if(!(config.gives instanceof Array)){
-				config.gives = [config.gives];
-			}
 			for (var i in config.gives) {
 				var varname = isInt(i) ? config.gives[i] : i;
-				parent(varname).is(child(config.takes[i]));
+				if(!child.getVar(config.gives[i])){
+					error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
+					return;
+				}
+				parent(varname).is(child(config.gives[i]));
 			}
 		}
 	}
@@ -992,14 +988,16 @@
 			if (this.host && this.host.getAllVars && !this._index) {
 				var parent_vars = this.host.getAllVars();
 				for (var i = 0; i < parent_vars.length; i++) {
-					if (parent_vars[i] === self) {
+					if (parent_vars[i] === this) {
 						return i;
 					}
 				}
 				var parent_mixins = this.host.mixins;
 				for (var i in parent_mixins) {
-					if (parent_mixins[i] === self) {
-						return 'mixin-' + i;
+					for(var j in parent_mixins[i]){
+						if (parent_mixins[i][j] === this) {
+							return 'MIXIN_' + i;
+						}
 					}
 				}
 				return '?!?';
@@ -1100,6 +1098,33 @@
 					}
 				}
 			}
+		},
+		change: function(cellname, new_val) {
+			if(this.changers[cellname]){
+				for(var j in this.changers[cellname]){
+					this.changers[cellname][j](cellname, new_val);
+				}
+			}
+			if(reserved_cellnames.indexOf(cellname) !== -1) return;
+			if(this.changers['_all']){
+				for(var j in this.changers['_all']){
+					this.changers['_all'][j](cellname, new_val);
+				}
+			}
+			if(this.host){
+				if(this.host instanceof List){
+					this.host.changeItem('update', this.getName(), cellname, new_val);
+				}
+			}
+		},
+		onChange: function(func, fields) {
+			if(!fields){
+				fields = ['_all'];
+			}
+			for(var i in fields){
+				if(this.changers[fields[i]]) this.changers[fields[i]] = [];
+				this.changers[fields[i]].push(func);
+			}
 		}
 	}
 
@@ -1117,6 +1142,7 @@
 		dump: function(hash){
 			var res = {
 				rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
+				self: hash,
 			}
 			var vars = hash.getAllVars();
 			for(var i in vars){
@@ -1160,7 +1186,7 @@
 			return res;
 		},
 		dumpCell: function(cell){
-			var res = {val: cell.get()};
+			var res = {val: cell.get(), self: cell};
 			res.rootElement = cell.getElement().length ? cell.getElement().get() : false;
 			cell.DOMElement && (res.DOMElement = cell.DOMElement.get());
 			return res;
@@ -1197,6 +1223,7 @@
 					}
 				}
 			}
+			self.changers = {};
 			self.vars = [];
 			self.scope = false;
 
@@ -1393,7 +1420,7 @@
 				if (self.host && self.host.shared) {
 					var shared_vars = self.host.shared.getAllVars();
 					for (var j in shared_vars) {
-						if (reserved_words.indexOf(j) === -1) {
+						if (reserved_cellnames.indexOf(j) === -1) {
 							vars[j] = shared_vars[j];
 						}
 					}
@@ -1427,14 +1454,6 @@
 			self.get = function() {
 				return collect_values(self.getAllVars());
 			}
-
-			pour(self, changeble);
-
-			self.onChange(function() {
-				if (this.host) {
-					this.host.change();
-				}
-			})
 
 			if (init_hash instanceof Function) {
 				init_hash = {__setup: init_hash};
@@ -1476,10 +1495,14 @@
 				});
 				this.is.apply(this, args);
 			}
+		},
+		addHashMethod: function(name, func){
+			hash_methods[name] = func;
 		}
 	}
 
 	var List = function(init_hash, config) {
+		this.changers = {};
 		this.list = [];
 		this.each_is_set = false;
 		this.each_hash = {};
@@ -1526,12 +1549,6 @@
 			}
 			// maybe delete .data and .each?
 		}
-		var self = this;
-		this.onChange(function() {
-			if (self.updateObservers) {
-				self.updateObservers();
-			}
-		})
 	}
 
 	List.prototype.wrapperTag = 'div';
@@ -1572,7 +1589,7 @@
 				this.push(obj[i], true)
 			}
 			this.rebind('push', c);
-			this.change();
+			this.changeItem('create in diap', c, c+obj.length);
 			return;
 		}
 		if (!(obj instanceof Object)) {
@@ -1590,7 +1607,7 @@
 		}
 		if (!nochange) {
 			this.rebind('push', this._counter);
-			this.change();
+			this.changeItem('create', this._counter);
 		}
 		this._counter++;
 		return this;
@@ -1635,7 +1652,7 @@
 		}
 		if (is_int(func)) {
 			this.list[func] && this.list[func].remove() && delete this.list[func];
-			this.change();
+			this.changeItem('delete', func);
 			return;
 		}
 		var f = get_map_func(func);
@@ -1643,9 +1660,9 @@
 			if (f.apply(this.list[i].get())) {
 				this.list[i].remove();
 				delete this.list[i];
+				this.changeItem('delete', i);
 			}
 		}
-		this.change();
 	}
 
 	List.prototype.count = function(func) {
@@ -1787,8 +1804,20 @@
 	List.prototype.updateDOMElement = function() {
 		// Do nothing!
 	}
-
-	pour(List.prototype, changeble);
+	
+	List.prototype.changeItem = function(changetype, itemnum, cellname, new_val) {
+		//console.log('ChangeItem happened:', changetype, itemnum, cellname, new_val, 'in', this.getRoute());
+		for(var i in this.changers){
+			this.changers[i](changetype, itemnum, cellname, new_val);
+		}
+	}
+	List.prototype.onChangeItem = function(func){
+		this.changers.push(func);
+	}
+	
+	Firera.addHashMethod('sync', function(params){
+		//this('datasource').is();
+	})
 
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
