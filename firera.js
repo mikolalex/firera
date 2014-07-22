@@ -8,7 +8,8 @@
 	var $ = window['jQuery'] || window['$'] || false;
 
 	var reserved_cellnames = ['datasource', 'template', 'data', 'sync'];
-
+	var not_html_but_needs_setter = ['datasource', 'showItem'];
+	
 	var existy = function(a) {
 		return (a !== undefined) && (a !== null);
 	}
@@ -67,6 +68,18 @@
 					if (!val)
 						val = [];
 					this.host.host.clear().push(val);
+				}
+			}
+		},
+		showItem: {
+			setter: function(val) {
+				if (this.host && this.host.host) {// should be a list
+					var scope = this.host.host.getScope();
+					if(scope){
+						var items = scope.children();
+						items.hide();
+						items.slice(val, parseInt(val) + 1).show();
+					}
 				}
 			}
 		},
@@ -136,9 +149,9 @@
 				var items = $el.children();
 				items.each(function() {
 					if (!$(this).attr('data-value')) {
-						$(this).attr('data-value', $.trim($(this).html()))
+						$(this).attr('data-value', items.index($(this)));
 					}
-				});
+				}); //just return index! 
 				if (tagName($el) === 'select') {
 					var onChange = function() {
 						self.set($el.val());
@@ -300,17 +313,14 @@
 			}
 		} else { // this is just custom abstract varname
 			params && params.dumb && (this.dumb = true);
-			switch (this.getName()) {
-				case 'datasource':
-					this.type = 'datasource';
-					this.rebind = function() {
-						this.driver.setter.apply(this, [this.val].concat(this.params));
-						return this;
-					}
-					break;
-				default:
-					this.type = 'cell';
-					break;
+			if(not_html_but_needs_setter.indexOf(this.getName()) !== -1){
+				this.type = this.getName();
+				this.rebind = function() {
+					this.driver.setter.apply(this, [this.val].concat(this.params));
+					return this;
+				}
+			} else {
+				this.type = 'cell';
 			}
 		}
 		this.driver = drivers[this.type];
@@ -670,7 +680,16 @@
 		if (this.DOMElement) {
 			this.updateDOMElement();
 		}
-		if (this.driver && this.driver.setter && this.getScope()) {
+		if (
+			this.driver 
+			&& this.driver.setter 
+			&& (
+				this.getScope() 
+				|| (
+					not_html_but_needs_setter.indexOf(this.getName()) !== -1
+				)
+			)
+		) {
 			this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
 		}
 		this.change(old_val, this.val);
@@ -954,6 +973,9 @@
 	var make_window_between_hashes = function(parent, child, config) {
 		if(!config) return;
 		if (config.takes) {
+			if(!(config.takes instanceof Object)){
+				config.takes = [config.takes];
+			}
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
 				if(!parent.getVar(config.takes[i])){
@@ -964,6 +986,9 @@
 			}
 		}
 		if (config && config.gives) {
+			if(!(config.gives instanceof Object)){
+				config.gives = [config.gives];
+			}
 			for (var i in config.gives) {
 				var varname = isInt(i) ? config.gives[i] : i;
 				if(!child.getVar(config.gives[i])){
