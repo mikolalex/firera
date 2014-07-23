@@ -45,6 +45,13 @@
 	var is_valuable = function(tag) {
 		return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
 	}
+	
+	var join_object_attrs = function(a, b){
+		for(var i in b){
+			a[i] = b[i];
+		}
+		return a;
+	}
 
 	var generate_default_template = function(vars) {
 		if (vars.length === 1 && vars[0] === '__item'){
@@ -495,6 +502,22 @@
 		var self = this;
 		var args = Array.prototype.slice.call(arguments);
 		var url = args.shift();
+		var req = 
+		{
+			type: 'GET',
+			dataType: 'json',
+		}
+		if(url instanceof Object){// it's params
+			join_object_attrs(req, url);
+		} else {
+			if (url.indexOf('/') === -1) {// its varname
+				args.unshift(url);
+				url = false;
+				skip_first = true;
+			} else {
+				req.url = url;
+			}
+		}
 		var aliases = false;
 		if (args.length == 1) {
 			if (args[0] instanceof Array) {
@@ -521,17 +544,13 @@
 			skip_first = true;
 			return res;
 		}
-		if (url.indexOf('/') === -1) {// its varname
-			args.unshift(url);
-			url = false;
-			skip_first = true;
-		}
 		var ars = [function(u) {
-				var request_hash = get_request_hash(args);
-				var uri = url || u;
-				$.getJSON(uri, request_hash, function(data) {
+				req.data = get_request_hash(args);
+				req.url = url || u;
+				req.success = function(data) {
 					self.set(data, true);
-				})
+				};
+				$.ajax(req);
 			}].concat(args);
 		return this.is.apply(this, ars);
 	}
@@ -777,8 +796,13 @@
 	var collect_values = function(obj) {
 		var res = {};
 		for (var i in obj) {
-			if (i.indexOf("|") !== -1)
-				continue;
+			if(
+				(reserved_cellnames.indexOf(i) !== -1)
+				|| 
+				(not_html_but_needs_setter.indexOf(i) !== -1)
+				|| 
+				(i.indexOf("|") !== -1)
+			) continue;
 			res[i] = obj[i].get();
 		}
 		return res;
@@ -836,6 +860,7 @@
 				submitters.bind('click', function() {
 					var hash = gather_form_values(selector, scope, true);
 					callback(hash);
+					return false;
 				});
 			} else {
 				if (submitters.length > 1) {
@@ -1002,6 +1027,7 @@
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
+			console.log('SEL is', selector);
 			if (!dont_check_if_already_exists && this.getVar(selector))
 				return this.getVar(selector);
 			var type = get_cell_type(selector);
@@ -1225,6 +1251,7 @@
 			for(var i in list.list){
 				res.list[i] = Firera.dump(list.list[i]);
 			}
+			res.changers = list.changers;
 			return res;
 		},
 		hash: function(init_hash, params) {
@@ -1523,11 +1550,22 @@
 		},
 		addHashMethod: function(name, func){
 			hash_methods[name] = func;
+		},
+		addListMethod: function(name, func){
+			if(List.prototype[name]){
+				error('List method already exists:', name); return;
+			}
+			List.prototype[name] = func;
 		}
 	}
 
 	var List = function(init_hash, config) {
-		this.changers = {};
+		this.changers = {
+			create: [],
+			read: [],
+			update: [],
+			delete: [],
+		};
 		this.list = [];
 		this.each_is_set = false;
 		this.each_hash = {};
@@ -1614,7 +1652,7 @@
 				this.push(obj[i], true)
 			}
 			this.rebind('push', c);
-			this.changeItem('create in diap', c, c+obj.length);
+			this.changeItem('create', c, c+obj.length);
 			return;
 		}
 		if (!(obj instanceof Object)) {
@@ -1676,16 +1714,16 @@
 			return;
 		}
 		if (is_int(func)) {
-			this.list[func] && this.list[func].remove() && delete this.list[func];
 			this.changeItem('delete', func);
+			this.list[func] && this.list[func].remove() && delete this.list[func];
 			return;
 		}
 		var f = get_map_func(func);
 		for (var i in this.list) {
 			if (f.apply(this.list[i].get())) {
+				this.changeItem('delete', i);
 				this.list[i].remove();
 				delete this.list[i];
-				this.changeItem('delete', i);
 			}
 		}
 	}
@@ -1704,6 +1742,7 @@
 	}
 
 	List.prototype.get = function(num) {
+		console.log('we are asked', num, 'list is', this.list);
 		if(num || num === 0){
 			return this.list[num];
 		}
@@ -1831,17 +1870,133 @@
 	}
 	
 	List.prototype.changeItem = function(changetype, itemnum, cellname, new_val) {
-		//console.log('ChangeItem happened:', changetype, itemnum, cellname, new_val, 'in', this.getRoute());
-		for(var i in this.changers){
-			this.changers[i](changetype, itemnum, cellname, new_val);
+		for(var i in this.changers[changetype]){
+			this.changers[changetype][i](changetype, itemnum, cellname, new_val);
 		}
 	}
-	List.prototype.onChangeItem = function(func){
-		this.changers.push(func);
+	List.prototype.onChangeItem = function(changetype, func){
+		var types = [];
+		if(changetype === '*'){
+			changetype = 'create, read, update, delete';
+		}
+		if(changetype.indexOf(',') !== -1){// multiple events
+			types = changetype.split(", ");
+		} else {
+			types = [changetype];
+		}
+		for(var i in types){
+			this.changers[types[i]].push(func);
+		}
 	}
 	
-	Firera.addHashMethod('sync', function(params){
-		//this('datasource').is();
+	Firera.addListMethod('sync', function(params){
+		var list = this;
+		var name = list.getName();
+		var defaults = {
+			getUrl: function(){
+				return list.getName();
+			}
+		}
+		var getContext = function(){
+			
+		};
+		var getRequest = function(data){
+			return join_object_attrs(data, getContext());
+		};
+		var needed_params = {
+			
+			contextvars: [],
+			fields: true,
+			idColumns: ['id'],
+			
+			create: 'onCreate',// (default), 'manual', 60(interval in seconds)
+			createURL: '/' + name,// default: "/hashName"
+			createRequest: getRequest,
+			createMethod: 'PUT', // HTTP method, default is GET
+			
+			read: 'once',// 'once'(default), 'manual', 60(interval in seconds)
+			readURL: '/' + name,// default: "/hashName"
+			readRequest: function(a){ return a },
+			readMethod: 'GET', // HTTP method, default is GET
+			
+			update: 'onChange',// 'manual', 60(interval in seconds)
+			updateURL: '/' + name,
+			updateRequest: function(changeset){
+				return changeset;
+			},
+			updateMethod: 'POST',
+			
+			delete: 'once',//(default),// 'manual', 60(interval in seconds)
+			deleteURL: '/' + name,
+			deleteRequest: function(data){
+				return data;
+			},
+			deleteMethod: 'DELETE'// HTTP method, default is DELETE
+		};
+		
+		var getData = function(key){
+			if(needed_params[key] instanceof Function){
+				return needed_params[key]();
+			} else {
+				return needed_params[key];
+			}
+		}
+		
+		var getFunc = function(key){
+			return needed_params[key];
+		}
+		
+		join_object_attrs(needed_params, params);
+		
+		// forming params done! Now, attaching handlers...
+		
+		this.onChangeItem('create', function(_, itemnum){
+			var data = list.list[itemnum].get();
+			var fields = getData('fields');
+			if(fields instanceof Array){// filtering, removing not needed fields
+				for(var i in data){
+					if(fields.indexOf(i) === -1){
+						delete data[i];
+					}
+				}
+			}
+			data = getFunc('createRequest')(data);
+			$.ajax({
+				url: getData('createURL'),
+				type: getData('createMethod'),
+				data: data,
+				success: function(result) {
+				    // Do something with the result
+				}
+			});
+		})
+		this.onChangeItem('delete', function(_, itemnum){
+			var idColumns = getData('idColumns');
+			var data = {};
+			for(var i in idColumns){
+				data[idColumns[i]] = list.list[itemnum](idColumns[i]).get();
+			}
+			data = getFunc('deleteRequest')(data);
+			$.ajax({
+				url: getData('deleteURL'),
+				type: getData('deleteMethod'),
+				data: data,
+				success: function(result) {
+				    // Do something with the result
+				}
+			});
+		})
+		var params = getData('contextvars');
+		params.unshift({
+			url: getData('readURL'),
+			type: getData('readMethod'),
+			getRequestHash: getFunc('readRequest')
+		});
+		//this.shared('datasource').gets.apply(this.shared('datasource'), params);
+		
+		
+		
+		
 	})
 
 	var lib_var_name = 'Firera';
