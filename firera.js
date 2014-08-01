@@ -193,6 +193,11 @@
 				}
 			}
 		},
+		css: {
+			setter: function(val, $el, property) {
+				$el.css(property, val);
+			}
+		},
 		attr: {
 			setter: function(val, $el, atrname) {
 				$el.attr(atrname, val);
@@ -638,12 +643,13 @@
 			}
 		}
 		obj_join(this, arr);
-		arr.rootElement = this.DOMElement;
+		arr.setScope(this.DOMElement);
 		this.host.setVar(this.getName(), arr);
 		for (var i in mass) {
 			var element = mass[i] instanceof Object ? mass[i] : {__item: mass[i]};
 			arr.push(element);
 		}
+		arr.rebind();
 		return arr;
 	}
 
@@ -1027,7 +1033,6 @@
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
-			console.log('SEL is', selector);
 			if (!dont_check_if_already_exists && this.getVar(selector))
 				return this.getVar(selector);
 			var type = get_cell_type(selector);
@@ -1454,7 +1459,7 @@
 					var template = $.trim(self.getScope().html());
 					self.template_source = 'HTML';
 					if (!template) {
-						if (!self.getVar('template')) {
+						if (!self.getVar('template') || !self.getVar('template').get().length) {
 							template = generate_default_template(self.getVarNames());
 							self.template_source = 'generated';
 							self("template").set(template);
@@ -1641,6 +1646,36 @@
 		return 'list';
 	}
 
+	List.prototype.setScope = function(re) {
+		this.rootElement = re;
+		// update template, if not provided previously
+		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
+		this.getScope().html('');
+		if (this.wrapperTag === 'option') {// this is SELECT tag
+			this.template_source = 'No template';
+			this.shared('template').just('');
+		}
+		if (!this.shared.getVar('template') && inline_template) {
+			this.template_source = 'HTML';
+			this.shared('template').just(inline_template);
+			this.getScope().html('');
+		}
+		switch (tagName(re)) {
+			case 'ul':
+			case 'ol':
+			case 'menu':
+				this.wrapperTag = 'li';
+				break;
+			case 'select':
+				this.wrapperTag = 'option';
+				break;
+			default:
+				this.wrapperTag = 'div';
+				break;
+		}
+		return this;
+	}
+
 	List.prototype.getScope = function(func) {
 		return this.rootElement;
 	}
@@ -1742,7 +1777,7 @@
 	}
 
 	List.prototype.get = function(num) {
-		console.log('we are asked', num, 'list is', this.list);
+		//console.log('we are asked', num, 'list is', this.list);
 		if(num || num === 0){
 			return this.list[num];
 		}
@@ -1782,22 +1817,9 @@
 
 	List.prototype.bindToDOM = function($el) {
 		if (this.rootElement instanceof $) {
-			this.rootElement = this.rootElement.add($el);
+			this.setScope(this.getScope().add($el));
 		} else {
-			this.rootElement = $el;
-		}
-		switch (tagName($el)) {
-			case 'ul':
-			case 'ol':
-			case 'menu':
-				this.wrapperTag = 'li';
-				break;
-			case 'select':
-				this.wrapperTag = 'option';
-				break;
-			default:
-				this.wrapperTag = 'div';
-				break;
+			this.setScope($el);
 		}
 		return this;
 	}
@@ -1808,26 +1830,13 @@
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
 		if (selector_or_element) {
-			if (selector_or_element instanceof Object) {// $el
-				this.rootElement = selector_or_element;
-			} else {// rare case, only for root objects
-				this.rootElement = $(selector_or_element);
+			if (selector_or_element instanceof $) {
+				this.setScope(selector_or_element);
+			} else {
+				this.setScope($(selector_or_element));
 			}
 		}
 		if (this.getScope()) {
-			// update template, if not provided previously
-			var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
-			this.getScope().html('');
-			if (this.wrapperTag === 'option') {// this is SELECT tag
-				this.template_source = 'No template';
-				this.shared('template').just('');
-			}
-			if (!this.shared.getVar('template') && inline_template) {
-				this.template_source = 'HTML';
-				this.shared('template').just(inline_template);
-				this.getScope().html('');
-			}
-
 			for (var i in this.list) {
 				if ((start_index && i < start_index) || (end_index && i > end_index))
 					continue;
@@ -1995,7 +2004,7 @@
 		//this.shared('datasource').gets.apply(this.shared('datasource'), params);
 		
 		
-		
+	
 		
 	})
 
