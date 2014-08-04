@@ -194,8 +194,18 @@
 			}
 		},
 		css: {
-			setter: function(val, $el, property) {
-				$el.css(property, val);
+			setter: function(val, $el, property, speed) {
+				if(!speed){
+					$el.css(property, val);
+				} else {
+					var time = {
+						'slow': 500,
+						'fast': 100,
+					}[speed];
+					var anim = {};
+					anim[property] = val;
+					$el.animate(anim, time);
+				}
 			}
 		},
 		attr: {
@@ -652,6 +662,25 @@
 		arr.rebind();
 		return arr;
 	}
+	
+	var typical_compute = function(list, func, listname) {
+		var old_val = this.val;
+		var new_val = list.count(func);
+		for (var i = 0; i < this.modifiers.length; i++) {
+			new_val = this.modifiers[i](new_val);
+		}
+		this.val = new_val;
+
+		if (this.DOMElement) {
+			this.updateDOMElement();
+		}
+		if (this.getScope() && this.driver.setter) {
+			this.driver.setter.apply(this, [this.val, this.getElement()]);
+		}
+		this.change(old_val, this.val);
+		this.updateObservers(listname);
+		return this;
+	}
 
 	Cell.prototype.counts = function(pred, arr) {
 		var listname = arr ? arr : pred;
@@ -660,26 +689,12 @@
 			error('Wrong parameter provided(' + listname + ') for counts()');
 		}
 		var list = this.host.getVar(listname);
-		list.addObserver(this);
+		var self = this;
+		list.onChangeItem('*', function(){
+			self.compute();
+		})
 		func = get_map_func(func);
-		this.compute = function() {
-			var old_val = this.val;
-			var new_val = list.count(func);
-			for (var i = 0; i < this.modifiers.length; i++) {
-				new_val = this.modifiers[i](new_val);
-			}
-			this.val = new_val;
-
-			if (this.DOMElement) {
-				this.updateDOMElement();
-			}
-			if (this.getScope() && this.driver.setter) {
-				this.driver.setter.apply(this, [this.val, this.getElement()]);
-			}
-			this.change(old_val, this.val);
-			this.updateObservers(listname);
-			return this;
-		}
+		this.compute = typical_compute.bind(this, list, func, listname);
 		return this.compute();
 	}
 	Cell.prototype.force = function() {
@@ -1024,7 +1039,7 @@
 				var varname = isInt(i) ? config.gives[i] : i;
 				if(!child.getVar(config.gives[i])){
 					error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
-					return;
+					//return;
 				}
 				parent(varname).is(child(config.gives[i]));
 			}
@@ -1650,7 +1665,7 @@
 		this.rootElement = re;
 		// update template, if not provided previously
 		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
-		this.getScope().html('');
+		this.getScope() && this.getScope().html('');
 		if (this.wrapperTag === 'option') {// this is SELECT tag
 			this.template_source = 'No template';
 			this.shared('template').just('');
@@ -1673,6 +1688,14 @@
 				this.wrapperTag = 'div';
 				break;
 		}
+		var self = this;
+		$(re).on('click', '.firera-item', function(e){
+			var number = re.children().removeClass('selected').index($(this));
+			self.shared('selectionNum').set(number);
+			self.shared('selectionData').set(self.list[number].get());
+			$(this).addClass('selected');
+			return false;
+		})
 		return this;
 	}
 
@@ -1743,12 +1766,17 @@
 
 	}
 
-	List.prototype.remove = function(func) {
+	List.prototype.remove = function(func, end) {
 		if (!func && func !== 0) {
 			// Hm... remove all or nothing?
 			return;
 		}
 		if (is_int(func)) {
+			if(end && is_int(end) && Number(end) > Number(func)){
+				for(var i = Number(func); i <= Number(end); i++){
+					this.remove(i);
+				}
+			}
 			this.changeItem('delete', func);
 			this.list[func] && this.list[func].remove() && delete this.list[func];
 			return;
@@ -1758,7 +1786,7 @@
 			if (f.apply(this.list[i].get())) {
 				this.changeItem('delete', i);
 				this.list[i].remove();
-				delete this.list[i];
+				this.list.splice(i, 1);
 			}
 		}
 	}
@@ -1840,10 +1868,10 @@
 			for (var i in this.list) {
 				if ((start_index && i < start_index) || (end_index && i > end_index))
 					continue;
-				var nested_scope = " > " + this.wrapperTag + "[data-firera-num=" + i + "]";
+				var nested_scope = " > " + this.wrapperTag + ":nth-child(" + (Number(i) + 1) + ")";
 				var nested_element = $(nested_scope, this.getScope());
 				if (nested_element.length === 0) {
-					this.getScope().append('<' + this.wrapperTag + ' class="firera-item" data-firera-num="' + i + '"></' + this.wrapperTag + '>');
+					this.getScope().append('<' + this.wrapperTag + ' class="firera-item"></' + this.wrapperTag + '>');
 					nested_element = $(nested_scope, this.getScope());
 					if (nested_element.length === 0) {
 						error('Still cant bind nested element: ', this.getRoute());
@@ -1860,10 +1888,10 @@
 			for (var i in this.list) {
 				if ((start_index && i < start_index) || (end_index && i > end_index))
 					continue;
-				var nested_scope = " > " + this.wrapperTag + "[data-firera-num=" + i + "]";
+				var nested_scope = " > " + this.wrapperTag + ":nth-child(" + (Number(i) + 1) + ")";
 				var nested_element = $(nested_scope, this.getScope());
 				if (nested_element.length === 0) {
-					this.getScope().append('<' + this.wrapperTag + ' class="firera-item" data-firera-num="' + i + '"></' + this.wrapperTag + '>');
+					this.getScope().append('<' + this.wrapperTag + ' class="firera-item"></' + this.wrapperTag + '>');
 					nested_element = $(nested_scope, this.getScope());
 				}
 				if (nested_element.length < 1) {
