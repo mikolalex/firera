@@ -74,7 +74,7 @@
 				if (this.host && this.host.host) {// should be a list
 					if (!val)
 						val = [];
-					this.host.host.clear().push(val);
+					this.host.host.clear().setData(val);
 				}
 			}
 		},
@@ -656,7 +656,7 @@
 		arr.setScope(this.DOMElement);
 		this.host.setVar(this.getName(), arr);
 		for (var i in mass) {
-			var element = mass[i] instanceof Object ? mass[i] : {__item: mass[i]};
+			var element = mass[i] instanceof Object ? mass[i] : {__val: mass[i]};
 			arr.push(element);
 		}
 		arr.rebind();
@@ -693,6 +693,7 @@
 		list.onChangeItem('*', function(){
 			self.compute();
 		})
+		//list.addObserver(this);
 		func = get_map_func(func);
 		this.compute = typical_compute.bind(this, list, func, listname);
 		return this.compute();
@@ -1025,8 +1026,8 @@
 			for (var i in config.takes) {
 				var varname = isInt(i) ? config.takes[i] : i;
 				if(!parent.getVar(config.takes[i])){
-					error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
-					return;
+					//error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
+					//return;
 				}
 				child(varname).is(parent(config.takes[i]));
 			}
@@ -1038,7 +1039,7 @@
 			for (var i in config.gives) {
 				var varname = isInt(i) ? config.gives[i] : i;
 				if(!child.getVar(config.gives[i])){
-					error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
+					//error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
 					//return;
 				}
 				parent(varname).is(child(config.gives[i]));
@@ -1148,7 +1149,7 @@
 		},
 		setData: function(hash){
 			if(!(hash instanceof Object)){
-				hash = {__item: hash};
+				hash = {__val: hash};
 			}
 			for(var i in hash){
 				if(hash[i] instanceof Array){
@@ -1664,6 +1665,7 @@
 	List.prototype.setScope = function(re) {
 		this.rootElement = re;
 		// update template, if not provided previously
+		//console.log('scope is', this.getScope());
 		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
 		this.getScope() && this.getScope().html('');
 		if (this.wrapperTag === 'option') {// this is SELECT tag
@@ -1746,6 +1748,7 @@
 
 	List.prototype.clear = function() {
 		this.list = [];
+		this._counter = 0;
 		this.getScope() && this.getScope().html('');
 		return this;
 	}
