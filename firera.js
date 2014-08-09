@@ -6,6 +6,13 @@
 	 * prohibit direct use of |html modifier! Use vars instead!
 	 */
 	var $ = window['jQuery'] || window['$'] || false;
+	
+	String.prototype.contains = function(s){
+		return this.indexOf(s) !== -1;
+	}
+	String.prototype.notContains = function(s){
+		return this.indexOf(s) !== -1;
+	}
 
 	var reserved_cellnames = function(name){
 		return name[0] === '$';
@@ -61,8 +68,7 @@
 		}
 		var res = [];
 		for (var i in vars) {
-			if (vars[i].indexOf('|') !== -1)
-				continue;
+			if (vars[i].contains('|')) continue;
 			res.push('<div data-fr="' + vars[i] + '"></div>');
 		}
 		return res.join('');
@@ -291,7 +297,7 @@
 		this.name = this.getName();
 
 		var root_element;
-		if (this.getScope() && selector.indexOf("|") === -1) {
+		if (this.getScope() && selector.notContains("|")) {
 			if (this.getName() === '__item') {
 				root_element = this.getScope();
 			} else {
@@ -302,11 +308,11 @@
 			}
 		}
 
-		if (selector.indexOf("|") !== -1) {// HTML selector
+		if (selector.contains("|")) {// HTML selector
 			// this is a dom selector
 			var parts = selector.split("|");
 			this.jquerySelector = parts[0];
-			if (parts[1].indexOf("(") !== -1) {
+			if (parts[1].contains("(")) {
 				// there are some params
 				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
 				this.params = m[2].split(",");
@@ -535,7 +541,7 @@
 		if(url instanceof Object){// it's params
 			join_object_attrs(req, url);
 		} else {
-			if (url.indexOf('/') === -1) {// its varname
+			if (url.notContains('/')) {// its varname !!!! may be /parent!
 				args.unshift(url);
 				url = false;
 				skip_first = true;
@@ -650,6 +656,9 @@
 	}
 
 	Cell.prototype.are = function(arr, config) {
+		if(arr instanceof Function){// it's a datasource!
+			return this.are.call(this, {$datasource: Array.prototype.slice.call(arguments)});			
+		}
 		var mass = [];
 		if (!(arr instanceof List)) {
 			var conf = config || {};
@@ -833,7 +842,7 @@
 				|| 
 				(not_html_but_needs_setter.indexOf(i) !== -1)
 				|| 
-				(i.indexOf("|") !== -1)
+				(i.contains("|"))
 			) continue;
 			res[i] = obj[i].get();
 		}
@@ -842,8 +851,7 @@
 	var collect_names = function(obj) {
 		var res = [];
 		for (var i in obj) {
-			if (i.indexOf("|") !== -1)
-				continue;
+			if (i.contains("|")) continue;
 			res.push(i);
 		}
 		return res;
@@ -1019,7 +1027,7 @@
 
 
 	var get_cell_type = function(cellname) {
-		var type = (cellname.indexOf("|") === -1 || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
+		var type = (cellname.notContains("|") || events.notContains(cellname.split("|")[1])) ? 'cell' : 'event';
 		return type;
 	}
 
@@ -1059,6 +1067,42 @@
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
+			if(selector.contains('/')){
+				var parts = selector.split('/');
+				var member = parts[0];
+				var host;
+				if(member === '..'){// its parent
+						if(!this.host){
+							error('Could not access parent hash as ', selector); return;
+						}
+						host = this.host;
+						if(this.host.shared = this){
+							host = this.host.host;
+						}
+				} else {
+					if(isInt(member)){ // its part of list
+						if(this instanceof List && this.list){
+							host = this.list[member];
+						} else {
+							error('Could not access list member as ', selector); return;
+						}
+					} else {
+						if(this instanceof List){
+							host = this.shared.getVar(selector);
+							//error('Could not access shared member as ', selector); return;
+						} else {
+							host = this.getVar(selector);
+						}
+						if(!host) {	
+							error('Cound not access cell as', selector); return;
+						}
+					}
+				}
+				var tail = parts.slice(1).join('/');
+				return host.create_cell_or_event(tail);
+			}
+			
+			
 			if (!dont_check_if_already_exists && this.getVar(selector))
 				return this.getVar(selector);
 			var type = get_cell_type(selector);
@@ -1628,6 +1672,9 @@
 				}
 			}
 		}
+		if(config && config.host){
+			this.host = config.host;
+		}
 		this.shared = new Firera.hash(init_hash, this.shared_config);
 		if(config) {
 			config.host && this.setHost(config.host);
@@ -1954,7 +2001,7 @@
 		if(changetype === '*'){
 			changetype = 'create, read, update, delete';
 		}
-		if(changetype.indexOf(',') !== -1){// multiple events
+		if(changetype.contains(',')){// multiple events
 			types = changetype.split(", ");
 		} else {
 			types = [changetype];
