@@ -7,8 +7,10 @@
 	 */
 	var $ = window['jQuery'] || window['$'] || false;
 
-	var reserved_cellnames = ['datasource', 'template', 'data', 'sync'];
-	var not_html_but_needs_setter = ['datasource', 'showItem'];
+	var reserved_cellnames = function(name){
+		return name[0] === '$';
+	}
+	var not_html_but_needs_setter = ['$datasource', 'showItem'];
 	
 	var existy = function(a) {
 		return (a !== undefined) && (a !== null);
@@ -69,7 +71,7 @@
 	var drivers = {
 		cell: {
 		},
-		datasource: {
+		$datasource: {
 			setter: function(val) {
 				if (this.host && this.host.host) {// should be a list
 					if (!val)
@@ -84,8 +86,16 @@
 					var scope = this.host.host.getScope();
 					if(scope){
 						var items = scope.children();
-						items.hide();
-						items.slice(val, parseInt(val) + 1).show();
+						var start = val, end = parseInt(val) + 1;
+						if(val === '*' || val === true){
+							items.show(); return;
+						}
+						if(val instanceof Array){
+							// range
+							start = val[0];
+							end = val[1];
+						}
+						items.hide().slice(start, end).show();
 					}
 				}
 			}
@@ -777,7 +787,7 @@
 			this.self = Firera.hash(formula);
 			return this;
 		}
-
+		
 		var args = Array.prototype.slice.call(arguments, 1);
 		if (!args.length) {// is just an another cell
 			args[0] = formula;
@@ -819,7 +829,7 @@
 		var res = {};
 		for (var i in obj) {
 			if(
-				(reserved_cellnames.indexOf(i) !== -1)
+				reserved_cellnames(i)
 				|| 
 				(not_html_but_needs_setter.indexOf(i) !== -1)
 				|| 
@@ -1111,7 +1121,7 @@
 				vr = this.host.shared.getVar(name) || false;
 			}
 			// search in shared cells!
-			if (!vr && this.linked_hash && (name !== 'template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
+			if (!vr && this.linked_hash && (name !== '$template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
 				vr = this.linked_hash.getVar(name) || false;
 			}
 			return vr;
@@ -1157,7 +1167,9 @@
 						this(i).are([]);
 					}
 					if(!(this(i) instanceof List)){
-						error('Could not assign array data to not-array!', this(i));
+						this(i).are({});
+						this(i).setData(hash[i]);
+						//error('Could not assign array data to not-array!', this(i), hash[i]);
 						return;
 					}
 					this(i).setData(hash[i]);
@@ -1177,7 +1189,7 @@
 					this.changers[cellname][j](cellname, new_val);
 				}
 			}
-			if(reserved_cellnames.indexOf(cellname) !== -1) return;
+			if(reserved_cellnames(cellname)) return;
 			if(this.changers['_all']){
 				for(var j in this.changers['_all']){
 					this.changers['_all'][j](cellname, new_val);
@@ -1223,7 +1235,7 @@
 					res.events[i] = vars[i];
 				}
 				if(vars[i] instanceof Cell){
-					if(i === 'template'){
+					if(i === '$template'){
 						res.template = vars[i].get();
 						res.template_source = hash.template_source;
 						continue;
@@ -1310,11 +1322,18 @@
 			//////////////////////////////////////////
 			var init_with_hash = function(selector, params) {
 				for (var i in selector) {
-					if (i === '__setup' || i === '__mixins' || i === 'each' || i === 'vars' || i === 'data'){
+					if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data'){
 						continue;
 					}
 					var cell = self.create_cell_or_event(i, undefined, true);
 					var cell_type = cell.getType();
+					if(i === 'each'){
+						continue;
+					}
+					if(selector[i] instanceof Object && !(selector[i] instanceof Array)){
+						self(i).are(selector[i]);
+						continue;
+					}
 					switch (cell_type) {
 						case 'cell':
 							if (selector[i] instanceof Array) {
@@ -1371,8 +1390,8 @@
 				if (selector.__setup) {// run setup function
 					selector.__setup.call(self, params);
 				}
-				if(selector.data){
-					self.setData(selector.data);
+				if(selector.$data){
+					self.setData(selector.$data);
 				}
 				return true;
 			}
@@ -1386,7 +1405,7 @@
 								hash[i][j] = {item: hash[i][j]};
 							}
 						}
-						var list = new window[lib_var_name].list({data: hash[i]}, {host: self});
+						var list = new window[lib_var_name].list({$data: hash[i]}, {host: self});
 						cell.are(list);
 					} else {
 						if (hash[i] instanceof Object) {
@@ -1425,6 +1444,8 @@
 			}
 
 			self.applyTo = function(selector_or_element) {
+				var check = false;
+				if(selector_or_element === 'body') check = true;
 				if (selector_or_element instanceof Object) {// JQuery object
 					self.rootElement = selector_or_element;
 				} else {// rare case, only for root objects
@@ -1475,14 +1496,14 @@
 					var template = $.trim(self.getScope().html());
 					self.template_source = 'HTML';
 					if (!template) {
-						if (!self.getVar('template') || !self.getVar('template').get().length) {
+						if (!self.getVar('$template') || !self.getVar('$template').get().length) {
 							template = generate_default_template(self.getVarNames());
 							self.template_source = 'generated';
-							self("template").set(template);
+							self("$template").set(template);
 						} else {
 							self.template_source = 'props';
 						}
-						template = self('template').get();
+						template = self('$template').get();
 						self.getScope().html(template);
 					}
 				}
@@ -1493,7 +1514,7 @@
 				if (self.host && self.host.shared) {
 					var shared_vars = self.host.shared.getAllVars();
 					for (var j in shared_vars) {
-						if (reserved_cellnames.indexOf(j) === -1) {
+						if (!reserved_cellnames(j)) {
 							vars[j] = shared_vars[j];
 						}
 					}
@@ -1533,8 +1554,8 @@
 			}
 
 			if (init_hash) {
-				if (init_hash.data && (!params || !params.skip_data)) {
-					init_with_data(init_hash.data);
+				if (init_hash.$data && (!params || !params.skip_data)) {
+					init_with_data(init_hash.$data);
 				}
 				self.update(init_hash);
 			}
@@ -1613,15 +1634,18 @@
 			if (config.selector) {
 				this.selector = config.selector;
 			}
+			if(config.autoselect !== undefined){
+				this.autoselect = config.autoselect;
+			}
 		}
 		if (init_hash) {
 			if (init_hash.each) {
 				this.each_is_set = true;
 				this.each_hash = init_hash.each;
 			}
-			if (init_hash.data) {
-				for (var i = 0; i < init_hash.data.length; i++) {
-					this.each_hash.data = init_hash.data[i];
+			if (init_hash.$data) {
+				for (var i = 0; i < init_hash.$data.length; i++) {
+					this.each_hash.$data = init_hash.$data[i];
 					var hash = new window[lib_var_name].hash(this.each_hash, {host: this});
 					this.list[this._counter] = hash;
 					this.list[this._counter]._index = this._counter;
@@ -1632,6 +1656,14 @@
 				}
 			}
 			// maybe delete .data and .each?
+		}
+	}
+	
+	List.prototype.select = function(num){
+		if(this.getScope()){
+			this.getScope().children().removeClass('selected').slice(num, num+1).addClass('selected');
+			this.shared('$selectionNum').set(num);
+			this.shared('$selectionData').set(this.list[num] ? this.list[num].get() : {});// !!!!!
 		}
 	}
 
@@ -1670,11 +1702,11 @@
 		this.getScope() && this.getScope().html('');
 		if (this.wrapperTag === 'option') {// this is SELECT tag
 			this.template_source = 'No template';
-			this.shared('template').just('');
+			this.shared('$template').just('');
 		}
-		if (!this.shared.getVar('template') && inline_template) {
+		if (!this.shared.getVar('$template') && inline_template) {
 			this.template_source = 'HTML';
-			this.shared('template').just(inline_template);
+			this.shared('$template').just(inline_template);
 			this.getScope().html('');
 		}
 		switch (tagName(re)) {
@@ -1691,12 +1723,8 @@
 				break;
 		}
 		var self = this;
-		$(re).on('click', '.firera-item', function(e){
-			var number = re.children().removeClass('selected').index($(this));
-			self.shared('selectionNum').set(number);
-			self.shared('selectionData').set(self.list[number].get());
-			$(this).addClass('selected');
-			return false;
+		$(re).on('click', '.firera-item', function(){
+			self.select(re.children().index($(this)));
 		})
 		return this;
 	}
@@ -1743,6 +1771,9 @@
 			var last = this._counter - 1;
 			this.get(last).setData(arr[i]);
 		}
+		if(this.autoselect !== undefined){
+			this.select(this.autoselect);
+		}
 		return this;
 	}
 
@@ -1774,6 +1805,7 @@
 			// Hm... remove all or nothing?
 			return;
 		}
+		console.log('remove', is_int(func));
 		if (is_int(func)) {
 			if(end && is_int(end) && Number(end) > Number(func)){
 				for(var i = Number(func); i <= Number(end); i++){
@@ -1882,6 +1914,9 @@
 				}
 				this.list[i].applyTo(nested_element);
 			}
+		}
+		if(this.autoselect !== undefined){
+			this.select(this.autoselect);
 		}
 		return this;
 	}
@@ -2032,11 +2067,6 @@
 			type: getData('readMethod'),
 			getRequestHash: getFunc('readRequest')
 		});
-		//this.shared('datasource').gets.apply(this.shared('datasource'), params);
-		
-		
-	
-		
 	})
 
 	var lib_var_name = 'Firera';
