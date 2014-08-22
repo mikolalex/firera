@@ -108,21 +108,15 @@
 
 			//TaskList.each['root|visibility'] = ['selectIf', 'completed', 'what_to_show'];
 
-			var task_list = {
-				each: {
-					".complete|click": [
-						['filter', '!completed'],
-						function(item, _, coll) {
-							item("completed").set(true);
-						}
-					],
-					".remove|click": function(_, key, coll) {
-						coll.remove(key);
-					},
-					'root|toggleClass(completed)': ['is', 'completed'],
-					'root|visibility': ['selectIf', 'completed', 'what_to_show'],
-				},
-				data: [
+			var app = new Firera.hash;
+
+			app("what_to_show").is("ul.controls|selectedItem").map({
+				'All': '*',
+				'Completed': true,
+				'Active': false
+			});
+
+			app("tasks").are([
 					{
 						title: 'Fuck Putin',
 						completed: false,
@@ -136,22 +130,22 @@
 						title: 'Fuck vatniks',
 						completed: false,
 					}
-				]
-			};
-
-
-			var app = new Firera.hash;
-
-			app("what_to_show").is("ul.controls|selectedItem").map({
-				'All': '*',
-				'Completed': true,
-				'Active': false
-			});
-
-			app("tasks").are(task_list, {
+				], {
 				share: {
 					takes: 'what_to_show',
 				}
+			}).each({
+					".complete|click": [
+						['filter', '!completed'],
+						function(item, _, coll) {
+							item("completed").set(true);
+						}
+					],
+					".remove|click": function(_, key, coll) {
+						coll.remove(key);
+					},
+					'root|toggleClass(completed)': ['is', 'completed'],
+					'root|visibility': ['selectIf', 'completed', 'what_to_show'],
 			});
 			app("ul.controls|selectedItem").set("All");
 			app("task-type").is("ul.controls|selectedItem").then(toLowerCase);

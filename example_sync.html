@@ -30,13 +30,19 @@
 				width: 200px;
 				float:right;
 			} 
+			
+			.tmpl1, .tmpl2 {
+				display: none;
+			}
 		</style>
 	</head>
 	<body>
 		<div data-fr="people">
+		</div>
+		<div class="tmpl1">
 			<div class="man">
 				<div class="buttons">
-					<a href="" class="remove">Remove</a> <a href="">Edit</a>
+					<a href="" class="remove">Remove</a> <a href="" class="edit">Edit</a>
 				</div>
 				<div data-fr="name">
 
@@ -46,12 +52,32 @@
 				</div>
 			</div>
 		</div>
+		<div class="tmpl2">
+			<div class="man">
+				<div class="buttons">
+					<a href="" class="stop-editing">Finish editing</a>
+				</div>
+				<div>
+					Name: <input type="text" data-fr="name">
+				</div>
+				<div>
+					Surname: <input type="text" data-fr="surname">
+				</div>
+			</div>
+		</div>
 		<form class="add-men">
 			<input type="text" name="name" /> - name<br />
 			<input type="text" name="surname" /> - surname<br />
 			<input type="submit" value="Add!" /> 
 		</form>
 		<script>
+			var ifEqualThen = function(comp, val1, val2){
+				return function(val){
+					return val == comp ? val1 : val2;
+				}
+			}
+			var checker = ifEqualThen('editing', $(".tmpl2").html(), $(".tmpl1").html());
+			
 			var app = Firera.hash();
 			app('people').are([{
 					name: 'Evgen',
@@ -62,9 +88,12 @@
 				}, {
 					name: 'Valentyn',
 					surname: 'Kataiev',
-				}])
-				.each({
-				".remove|click": ['removesSelf']
+			}]).each({
+				".remove|click": ['removesSelf'],
+				".edit|click": ['sets', '$state', 'editing'],
+				"|dblclick": ['sets', '$state', 'editing'],
+				".stop-editing|click": ['sets', '$state', 'static'],
+				"$template": [checker, '$state']
 			})
 			app(".add-men|submit").pushTo('people');
 			app.applyTo('body');

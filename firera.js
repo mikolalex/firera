@@ -17,7 +17,7 @@
 	var reserved_cellnames = function(name){
 		return name[0] === '$';
 	}
-	var not_html_but_needs_setter = ['$datasource', 'showItem'];
+	var not_html_but_needs_setter = ['$datasource', 'showItem', '$template'];
 	
 	var existy = function(a) {
 		return (a !== undefined) && (a !== null);
@@ -84,6 +84,11 @@
 						val = [];
 					this.host.host.clear().setData(val);
 				}
+			}
+		},
+		$template: {
+			setter: function(){
+				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
 			}
 		},
 		showItem: {
@@ -615,6 +620,8 @@
 				this.DOMElement.val(this.get());
 			}
 			drivers['value'].startObserving.apply(this, [$el]);
+		} else {
+			this.updateDOMElement = Cell.prototype.updateDOMElement;
 		}
 		this.updateDOMElement();
 		return this;
@@ -934,22 +941,21 @@
 		if (custom_event_drivers[this.event]) {
 			custom_event_drivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
 		} else {
-			var $el, sel = this.getSelector();
+			var $el, sel = this.getSelector(), processor = this.process.bind(this);
+			// using event delegating!
 			if (sel === 'root' || sel === '') {
-				$el = $(this.getScope());
+				this.getScope().on(this.event, processor);
 			} else {
-				$el = $(this.getSelector(), this.getScope());
+				this.getScope().on(this.event, this.getSelector(), processor);
 			}
-			if ($el.length === 0) {
+			/*if ($el.length === 0) {
 				error('Empty selector for binding: ' + this.getSelector(), this);
-			}
-			$el.bind(this.event, this.process.bind(this))
+			}*/
 		}
 		return this;
 	}
 
 	Event.prototype.process = function(e, initial_val) {
-		console.log(e, initial_val);
 		e.preventDefault();
 		var val = initial_val || null;
 		for (var i = 0; i < this.handlers.length; i++) {
@@ -1033,7 +1039,7 @@
 		event: Event
 	}
 
-	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dbclick'];
+	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick'];
 
 
 	var get_cell_type = function(cellname) {
@@ -1076,6 +1082,7 @@
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
+			if(!selector) error('No selector provided', arguments);
 			if(selector.contains('/')){
 				var parts = selector.split('/');
 				var member = parts[0];
@@ -1379,7 +1386,7 @@
 					if(i === 'each'){
 						continue;
 					}
-					if(selector[i] instanceof Object && !(selector[i] instanceof Array)){
+					if(selector[i] instanceof Object && !(selector[i] instanceof Array) && !(selector[i] instanceof Function)){
 						self(i).are(selector[i]);
 						continue;
 					}
@@ -1404,17 +1411,24 @@
 							} else {
 								if (selector[i] instanceof Array) {
 									if (!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)) {
-										selector[i][0] = [selector[i][0]];
-									}
-									for (var j = 0; j < selector[i].length; j++) {
-										if (selector[i][j] instanceof Function) {
-											cell.then(selector[i][j]);
+										//selector[i][0] = [selector[i][0]];
+										// its some event method
+										if(!Event.prototype[selector[i][0]]){
+											error('Unknown method for event: ', selector[i]);
 										} else {
-											if (selector[i][j] instanceof Array) {
-												var func = selector[i][j][0];
-												cell[func].apply(cell, selector[i][j].slice(1));
+											Event.prototype[selector[i][0]].apply(cell, selector[i].slice(1));
+										}
+									} else {
+										for (var j = 0; j < selector[i].length; j++) {
+											if (selector[i][j] instanceof Function) {
+												cell.then(selector[i][j]);
 											} else {
-												error('wrong parameter type for cell creation!');
+												if (selector[i][j] instanceof Array) {
+													var func = selector[i][j][0];
+													cell[func].apply(cell, selector[i][j].slice(1));
+												} else {
+													error('wrong parameter type for cell creation!');
+												}
 											}
 										}
 									}
@@ -1471,10 +1485,7 @@
 			self.update = function(hash) {
 				init_with_hash(hash, self.config);
 				if (self.getScope()) {
-					self.checkForTemplateAndRender();
-					self.updateVarsBindings();
-					self.updateDOMBindings();
-					self.updateMixins();
+					self.checkForTemplate().refreshTemplate();
 				}
 			}
 
@@ -1490,6 +1501,7 @@
 					if (vars[i].unbindToDOM)
 						vars[i].unbindToDOM();
 				}
+				return self;
 			}
 
 			self.applyTo = function(selector_or_element) {
@@ -1500,11 +1512,7 @@
 				} else {// rare case, only for root objects
 					self.rootElement = $(selector_or_element);
 				}
-				self.unbindToDOM();
-				self.checkForTemplateAndRender();
-				self.updateVarsBindings();
-				self.updateDOMBindings();
-				self.updateMixins();
+				self.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
 			}
 
 			self.updateVarsBindings = function() {
@@ -1515,11 +1523,9 @@
 					for (var i in frs) {
 						if (cell = self.getVar(frs[i].name)) {
 							if (cell.bindToDOM) {
+								cell.DOMElement = false;
 								cell.bindToDOM($(frs[i].el));
-							} else {// it's probably event...
-								//console.log('No BTD method in', cell);
 							}
-
 						} else {
 							//console.log('we coudnt bind var', frs[i].name);
 						}
@@ -1540,7 +1546,7 @@
 				}
 			}
 
-			self.checkForTemplateAndRender = function() {
+			self.checkForTemplate = function() {
 				if (!self.noTemplateRenderingAllowed) {
 					var template = $.trim(self.getScope().html());
 					self.template_source = 'HTML';
@@ -1552,35 +1558,61 @@
 						} else {
 							self.template_source = 'props';
 						}
-						template = self('$template').get();
-						self.getScope().html(template);
 					}
 				}
+				return self;
+			}
+			
+			self.refreshTemplate = function(){
+				if(self.getScope()){
+					var template = self('$template').get();
+					self.getScope().html(template);
+					self.updateVarsBindings();
+					self.updateDOMBindings();
+					self.updateMixins();
+				}
+				return self;
 			}
 
 			self.getRebindableVars = function() {
 				var vars = self.getAllVars();
+				var res = {};
 				if (self.host && self.host.shared) {
 					var shared_vars = self.host.shared.getAllVars();
 					for (var j in shared_vars) {
 						if (!reserved_cellnames(j)) {
-							vars[j] = shared_vars[j];
+							res[j] = shared_vars[j];
 						}
 					}
 				}
-				return vars;
+				for(var i in vars){
+					if(i[0] !== '$'){
+						res[i]  = vars[i];
+					}
+				}
+				return res;
 			}
 
 			self.updateDOMBindings = function() {
 				var vars = self.getRebindableVars();
 				for (var i in vars) {
 					//if(i == 'root|html') continue;
+					if(vars[i] instanceof Event) continue;
 					if (vars[i].applyTo) {
 						vars[i].applyTo();
 					} else {
 						vars[i].rebind();
 					}
 				}
+			}
+			
+			self.attachEventHandlers = function(){
+				var vars = self.getRebindableVars();
+				for (var i in vars) {
+					if(!(vars[i] instanceof Event)) continue;
+					vars[i].rebind();
+				}
+				return self;
 			}
 
 			self.remove = function() {
