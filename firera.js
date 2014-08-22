@@ -11,7 +11,7 @@
 		return this.indexOf(s) !== -1;
 	}
 	String.prototype.notContains = function(s){
-		return this.indexOf(s) !== -1;
+		return this.indexOf(s) === -1;
 	}
 
 	var reserved_cellnames = function(name){
@@ -297,7 +297,7 @@
 		this.name = this.getName();
 
 		var root_element;
-		if (this.getScope() && selector.notContains("|")) {
+		if (this.getScope() && selector.notContains("|") && selector[0] !== '$') {
 			if (this.getName() === '__item') {
 				root_element = this.getScope();
 			} else {
@@ -897,9 +897,9 @@
 				submitters = $(selector + " .firera-submitter");
 			}
 			if (submitters.length === 1) {// ok, binding
-				submitters.bind('click', function() {
+				submitters.bind('click', function(e) {
 					var hash = gather_form_values(selector, scope, true);
-					callback(hash);
+					callback(e, hash);
 					return false;
 				});
 			} else {
@@ -948,11 +948,13 @@
 		return this;
 	}
 
-	Event.prototype.process = function(initial_val) {
+	Event.prototype.process = function(e, initial_val) {
+		console.log(e, initial_val);
+		e.preventDefault();
 		var val = initial_val || null;
 		for (var i = 0; i < this.handlers.length; i++) {
 			var sup = this.host.host || false;
-			val = this.handlers[i](this.host, this.host._index, sup, val);
+			val = this.handlers[i](this.host, this.host.getName(), sup, val);
 			if (val === false) {
 				break;
 			}
@@ -969,6 +971,14 @@
 		var mass = this.host(arr);
 		this.handlers.push(function() {
 			mass.remove(func);
+		})
+		return this;
+	}
+
+	Event.prototype.removesSelf = function() {
+		var hash = this.host;
+		this.handlers.push(function() {
+			hash.host.remove(hash.getName());
 		})
 		return this;
 	}
@@ -1027,8 +1037,7 @@
 
 
 	var get_cell_type = function(cellname) {
-		var type = (cellname.notContains("|") || events.notContains(cellname.split("|")[1])) ? 'cell' : 'event';
-		return type;
+		return (cellname.notContains("|") || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
 	}
 
 	var is_int = function(joe) {
@@ -1111,7 +1120,8 @@
 			return new_cell;
 		},
 		getName: function() {
-			if (this.host && this.host.getAllVars && !this._index) {
+			if(!this.host){ return 'ROOT';};
+			if (this.host && this.host.getAllVars && !(this.host instanceof List)) {
 				var parent_vars = this.host.getAllVars();
 				for (var i = 0; i < parent_vars.length; i++) {
 					if (parent_vars[i] === this) {
@@ -1128,15 +1138,10 @@
 				}
 				return '?!?';
 			} else {
-				if (this.host instanceof List) {
-					for (var i = 0; i < this.host.list.length; i++) {
-						if (this.host.list[i] == this)
-							return i;
-					}
+				for (var i = 0; i < this.host.list.length; i++) {
+					if (this.host.list[i] == this)
+						return i;
 				}
-				if (this._index !== undefined)
-					return this._index;
-				return '><';
 			}
 		},
 		getRoute: function() {
@@ -1641,7 +1646,10 @@
 			if(List.prototype[name]){
 				error('List method already exists:', name); return;
 			}
-			List.prototype[name] = func;
+			List.prototype[name] = function(){
+				func.apply(this, arguments);
+				return this;
+			}
 		}
 	}
 
@@ -1659,7 +1667,6 @@
 		this.map_funcs = [];
 		this.reduce_funcs = [];
 		this.count_funcs = [];
-		this._counter = 0;
 		this.rootElement = false;
 		this.shared_config = {host: this, skip_data: true};
 		this.how_to_share_config = {takes: [], gives: []};
@@ -1694,12 +1701,7 @@
 				for (var i = 0; i < init_hash.$data.length; i++) {
 					this.each_hash.$data = init_hash.$data[i];
 					var hash = new window[lib_var_name].hash(this.each_hash, {host: this});
-					this.list[this._counter] = hash;
-					this.list[this._counter]._index = this._counter;
-					this.list[this._counter].getName = function() {
-						return this._index;
-					};
-					this._counter++;
+					var counter = this.list.push(hash) - 1;
 				}
 			}
 			// maybe delete .data and .each?
@@ -1782,7 +1784,6 @@
 
 	List.prototype.push = function(obj, nochange) {
 		if (obj instanceof Array) {
-			var c = this._counter;
 			for (var i in obj) {
 				this.push(obj[i], true)
 			}
@@ -1798,16 +1799,14 @@
 		if (obj.__item) {
 			confa.isSingleVar = true;
 		}
-		this.list[this._counter] = window[lib_var_name].hash(obj, confa);
-		this.list[this._counter]._index = this._counter;
+		var counter = this.list.push(window[lib_var_name].hash(obj, confa)) - 1;
 		if (this.each_is_set) {
-			this.list[this._counter].update(this.each_hash);
+			this.list[counter].update(this.each_hash);
 		}
 		if (!nochange) {
-			this.rebind('push', this._counter);
-			this.changeItem('create', this._counter);
+			this.rebind('push', counter);
+			this.changeItem('create', counter);
 		}
-		this._counter++;
 		return this;
 	}
 
@@ -1815,7 +1814,7 @@
 		this.clear();
 		for(var i in arr){
 			this.addOne();
-			var last = this._counter - 1;
+			var last = this.list.length - 1;
 			this.get(last).setData(arr[i]);
 		}
 		if(this.autoselect !== undefined){
@@ -1826,7 +1825,6 @@
 
 	List.prototype.clear = function() {
 		this.list = [];
-		this._counter = 0;
 		this.getScope() && this.getScope().html('');
 		return this;
 	}
@@ -1852,7 +1850,6 @@
 			// Hm... remove all or nothing?
 			return;
 		}
-		console.log('remove', is_int(func));
 		if (is_int(func)) {
 			if(end && is_int(end) && Number(end) > Number(func)){
 				for(var i = Number(func); i <= Number(end); i++){
@@ -1860,7 +1857,15 @@
 				}
 			}
 			this.changeItem('delete', func);
-			this.list[func] && this.list[func].remove() && delete this.list[func];
+			this.list[func] && this.list[func].remove() && this.list.splice(func, 1);
+			return;
+		}
+		if(func instanceof Object){// it's hash!
+			for(var i in this.list){
+				if(this.list[i] === func){
+					this.list[i].remove() && this.list.splice(i, 1);
+				}
+			}
 			return;
 		}
 		var f = get_map_func(func);
@@ -2034,7 +2039,7 @@
 			create: 'onCreate',// (default), 'manual', 60(interval in seconds)
 			createURL: '/' + name,// default: "/hashName"
 			createRequest: getRequest,
-			createMethod: 'PUT', // HTTP method, default is GET
+			createMethod: 'PUT', // HTTP method, default is PUT
 			
 			read: 'once',// 'once'(default), 'manual', 60(interval in seconds)
 			readURL: '/' + name,// default: "/hashName"

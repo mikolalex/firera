@@ -1,58 +1,83 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title></title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width">
-	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
-	<script src="../jquery.js">
-	</script>
-        <script src="firera.js"></script>
-	<style>
-	    body {
-		font-size: 16px;
-		font-family: sans-serif;
-	    }
-	    
-	    .selected {
-		background-color: whitesmoke;
-		border-radius: 10px;
-	    }
-	</style>
-    </head>
-    <body>
-	<div data-fr="people">
-		
-	</div>
-	    <form class="add-men">
-		    <input type="text" name="name" /> - name<br />
-		    <input type="text" name="surname" /> - surname<br />
-		    <input type="submit" value="Add!" /> 
-	    </form>
-	<script>
-	    var app = Firera.hash();
-	    app('people').are([{
-		    name: 'Evgen',
-		    surname: 'Petrov',
-	    }, {
-		    name: 'Illya',
-		    surname: 'Ilf',
-	    }, {
-		    name: 'Valentyn',
-		    surname: 'Kataiev',
-	    }, ]);
-	    app(".add-men|submit").pushTo('people');
-	    app.applyTo('body');
+	<head>
+		<title></title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width">
+		<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+		<script src="../jquery.js">
+		</script>
+		<script src="firera.js"></script>
+		<style>
+			body {
+				font-size: 16px;
+				font-family: sans-serif;
+			}
 
-	    app('people').sync({
-		    fields: ['name'],
-		    contextvars: ['name'],
-		    createMethod: 'GET',
-		    createRequest: function(data){
-			    data.action = 'create';
-			    return data;
-		    }
-	    });
-	</script>
-    </body>
+			.selected {
+				background-color: whitesmoke;
+				border-radius: 10px;
+			}
+
+			.man {
+				width: 400px;
+				padding: 20px;
+				margin: 20px;
+				background-color: whitesmoke;
+			}
+
+			.buttons {
+				width: 200px;
+				float:right;
+			} 
+		</style>
+	</head>
+	<body>
+		<div data-fr="people">
+			<div class="man">
+				<div class="buttons">
+					<a href="" class="remove">Remove</a> <a href="">Edit</a>
+				</div>
+				<div data-fr="name">
+
+				</div>
+				<div data-fr="surname">
+
+				</div>
+			</div>
+		</div>
+		<form class="add-men">
+			<input type="text" name="name" /> - name<br />
+			<input type="text" name="surname" /> - surname<br />
+			<input type="submit" value="Add!" /> 
+		</form>
+		<script>
+			var app = Firera.hash();
+			app('people').are([{
+					name: 'Evgen',
+					surname: 'Petrov',
+				}, {
+					name: 'Illya',
+					surname: 'Ilf',
+				}, {
+					name: 'Valentyn',
+					surname: 'Kataiev',
+				}])
+				.each({
+				".remove|click": ['removesSelf']
+			})
+			app(".add-men|submit").pushTo('people');
+			app.applyTo('body');
+
+			app('people').sync({
+				fields: ['name'],
+				contextvars: ['name'],
+				createMethod: 'GET',
+				createRequest: function(data) {
+					data.action = 'create';
+					return data;
+				}
+			});
+		</script>
+	</body>
 </html>
