@@ -73,12 +73,13 @@
 		<script>
 			var ifEqualThen = function(comp, val1, val2){
 				return function(val){
-					return val == comp ? val1 : val2;
+					return val === comp ? val1 : val2;
 				}
 			}
 			var checker = ifEqualThen('editing', $(".tmpl2").html(), $(".tmpl1").html());
 			
 			var app = Firera.hash();
+			app('city').just('Kyiv');
 			app('people').are([{
 					name: 'Evgen',
 					surname: 'Petrov',
@@ -99,8 +100,10 @@
 			app.applyTo('body');
 
 			app('people').sync({
-				fields: ['name'],
-				contextvars: ['name'],
+				fields: ['name', 'surname'],
+				idFields: false,
+				read: false,
+				contextvars: {city: '../city'},
 				createMethod: 'GET',
 				createRequest: function(data) {
 					data.action = 'create';

@@ -2048,6 +2048,16 @@
 		}
 	}
 	
+	var filterFields = function(data, fields){
+		var res = {};
+		for(var i in data){
+			if(!fields || fields.indexOf(i) !== -1){
+				res[i] = data[i];
+			}
+		}
+		return res;
+	}
+	
 	Firera.addListMethod('sync', function(params){
 		var list = this;
 		var name = list.getName();
@@ -2066,7 +2076,7 @@
 			
 			contextvars: [],
 			fields: true,
-			idColumns: ['id'],
+			idFields: ['id'],
 			
 			create: 'onCreate',// (default), 'manual', 60(interval in seconds)
 			createURL: '/' + name,// default: "/hashName"
@@ -2080,10 +2090,16 @@
 			
 			update: 'onChange',// 'manual', 60(interval in seconds)
 			updateURL: '/' + name,
-			updateRequest: function(changeset){
+			getUpdateRequestData: function(changeset, fields, id_fields){
+				if(!id_fields){
+					for(var i in fields){
+						changeset['where_' + i] = fields[i];
+					}
+				}
 				return changeset;
 			},
 			updateMethod: 'POST',
+			updateDelay: 0,
 			
 			delete: 'once',//(default),// 'manual', 60(interval in seconds)
 			deleteURL: '/' + name,
@@ -2095,7 +2111,7 @@
 		
 		var getData = function(key){
 			if(needed_params[key] instanceof Function){
-				return needed_params[key]();
+				return needed_params[key].apply(null, Array.prototype.slice.call(arguments, 1));
 			} else {
 				return needed_params[key];
 			}
@@ -2110,18 +2126,11 @@
 		// forming params done! Now, attaching handlers...
 		
 		this.onChangeItem('create', function(_, itemnum){
-			var data = list.list[itemnum].get();
 			var fields = getData('fields');
-			if(fields instanceof Array){// filtering, removing not needed fields
-				for(var i in data){
-					if(fields.indexOf(i) === -1){
-						delete data[i];
-					}
-				}
-			}
+			var data = filterFields(list.list[itemnum].get(), fields);
 			data = getFunc('createRequest')(data);
 			$.ajax({
-				url: getData('createURL'),
+				url: getData('createURL', name, data),
 				type: getData('createMethod'),
 				data: data,
 				success: function(result) {
@@ -2129,11 +2138,27 @@
 				}
 			});
 		})
+		this.onChangeItem('update', function(_, itemnum, field, value){
+			var fields = getData('fields');
+			var all_data = filterFields(list.list[itemnum].get(), fields);
+			
+			var req = {};
+			req[field] = value;
+			var data = getData('getUpdateRequestData', req, all_data, getData('idFields'));
+			$.ajax({
+				url: getData('updateURL'),
+				type: getData('updateMethod'),
+				data: data,
+				success: function(result) {
+				    // Do something with the result
+				}
+			});
+		})
 		this.onChangeItem('delete', function(_, itemnum){
-			var idColumns = getData('idColumns');
+			var idFields = getData('idFields');
 			var data = {};
-			for(var i in idColumns){
-				data[idColumns[i]] = list.list[itemnum](idColumns[i]).get();
+			for(var i in idFields){
+				data[idFields[i]] = list.list[itemnum](idFields[i]).get();
 			}
 			data = getFunc('deleteRequest')(data);
 			$.ajax({
@@ -2145,12 +2170,42 @@
 				}
 			});
 		})
-		var params = getData('contextvars');
-		params.unshift({
-			url: getData('readURL'),
-			type: getData('readMethod'),
-			getRequestHash: getFunc('readRequest')
-		});
+		/// READ!
+		var contextvars = getData('contextvars');
+		switch(getData('read')){
+			case 'once':
+				var dt = {};
+				for(var i in contextvars){
+					if(isInt(i)){// its array
+						dt[contextvars[i]] = list.shared(contextvars[i]).get();
+					} else {
+						dt[i] = list.shared(contextvars[i]).get();
+					}
+				}
+				var req_config = {
+					url: getData('readURL'),
+					type: getData('readMethod'),
+					data: getData('readRequest', dt),
+					success: function(result) {
+					    if(result){
+						    list.setData(result);
+					    }
+					}
+				};
+				$.ajax(req_config);
+			break;
+			case false:
+				// do nothing!
+			break;
+			case 'onContextChange':
+				contextvars.unshift({
+					url: getData('readURL'),
+					type: getData('readMethod'),
+					getRequestHash: getFunc('readRequest')
+				});
+				list.shared('$datasource').gets.apply(list.shared('$datasource'), contextvars);
+			break;
+		}
 	})
 
 	var lib_var_name = 'Firera';
