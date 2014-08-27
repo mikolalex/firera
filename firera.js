@@ -28,6 +28,9 @@
 	}
 
 	var tagName = function($el) {
+		if($el instanceof Node){
+			return $el.tagName;
+		}
 		if ($el && $el.get().length && $el.get()[0].tagName)
 			return $el.get()[0].tagName.toLowerCase()
 		else
@@ -72,6 +75,13 @@
 			res.push('<div data-fr="' + vars[i] + '"></div>');
 		}
 		return res.join('');
+	}
+
+	var attr_getter = function(obj){
+		return function(key){
+			//console.log('got', key, 'return', obj[key], 'form', obj);
+			return obj[key] ? obj[key] : '';
+		}
 	}
 
 	var drivers = {
@@ -452,7 +462,7 @@
 
 	Cell.prototype.set = function(val, setanyway) {
 		if(Object.keys(this.observables).length && !setanyway){
-			error('Cant set dependent value manually: ', this.getName(), this);
+			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
 		}
 		var old_val = this.val;
@@ -485,7 +495,7 @@
 	}
 
 	Cell.prototype.just = function(val) {
-		this.val = val;// just a value
+		this.set(val);// just a value
 		return this;
 	}
 
@@ -610,21 +620,21 @@
 		return this.is.apply(this, args);
 	}
 	Cell.prototype.bindToDOM = function($el) {
+		var self = this;
+		var tags = $el.get();
+		for(var i in tags){
+			if(is_valuable(tagName(tags[i]))){
+				$(tags[i]).change(function(){
+					self.set($(this).val());
+				})
+			}
+		}
 		if (this.DOMElement instanceof $) {
 			this.DOMElement = this.DOMElement.add($el)
 		} else {
 			this.DOMElement = $el;
 		}
-		if (is_valuable(tagName($el))) {
-			this.updateDOMElement = function() {
-				this.DOMElement.val(this.get());
-			}
-			drivers['value'].startObserving.apply(this, [$el]);
-		} else {
-			this.updateDOMElement = Cell.prototype.updateDOMElement;
-		}
-		this.updateDOMElement();
-		return this;
+		return this.updateDOMElement();
 	}
 
 	Cell.prototype.unbindToDOM = function() {
@@ -633,7 +643,15 @@
 	}
 
 	Cell.prototype.updateDOMElement = function() {
-		this.DOMElement.html(this.get());
+		var val = this.get();
+		this.DOMElement.each(function(){
+			if (is_valuable(tagName($(this)))){
+				$(this).val(val);
+			} else {
+				$(this).html(val);
+			}
+		});
+		return this;
 	}
 
 	Cell.prototype.template = function() {
@@ -795,7 +813,6 @@
 		}
 
 		if (formula instanceof Array) {// creating new Firera hash
-			//console.log('array is ', formula);
 			this.self = Firera.list(formula, {host: this.host});
 			return this;
 		}
@@ -894,6 +911,9 @@
 			}
 			res[$(this).attr('name')] = val;
 		})
+		$(selector + " textarea", scope).each(function() {
+			res[$(this).attr('name')] = $(this).val();
+		})
 		return res;
 	}
 
@@ -901,12 +921,12 @@
 		submit: function(selector, scope, callback) {
 			var submitters = $(selector + " input[type=submit]", scope);
 			if (submitters.length < 1) {
-				submitters = $(selector + " .firera-submitter");
+				submitters = $(selector + " .firera-submitter", scope);
 			}
 			if (submitters.length === 1) {// ok, binding
 				submitters.bind('click', function(e) {
 					var hash = gather_form_values(selector, scope, true);
-					callback(e, hash);
+					callback(e, hash, scope);
 					return false;
 				});
 			} else {
@@ -941,7 +961,11 @@
 		if (custom_event_drivers[this.event]) {
 			custom_event_drivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
 		} else {
-			var $el, sel = this.getSelector(), processor = this.process.bind(this);
+			var prc = this.process.bind(this);
+			var $el, sel = this.getSelector(), processor = function(e){
+				var $el = $(this);
+				prc(e, null, $el);
+			}
 			// using event delegating!
 			if (sel === 'root' || sel === '') {
 				this.getScope().on(this.event, processor);
@@ -955,12 +979,12 @@
 		return this;
 	}
 
-	Event.prototype.process = function(e, initial_val) {
+	Event.prototype.process = function(e, initial_val, $el) {
 		e.preventDefault();
 		var val = initial_val || null;
 		for (var i = 0; i < this.handlers.length; i++) {
 			var sup = this.host.host || false;
-			val = this.handlers[i](this.host, this.host.getName(), sup, val);
+			val = this.handlers[i](this.host, this.host.getName(), sup, val, $el);
 			if (val === false) {
 				break;
 			}
@@ -1013,6 +1037,13 @@
 	Event.prototype.pushTo = function(arr) {
 		this.handlers.push(function(self, _, _, val) {
 			self(arr).push(val);
+		});
+		return this;
+	}
+
+	Event.prototype.clearInputs = function(arr) {
+		this.handlers.push(function(self, _, _, _, $el) {
+			$el.find('input[type!="submit"], textarea').val('');
 		});
 		return this;
 	}
@@ -1119,8 +1150,13 @@
 			}
 			
 			
-			if (!dont_check_if_already_exists && this.getVar(selector))
+			if (!dont_check_if_already_exists && this.getVar(selector)){
 				return this.getVar(selector);
+			} else {
+				var vr = this.getOwnVar(selector);
+				if(vr) return vr;
+				//console.log('we have own', selector);
+			}
 			var type = get_cell_type(selector);
 			var new_cell = new types[type](selector, this, params);
 			this.setVar(selector, new_cell);
@@ -1294,6 +1330,7 @@
 					if(i === '$template'){
 						res.template = vars[i].get();
 						res.template_source = hash.template_source;
+						res.template_self = vars[i];
 						continue;
 					}
 					if(!vars[i].free){
@@ -1382,6 +1419,7 @@
 						continue;
 					}
 					var cell = self.create_cell_or_event(i, undefined, true);
+					
 					var cell_type = cell.getType();
 					if(i === 'each'){
 						continue;
@@ -1551,7 +1589,7 @@
 					var template = $.trim(self.getScope().html());
 					self.template_source = 'HTML';
 					if (!template) {
-						if (!self.getVar('$template') || !self.getVar('$template').get().length) {
+						if (!self.getVar('$template')) {
 							template = generate_default_template(self.getVarNames());
 							self.template_source = 'generated';
 							self("$template").set(template);
@@ -1778,16 +1816,30 @@
 	List.prototype.setScope = function(re) {
 		this.rootElement = re;
 		// update template, if not provided previously
-		//console.log('scope is', this.getScope());
 		var inline_template = this.getScope() ? $.trim(this.getScope().html()) : false;
+		if(inline_template){// check for different templates alongside
+			var states = {}, has_states = false;
+			this.getScope().children().each(function(){
+				if($(this).attr('data-fr-state')){
+					has_states = true;
+					states[$(this).attr('data-fr-state')] = $(this).html();
+				}
+			})
+		}
 		this.getScope() && this.getScope().html('');
 		if (this.wrapperTag === 'option') {// this is SELECT tag
 			this.template_source = 'No template';
-			this.shared('$template').just('');
+			this.each({$template: ['just', '']});
 		}
 		if (!this.shared.getVar('$template') && inline_template) {
 			this.template_source = 'HTML';
-			this.shared('$template').just(inline_template);
+			if(has_states){
+				//this.shared('$template').is(attr_getter(states), '$state');
+				this.each({$template: [attr_getter(states), '$state']});
+			} else {
+				//this.shared('$template').just(inline_template);
+				this.each({$template: ['just', inline_template]});
+			}
 			this.getScope().html('');
 		}
 		switch (tagName(re)) {
@@ -1924,7 +1976,6 @@
 	}
 
 	List.prototype.get = function(num) {
-		//console.log('we are asked', num, 'list is', this.list);
 		if(num || num === 0){
 			return this.list[num];
 		}
@@ -2050,6 +2101,7 @@
 	
 	var filterFields = function(data, fields){
 		var res = {};
+		if(fields === true || fields === '*') fields = false;
 		for(var i in data){
 			if(!fields || fields.indexOf(i) !== -1){
 				res[i] = data[i];
@@ -2126,6 +2178,7 @@
 		// forming params done! Now, attaching handlers...
 		
 		this.onChangeItem('create', function(_, itemnum){
+			if(list.dontfirechange) return;
 			var fields = getData('fields');
 			var data = filterFields(list.list[itemnum].get(), fields);
 			data = getFunc('createRequest')(data);
@@ -2139,6 +2192,7 @@
 			});
 		})
 		this.onChangeItem('update', function(_, itemnum, field, value){
+			if(list.dontfirechange) return;
 			var fields = getData('fields');
 			var all_data = filterFields(list.list[itemnum].get(), fields);
 			
@@ -2149,6 +2203,7 @@
 				url: getData('updateURL'),
 				type: getData('updateMethod'),
 				data: data,
+				dataType: 'json',// !!!
 				success: function(result) {
 				    // Do something with the result
 				}
@@ -2183,15 +2238,19 @@
 					}
 				}
 				var req_config = {
-					url: getData('readURL'),
+					url: getData('readURL', name),
 					type: getData('readMethod'),
 					data: getData('readRequest', dt),
+					dataType: 'json',// !!!
 					success: function(result) {
 					    if(result){
-						    list.setData(result);
+						    list.dontfirechange = true;
+					    	    list.setData(result);
+						    list.dontfirechange = false;
 					    }
 					}
 				};
+				//console.log('1', req_config); break;
 				$.ajax(req_config);
 			break;
 			case false:
@@ -2199,7 +2258,7 @@
 			break;
 			case 'onContextChange':
 				contextvars.unshift({
-					url: getData('readURL'),
+					url: getData('readURL', name),
 					type: getData('readMethod'),
 					getRequestHash: getFunc('readRequest')
 				});
@@ -2207,6 +2266,23 @@
 			break;
 		}
 	})
+	
+	Firera.addListMethod('simpleSync', function(params){
+		var default_params = {
+			readURL: function(name){
+				return '/get_' + name + '.php';
+			},
+			createURL: function(name){
+				return '/add_' + name + '.php';
+			},
+			createMethod: 'POST',
+			
+		}
+		for(var i in params){
+			default_params[i] = params[i];
+		}
+		return this.sync.call(this, default_params);
+	});
 
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
