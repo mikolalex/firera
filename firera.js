@@ -851,7 +851,7 @@
 		for (var i = 0; i < this.changers.length; i++) {
 			this.changers[i].call(this, prev_val, new_val);
 		}
-		this.host.change(this.getName(), new_val);
+		this.host.change(this.getName(), prev_val, new_val);
 	}
 	
 	Cell.prototype.onChange = function(func) {
@@ -1021,6 +1021,14 @@
 		return this;
 	}
 
+	Event.prototype.runs = function(methodname) {
+		var args = Array.prototype.slice.call(arguments, 1);
+		this.handlers.push(function() {
+			this[methodname].apply(this, args);
+		}.bind(this));
+		return this;
+	}
+
 	Event.prototype.toggles = function(cell, val) {
 		var cell2 = this.host(cell);
 		this.handlers.push(function() {
@@ -1064,7 +1072,7 @@
 			error(func + 'not implemented yet');
 		}
 	}
-
+	
 	var types = {
 		cell: Cell,
 		event: Event
@@ -1275,21 +1283,21 @@
 				}
 			}
 		},
-		change: function(cellname, new_val) {
+		change: function(cellname, prev_val, new_val) {
 			if(this.changers[cellname]){
 				for(var j in this.changers[cellname]){
-					this.changers[cellname][j](cellname, new_val);
+					this.changers[cellname][j](cellname, prev_val, new_val);
 				}
 			}
 			if(reserved_cellnames(cellname)) return;
 			if(this.changers['_all']){
 				for(var j in this.changers['_all']){
-					this.changers['_all'][j](cellname, new_val);
+					this.changers['_all'][j](cellname, prev_val, new_val);
 				}
 			}
 			if(this.host){
 				if(this.host instanceof List){
-					this.host.changeItem('update', this.getName(), cellname, new_val);
+					this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
 				}
 			}
 		},
@@ -1666,6 +1674,10 @@
 
 			self.get = function() {
 				return collect_values(self.getAllVars());
+			}
+			
+			self.isShared = function(){
+				return this.host && this.host.shared === this;
 			}
 
 			if (init_hash instanceof Function) {
@@ -2079,9 +2091,9 @@
 		// Do nothing!
 	}
 	
-	List.prototype.changeItem = function(changetype, itemnum, cellname, new_val) {
+	List.prototype.changeItem = function(changetype, itemnum, cellname, prev_val, new_val) {
 		for(var i in this.changers[changetype]){
-			this.changers[changetype][i](changetype, itemnum, cellname, new_val);
+			this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
 		}
 	}
 	List.prototype.onChangeItem = function(changetype, func){
@@ -2108,6 +2120,26 @@
 			}
 		}
 		return res;
+	}
+	
+	Firera.addEventAction = function(name, func){
+		if(Event.prototype[name]) {
+			error('Cant add event action', name, ', already taken!');
+			return;
+		}
+		Event.prototype[name] = function(){
+			this.handlers.push(func);
+		}
+	}
+	
+	Firera.addEventPreparedAction = function(name, func){
+		if(Event.prototype[name]) {
+			error('Cant add event action', name, ', already taken!');
+			return;
+		}
+		Event.prototype[name] = function(){
+			this.handlers.push(func(arguments));
+		}
 	}
 	
 	Firera.addListMethod('sync', function(params){
@@ -2158,6 +2190,14 @@
 			deleteRequest: function(data){
 				return data;
 			},
+			getDeleteRequestData: function(changeset, fields, id_fields){
+				if(!id_fields){
+					for(var i in fields){
+						changeset['where_' + i] = fields[i];
+					}
+				}
+				return changeset;
+			},
 			deleteMethod: 'DELETE'// HTTP method, default is DELETE
 		};
 		
@@ -2177,6 +2217,7 @@
 		
 		// forming params done! Now, attaching handlers...
 		
+		
 		this.onChangeItem('create', function(_, itemnum){
 			if(list.dontfirechange) return;
 			var fields = getData('fields');
@@ -2191,33 +2232,89 @@
 				}
 			});
 		})
-		this.onChangeItem('update', function(_, itemnum, field, value){
-			if(list.dontfirechange) return;
-			var fields = getData('fields');
-			var all_data = filterFields(list.list[itemnum].get(), fields);
-			
-			var req = {};
-			req[field] = value;
-			var data = getData('getUpdateRequestData', req, all_data, getData('idFields'));
-			$.ajax({
-				url: getData('updateURL'),
-				type: getData('updateMethod'),
-				data: data,
-				dataType: 'json',// !!!
-				success: function(result) {
-				    // Do something with the result
+		
+		var changer;
+		switch(getData('update')){
+			case 'onChange':
+				changer = function(_, itemnum, field, old_val, new_val){
+					if(list.dontfirechange) return;
+					var where_fields = filterFields(filterFields(list.list[itemnum].get(), getData('fields')), getData('idFields'));
+					var req = {};
+					req[field] = new_val;
+					var data = getData('getUpdateRequestData', req, where_fields);
+					$.ajax({
+						url: getData('updateURL'),
+						type: getData('updateMethod'),
+						data: data,
+						dataType: 'json',// !!!
+						success: function(result) {
+						    // Do something with the result
+						}
+					});
 				}
-			});
-		})
-		this.onChangeItem('delete', function(_, itemnum){
-			var idFields = getData('idFields');
-			var data = {};
-			for(var i in idFields){
-				data[idFields[i]] = list.list[itemnum](idFields[i]).get();
-			}
+			break;
+			case 'manual':
+				var change_flags_hash = {};
+				var change_values_hash = {};
+				var fields = getData('fields');
+				changer = function(_, itemnum, fieldname, old_val, new_val){
+					if(list.dontfirechange) return;
+					if(!(fields instanceof Array) || fields.indexOf(fieldname) !== -1){// we are changing, remember old values
+						change_flags_hash[itemnum] || (change_flags_hash[itemnum] = {});
+						change_flags_hash[itemnum][fieldname] || (change_flags_hash[itemnum][fieldname] = false);
+						if(change_flags_hash[itemnum][fieldname] === false){
+							change_values_hash[itemnum] || (change_values_hash[itemnum] = {});
+							change_values_hash[itemnum][fieldname] = old_val;
+							change_flags_hash[itemnum][fieldname] = true;
+						}
+					}
+				}
+				list._sync = {
+					update: function(number){
+						var h = list.list[number], c = change_values_hash[number];
+						var where_fields = filterFields(h.get(), getData('idFields'));
+						var data = {};
+						for(var i in c){
+							data[i] = h(i).get();
+						}
+						data = getData('getUpdateRequestData', data, where_fields);
+						$.ajax({
+							url: getData('updateURL', name),
+							type: getData('updateMethod'),
+							data: data,
+							dataType: 'json',// !!!
+							success: function() {
+							}
+						});
+						for(var i in c){
+							change_flags_hash[number][i] = false;
+						}
+					},
+					restore: function(number){
+						var h = list.list[number], c = change_values_hash[number];
+						for(var i in c){
+							h(i).set(c[i]);
+							change_flags_hash[number][i] = false;
+						}
+					},
+				}
+				Firera.addEventAction('update', function(_, number, list){
+					list._sync.update(number);
+				})
+				Firera.addEventAction('restore', function(_, number, list){
+					list._sync.restore(number);
+				})
+			break;
+		}
+	
+		this.onChangeItem('update', changer);
+		
+		this.onChangeItem('delete', function(_, itemnum){			
+			var fields = getData('fields');
+			var data = filterFields(filterFields(list.list[itemnum].get(), fields), getData('idFields'));
 			data = getFunc('deleteRequest')(data);
 			$.ajax({
-				url: getData('deleteURL'),
+				url: getData('deleteURL', name),
 				type: getData('deleteMethod'),
 				data: data,
 				success: function(result) {
@@ -2250,7 +2347,6 @@
 					    }
 					}
 				};
-				//console.log('1', req_config); break;
 				$.ajax(req_config);
 			break;
 			case false:
@@ -2267,16 +2363,22 @@
 		}
 	})
 	
-	Firera.addListMethod('simpleSync', function(params){
+	Firera.addListMethod('simplePHPSync', function(params){
 		var default_params = {
 			readURL: function(name){
 				return '/get_' + name + '.php';
 			},
+			updateURL: function(name){
+				return '/edit_' + name + '.php';
+			},
 			createURL: function(name){
 				return '/add_' + name + '.php';
 			},
+			deleteURL: function(name){
+				return '/remove_' + name + '.php';
+			},
+			deleteMethod: 'GET',
 			createMethod: 'POST',
-			
 		}
 		for(var i in params){
 			default_params[i] = params[i];
