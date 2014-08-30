@@ -70,6 +70,9 @@
 			<input type="text" name="surname" /> - surname<br />
 			<input type="submit" value="Add!" /> 
 		</form>
+		<div data-fr="totalnum">
+			
+		</div>
 		<script>
 			var ifEqualThen = function(comp, val1, val2){
 				return function(val){
@@ -110,6 +113,7 @@
 					return data;
 				}
 			});
+			app('totalnum').is('people/$length');
 		</script>
 	</body>
 </html>

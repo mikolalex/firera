@@ -17,7 +17,6 @@
 	var reserved_cellnames = function(name){
 		return name[0] === '$';
 	}
-	var not_html_but_needs_setter = ['$datasource', 'showItem', '$template'];
 	
 	var existy = function(a) {
 		return (a !== undefined) && (a !== null);
@@ -66,7 +65,7 @@
 	}
 
 	var generate_default_template = function(vars) {
-		if (vars.length === 1 && vars[0] === '__item'){
+		if (vars.length === 1 && vars[0] === '__val'){
 			//return '';
 		}
 		var res = [];
@@ -101,7 +100,7 @@
 				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
 			}
 		},
-		showItem: {
+		$shownItems: {
 			setter: function(val) {
 				if (this.host && this.host.host) {// should be a list
 					var scope = this.host.host.getScope();
@@ -119,6 +118,23 @@
 						items.hide().slice(start, end).show();
 					}
 				}
+			}
+		},
+		$length: {
+			def: 0,
+			startObserving: function(val) {
+				var self = this;
+				if(!this.host.isShared()){
+					error('cound not count length of non-list!'); return;
+				}
+				var list = this.host.host;
+				list.onChangeItem('delete', function(){
+					self.set(self.get() - 1);
+				})
+				list.onChangeItem('create', function(){
+					self.set(self.get() + 1);
+				})
+				this.set(list.list.length);
 			}
 		},
 		visibility: {
@@ -247,6 +263,7 @@
 	}
 
 	var error = function() {
+		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
 		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
 	}
 
@@ -313,7 +330,7 @@
 
 		var root_element;
 		if (this.getScope() && selector.notContains("|") && selector[0] !== '$') {
-			if (this.getName() === '__item') {
+			if (this.getName() === '__val') {
 				root_element = this.getScope();
 			} else {
 				root_element = $('[data-fr=' + this.getName() + ']', this.getScope());
@@ -366,11 +383,16 @@
 			}
 		} else { // this is just custom abstract varname
 			params && params.dumb && (this.dumb = true);
-			if(not_html_but_needs_setter.indexOf(this.getName()) !== -1){
+			if(drivers[this.getName()]){
 				this.type = this.getName();
-				this.rebind = function() {
-					this.driver.setter.apply(this, [this.val].concat(this.params));
-					return this;
+				if(drivers[this.getName()].setter){
+					this.rebind = function() {
+						this.driver.setter.apply(this, [this.val].concat(this.params));
+						return this;
+					}
+				}
+				if(drivers[this.getName()].startObserving){
+					drivers[this.type].startObserving.apply(this, [this.getElement()].concat(this.params));
 				}
 			} else {
 				this.type = 'cell';
@@ -770,9 +792,8 @@
 			&& this.driver.setter 
 			&& (
 				this.getScope() 
-				|| (
-					not_html_but_needs_setter.indexOf(this.getName()) !== -1
-				)
+				|| 
+				this.getName()[0] === '$'
 			)
 		) {
 			this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
@@ -864,7 +885,7 @@
 			if(
 				reserved_cellnames(i)
 				|| 
-				(not_html_but_needs_setter.indexOf(i) !== -1)
+				(i[0] === '$')
 				|| 
 				(i.contains("|"))
 			) continue;
@@ -1143,13 +1164,17 @@
 						}
 					} else {
 						if(this instanceof List){
-							host = this.shared.getVar(selector);
+							host = this.shared.getVar(member);
 							//error('Could not access shared member as ', selector); return;
 						} else {
-							host = this.getVar(selector);
+							host = this.getVar(member);
+						}
+						if(host instanceof List){
+							host = host.shared;
 						}
 						if(!host) {	
-							error('Cound not access cell as', selector); return;
+							error('Could not access cell as', selector, this.getRoute(), member); 
+							return;
 						}
 					}
 				}
@@ -1561,7 +1586,7 @@
 
 			self.updateVarsBindings = function() {
 				if (self.isSingleVar) {
-					self.getVar("__item").bindToDOM(this.getScope());
+					self.getVar("__val").bindToDOM(this.getScope());
 				} else {
 					var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
 					for (var i in frs) {
@@ -1886,11 +1911,10 @@
 			return;
 		}
 		if (!(obj instanceof Object)) {
-			error('Cant create new hash in list with' + obj + '!!!');
-			return;
+			obj = {__val: obj};
 		}
 		var confa = {host: this};
-		if (obj.__item) {
+		if (obj.__val) {
 			confa.isSingleVar = true;
 		}
 		var counter = this.list.push(window[lib_var_name].hash(obj, confa)) - 1;

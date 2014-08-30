@@ -13,9 +13,13 @@ describe('Simple values', function() {
 		assert.equal(a("loo").get(), 'ololo');
 	})
 
-	it('Testing arrays', function() {
+	it('Testing arrays(length, )', function() {
 		var app = new Firera.hash;
 		app('items').are([1, 2, 3]);
+		app('itemnum').is('items/$length');
+		assert.equal(app('itemnum').get(), '3');
+		app('items').push(4);
+		assert.equal(app('itemnum').get(), '4');
 	})
 
 	it('Testing join', function() {
@@ -25,7 +29,7 @@ describe('Simple values', function() {
 			}
 		};
 		var data = {
-			data: [
+			$data: [
 				{
 					name: 'Ivan',
 					surname: 'Petrenko',
@@ -36,6 +40,7 @@ describe('Simple values', function() {
 				},
 			]
 		};		
+		console.log('oi', Firera.join(app, data));
 		var obj = new Firera.list(Firera.join(app, data));
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
@@ -77,7 +82,7 @@ describe('Simple values', function() {
 		$(".form1 input[type=text]").val('ololo').change();
 
 		assert.equal(app('cities').shared('street').get(), undefined);
-		assert.equal(app('cities2').shared('street').get(), 'Maidan');
+		assert.equal(app('cities2').shared('street').get(), 'ololo');
 
 
 	})
