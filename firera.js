@@ -1295,10 +1295,8 @@
 					this.changers['_all'][j](cellname, prev_val, new_val);
 				}
 			}
-			if(this.host){
-				if(this.host instanceof List){
-					this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
-				}
+			if(prev_val !== undefined && this.host && this.host instanceof List){
+				this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
 			}
 		},
 		onChange: function(func, fields) {
@@ -2238,7 +2236,9 @@
 			case 'onChange':
 				changer = function(_, itemnum, field, old_val, new_val){
 					if(list.dontfirechange) return;
-					var where_fields = filterFields(filterFields(list.list[itemnum].get(), getData('fields')), getData('idFields'));
+					
+					console.log(arguments);
+					var where_fields = filterFields(list.list[itemnum].get(), getData('idFields'));
 					var req = {};
 					req[field] = new_val;
 					var data = getData('getUpdateRequestData', req, where_fields);
