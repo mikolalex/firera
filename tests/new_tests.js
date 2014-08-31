@@ -1,6 +1,6 @@
 describe('Simple values', function() {
 	it('Testing simple values', function() {
-		var a = new Firera.hash;
+		var a = new Firera;
 		a("foo").just('bar');
 		a("loo").is("foo");
 		a("doo").just(true);
@@ -14,7 +14,7 @@ describe('Simple values', function() {
 	})
 
 	it('Testing arrays(length, )', function() {
-		var app = new Firera.hash;
+		var app = new Firera;
 		app('items').are([1, 2, 3]);
 		app('itemnum').is('items/$length');
 		assert.equal(app('itemnum').get(), '3');
@@ -44,9 +44,9 @@ describe('Simple values', function() {
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
 
-	it('Testing adding predicates', function() {
-		var app = new Firera.hash;
-		Firera.addCellMethod('abs', function(num) {
+	it('Testing adding custom methods', function() {
+		var app = new Firera;
+		Firera.addCellFunction('abs', function(num) {
 			var n = Number(num);
 			return n > 0 ? n : -n;
 		})
@@ -55,10 +55,17 @@ describe('Simple values', function() {
 		assert.equal(app('absnum').get(), 34);
 		app('somenum').set(-3);
 		assert.equal(app('absnum').get(), 3);
+		
+		app('a').just(false);
+		app('b').just(true);
+		app('c').ifAny('a', 'b');
+		assert.equal(app('c').get(), true);
+		app('b').set(false);
+		assert.equal(app('c').get(), false);
 	})
 
 	it('Testing templates and input bindings', function() {
-		var app = new Firera.hash;
+		var app = new Firera;
 		app('people').are([
 			{
 				name: 'Ivan',
@@ -87,7 +94,7 @@ describe('Simple values', function() {
 	})
 
 	it('Testing sync', function() {
-		var app = new Firera.hash;
+		var app = new Firera;
 		app('items').are([1, 2, 3]);
 		var first = app('items').get(0);
 		console.dir(first);

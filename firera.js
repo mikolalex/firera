@@ -14,110 +14,128 @@
 		return this.indexOf(s) === -1;
 	}
 
-	var reserved_cellnames = function(name){
-		return name[0] === '$';
-	}
-	
-	var existy = function(a) {
-		return (a !== undefined) && (a !== null);
-	}
-
-	function isInt(n) {
-		return n % 1 == 0;
-	}
-
-	var tagName = function($el) {
-		if($el instanceof Node){
-			return $el.tagName;
-		}
-		if ($el && $el.get().length && $el.get()[0].tagName)
-			return $el.get()[0].tagName.toLowerCase()
-		else
-			return '';
-	}
-
-	var search_attr_not_nested = function(element, attr, skip_root) {
-		var res = [];
-		var searcher = function(el, skip_root) {
-			if (!el)
-				return;
-			if (el.getAttribute(attr) && !skip_root) {
-				res.push({name: el.getAttribute(attr), el: el})
-			} else {
-				for (var i = 0; i < el.children.length; i++) {
-					searcher(el.children[i]);
+	///// 
+	///// 
+	///// UTILITIES
+	///// 
+	///// 
+	{
+		var filterFields = function(data, fields){
+			var res = {};
+			if(fields === true || fields === '*') fields = false;
+			for(var i in data){
+				if(!fields || fields.indexOf(i) !== -1){
+					res[i] = data[i];
 				}
 			}
+			return res;
 		}
-		searcher(element, skip_root);
-		return res;
-	}
-
-	var is_valuable = function(tag) {
-		return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
-	}
-	
-	var join_object_attrs = function(a, b){
-		for(var i in b){
-			a[i] = b[i];
+		
+		var reserved_cellnames = function(name){
+			return name[0] === '$';
 		}
-		return a;
-	}
 
-	var generate_default_template = function(vars) {
-		if (vars.length === 1 && vars[0] === '__val'){
-			//return '';
+		var existy = function(a) {
+			return (a !== undefined) && (a !== null);
 		}
-		var res = [];
-		for (var i in vars) {
-			if (vars[i].contains('|')) continue;
-			res.push('<div data-fr="' + vars[i] + '"></div>');
+
+		function isInt(n) {
+			return n % 1 == 0;
 		}
-		return res.join('');
-	}
 
-	var attr_getter = function(obj){
-		return function(key){
-			//console.log('got', key, 'return', obj[key], 'form', obj);
-			return obj[key] ? obj[key] : '';
-		}
-	}
-
-	var HTMLDrivers = {};
-	var customDrivers = {};
-
-	var error = function() {
-		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
-		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
-	}
-
-	var obj_join = function(a, b, overwrite) {
-		for (var i in a) {
-			if (!b[i] || overwrite)
-				b[i] = a[i];
-		}
-	}
-
-	var get_map_func = function(func) {
-		var res;
-		if (func && !(func instanceof Function)) {// its object property , like "name" or "!completed"
-			if (func.indexOf("!") === 0) {
-				res = (function(field) {
-					return function() {
-						return !this[field];
-					}
-				}(func.replace("!", "")))
-			} else {
-				res = (function(field) {
-					return function() {
-						return !!this[field];
-					}
-				}(func))
+		var tagName = function($el) {
+			if($el instanceof Node){
+				return $el.tagName;
 			}
-		} else {
-			res = func;
+			if ($el && $el.get().length && $el.get()[0].tagName)
+				return $el.get()[0].tagName.toLowerCase()
+			else
+				return '';
 		}
-		return res;
+
+		var search_attr_not_nested = function(element, attr, skip_root) {
+			var res = [];
+			var searcher = function(el, skip_root) {
+				if (!el)
+					return;
+				if (el.getAttribute(attr) && !skip_root) {
+					res.push({name: el.getAttribute(attr), el: el})
+				} else {
+					for (var i = 0; i < el.children.length; i++) {
+						searcher(el.children[i]);
+					}
+				}
+			}
+			searcher(element, skip_root);
+			return res;
+		}
+
+		var is_valuable = function(tag) {
+			return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
+		}
+
+		var join_object_attrs = function(a, b){
+			for(var i in b){
+				a[i] = b[i];
+			}
+			return a;
+		}
+
+		var generate_default_template = function(vars) {
+			if (vars.length === 1 && vars[0] === '__val'){
+				//return '';
+			}
+			var res = [];
+			for (var i in vars) {
+				if (vars[i].contains('|')) continue;
+				res.push('<div data-fr="' + vars[i] + '"></div>');
+			}
+			return res.join('');
+		}
+
+		var attr_getter = function(obj){
+			return function(key){
+				//console.log('got', key, 'return', obj[key], 'form', obj);
+				return obj[key] ? obj[key] : '';
+			}
+		}
+
+		var HTMLDrivers = {};
+		var customDrivers = {};
+
+		var error = function() {
+			//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
+			console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
+		}
+
+		var obj_join = function(a, b, overwrite) {
+			for (var i in a) {
+				if (!b[i] || overwrite)
+					b[i] = a[i];
+			}
+		}
+
+		var get_map_func = function(func) {
+			var res;
+			if (func && !(func instanceof Function)) {// its object property , like "name" or "!completed"
+				if (func.indexOf("!") === 0) {
+					res = (function(field) {
+						return function() {
+							return !this[field];
+						}
+					}(func.replace("!", "")))
+				} else {
+					res = (function(field) {
+						return function() {
+							return !!this[field];
+						}
+					}(func))
+				}
+			} else {
+				res = func;
+			}
+			return res;
+		}
 	}
 
 	var Cell = function(selector, host, params) {
@@ -316,12 +334,6 @@
 		return this;
 	}
 
-	Cell.prototype.isNot = function(cell) {
-		return this.is(function(flag) {
-			return !flag;
-		}, cell);
-	}
-
 	Cell.prototype.or = function() {
 		return this;
 	}
@@ -329,21 +341,6 @@
 	Cell.prototype.orJust = function() {
 		return this;
 	}
-
-	Cell.prototype.ifEqual = function(c1, c2) {
-		return this.is(function(a, b) {
-			return a == b;
-		}, c1, c2);
-	}
-
-	Cell.prototype.selectIf = function(c1, c2) {
-		return this.is(function(a, b) {
-			if (b === '*')
-				return true;
-			return a == b;
-		}, c1, c2);
-	}
-
 	Cell.prototype.load = function(url) {
 		var self = this;
 		$.get(url, function(data) {
@@ -361,81 +358,6 @@
 		return this;
 	}
 
-	Cell.prototype.gets = function() {
-		var self = this;
-		var args = Array.prototype.slice.call(arguments);
-		var url = args.shift();
-		var req = 
-		{
-			type: 'GET',
-			dataType: 'json',
-		}
-		if(url instanceof Object){// it's params
-			join_object_attrs(req, url);
-		} else {
-			if (url.notContains('/')) {// its varname !!!! may be /parent!
-				args.unshift(url);
-				url = false;
-				skip_first = true;
-			} else {
-				req.url = url;
-			}
-		}
-		var aliases = false;
-		if (args.length == 1) {
-			if (args[0] instanceof Array) {
-				args = args[0];
-			} else {
-				if (args[0] instanceof Object) {
-					aliases = args[0];
-					args = Object.keys(args[0]);
-				}
-			}
-		}
-
-		var skip_first = false;
-		var get_request_hash = function(arr) {
-			var res = {};
-			for (var i in arr) {
-				if (skip_first) {
-					skip_first = false;
-					continue;
-				}
-				var varname = aliases ? aliases[arr[i]] : arr[i];
-				res[args[i]] = self.host(varname).get();
-			}
-			skip_first = true;
-			return res;
-		}
-		var ars = [function(u) {
-				req.data = get_request_hash(args);
-				req.url = url || u;
-				req.success = function(data) {
-					self.set(data, true);
-				};
-				$.ajax(req);
-			}].concat(args);
-		return this.is.apply(this, ars);
-	}
-
-	Cell.prototype.if = function(cond, then, otherwise) {
-		return this.is.call(this, function(flag) {
-			return flag ? (existy(then) ? then : true) : (existy(otherwise) ? otherwise : false);
-		}, cond);
-	}
-
-	Cell.prototype.ifAll = function() {
-		var args = Array.prototype.slice.call(arguments);
-		args.unshift(function() {
-			var args = Array.prototype.slice.call(arguments);
-			var res = true;
-			for (var i = 0; i < args.length; i++) {
-				res = res && args[i];
-			}
-			return res;
-		});
-		return this.is.apply(this, args);
-	}
 	Cell.prototype.bindToDOM = function($el) {
 		var self = this;
 		var tags = $el.get();
@@ -471,32 +393,6 @@
 		return this;
 	}
 
-	Cell.prototype.template = function() {
-		//console.log('args are', arguments);
-		var vars = Array.prototype.slice.call(arguments);
-		vars.unshift(function() {
-			var obj = {};
-			for (var i = 1; i < arguments.length; i++) {
-				obj[vars[i + 1]] = arguments[i];
-			}
-			var html = make_template(obj, arguments[0]);
-			return html;
-		});
-		return this.is.apply(this, vars);
-	}
-	Cell.prototype.ifAny = function() {
-		var args = Array.prototype.slice.call(arguments);
-		args.unshift(function() {
-			var args = Array.prototype.slice.call(arguments);
-			var res = false;
-			for (var i = 0; i < args.length; i++) {
-				res = res || args[i];
-			}
-			return res;
-		});
-		return this.is.apply(this, args);
-	}
-
 	Cell.prototype.are = function(arr, config) {
 		if(arr instanceof Function){// it's a datasource!
 			return this.are.call(this, {$datasource: Array.prototype.slice.call(arguments)});			
@@ -508,9 +404,9 @@
 			conf.selector = this.selector;
 			if (arr instanceof Array) {
 				mass = arr;
-				arr = new Firera.list({}, conf);
+				arr = new List({}, conf);
 			} else {
-				arr = new Firera.list(arr, conf);
+				arr = new List(arr, conf);
 			}
 		}
 		obj_join(this, arr);
@@ -559,6 +455,7 @@
 		this.compute = typical_compute.bind(this, list, func, listname);
 		return this.compute();
 	}
+	
 	Cell.prototype.force = function() {
 		this.compute();
 	}
@@ -615,7 +512,7 @@
 
 	Cell.prototype.is = function(f) {
 		if (f instanceof Cell) {
-			// just link his var to that)
+			// just link this var to that)
 			return this.is.call(this, function(a) {
 				return a
 			}, f);
@@ -629,7 +526,7 @@
 		}
 
 		if (formula instanceof Array) {// creating new Firera hash
-			this.self = Firera.list(formula, {host: this.host});
+			this.self = new List(formula, {host: this.host});
 			return this;
 		}
 		if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
@@ -1129,430 +1026,325 @@
 			}
 		}
 	}
+	
+	/////
+	/////
+	///// HASH
+	/////
+	/////
 
-	var Firera = {
-		join: function(a, b){
-			var c = {};
-			for(var i in a){
-				c[i] = a[i];
+	var Firera = function(init_hash, params) {
+		var get_context = function() {
+
+		};
+
+		var self = function(selector) {
+			if (selector instanceof Function)
+				return self({__setup: selector});
+			if (selector instanceof Object) {
+				return init_with_hash(selector, self.config);
 			}
-			for(var i in b){
-				c[i] = b[i];
-			}
-			return c;
-		},
-		dump: function(hash){
-			var res = {
-				rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
-				self: hash,
-			}
-			var vars = hash.getAllVars();
-			for(var i in vars){
-				if(vars[i] instanceof Event){
-					if(!res.events) res.events = {};
-					res.events[i] = vars[i];
-				}
-				if(vars[i] instanceof Cell){
-					if(i === '$template'){
-						res.template = vars[i].get();
-						res.template_source = hash.template_source;
-						res.template_self = vars[i];
-						continue;
-					}
-					if(!vars[i].free){
-						if(!res.dependentVars) res.dependentVars = {};
-						res.dependentVars[i] = Firera.dumpCell(vars[i]);
-					} else {
-						if(vars[i].dumb){
-							if(!res.dumbVars) res.dumbVars = {};
-							res.dumbVars[i] = Firera.dumpCell(vars[i]);
-						} else {
-							if(!res.freeVars) res.freeVars = {};
-							res.freeVars[i] = Firera.dumpCell(vars[i]);
-						}
-					}
-				}
-				if(vars[i] instanceof List){
-					if(!res.lists) res.lists = {};
-					res.lists[i] = Firera.dumpList(vars[i]);
+			var pars = Array.prototype.slice.call(arguments, 1);
+			return self.create_cell_or_event(selector, pars);
+		}
+		if (params) {
+			var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
+			for (var i in possible_params) {
+				if (params[possible_params[i]]) {
+					self[possible_params[i]] = params[possible_params[i]];
 				}
 			}
-			if(hash.mixins){
-				res.mixins = {};
-				for(var i in hash.mixins){
-					res.mixins[i] = {};
-					for(var j in hash.mixins[i]){
-						res.mixins[i][j] = Firera.dump(hash.mixins[i][j]);
-					}
+		}
+		self.changers = {};
+		self.vars = [];
+		self.scope = false;
+
+		for (var i in hash_methods) {
+			self[i] = hash_methods[i];
+		}
+
+		get_context = self.getScope.bind(self);
+
+
+		//////////////////////////////////////////
+		var init_with_hash = function(selector, params) {
+			for (var i in selector) {
+				if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data'){
+					continue;
 				}
-			}
-			return res;
-		},
-		dumpCell: function(cell){
-			var res = {val: cell.get(), self: cell};
-			res.rootElement = cell.getElement().length ? cell.getElement().get() : false;
-			cell.DOMElement && (res.DOMElement = cell.DOMElement.get());
-			return res;
-		},
-		dumpList: function(list){
-			var res = {
-				rootElement: list.rootElement ? list.rootElement.get() : undefined,
-				shared: Firera.dump(list.shared),
-				list: []
-			};
-			for(var i in list.list){
-				res.list[i] = Firera.dump(list.list[i]);
-			}
-			res.changers = list.changers;
-			return res;
-		},
-		hash: function(init_hash, params) {
-			var get_context = function() {
-			};
+				var cell = self.create_cell_or_event(i, undefined, true);
 
-			var self = function(selector) {
-				if (selector instanceof Function)
-					return self({__setup: selector});
-				if (selector instanceof Object) {
-					return init_with_hash(selector, self.config);
+				var cell_type = cell.getType();
+				if(i === 'each'){
+					continue;
 				}
-				var pars = Array.prototype.slice.call(arguments, 1);
-				return self.create_cell_or_event(selector, pars);
-			}
-			if (params) {
-				var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
-				for (var i in possible_params) {
-					if (params[possible_params[i]]) {
-						self[possible_params[i]] = params[possible_params[i]];
-					}
+				if(selector[i] instanceof Object && !(selector[i] instanceof Array) && !(selector[i] instanceof Function)){
+					self(i).are(selector[i]);
+					continue;
 				}
-			}
-			self.changers = {};
-			self.vars = [];
-			self.scope = false;
-
-			for (var i in hash_methods) {
-				self[i] = hash_methods[i];
-			}
-
-			get_context = self.getScope.bind(self);
-
-
-			//////////////////////////////////////////
-			var init_with_hash = function(selector, params) {
-				for (var i in selector) {
-					if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data'){
-						continue;
-					}
-					var cell = self.create_cell_or_event(i, undefined, true);
-					
-					var cell_type = cell.getType();
-					if(i === 'each'){
-						continue;
-					}
-					if(selector[i] instanceof Object && !(selector[i] instanceof Array) && !(selector[i] instanceof Function)){
-						self(i).are(selector[i]);
-						continue;
-					}
-					switch (cell_type) {
-						case 'cell':
-							if (selector[i] instanceof Array) {
-								if (selector[i][0] instanceof Function) {
-									cell['is'].apply(cell, selector[i]);
-								} else {
-									if (!cell[selector[i][0]]) {
-										error('Using unknown function:', selector[i], selector);
-									}
-									cell[selector[i][0]].apply(cell, selector[i].slice(1));
+				switch (cell_type) {
+					case 'cell':
+						if (selector[i] instanceof Array) {
+							if (selector[i][0] instanceof Function) {
+								cell['is'].apply(cell, selector[i]);
+							} else {
+								if (!cell[selector[i][0]]) {
+									error('Using unknown function:', selector[i], selector);
 								}
-							} else {
-								cell.just(selector[i]);
+								cell[selector[i][0]].apply(cell, selector[i].slice(1));
 							}
-							break;
-						case 'event':
-							if (selector[i] instanceof Function) {
-								cell.then(selector[i]);
-							} else {
-								if (selector[i] instanceof Array) {
-									if (!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)) {
-										//selector[i][0] = [selector[i][0]];
-										// its some event method
-										if(!Event.prototype[selector[i][0]]){
-											error('Unknown method for event: ', selector[i]);
-										} else {
-											Event.prototype[selector[i][0]].apply(cell, selector[i].slice(1));
-										}
+						} else {
+							cell.just(selector[i]);
+						}
+						break;
+					case 'event':
+						if (selector[i] instanceof Function) {
+							cell.then(selector[i]);
+						} else {
+							if (selector[i] instanceof Array) {
+								if (!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)) {
+									//selector[i][0] = [selector[i][0]];
+									// its some event method
+									if(!Event.prototype[selector[i][0]]){
+										error('Unknown method for event: ', selector[i]);
 									} else {
-										for (var j = 0; j < selector[i].length; j++) {
-											if (selector[i][j] instanceof Function) {
-												cell.then(selector[i][j]);
+										Event.prototype[selector[i][0]].apply(cell, selector[i].slice(1));
+									}
+								} else {
+									for (var j = 0; j < selector[i].length; j++) {
+										if (selector[i][j] instanceof Function) {
+											cell.then(selector[i][j]);
+										} else {
+											if (selector[i][j] instanceof Array) {
+												var func = selector[i][j][0];
+												cell[func].apply(cell, selector[i][j].slice(1));
 											} else {
-												if (selector[i][j] instanceof Array) {
-													var func = selector[i][j][0];
-													cell[func].apply(cell, selector[i][j].slice(1));
-												} else {
-													error('wrong parameter type for cell creation!');
-												}
+												error('wrong parameter type for cell creation!');
 											}
 										}
 									}
 								}
 							}
-							break;
-						case 'list':
-							cell.update(selector[i]);
-							break;
-					}
-
-				}
-				if (selector.__mixins) {// special case)
-					if (!(selector.__mixins instanceof Array)) {
-						error('Mixins should be contained in array!');
-					}
-					for (var j = 0; j < selector.__mixins.length; j++) {
-						var mx = selector.__mixins[j];
-						self.mix(mx.hash, mx.context, mx.share, mx.config)
-					}
-				}
-				if (selector.__setup) {// run setup function
-					selector.__setup.call(self, params);
-				}
-				if(selector.$data){
-					self.setData(selector.$data);
-				}
-				return true;
-			}
-			//////////////////////////////////////////
-			var init_with_data = function(hash) {
-				for (var i in hash) {
-					var cell = self.create_cell_or_event(i);
-					if (hash[i] instanceof Array) {
-						for (var j in hash[i]) {
-							if (!(hash[i][j] instanceof Object)) {
-								hash[i][j] = {item: hash[i][j]};
-							}
 						}
-						var list = new window[lib_var_name].list({$data: hash[i]}, {host: self});
-						cell.are(list);
-					} else {
-						if (hash[i] instanceof Object) {
-							// Ready Firera List object
-						} else {
-							cell.just(hash[i]);
+						break;
+					case 'list':
+						cell.update(selector[i]);
+						break;
+				}
+
+			}
+			if (selector.__mixins) {// special case)
+				if (!(selector.__mixins instanceof Array)) {
+					error('Mixins should be contained in array!');
+				}
+				for (var j = 0; j < selector.__mixins.length; j++) {
+					var mx = selector.__mixins[j];
+					self.mix(mx.hash, mx.context, mx.share, mx.config)
+				}
+			}
+			if (selector.__setup) {// run setup function
+				selector.__setup.call(self, params);
+			}
+			if(selector.$data){
+				self.setData(selector.$data);
+			}
+			return true;
+		}
+		//////////////////////////////////////////
+		var init_with_data = function(hash) {
+			for (var i in hash) {
+				var cell = self.create_cell_or_event(i);
+				if (hash[i] instanceof Array) {
+					for (var j in hash[i]) {
+						if (!(hash[i][j] instanceof Object)) {
+							hash[i][j] = {item: hash[i][j]};
 						}
 					}
-
-				}
-				return true;
-			}
-
-			self.update = function(hash) {
-				init_with_hash(hash, self.config);
-				if (self.getScope()) {
-					self.checkForTemplate().refreshTemplate();
-				}
-			}
-
-			//////////////////////////////////////////		
-
-			self.setHost = function(host) {
-				self.host = host;
-			}
-
-			self.unbindToDOM = function() {
-				var vars = self.getAllVars();
-				for (var i in vars) {
-					if (vars[i].unbindToDOM)
-						vars[i].unbindToDOM();
-				}
-				return self;
-			}
-
-			self.applyTo = function(selector_or_element) {
-				var check = false;
-				if(selector_or_element === 'body') check = true;
-				if (selector_or_element instanceof Object) {// JQuery object
-					self.rootElement = selector_or_element;
-				} else {// rare case, only for root objects
-					self.rootElement = $(selector_or_element);
-				}
-				self.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
-			}
-
-			self.updateVarsBindings = function() {
-				if (self.isSingleVar) {
-					self.getVar("__val").bindToDOM(this.getScope());
+					var list = new window[lib_var_name].list({$data: hash[i]}, {host: self});
+					cell.are(list);
 				} else {
-					var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
-					for (var i in frs) {
-						if (cell = self.getVar(frs[i].name)) {
-							if (cell.bindToDOM) {
-								cell.DOMElement = false;
-								cell.bindToDOM($(frs[i].el));
-							}
-						} else {
-							//console.log('we coudnt bind var', frs[i].name);
-						}
-					}
-				}
-			}
-
-			self.updateMixins = function() {
-				for (var context in self.mixins) {
-					for (var j in self.mixins[context]) {
-						if (context == 'root') {
-							self.mixins[context][j].applyTo(self.getScope())
-						} else {
-							var root = $(context, self.getScope());
-							self.mixins[context][j].applyTo(root);
-						}
-					}
-				}
-			}
-
-			self.checkForTemplate = function() {
-				if (!self.noTemplateRenderingAllowed) {
-					var template = $.trim(self.getScope().html());
-					self.template_source = 'HTML';
-					if (!template) {
-						if (!self.getVar('$template')) {
-							template = generate_default_template(self.getVarNames());
-							self.template_source = 'generated';
-							self("$template").set(template);
-						} else {
-							self.template_source = 'props';
-						}
-					}
-				}
-				return self;
-			}
-			
-			self.refreshTemplate = function(){
-				if(self.getScope()){
-					var template = self('$template').get();
-					self.getScope().html(template);
-					self.updateVarsBindings();
-					self.updateDOMBindings();
-					self.updateMixins();
-				}
-				return self;
-			}
-
-			self.getRebindableVars = function() {
-				var vars = self.getAllVars();
-				var res = {};
-				if (self.host && self.host.shared) {
-					var shared_vars = self.host.shared.getAllVars();
-					for (var j in shared_vars) {
-						if (!reserved_cellnames(j)) {
-							res[j] = shared_vars[j];
-						}
-					}
-				}
-				for(var i in vars){
-					if(i[0] !== '$'){
-						res[i]  = vars[i];
-					}
-				}
-				return res;
-			}
-
-			self.updateDOMBindings = function() {
-				var vars = self.getRebindableVars();
-				for (var i in vars) {
-					//if(i == 'root|html') continue;
-					if(vars[i] instanceof Event) continue;
-					if (vars[i].applyTo) {
-						vars[i].applyTo();
+					if (hash[i] instanceof Object) {
+						// Ready Firera List object
 					} else {
-						vars[i].rebind();
+						cell.just(hash[i]);
 					}
 				}
-			}
-			
-			self.attachEventHandlers = function(){
-				var vars = self.getRebindableVars();
-				for (var i in vars) {
-					if(!(vars[i] instanceof Event)) continue;
-					vars[i].rebind();
-				}
-				return self;
-			}
 
-			self.remove = function() {
-				self.getScope().remove();
-				for (var i in self.vars) {
-					// unbind each cell
-					if (self.vars[i] instanceof Cell) {
-						self.vars[i].remove();
-					}
-				}
-				return true;
 			}
+			return true;
+		}
 
-			self.get = function() {
-				return collect_values(self.getAllVars());
-			}
-			
-			self.isShared = function(){
-				return this.host && this.host.shared === this;
-			}
-
-			if (init_hash instanceof Function) {
-				init_hash = {__setup: init_hash};
-			}
-
-			if (init_hash) {
-				if (init_hash.$data && (!params || !params.skip_data)) {
-					init_with_data(init_hash.$data);
-				}
-				self.update(init_hash);
-			}
-
-			return self;
-		},
-		list: function(config, data) {
-			var self = new List(config, data);// deprecated!
-			return self;
-		},
-		config: function(obj) {
-			if (obj.dom_lib)
-				$ = obj.dom_lib;
-			if (obj.custom_drivers && (obj.custom_drivers instanceof Object)) {
-				for (var i in obj.custom_drivers) {
-					drivers[i] = obj.custom_drivers[i];
-				}
-			}
-		},
-		addCellMethod: function(name, func){
-			if(Cell.prototype[name]){
-				error('Predicate already assigned!'); 
-				return;
-			}
-			Cell.prototype[name] = function(){
-				var args = Array.prototype.slice.call(arguments);
-				args.unshift(function(){
-					var args = Array.prototype.slice.call(arguments);
-					var res = func.apply(null, args);
-					return res;
-				});
-				this.is.apply(this, args);
-			}
-		},
-		addHashMethod: function(name, func){
-			hash_methods[name] = func;
-		},
-		addListMethod: function(name, func){
-			if(List.prototype[name]){
-				error('List method already exists:', name); return;
-			}
-			List.prototype[name] = function(){
-				func.apply(this, arguments);
-				return this;
+		self.update = function(hash) {
+			init_with_hash(hash, self.config);
+			if (self.getScope()) {
+				self.checkForTemplate().refreshTemplate();
 			}
 		}
+
+		//////////////////////////////////////////		
+
+		self.setHost = function(host) {
+			self.host = host;
+		}
+
+		self.unbindToDOM = function() {
+			var vars = self.getAllVars();
+			for (var i in vars) {
+				if (vars[i].unbindToDOM)
+					vars[i].unbindToDOM();
+			}
+			return self;
+		}
+
+		self.applyTo = function(selector_or_element) {
+			var check = false;
+			if(selector_or_element === 'body') check = true;
+			if (selector_or_element instanceof Object) {// JQuery object
+				self.rootElement = selector_or_element;
+			} else {// rare case, only for root objects
+				self.rootElement = $(selector_or_element);
+			}
+			self.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
+		}
+
+		self.updateVarsBindings = function() {
+			if (self.isSingleVar) {
+				self.getVar("__val").bindToDOM(this.getScope());
+			} else {
+				var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
+				for (var i in frs) {
+					if (cell = self.getVar(frs[i].name)) {
+						if (cell.bindToDOM) {
+							cell.DOMElement = false;
+							cell.bindToDOM($(frs[i].el));
+						}
+					} else {
+						//console.log('we coudnt bind var', frs[i].name);
+					}
+				}
+			}
+		}
+
+		self.updateMixins = function() {
+			for (var context in self.mixins) {
+				for (var j in self.mixins[context]) {
+					if (context == 'root') {
+						self.mixins[context][j].applyTo(self.getScope())
+					} else {
+						var root = $(context, self.getScope());
+						self.mixins[context][j].applyTo(root);
+					}
+				}
+			}
+		}
+
+		self.checkForTemplate = function() {
+			if (!self.noTemplateRenderingAllowed) {
+				var template = $.trim(self.getScope().html());
+				self.template_source = 'HTML';
+				if (!template) {
+					if (!self.getVar('$template')) {
+						template = generate_default_template(self.getVarNames());
+						self.template_source = 'generated';
+						self("$template").set(template);
+					} else {
+						self.template_source = 'props';
+					}
+				}
+			}
+			return self;
+		}
+
+		self.refreshTemplate = function(){
+			if(self.getScope()){
+				var template = self('$template').get();
+				self.getScope().html(template);
+				self.updateVarsBindings();
+				self.updateDOMBindings();
+				self.updateMixins();
+			}
+			return self;
+		}
+
+		self.getRebindableVars = function() {
+			var vars = self.getAllVars();
+			var res = {};
+			if (self.host && self.host.shared) {
+				var shared_vars = self.host.shared.getAllVars();
+				for (var j in shared_vars) {
+					if (!reserved_cellnames(j)) {
+						res[j] = shared_vars[j];
+					}
+				}
+			}
+			for(var i in vars){
+				if(i[0] !== '$'){
+					res[i]  = vars[i];
+				}
+			}
+			return res;
+		}
+
+		self.updateDOMBindings = function() {
+			var vars = self.getRebindableVars();
+			for (var i in vars) {
+				//if(i == 'root|html') continue;
+				if(vars[i] instanceof Event) continue;
+				if (vars[i].applyTo) {
+					vars[i].applyTo();
+				} else {
+					vars[i].rebind();
+				}
+			}
+		}
+
+		self.attachEventHandlers = function(){
+			var vars = self.getRebindableVars();
+			for (var i in vars) {
+				if(!(vars[i] instanceof Event)) continue;
+				vars[i].rebind();
+			}
+			return self;
+		}
+
+		self.remove = function() {
+			self.getScope().remove();
+			for (var i in self.vars) {
+				// unbind each cell
+				if (self.vars[i] instanceof Cell) {
+					self.vars[i].remove();
+				}
+			}
+			return true;
+		}
+
+		self.get = function() {
+			return collect_values(self.getAllVars());
+		}
+
+		self.isShared = function(){
+			return this.host && this.host.shared === this;
+		}
+
+		if (init_hash instanceof Function) {
+			init_hash = {__setup: init_hash};
+		}
+
+		if (init_hash) {
+			if (init_hash.$data && (!params || !params.skip_data)) {
+				init_with_data(init_hash.$data);
+			}
+			self.update(init_hash);
+		}
+
+		return self;
 	}
 
+	/////
+	/////
+	///// LIST
+	/////
+	/////
 	var List = function(init_hash, config) {
 		this.changers = {
 			create: [],
@@ -1928,16 +1720,95 @@
 		}
 	}
 	
-	var filterFields = function(data, fields){
-		var res = {};
-		if(fields === true || fields === '*') fields = false;
-		for(var i in data){
-			if(!fields || fields.indexOf(i) !== -1){
-				res[i] = data[i];
+	
+	/////
+	/////
+	///// OTHER LIB METHODS FOR Firera OBJECT
+	/////
+	/////
+	Firera.list = List;
+	Firera.hash = Firera;
+	Firera.join = function(a, b){
+		var c = {};
+		for(var i in a){
+			c[i] = a[i];
+		}
+		for(var i in b){
+			c[i] = b[i];
+		}
+		return c;
+	},
+	Firera.dump = function(hash){
+		var res = {
+			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
+			self: hash,
+		}
+		var vars = hash.getAllVars();
+		for(var i in vars){
+			if(vars[i] instanceof Event){
+				if(!res.events) res.events = {};
+				res.events[i] = vars[i];
+			}
+			if(vars[i] instanceof Cell){
+				if(i === '$template'){
+					res.template = vars[i].get();
+					res.template_source = hash.template_source;
+					res.template_self = vars[i];
+					continue;
+				}
+				if(!vars[i].free){
+					if(!res.dependentVars) res.dependentVars = {};
+					res.dependentVars[i] = Firera.dumpCell(vars[i]);
+				} else {
+					if(vars[i].dumb){
+						if(!res.dumbVars) res.dumbVars = {};
+						res.dumbVars[i] = Firera.dumpCell(vars[i]);
+					} else {
+						if(!res.freeVars) res.freeVars = {};
+						res.freeVars[i] = Firera.dumpCell(vars[i]);
+					}
+				}
+			}
+			if(vars[i] instanceof List){
+				if(!res.lists) res.lists = {};
+				res.lists[i] = Firera.dumpList(vars[i]);
+			}
+		}
+		if(hash.mixins){
+			res.mixins = {};
+			for(var i in hash.mixins){
+				res.mixins[i] = {};
+				for(var j in hash.mixins[i]){
+					res.mixins[i][j] = Firera.dump(hash.mixins[i][j]);
+				}
 			}
 		}
 		return res;
 	}
+	Firera.dumpCell = function(cell){
+		var res = {val: cell.get(), self: cell};
+		res.rootElement = cell.getElement().length ? cell.getElement().get() : false;
+		cell.DOMElement && (res.DOMElement = cell.DOMElement.get());
+		return res;
+	}
+	Firera.dumpList = function(list){
+		var res = {
+			rootElement: list.rootElement ? list.rootElement.get() : undefined,
+			shared: Firera.dump(list.shared),
+			list: []
+		};
+		for(var i in list.list){
+			res.list[i] = Firera.dump(list.list[i]);
+		}
+		res.changers = list.changers;
+		return res;
+	}
+	
+	/////
+	/////
+	///// METHODS FOR EXTENDING FIRERA ABILITIES
+	/////
+	/////
 	
 	Firera.addEventAction = function(name, func){
 		if(Event.prototype[name]) {
@@ -2027,6 +1898,39 @@
 			def: def
 		};
 	};
+	
+	
+	Firera.addCellFunction = function(name, func){
+		if(Cell.prototype[name]){
+			error('Cell function already assigned!'); 
+			return;
+		}
+		Cell.prototype[name] = function(){
+			var args = Array.prototype.slice.call(arguments);
+			args.unshift(func);
+			this.is.apply(this, args);
+		}
+	}
+	Firera.addCellMacros = function(name, func){
+		if(Cell.prototype[name]){
+			error('Cell macros already assigned!'); return;
+		}
+		Cell.prototype[name] = function(){
+			return this.is.apply(this, func.apply(this, arguments));
+		}
+	}
+	Firera.addHashMethod = function(name, func){
+		hash_methods[name] = func;
+	}
+	Firera.addListMethod = function(name, func){
+		if(List.prototype[name]){
+			error('List method already exists:', name); return;
+		}
+		List.prototype[name] = function(){
+			func.apply(this, arguments);
+			return this;
+		}
+	}
 	
 	//////////
 	//////////
@@ -2188,6 +2092,122 @@
 					})
 				}
 			}
+		},
+		cellMacrosMethods: {
+			ifAny: function() {
+				var args = Array.prototype.slice.call(arguments);
+				args.unshift(function() {
+					var args = Array.prototype.slice.call(arguments);
+					var res = false;
+					for (var i = 0; i < args.length; i++) {
+						res = res || args[i];
+					}
+					return res;
+				});
+				return args;
+			},
+			ifAll: function() {
+				var args = Array.prototype.slice.call(arguments);
+				args.unshift(function() {
+					var args = Array.prototype.slice.call(arguments);
+					var res = true;
+					for (var i = 0; i < args.length; i++) {
+						res = res && args[i];
+					}
+					return res;
+				});
+				return args;
+			},
+			'if': function(cond, then, otherwise) {
+				return [function(flag) {
+					return flag ? (existy(then) ? then : true) : (existy(otherwise) ? otherwise : false);
+				}, cond];
+			},
+			gets: function() {
+				var self = this;
+				var args = Array.prototype.slice.call(arguments);
+				var url = args.shift();
+				var req = 
+				{
+					type: 'GET',
+					dataType: 'json',
+				}
+				if(url instanceof Object){// it's params
+					join_object_attrs(req, url);
+				} else {
+					if (url.notContains('/')) {// its varname !!!! may be /parent!
+						args.unshift(url);
+						url = false;
+						skip_first = true;
+					} else {
+						req.url = url;
+					}
+				}
+				var aliases = false;
+				if (args.length == 1) {
+					if (args[0] instanceof Array) {
+						args = args[0];
+					} else {
+						if (args[0] instanceof Object) {
+							aliases = args[0];
+							args = Object.keys(args[0]);
+						}
+					}
+				}
+
+				var skip_first = false;
+				var get_request_hash = function(arr) {
+					var res = {};
+					for (var i in arr) {
+						if (skip_first) {
+							skip_first = false;
+							continue;
+						}
+						var varname = aliases ? aliases[arr[i]] : arr[i];
+						res[args[i]] = self.host(varname).get();
+					}
+					skip_first = true;
+					return res;
+				}
+				var ars = [function(u) {
+						req.data = get_request_hash(args);
+						req.url = url || u;
+						req.success = function(data) {
+							self.set(data, true);
+						};
+						$.ajax(req);
+					}].concat(args);
+				return ars;
+			},
+			ifEqual: function(c1, c2) {
+				return [function(a, b) {
+						return a == b;
+					}, 
+					c1, 
+					c2
+				];
+			},
+			selectIf: function(c1, c2) {
+				var args = [
+					function(a, b) {
+						if (b === '*')
+							return true;
+						return a == b;
+					}, 
+					c1, 
+					c2
+				];
+				return args;
+			},
+			isNot: function(cell) {
+				var args = [
+					function(flag) {
+						return !flag;
+					}, 
+					cell
+				];
+				return args;
+			}
 		}
 	}
 	
@@ -2213,6 +2233,10 @@
 	}
 	for(var name in core.HTMLGettersSetters){
 		Firera.addHTMLGetterSetter(name, core.HTMLGettersSetters[name]);
+	}
+	
+	for(var name in core.cellMacrosMethods){
+		Firera.addCellMacros(name, core.cellMacrosMethods[name]);
 	}
 	
 	//////////
