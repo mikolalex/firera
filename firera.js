@@ -83,184 +83,8 @@
 		}
 	}
 
-	var drivers = {
-		cell: {
-		},
-		$datasource: {
-			setter: function(val) {
-				if (this.host && this.host.host) {// should be a list
-					if (!val)
-						val = [];
-					this.host.host.clear().setData(val);
-				}
-			}
-		},
-		$template: {
-			setter: function(){
-				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
-			}
-		},
-		$shownItems: {
-			setter: function(val) {
-				if (this.host && this.host.host) {// should be a list
-					var scope = this.host.host.getScope();
-					if(scope){
-						var items = scope.children();
-						var start = val, end = parseInt(val) + 1;
-						if(val === '*' || val === true){
-							items.show(); return;
-						}
-						if(val instanceof Array){
-							// range
-							start = val[0];
-							end = val[1];
-						}
-						items.hide().slice(start, end).show();
-					}
-				}
-			}
-		},
-		$length: {
-			def: 0,
-			startObserving: function(val) {
-				var self = this;
-				if(!this.host.isShared()){
-					error('cound not count length of non-list!'); return;
-				}
-				var list = this.host.host;
-				list.onChangeItem('delete', function(){
-					self.set(self.get() - 1);
-				})
-				list.onChangeItem('create', function(){
-					self.set(self.get() + 1);
-				})
-				this.set(list.list.length);
-			}
-		},
-		visibility: {
-			setter: function(val, $el) {
-				if (val) {
-					$el.show();
-				} else {
-					$el.hide();
-				}
-			},
-		},
-		value: {
-			def: '',
-			setter: function(val, $el) {
-				switch ($el.attr('type')) {
-					case 'checkbox':
-						$el.attr('checked', !!val);
-						break;
-					default:
-						$el.val(val);
-						break;
-				}
-			},
-			startObserving: function($el) {
-				var self = this;
-				var type = $el.attr('type');
-				$el.bind("change, keyup, input", function() {
-					switch (type) {
-						case 'checkbox':
-							self.set($(this).attr('checked'));
-							break;
-						default:
-							self.set($(this).val());
-							break;
-					}
-				})
-			}
-		},
-		mouseover: {
-			def: false,
-			startObserving: function($el) {
-				var self = this;
-				$el.mouseenter(function() {
-					self.set(true);
-				}).mouseleave(function() {
-					self.set(false);
-				})
-			}
-		},
-		selectedItem: {
-			def: false,
-			/*setter: function(val, list){
-			 alert('we set' + val + ' to ' + list);
-			 var new_chosen = list.children("[data-value=" + val + "]");
-			 if(!new_chosen.length){
-			 error("No list selection found: [data-value=" + val + "]");
-			 }
-			 list.children().removeClass('selected');
-			 new_chosen.addClass("selected");
-			 },*/
-			startObserving: function($el) {
-				if (!$el.length) {
-					error("No element found by selector ");
-				}
-				var self = this;
-				var items = $el.children();
-				items.each(function() {
-					if (!$(this).attr('data-value')) {
-						$(this).attr('data-value', items.index($(this)));
-					}
-				}); //just return index! 
-				if (tagName($el) === 'select') {
-					var onChange = function() {
-						self.set($el.val());
-					}
-					$el.change(onChange);
-					onChange();
-				} else {
-					items.click(function() {
-						items.removeClass('selected');
-						$(this).addClass('selected');
-						var val = $(this).attr('data-value');
-						self.set(val);
-					})
-				}
-			}
-		},
-		html: {
-			setter: function(val, $el) {
-				if (!$el.length) {
-					error('Empty selector in html');
-					return;
-				}
-				$el.html(val);
-			}
-		},
-		toggleClass: {
-			setter: function(val, $el, classname) {
-				if (val) {
-					$el.addClass(classname);
-				} else {
-					$el.removeClass(classname);
-				}
-			}
-		},
-		css: {
-			setter: function(val, $el, property, speed) {
-				if(!speed){
-					$el.css(property, val);
-				} else {
-					var time = {
-						'slow': 500,
-						'fast': 100,
-					}[speed];
-					var anim = {};
-					anim[property] = val;
-					$el.animate(anim, time);
-				}
-			}
-		},
-		attr: {
-			setter: function(val, $el, atrname) {
-				$el.attr(atrname, val);
-			}
-		}
-	}
+	var HTMLDrivers = {};
+	var customDrivers = {};
 
 	var error = function() {
 		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
@@ -271,22 +95,6 @@
 		for (var i in a) {
 			if (!b[i] || overwrite)
 				b[i] = a[i];
-		}
-	}
-
-	var pour = function(obj, mixin) {
-		if (mixin.__init) {
-			mixin.__init.call(obj);
-		}
-		for (var i in mixin) {
-			if (i == '__init')
-				continue;
-			if (obj[i]) {
-				error('conflict, property ' + i + ' already exists in mixin!');
-			}
-			if (mixin[i] instanceof Function) {
-				obj[i] = mixin[i];
-			}
 		}
 	}
 
@@ -341,7 +149,6 @@
 		}
 
 		if (selector.contains("|")) {// HTML selector
-			// this is a dom selector
 			var parts = selector.split("|");
 			this.jquerySelector = parts[0];
 			if (parts[1].contains("(")) {
@@ -350,55 +157,43 @@
 				this.params = m[2].split(",");
 				parts[1] = m[1];
 			}
-			if (!drivers[parts[1]]) {
+			if (!HTMLDrivers[parts[1]]) {
 				error('Unknown driver: ' + parts[1]);
 				return;
-			} else {
-				this.type = parts[1];
 			}
-			this.driver = drivers[this.type];
-			if (!this.driver)
-				error('No driver found for:', this.type);
-			if (!drivers[this.type])
-				error('No driver type:', this.type);
-			if (drivers[this.type].startObserving) {
-				this.val = drivers[this.type].def;
-				this.rebind = function() {
-					this.HTMLElement = false;// abort link to old element
-					drivers[this.type].startObserving.apply(this, [this.getElement()].concat(this.params));
-					if (this.driver && this.driver.setter && this.getScope()) {
-						this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
-					}
-					return this;
+			var driver = this.driver = HTMLDrivers[parts[1]];
+			if (driver.def) this.val = driver.def;
+			this.rebind = function() {
+				this.HTMLElement = false;// abort link to old element
+				driver.getter && driver.getter.apply(this, [this.getElement()].concat(this.params));
+				if (this.driver.setter && this.getScope()) {
+					this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
 				}
-				this.getScope() && this.rebind('cell constructor');
-			} else {
-				var self = this;
-				this.rebind = function(source) {
-					this.HTMLElement = false;// abort link to old element
-					if (self.driver.setter && self.getScope()) {
-						self.driver.setter.apply(self.driver, [self.val, self.getElement()].concat(this.params));
-					}
-				}
+				return this;
 			}
+			driver.getter && this.getScope() && this.rebind('cell constructor');
+			
 		} else { // this is just custom abstract varname
 			params && params.dumb && (this.dumb = true);
-			if(drivers[this.getName()]){
-				this.type = this.getName();
-				if(drivers[this.getName()].setter){
+			if(this.getName()[0] === '$'){// its a custom var!
+				var driver_name = this.getName().slice(1);
+				if (!customDrivers[driver_name]) {
+					error('Unknown custom driver: ' + driver_name);
+					return;
+				}
+				var driver = this.driver = customDrivers[driver_name];
+				if (driver.def) this.val = driver.def;
+				if(driver.setter){
 					this.rebind = function() {
 						this.driver.setter.apply(this, [this.val].concat(this.params));
 						return this;
 					}
 				}
-				if(drivers[this.getName()].startObserving){
-					drivers[this.type].startObserving.apply(this, [this.getElement()].concat(this.params));
+				if(driver.getter){
+					driver.getter.apply(this, [this.getElement()].concat(this.params));
 				}
-			} else {
-				this.type = 'cell';
 			}
 		}
-		this.driver = drivers[this.type];
 	}
 
 	Cell.prototype.getName = function() {
@@ -1729,7 +1524,7 @@
 				}
 			}
 		},
-		addPredicate: function(name, func){
+		addCellMethod: function(name, func){
 			if(Cell.prototype[name]){
 				error('Predicate already assigned!'); 
 				return;
@@ -2163,6 +1958,268 @@
 			this.handlers.push(func(arguments));
 		}
 	}
+	
+	// Methos for adding some special cellnames. For example, app(".name|visibility") - here visibility is a custom HTML driver
+	Firera.addHTMLGetter = function(name, func, def){
+		if(HTMLDrivers[name]) {
+			error('Cant add HTML getter - name already taken!', name);
+			return;
+		}
+		HTMLDrivers[name] = {getter: func, def: def};
+	}
+	Firera.addHTMLSetter = function(name, func, def){
+		if(HTMLDrivers[name]) {
+			error('Cant add HTML setter - name already taken!', name);
+			return;
+		}
+		HTMLDrivers[name] = {setter: func, def: def};
+	}
+	Firera.addHTMLGetterSetter = function(name, func, def){
+		if(HTMLDrivers[name]) {
+			error('Cant add HTML setter - name already taken!', name);
+			return;
+		}
+		HTMLDrivers[name] = {setter: func.setter, getter: func.getter, def: def};
+	}
+	
+	Firera.addCustomSetter = function(name, func, def){
+		if(customDrivers[name]) {
+			error('Cant add custom setter - name already taken!', name);
+			return;
+		}
+		customDrivers[name] = {setter: func, def: def};
+	}
+	Firera.addCustomGetter = function(name, func, def){
+		if(customDrivers[name]) {
+			error('Cant add custom getter - name already taken!', name);
+			return;
+		}
+		customDrivers[name] = {getter: func, def: def};
+	}
+	
+	Firera.addCustomListSetter = function(name, func, def){
+		if(customDrivers[name]) {
+			error('Cant add custom list setter - name already taken!', name);
+			return;
+		}
+		customDrivers[name] = {setter: function(){
+				if(!this.isShared()){
+					error('Cant run list setter of a non-list!', this);
+					return;
+				}
+				return func.apply(this, arguments);
+		}, def: def};
+	};
+	Firera.addCustomListGetter = function(name, func, def){
+		if(customDrivers[name]) {
+			error('Cant add custom list getter - name already taken!', name);
+			return;
+		}
+		customDrivers[name] = {
+			getter: function(){
+				console.log('context is', this);
+				if(!this.host || !this.host.isShared()){
+					error('Cant run list getter of a non-list!', this);
+					return;
+				}
+				return func.apply(this, arguments);
+			}, 
+			def: def
+		};
+	};
+	
+	//////////
+	//////////
+	////////// ADDING CORE CUSTOM AND HTML DRIVERS
+	//////////
+	//////////
+	
+	var core = {
+		customGetters: {
+			
+		},
+		customSetters: {
+			template: function(){
+				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
+			}
+		},
+		customListGetters: {
+			length: function(val) {
+					var self = this;
+					if(!this.host.isShared()){
+						error('cound not count length of non-list!'); return;
+					}
+					var list = this.host.host;
+					list.onChangeItem('delete', function(){
+						self.set(self.get() - 1);
+					})
+					list.onChangeItem('create', function(){
+						self.set(self.get() + 1);
+					})
+					this.set(list.list.length);
+			}
+		},
+		customListSetters: {
+			datasource: function(val) {
+				if (this.host && this.host.host) {// should be a list
+					if (!val)
+						val = [];
+					this.host.host.clear().setData(val);
+				}
+			},
+			shownItems: {
+				setter: function(val) {
+					var scope = this.host.host.getScope();
+					if(scope){
+						var items = scope.children();
+						var start = val, end = parseInt(val) + 1;
+						if(val === '*' || val === true){
+							items.show(); return;
+						}
+						if(val instanceof Array){
+							// range
+							start = val[0];
+							end = val[1];
+						}
+						items.hide().slice(start, end).show();
+					}
+				}
+			},
+		},
+		HTMLGetters: {
+			mouseover: function($el) {
+				var self = this;
+				$el.mouseenter(function() {
+					self.set(true);
+				}).mouseleave(function() {
+					self.set(false);
+				})
+			},
+			selectedItem: function($el) {
+				if (!$el.length) {
+					error("No element found by selector ");
+				}
+				var self = this;
+				var items = $el.children();
+				items.each(function() {
+					if (!$(this).attr('data-value')) {
+						$(this).attr('data-value', items.index($(this)));
+					}
+				}); //just return index! 
+				if (tagName($el) === 'select') {
+					var onChange = function() {
+						self.set($el.val());
+					}
+					$el.change(onChange);
+					onChange();
+				} else {
+					items.click(function() {
+						items.removeClass('selected');
+						$(this).addClass('selected');
+						var val = $(this).attr('data-value');
+						self.set(val);
+					})
+				}
+			}
+		},
+		HTMLSetters: {
+			visibility: function(val, $el) {
+				if (val) {
+					$el.show();
+				} else {
+					$el.hide();
+				}
+			},
+			html: function(val, $el) {
+				if (!$el.length) {
+					error('Empty selector in html');
+					return;
+				}
+				$el.html(val);
+			},
+			toggleClass: function(val, $el, classname) {
+				if (val) {
+					$el.addClass(classname);
+				} else {
+					$el.removeClass(classname);
+				}
+			},
+			css:  function(val, $el, property, speed) {
+				if(!speed){
+					$el.css(property, val);
+				} else {
+					var time = {
+						'slow': 500,
+						'fast': 100,
+					}[speed];
+					var anim = {};
+					anim[property] = val;
+					$el.animate(anim, time);
+				}
+			},
+			attr: function(val, $el, atrname) {
+				$el.attr(atrname, val);
+			}
+		},
+		HTMLGettersSetters: {
+			value: {
+				setter: function(val, $el) {
+					switch ($el.attr('type')) {
+						case 'checkbox':
+							$el.attr('checked', !!val);
+							break;
+						default:
+							$el.val(val);
+							break;
+					}
+				},
+				getter: function($el) {
+					var self = this;
+					var type = $el.attr('type');
+					$el.bind("change, keyup, input", function() {
+						switch (type) {
+							case 'checkbox':
+								self.set($(this).attr('checked'));
+								break;
+							default:
+								self.set($(this).val());
+								break;
+						}
+					})
+				}
+			}
+		}
+	}
+	
+	for(var name in core.customGetters){
+		Firera.addCustomGetter(name, core.customGetters[name]);
+	}
+	for(var name in core.customSetters){
+		Firera.addCustomSetter(name, core.customSetters[name]);
+	}
+	
+	for(var name in core.customListGetters){
+		Firera.addCustomListGetter(name, core.customListGetters[name]);
+	}
+	for(var name in core.customListSetters){
+		Firera.addCustomListSetter(name, core.customListSetters[name]);
+	}
+	
+	for(var name in core.HTMLGetters){
+		Firera.addHTMLGetter(name, core.HTMLGetters[name]);
+	}
+	for(var name in core.HTMLSetters){
+		Firera.addHTMLSetter(name, core.HTMLSetters[name]);
+	}
+	for(var name in core.HTMLGettersSetters){
+		Firera.addHTMLGetterSetter(name, core.HTMLGettersSetters[name]);
+	}
+	
+	//////////
+	//////////
+	////////// ADDING CORE LIST METHODS: syncing with server etc
+	//////////
+	//////////
 	
 	Firera.addListMethod('sync', function(params){
 		var list = this;

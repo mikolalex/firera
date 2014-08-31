@@ -40,14 +40,13 @@ describe('Simple values', function() {
 				},
 			]
 		};		
-		console.log('oi', Firera.join(app, data));
 		var obj = new Firera.list(Firera.join(app, data));
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
 
 	it('Testing adding predicates', function() {
 		var app = new Firera.hash;
-		Firera.addPredicate('abs', function(num) {
+		Firera.addCellMethod('abs', function(num) {
 			var n = Number(num);
 			return n > 0 ? n : -n;
 		})
