@@ -403,9 +403,7 @@
 		var self = this;
 		var tags = $el.get();
 		for(var i in tags){
-			console.log(tags[i], _.getTagName(tags[i]), _.isValuable(_.getTagName(tags[i])));
 			if(_.isValuable(_.getTagName(tags[i]))){
-				console.log('Bind to', tags[i], $(tags[i]).get());
 				$(tags[i]).change(function(){
 					self.set($(this).val());
 				})
@@ -2316,7 +2314,7 @@
 		// forming params done! Now, attaching handlers...
 		
 		
-		this.onChangeItem('create', function(_, itemnum){
+		this.onChangeItem('create', function(x, itemnum){
 			if(list.dontfirechange) return;
 			var fields = getData('fields');
 			var data = _.filterFields(list.list[itemnum].get(), fields);
@@ -2334,7 +2332,7 @@
 		var changer;
 		switch(getData('update')){
 			case 'onChange':
-				changer = function(_, itemnum, field, old_val, new_val){
+				changer = function(x, itemnum, field, old_val, new_val){
 					if(list.dontfirechange) return;
 					
 					console.log(arguments);
@@ -2357,7 +2355,7 @@
 				var change_flags_hash = {};
 				var change_values_hash = {};
 				var fields = getData('fields');
-				changer = function(_, itemnum, fieldname, old_val, new_val){
+				changer = function(x, itemnum, fieldname, old_val, new_val){
 					if(list.dontfirechange) return;
 					if(!(fields instanceof Array) || fields.indexOf(fieldname) !== -1){// we are changing, remember old values
 						change_flags_hash[itemnum] || (change_flags_hash[itemnum] = {});
@@ -2398,10 +2396,10 @@
 						}
 					},
 				}
-				Firera.addEventAction('update', function(_, number, list){
+				Firera.addEventAction('update', function(x, number, list){
 					list._sync.update(number);
 				})
-				Firera.addEventAction('restore', function(_, number, list){
+				Firera.addEventAction('restore', function(x, number, list){
 					list._sync.restore(number);
 				})
 			break;
@@ -2409,7 +2407,7 @@
 	
 		this.onChangeItem('update', changer);
 		
-		this.onChangeItem('delete', function(_, itemnum){			
+		this.onChangeItem('delete', function(x, itemnum){			
 			var fields = getData('fields');
 			var data = _.filterFields(_.filterFields(list.list[itemnum].get(), fields), getData('idFields'));
 			data = getFunc('deleteRequest')(data);
