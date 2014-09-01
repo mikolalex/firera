@@ -1,34 +1,4 @@
-(function() {
-	/* @todo: unbind previous bindings
-	 * var a = frp(function(){}, b, c);
-	 * @todo: fix pour() to .prototype - common arrays!
-	 * @todo: refactor for(var i = 0;i< this.changers.length;i++){ to for(var i = 0, changer;changer = this.changers[i];i++){
-	 * prohibit direct use of |html modifier! Use vars instead!
-	 */
-	var $ = window['jQuery'] || window['$'] || false;
-	
-	String.prototype.contains = function(s){
-		return this.indexOf(s) !== -1;
-	}
-	String.prototype.notContains = function(s){
-		return this.indexOf(s) === -1;
-	}
-	
-	var debug_level = 1;// 0 - no messages shown
-	var debug = (function(level){
-		if(level === 0){
-			return function(){}
-		} else {
-			return function(){
-				console.log.apply(console, ['DEBUG: '].concat(Array.prototype.slice.call(arguments)));
-			}
-		}
-	})(debug_level)
-	var error = function() {
-		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
-		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
-	}
-
+(function(){
 	///// 
 	///// 
 	///// UTILITIES
@@ -80,12 +50,13 @@
 			return n % 1 == 0;
 		},
 
-		tagName: function($el) {
+		getTagName: function($el) {
 			if($el instanceof Node){
 				return $el.tagName;
 			}
-			if ($el && $el.get().length && $el.get()[0].tagName)
+			if ($el && $el.get().length && $el.get()[0].tagName){
 				return $el.get()[0].tagName.toLowerCase()
+			}
 			else
 				return '';
 		},
@@ -177,7 +148,7 @@
 		}
 	}
 	
-	var _ = _ || {};
+	_ = window._ || {};
 	for(var i in utils){
 		if(_[i]){
 			error('Cant assign util function:', i);
@@ -185,9 +156,50 @@
 		}
 		_[i] = utils[i];
 	}
+})();
 
+(function() {
+	// Firera globals
+	var $ = window['jQuery'] || window['$'] || false;
+	var debug_level = 1;// 0 - no messages shown
 	var HTMLDrivers = {};
 	var customDrivers = {};
+	var customEventDrivers = {}
+	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick'];
+	var get_cell_type = function(cellname) {
+		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
+	}
+	// adding some sugar
+	String.prototype.contains = function(s){
+		return this.indexOf(s) !== -1;
+	}
+	String.prototype.notContains = function(s){
+		return this.indexOf(s) === -1;
+	}
+	
+	// Useful internal functions
+	var debug = (function(level){
+		if(level === 0){
+			return function(){}
+		} else {
+			return function(){
+				console.log.apply(console, ['DEBUG: '].concat(Array.prototype.slice.call(arguments)));
+			}
+		}
+	})(debug_level)
+	var error = function() {
+		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
+		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
+	}
+	var collect_values = function(obj) {
+		var res = {};
+		for (var i in obj) {
+			if(_.isReservedName(i) || _.isHTMLCell(i)) continue;
+			res[i] = obj[i].get();
+		}
+		return res;
+	}
+
 
 	var Cell = function(selector, host, params) {
 		if (!host) {
@@ -391,7 +403,9 @@
 		var self = this;
 		var tags = $el.get();
 		for(var i in tags){
-			if(_.isValuable(_.tagName(tags[i]))){
+			console.log(tags[i], _.getTagName(tags[i]), _.isValuable(_.getTagName(tags[i])));
+			if(_.isValuable(_.getTagName(tags[i]))){
+				console.log('Bind to', tags[i], $(tags[i]).get());
 				$(tags[i]).change(function(){
 					self.set($(this).val());
 				})
@@ -413,7 +427,7 @@
 	Cell.prototype.updateDOMElement = function() {
 		var val = this.get();
 		this.DOMElement.each(function(){
-			if (_.isValuable(_.tagName($(this)))){
+			if (_.isValuable(_.getTagName($(this)))){
 				$(this).val(val);
 			} else {
 				$(this).html(val);
@@ -600,46 +614,6 @@
 		this.changers.push(func);
 	}
 
-	var collect_values = function(obj) {
-		var res = {};
-		for (var i in obj) {
-			if(_.isReservedName(i) || _.isHTMLCell(i)) continue;
-			res[i] = obj[i].get();
-		}
-		return res;
-	}
-
-	var gather_form_values = function(selector, scope, clear) {
-		var res = {};
-		$(selector + " input", scope).each(function() {
-			var val = '';
-			switch ($(this).attr('type')) {
-				case 'checkbox':
-					val = !!$(this).attr('checked');
-				break;
-				case 'submit':
-					
-				break;
-				case 'text':
-					val = $(this).val();
-					if (clear) {
-						$(this).val('');
-					}
-				break;
-				case 'hidden':
-					val = $(this).val();
-				break;
-			}
-			res[$(this).attr('name')] = val;
-		})
-		$(selector + " textarea", scope).each(function() {
-			res[$(this).attr('name')] = $(this).val();
-		})
-		return res;
-	}
-
-	var custom_event_drivers = {}
-
 	var Event = function(selector, host) {
 		this.host = host;
 		this.selector = selector.split("|")[0];
@@ -659,8 +633,8 @@
 	}
 
 	Event.prototype.rebind = function() {
-		if (custom_event_drivers[this.event]) {
-			custom_event_drivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
+		if (customEventDrivers[this.event]) {
+			customEventDrivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
 		} else {
 			var prc = this.process.bind(this);
 			var $el, sel = this.getSelector(), processor = function(e){
@@ -773,21 +747,9 @@
 			error(func + 'not implemented yet');
 		}
 	}
-	
 	var types = {
 		cell: Cell,
 		event: Event
-	}
-
-	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick'];
-
-
-	var get_cell_type = function(cellname) {
-		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
-	}
-
-	var is_int = function(joe) {
-		return Number(joe) == joe;
 	}
 
 	var make_window_between_hashes = function(parent, child, config) {
@@ -1012,6 +974,156 @@
 				if(this.changers[fields[i]]) this.changers[fields[i]] = [];
 				this.changers[fields[i]].push(func);
 			}
+		},
+		init_with_data: function(hash) {
+			for (var i in hash) {
+				var cell = this.create_cell_or_event(i);
+				if (hash[i] instanceof Array) {
+					for (var j in hash[i]) {
+						if (!(hash[i][j] instanceof Object)) {
+							hash[i][j] = {item: hash[i][j]};
+						}
+					}
+					var list = new window[lib_var_name].list({$data: hash[i]}, {host: this});
+					cell.are(list);
+				} else {
+					if (hash[i] instanceof Object) {
+						// Ready Firera List object
+					} else {
+						cell.just(hash[i]);
+					}
+				}
+
+			}
+			return true;
+		},
+		get: function(){
+			return collect_values(this.getAllVars());
+		},
+		setHost: function(host) {
+			this.host = host;
+		},
+		unbindToDOM: function() {
+			var vars = this.getAllVars();
+			for (var i in vars) {
+				if (vars[i].unbindToDOM)
+					vars[i].unbindToDOM();
+			}
+			return this;
+		},
+		applyTo: function(selector_or_element) {
+			var check = false;
+			if(selector_or_element === 'body') check = true;
+			if (selector_or_element instanceof Object) {// JQuery object
+				this.rootElement = selector_or_element;
+			} else {// rare case, only for root objects
+				this.rootElement = $(selector_or_element);
+			}
+			this.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
+		},
+		updateVarsBindings: function() {
+			if (this.isSingleVar) {
+				this.getVar("__val").bindToDOM(this.getScope());
+			} else {
+				var cell, frs = _.$searchAttrNotNested(this.getScope().get()[0], 'data-fr', true);
+				for (var i in frs) {
+					if (cell = this.getVar(frs[i].name)) {
+						if (cell.bindToDOM) {
+							cell.DOMElement = false;
+							cell.bindToDOM($(frs[i].el));
+						}
+					}
+				}
+			}
+			return this;
+		},
+		updateMixins: function() {
+			for (var context in this.mixins) {
+				for (var j in this.mixins[context]) {
+					if (context == 'root') {
+						this.mixins[context][j].applyTo(this.getScope())
+					} else {
+						var root = $(context, this.getScope());
+						this.mixins[context][j].applyTo(root);
+					}
+				}
+			}
+			return this;
+		},
+		checkForTemplate: function() {
+			if (!this.noTemplateRenderingAllowed) {
+				var template = $.trim(this.getScope().html());
+				this.template_source = 'HTML';
+				if (!template) {
+					if (!this.getVar('$template')) {
+						template = _.getDefaultTemplate(this.getVarNames());
+						this.template_source = 'generated';
+						this("$template").set(template);
+					} else {
+						this.template_source = 'props';
+					}
+				}
+			}
+			return this;
+		},
+		refreshTemplate: function(){
+			if(this.getScope()){
+				var template = this('$template').get();
+				this.getScope().html(template);
+				this.updateVarsBindings().updateDOMBindings().updateMixins();
+			}
+			return this;
+		},
+		getRebindableVars: function() {
+			var vars = this.getAllVars();
+			var res = {};
+			if (this.host && this.host.shared) {
+				var shared_vars = this.host.shared.getAllVars();
+				for (var j in shared_vars) {
+					if (!_.isReservedName(j)) {
+						res[j] = shared_vars[j];
+					}
+				}
+			}
+			for(var i in vars){
+				if(!_.isReservedName(i)){
+					res[i]  = vars[i];
+				}
+			}
+			return res;
+		},
+		updateDOMBindings: function() {
+			var vars = this.getRebindableVars();
+			for (var i in vars) {
+				if(vars[i] instanceof Event) continue;
+				if (vars[i].applyTo) {
+					vars[i].applyTo();
+				} else {
+					vars[i].rebind();
+				}
+			}
+			return this;
+		},
+		attachEventHandlers: function(){
+			var vars = this.getRebindableVars();
+			for (var i in vars) {
+				if(!(vars[i] instanceof Event)) continue;
+				vars[i].rebind();
+			}
+			return this;
+		},
+		remove: function() {
+			this.getScope().remove();
+			for (var i in this.vars) {
+				// unbind each cell
+				if (this.vars[i] instanceof Cell) {
+					this.vars[i].remove();
+				}
+			}
+			return true;
+		},
+		isShared: function(){
+			return this.host && this.host.shared === this;
 		}
 	}
 	
@@ -1132,189 +1244,20 @@
 			}
 			return true;
 		}
-		//////////////////////////////////////////
-		var init_with_data = function(hash) {
-			for (var i in hash) {
-				var cell = self.create_cell_or_event(i);
-				if (hash[i] instanceof Array) {
-					for (var j in hash[i]) {
-						if (!(hash[i][j] instanceof Object)) {
-							hash[i][j] = {item: hash[i][j]};
-						}
-					}
-					var list = new window[lib_var_name].list({$data: hash[i]}, {host: self});
-					cell.are(list);
-				} else {
-					if (hash[i] instanceof Object) {
-						// Ready Firera List object
-					} else {
-						cell.just(hash[i]);
-					}
-				}
-
-			}
-			return true;
-		}
-
 		self.update = function(hash) {
-			init_with_hash(hash, self.config);
-			if (self.getScope()) {
-				self.checkForTemplate().refreshTemplate();
+			init_with_hash(hash, this.config);
+			if (this.getScope()) {
+				this.updateVarsBindings().updateDOMBindings().updateMixins();
 			}
 		}
-
-		//////////////////////////////////////////		
-
-		self.setHost = function(host) {
-			self.host = host;
-		}
-
-		self.unbindToDOM = function() {
-			var vars = self.getAllVars();
-			for (var i in vars) {
-				if (vars[i].unbindToDOM)
-					vars[i].unbindToDOM();
-			}
-			return self;
-		}
-
-		self.applyTo = function(selector_or_element) {
-			var check = false;
-			if(selector_or_element === 'body') check = true;
-			if (selector_or_element instanceof Object) {// JQuery object
-				self.rootElement = selector_or_element;
-			} else {// rare case, only for root objects
-				self.rootElement = $(selector_or_element);
-			}
-			self.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
-		}
-
-		self.updateVarsBindings = function() {
-			if (self.isSingleVar) {
-				self.getVar("__val").bindToDOM(this.getScope());
-			} else {
-				var cell, frs = _.$searchAttrNotNested(self.getScope().get()[0], 'data-fr', true);
-				for (var i in frs) {
-					if (cell = self.getVar(frs[i].name)) {
-						if (cell.bindToDOM) {
-							cell.DOMElement = false;
-							cell.bindToDOM($(frs[i].el));
-						}
-					} else {
-						//console.log('we coudnt bind var', frs[i].name);
-					}
-				}
-			}
-		}
-
-		self.updateMixins = function() {
-			for (var context in self.mixins) {
-				for (var j in self.mixins[context]) {
-					if (context == 'root') {
-						self.mixins[context][j].applyTo(self.getScope())
-					} else {
-						var root = $(context, self.getScope());
-						self.mixins[context][j].applyTo(root);
-					}
-				}
-			}
-		}
-
-		self.checkForTemplate = function() {
-			if (!self.noTemplateRenderingAllowed) {
-				var template = $.trim(self.getScope().html());
-				self.template_source = 'HTML';
-				if (!template) {
-					if (!self.getVar('$template')) {
-						template = _.getDefaultTemplate(self.getVarNames());
-						self.template_source = 'generated';
-						self("$template").set(template);
-					} else {
-						self.template_source = 'props';
-					}
-				}
-			}
-			return self;
-		}
-
-		self.refreshTemplate = function(){
-			if(self.getScope()){
-				var template = self('$template').get();
-				self.getScope().html(template);
-				self.updateVarsBindings();
-				self.updateDOMBindings();
-				self.updateMixins();
-			}
-			return self;
-		}
-
-		self.getRebindableVars = function() {
-			var vars = self.getAllVars();
-			var res = {};
-			if (self.host && self.host.shared) {
-				var shared_vars = self.host.shared.getAllVars();
-				for (var j in shared_vars) {
-					if (!_.isReservedName(j)) {
-						res[j] = shared_vars[j];
-					}
-				}
-			}
-			for(var i in vars){
-				if(_.isReservedName(i)){
-					res[i]  = vars[i];
-				}
-			}
-			return res;
-		}
-
-		self.updateDOMBindings = function() {
-			var vars = self.getRebindableVars();
-			for (var i in vars) {
-				//if(i == 'root|html') continue;
-				if(vars[i] instanceof Event) continue;
-				if (vars[i].applyTo) {
-					vars[i].applyTo();
-				} else {
-					vars[i].rebind();
-				}
-			}
-		}
-
-		self.attachEventHandlers = function(){
-			var vars = self.getRebindableVars();
-			for (var i in vars) {
-				if(!(vars[i] instanceof Event)) continue;
-				vars[i].rebind();
-			}
-			return self;
-		}
-
-		self.remove = function() {
-			self.getScope().remove();
-			for (var i in self.vars) {
-				// unbind each cell
-				if (self.vars[i] instanceof Cell) {
-					self.vars[i].remove();
-				}
-			}
-			return true;
-		}
-
-		self.get = function() {
-			return collect_values(self.getAllVars());
-		}
-
-		self.isShared = function(){
-			return this.host && this.host.shared === this;
-		}
-
+		//////////////////////////////////////////	
 		if (init_hash instanceof Function) {
 			init_hash = {__setup: init_hash};
 		}
 
 		if (init_hash) {
 			if (init_hash.$data && (!params || !params.skip_data)) {
-				init_with_data(init_hash.$data);
+				self.init_with_data(init_hash.$data);
 			}
 			self.update(init_hash);
 		}
@@ -1446,7 +1389,7 @@
 			}
 			this.getScope().html('');
 		}
-		switch (_.tagName(re)) {
+		switch (_.getTagName(re)) {
 			case 'ul':
 			case 'ol':
 			case 'menu':
@@ -1537,8 +1480,8 @@
 			// Hm... remove all or nothing?
 			return;
 		}
-		if (is_int(func)) {
-			if(end && is_int(end) && Number(end) > Number(func)){
+		if (_.isInt(func)) {
+			if(end && _.isInt(end) && Number(end) > Number(func)){
 				for(var i = Number(func); i <= Number(end); i++){
 					this.remove(i);
 				}
@@ -1914,17 +1857,56 @@
 	}
 	
 	Firera.addCustomEventDriver = function(name, func){
-		if(custom_event_drivers[name]){
+		if(customEventDrivers[name]){
 			error('Custom driver already assigned: ', name); return;
 		}
-		custom_event_drivers[name] = func;
+		customEventDrivers[name] = func;
 	}
 	
-	//////////
-	//////////
-	////////// ADDING CORE CUSTOM AND HTML DRIVERS
-	//////////
-	//////////
+	var lib_var_name = 'Firera';
+	if (window[lib_var_name] !== undefined) {
+		throw new Exception('Cant assign Firera library, varname already taken: ' + lib_var_name);
+	} else {
+		window[lib_var_name] = Firera;
+	}
+})();
+
+
+//////////
+//////////
+////////// ADDING CORE CUSTOM AND HTML DRIVERS
+//////////
+//////////
+(function(){
+
+	var gather_form_values = function(selector, scope, clear) {
+		var res = {};
+		$(selector + " input", scope).each(function() {
+			var val = '';
+			switch ($(this).attr('type')) {
+				case 'checkbox':
+					val = !!$(this).attr('checked');
+				break;
+				case 'submit':
+					
+				break;
+				case 'text':
+					val = $(this).val();
+					if (clear) {
+						$(this).val('');
+					}
+				break;
+				case 'hidden':
+					val = $(this).val();
+				break;
+			}
+			res[$(this).attr('name')] = val;
+		})
+		$(selector + " textarea", scope).each(function() {
+			res[$(this).attr('name')] = $(this).val();
+		})
+		return res;
+	}
 	
 	var core = {
 		customGetters: {
@@ -1998,7 +1980,7 @@
 						$(this).attr('data-value', items.index($(this)));
 					}
 				}); //just return index! 
-				if (_.tagName($el) === 'select') {
+				if (_.getTagName($el) === 'select') {
 					var onChange = function() {
 						self.set($el.val());
 					}
@@ -2503,11 +2485,4 @@
 		}
 		return this.sync.call(this, default_params);
 	});
-
-	var lib_var_name = 'Firera';
-	if (window[lib_var_name] !== undefined) {
-		throw new Exception('Cant assign Firera library, varname already taken: ' + lib_var_name);
-	} else {
-		window[lib_var_name] = Firera;
-	}
 })()
