@@ -13,14 +13,31 @@
 	String.prototype.notContains = function(s){
 		return this.indexOf(s) === -1;
 	}
+	
+	var debug_level = 1;// 0 - no messages shown
+	var debug = (function(level){
+		if(level === 0){
+			return function(){}
+		} else {
+			return function(){
+				console.log.apply(console, ['DEBUG: '].concat(Array.prototype.slice.call(arguments)));
+			}
+		}
+	})(debug_level)
+	var error = function() {
+		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
+		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
+	}
 
 	///// 
 	///// 
 	///// UTILITIES
 	///// 
-	///// 
-	{
-		var filterFields = function(data, fields){
+	///// Dirty functions names should begin with "$"
+	var utils = {
+
+		
+		filterFields: function(data, fields){
 			var res = {};
 			if(fields === true || fields === '*') fields = false;
 			for(var i in data){
@@ -29,21 +46,41 @@
 				}
 			}
 			return res;
-		}
+		},
 		
-		var reserved_cellnames = function(name){
+		$remove: function(obj, val){
+			for(var i in obj){
+				if(obj[i] == val){
+					delete obj[i];
+				}
+			}
+		},
+		
+		$getScopedElement: function(selector, $scope){
+			if(selector === '' || selector === 'root'){
+				return $scope;
+			} else {
+				return $(selector, $scope);
+			}
+		},
+		
+		isReservedName: function(name){
 			return name[0] === '$';
-		}
+		},
+		
+		isHTMLCell: function(name){
+			return name.indexOf('|') !== -1;
+		},
 
-		var existy = function(a) {
+		existy: function(a) {
 			return (a !== undefined) && (a !== null);
-		}
+		},
 
-		function isInt(n) {
+		isInt: function(n) {
 			return n % 1 == 0;
-		}
+		},
 
-		var tagName = function($el) {
+		tagName: function($el) {
 			if($el instanceof Node){
 				return $el.tagName;
 			}
@@ -51,9 +88,9 @@
 				return $el.get()[0].tagName.toLowerCase()
 			else
 				return '';
-		}
+		},
 
-		var search_attr_not_nested = function(element, attr, skip_root) {
+		$searchAttrNotNested: function(element, attr, skip_root) {
 			var res = [];
 			var searcher = function(el, skip_root) {
 				if (!el)
@@ -68,20 +105,30 @@
 			}
 			searcher(element, skip_root);
 			return res;
-		}
+		},
+		
+		getTypeOfCellByName: function(name){
+			if(name[0] === '$') return 'custom';
+			if(name.indexOf('|') !== -1) return 'HTML';
+			return 'common';
+		},
 
-		var is_valuable = function(tag) {
-			return ['input', 'select', 'textarea'].indexOf(tag.toLowerCase()) !== -1;
-		}
+		isValuable: function(tagname) {
+			return ['input', 'select', 'textarea'].indexOf(tagname.toLowerCase()) !== -1;
+		},
 
-		var join_object_attrs = function(a, b){
-			for(var i in b){
-				a[i] = b[i];
+		getMergedObject: function(a, b){
+			var res = {};
+			for(var i in a){
+				res[i] = a[i];
 			}
-			return a;
-		}
+			for(var i in b){
+				res[i] = b[i];
+			}
+			return res;
+		},
 
-		var generate_default_template = function(vars) {
+		getDefaultTemplate: function(vars) {
 			if (vars.length === 1 && vars[0] === '__val'){
 				//return '';
 			}
@@ -91,31 +138,23 @@
 				res.push('<div data-fr="' + vars[i] + '"></div>');
 			}
 			return res.join('');
-		}
+		},
 
-		var attr_getter = function(obj){
+		attrGetter: function(obj){
 			return function(key){
 				//console.log('got', key, 'return', obj[key], 'form', obj);
 				return obj[key] ? obj[key] : '';
 			}
-		}
+		},
 
-		var HTMLDrivers = {};
-		var customDrivers = {};
-
-		var error = function() {
-			//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
-			console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
-		}
-
-		var obj_join = function(a, b, overwrite) {
+		$objJoin: function(a, b, overwrite) {
 			for (var i in a) {
 				if (!b[i] || overwrite)
 					b[i] = a[i];
 			}
-		}
+		},
 
-		var get_map_func = function(func) {
+		getMapFunc: function(func) {
 			var res;
 			if (func && !(func instanceof Function)) {// its object property , like "name" or "!completed"
 				if (func.indexOf("!") === 0) {
@@ -137,6 +176,18 @@
 			return res;
 		}
 	}
+	
+	var _ = _ || {};
+	for(var i in utils){
+		if(_[i]){
+			error('Cant assign util function:', i);
+			return;
+		}
+		_[i] = utils[i];
+	}
+
+	var HTMLDrivers = {};
+	var customDrivers = {};
 
 	var Cell = function(selector, host, params) {
 		if (!host) {
@@ -148,53 +199,48 @@
 		this.deps = [];
 		this.inited = false;
 		this.modifiers = [];
-		this.selector = selector;
 		this.observables = {};
 		this.changers = [];
 		this.observers = [];
-		this.name = this.getName();
-
-		var root_element;
-		if (this.getScope() && selector.notContains("|") && selector[0] !== '$') {
-			if (this.getName() === '__val') {
-				root_element = this.getScope();
-			} else {
-				root_element = $('[data-fr=' + this.getName() + ']', this.getScope());
-			}
-			if (root_element.length) {
-				this.bindToDOM(root_element, this.getName());
-			}
-		}
-
-		if (selector.contains("|")) {// HTML selector
-			var parts = selector.split("|");
-			this.jquerySelector = parts[0];
-			if (parts[1].contains("(")) {
-				// there are some params
-				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-				this.params = m[2].split(",");
-				parts[1] = m[1];
-			}
-			if (!HTMLDrivers[parts[1]]) {
-				error('Unknown driver: ' + parts[1]);
-				return;
-			}
-			var driver = this.driver = HTMLDrivers[parts[1]];
-			if (driver.def) this.val = driver.def;
-			this.rebind = function() {
-				this.HTMLElement = false;// abort link to old element
-				driver.getter && driver.getter.apply(this, [this.getElement()].concat(this.params));
-				if (this.driver.setter && this.getScope()) {
-					this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
+		var name = this.name = selector;
+		
+		switch(_.getTypeOfCellByName(this.getName())){
+			case 'common':
+				if (this.getScope()) {
+					var root_element = name === '__val' ? this.getScope() : $('[data-fr=' + this.getName() + ']', this.getScope());
+					if (root_element.length) {
+						this.bindToDOM(root_element, this.getName());
+					}
 				}
-				return this;
-			}
-			driver.getter && this.getScope() && this.rebind('cell constructor');
-			
-		} else { // this is just custom abstract varname
-			params && params.dumb && (this.dumb = true);
-			if(this.getName()[0] === '$'){// its a custom var!
-				var driver_name = this.getName().slice(1);
+				params && params.dumb && (this.dumb = true);
+			break;
+			case 'HTML':
+				var parts = name.split("|");
+				this.jquerySelector = parts[0];
+				if (parts[1].contains("(")) {
+					// there are some params
+					var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+					this.params = m[2].split(",");
+					parts[1] = m[1];
+				}
+				if (!HTMLDrivers[parts[1]]) {
+					error('Unknown driver: ' + parts[1]);
+					return;
+				}
+				var driver = this.driver = HTMLDrivers[parts[1]];
+				if (driver.def) this.val = driver.def;
+				this.rebind = function() {
+					this.HTMLElement = false;// abort link to old element
+					driver.getter && driver.getter.apply(this, [this.getElement()].concat(this.params));
+					if (this.driver.setter && this.getScope()) {
+						this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
+					}
+					return this;
+				}
+				driver.getter && this.getScope() && this.rebind('cell constructor');
+			break;
+			case 'custom':
+				var driver_name = name.slice(1);
 				if (!customDrivers[driver_name]) {
 					error('Unknown custom driver: ' + driver_name);
 					return;
@@ -210,12 +256,12 @@
 				if(driver.getter){
 					driver.getter.apply(this, [this.getElement()].concat(this.params));
 				}
-			}
+			break;
 		}
 	}
 
 	Cell.prototype.getName = function() {
-		return this.selector;
+		return this.name;
 	}
 
 	Cell.prototype.getElement = function() {
@@ -362,7 +408,7 @@
 		var self = this;
 		var tags = $el.get();
 		for(var i in tags){
-			if(is_valuable(tagName(tags[i]))){
+			if(_.isValuable(_.tagName(tags[i]))){
 				$(tags[i]).change(function(){
 					self.set($(this).val());
 				})
@@ -384,7 +430,7 @@
 	Cell.prototype.updateDOMElement = function() {
 		var val = this.get();
 		this.DOMElement.each(function(){
-			if (is_valuable(tagName($(this)))){
+			if (_.isValuable(_.tagName($(this)))){
 				$(this).val(val);
 			} else {
 				$(this).html(val);
@@ -409,7 +455,7 @@
 				arr = new List(arr, conf);
 			}
 		}
-		obj_join(this, arr);
+		_.$objJoin(this, arr);
 		arr.setScope(this.DOMElement);
 		this.host.setVar(this.getName(), arr);
 		for (var i in mass) {
@@ -451,7 +497,7 @@
 			self.compute();
 		})
 		//list.addObserver(this);
-		func = get_map_func(func);
+		func = _.getMapFunc(func);
 		this.compute = typical_compute.bind(this, list, func, listname);
 		return this.compute();
 	}
@@ -575,7 +621,7 @@
 		var res = {};
 		for (var i in obj) {
 			if(
-				reserved_cellnames(i)
+				_.isReservedName(i)
 				|| 
 				(i[0] === '$')
 				|| 
@@ -809,7 +855,7 @@
 				config.takes = [config.takes];
 			}
 			for (var i in config.takes) {
-				var varname = isInt(i) ? config.takes[i] : i;
+				var varname = _.isInt(i) ? config.takes[i] : i;
 				if(!parent.getVar(config.takes[i])){
 					//error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
 					//return;
@@ -822,7 +868,7 @@
 				config.gives = [config.gives];
 			}
 			for (var i in config.gives) {
-				var varname = isInt(i) ? config.gives[i] : i;
+				var varname = _.isInt(i) ? config.gives[i] : i;
 				if(!child.getVar(config.gives[i])){
 					//error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
 					//return;
@@ -848,7 +894,7 @@
 							host = this.host.host;
 						}
 				} else {
-					if(isInt(member)){ // its part of list
+					if(_.isInt(member)){ // its part of list
 						if(this instanceof List && this.list){
 							host = this.list[member];
 						} else {
@@ -1006,7 +1052,7 @@
 					this.changers[cellname][j](cellname, prev_val, new_val);
 				}
 			}
-			if(reserved_cellnames(cellname)) return;
+			if(_.isReservedName(cellname)) return;
 			if(this.changers['_all']){
 				for(var j in this.changers['_all']){
 					this.changers['_all'][j](cellname, prev_val, new_val);
@@ -1034,10 +1080,7 @@
 	/////
 
 	var Firera = function(init_hash, params) {
-		var get_context = function() {
-
-		};
-
+		debug('New hash created', init_hash, params);
 		var self = function(selector) {
 			if (selector instanceof Function)
 				return self({__setup: selector});
@@ -1062,9 +1105,6 @@
 		for (var i in hash_methods) {
 			self[i] = hash_methods[i];
 		}
-
-		get_context = self.getScope.bind(self);
-
 
 		//////////////////////////////////////////
 		var init_with_hash = function(selector, params) {
@@ -1211,7 +1251,7 @@
 			if (self.isSingleVar) {
 				self.getVar("__val").bindToDOM(this.getScope());
 			} else {
-				var cell, frs = search_attr_not_nested(self.getScope().get()[0], 'data-fr', true);
+				var cell, frs = _.$searchAttrNotNested(self.getScope().get()[0], 'data-fr', true);
 				for (var i in frs) {
 					if (cell = self.getVar(frs[i].name)) {
 						if (cell.bindToDOM) {
@@ -1244,7 +1284,7 @@
 				self.template_source = 'HTML';
 				if (!template) {
 					if (!self.getVar('$template')) {
-						template = generate_default_template(self.getVarNames());
+						template = _.getDefaultTemplate(self.getVarNames());
 						self.template_source = 'generated';
 						self("$template").set(template);
 					} else {
@@ -1272,7 +1312,7 @@
 			if (self.host && self.host.shared) {
 				var shared_vars = self.host.shared.getAllVars();
 				for (var j in shared_vars) {
-					if (!reserved_cellnames(j)) {
+					if (!_.isReservedName(j)) {
 						res[j] = shared_vars[j];
 					}
 				}
@@ -1422,7 +1462,7 @@
 		if (init_hash.each) {
 			this.each_is_set = true;
 			this.each(init_hash.each)
-			obj_join(init_hash.each, this.each_hash, true);
+			_.$objJoin(init_hash.each, this.each_hash, true);
 		}
 	}
 
@@ -1456,15 +1496,15 @@
 		if (!this.shared.getVar('$template') && inline_template) {
 			this.template_source = 'HTML';
 			if(has_states){
-				//this.shared('$template').is(attr_getter(states), '$state');
-				this.each({$template: [attr_getter(states), '$state']});
+				//this.shared('$template').is(_.attrGetter(states), '$state');
+				this.each({$template: [_.attrGetter(states), '$state']});
 			} else {
 				//this.shared('$template').just(inline_template);
 				this.each({$template: ['just', inline_template]});
 			}
 			this.getScope().html('');
 		}
-		switch (tagName(re)) {
+		switch (_.tagName(re)) {
 			case 'ul':
 			case 'ol':
 			case 'menu':
@@ -1573,7 +1613,7 @@
 			}
 			return;
 		}
-		var f = get_map_func(func);
+		var f = _.getMapFunc(func);
 		for (var i in this.list) {
 			if (f.apply(this.list[i].get())) {
 				this.changeItem('delete', i);
@@ -1888,7 +1928,6 @@
 		}
 		customDrivers[name] = {
 			getter: function(){
-				console.log('context is', this);
 				if(!this.host || !this.host.isShared()){
 					error('Cant run list getter of a non-list!', this);
 					return;
@@ -2010,7 +2049,7 @@
 						$(this).attr('data-value', items.index($(this)));
 					}
 				}); //just return index! 
-				if (tagName($el) === 'select') {
+				if (_.tagName($el) === 'select') {
 					var onChange = function() {
 						self.set($el.val());
 					}
@@ -2120,7 +2159,7 @@
 			},
 			'if': function(cond, then, otherwise) {
 				return [function(flag) {
-					return flag ? (existy(then) ? then : true) : (existy(otherwise) ? otherwise : false);
+					return flag ? (_.existy(then) ? then : true) : (_.existy(otherwise) ? otherwise : false);
 				}, cond];
 			},
 			gets: function() {
@@ -2133,7 +2172,7 @@
 					dataType: 'json',
 				}
 				if(url instanceof Object){// it's params
-					join_object_attrs(req, url);
+					req = _.getMergedObject(req, url);
 				} else {
 					if (url.notContains('/')) {// its varname !!!! may be /parent!
 						args.unshift(url);
@@ -2257,7 +2296,7 @@
 			
 		};
 		var getRequest = function(data){
-			return join_object_attrs(data, getContext());
+			return _.getMergedObject(data, getContext());
 		};
 		var needed_params = {
 			
@@ -2303,6 +2342,7 @@
 			},
 			deleteMethod: 'DELETE'// HTTP method, default is DELETE
 		};
+		needed_params = _.getMergedObject(needed_params, params);
 		
 		var getData = function(key){
 			if(needed_params[key] instanceof Function){
@@ -2316,7 +2356,6 @@
 			return needed_params[key];
 		}
 		
-		join_object_attrs(needed_params, params);
 		
 		// forming params done! Now, attaching handlers...
 		
@@ -2324,7 +2363,7 @@
 		this.onChangeItem('create', function(_, itemnum){
 			if(list.dontfirechange) return;
 			var fields = getData('fields');
-			var data = filterFields(list.list[itemnum].get(), fields);
+			var data = _.filterFields(list.list[itemnum].get(), fields);
 			data = getFunc('createRequest')(data);
 			$.ajax({
 				url: getData('createURL', name, data),
@@ -2343,7 +2382,7 @@
 					if(list.dontfirechange) return;
 					
 					console.log(arguments);
-					var where_fields = filterFields(list.list[itemnum].get(), getData('idFields'));
+					var where_fields = _.filterFields(list.list[itemnum].get(), getData('idFields'));
 					var req = {};
 					req[field] = new_val;
 					var data = getData('getUpdateRequestData', req, where_fields);
@@ -2377,7 +2416,7 @@
 				list._sync = {
 					update: function(number){
 						var h = list.list[number], c = change_values_hash[number];
-						var where_fields = filterFields(h.get(), getData('idFields'));
+						var where_fields = _.filterFields(h.get(), getData('idFields'));
 						var data = {};
 						for(var i in c){
 							data[i] = h(i).get();
@@ -2416,7 +2455,7 @@
 		
 		this.onChangeItem('delete', function(_, itemnum){			
 			var fields = getData('fields');
-			var data = filterFields(filterFields(list.list[itemnum].get(), fields), getData('idFields'));
+			var data = _.filterFields(_.filterFields(list.list[itemnum].get(), fields), getData('idFields'));
 			data = getFunc('deleteRequest')(data);
 			$.ajax({
 				url: getData('deleteURL', name),
@@ -2433,7 +2472,7 @@
 			case 'once':
 				var dt = {};
 				for(var i in contextvars){
-					if(isInt(i)){// its array
+					if(_.isInt(i)){// its array
 						dt[contextvars[i]] = list.shared(contextvars[i]).get();
 					} else {
 						dt[i] = list.shared(contextvars[i]).get();
