@@ -134,7 +134,7 @@
 			}
 			var res = [];
 			for (var i in vars) {
-				if (vars[i].contains('|')) continue;
+				if (_.isHTMLCell(vars[i])) continue;
 				res.push('<div data-fr="' + vars[i] + '"></div>');
 			}
 			return res.join('');
@@ -307,17 +307,9 @@
 		this.observers.push(cell);
 	}
 
-	Cell.prototype.removeObserver = function(cell) {
-		for (var i in this.observers) {
-			if (this.observers[i] === cell) {
-				delete this.observers[i];
-			}
-		}
-	}
+	Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
 
 	Cell.prototype.get = function() {
-		//console.log('we call get, got', this.val, 'in', this.getName());
-		//console.dir(this.host);
 		return this.val;
 	}
 
@@ -368,10 +360,8 @@
 	}
 
 	Cell.prototype.updateObservers = function(name) {
-		if (this.observers) {
-			for (var i in this.observers) {
-				this.observers[i].compute(name);
-			}
+		for (var i in this.observers) {
+			this.observers[i].compute(name);
 		}
 	}
 
@@ -379,14 +369,7 @@
 		this.set(val);// just a value
 		return this;
 	}
-
-	Cell.prototype.or = function() {
-		return this;
-	}
-
-	Cell.prototype.orJust = function() {
-		return this;
-	}
+	
 	Cell.prototype.load = function(url) {
 		var self = this;
 		$.get(url, function(data) {
@@ -531,7 +514,7 @@
 			&& (
 				this.getScope() 
 				|| 
-				this.getName()[0] === '$'
+				_.isReservedName(this.getName())
 			)
 		) {
 			this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
@@ -620,31 +603,10 @@
 	var collect_values = function(obj) {
 		var res = {};
 		for (var i in obj) {
-			if(
-				_.isReservedName(i)
-				|| 
-				(i[0] === '$')
-				|| 
-				(i.contains("|"))
-			) continue;
+			if(_.isReservedName(i) || _.isHTMLCell(i)) continue;
 			res[i] = obj[i].get();
 		}
 		return res;
-	}
-	var collect_names = function(obj) {
-		var res = [];
-		for (var i in obj) {
-			if (i.contains("|")) continue;
-			res.push(i);
-		}
-		return res;
-	}
-
-	var make_template = function(obj, templ) {
-		for (var i in obj) {
-			templ = templ.replace("{" + i + "}", obj[i]);
-		}
-		return templ;
 	}
 
 	var gather_form_values = function(selector, scope, clear) {
@@ -654,19 +616,19 @@
 			switch ($(this).attr('type')) {
 				case 'checkbox':
 					val = !!$(this).attr('checked');
-					break;
+				break;
 				case 'submit':
-					return;
-					break;
+					
+				break;
 				case 'text':
 					val = $(this).val();
 					if (clear) {
 						$(this).val('');
 					}
-					break;
+				break;
 				case 'hidden':
 					val = $(this).val();
-					break;
+				break;
 			}
 			res[$(this).attr('name')] = val;
 		})
@@ -676,27 +638,7 @@
 		return res;
 	}
 
-	var custom_event_drivers = {
-		submit: function(selector, scope, callback) {
-			var submitters = $(selector + " input[type=submit]", scope);
-			if (submitters.length < 1) {
-				submitters = $(selector + " .firera-submitter", scope);
-			}
-			if (submitters.length === 1) {// ok, binding
-				submitters.bind('click', function(e) {
-					var hash = gather_form_values(selector, scope, true);
-					callback(e, hash, scope);
-					return false;
-				});
-			} else {
-				if (submitters.length > 1) {
-					error('Multiple submitters found!');
-				} else {
-					error('No submitters found! (' + selector + " input[type=submit]" + ")");
-				}
-			}
-		}
-	}
+	var custom_event_drivers = {}
 
 	var Event = function(selector, host) {
 		this.host = host;
@@ -841,7 +783,7 @@
 
 
 	var get_cell_type = function(cellname) {
-		return (cellname.notContains("|") || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
+		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
 	}
 
 	var is_int = function(joe) {
@@ -1318,7 +1260,7 @@
 				}
 			}
 			for(var i in vars){
-				if(i[0] !== '$'){
+				if(_.isReservedName(i)){
 					res[i]  = vars[i];
 				}
 			}
@@ -1971,6 +1913,13 @@
 		}
 	}
 	
+	Firera.addCustomEventDriver = function(name, func){
+		if(custom_event_drivers[name]){
+			error('Custom driver already assigned: ', name); return;
+		}
+		custom_event_drivers[name] = func;
+	}
+	
 	//////////
 	//////////
 	////////// ADDING CORE CUSTOM AND HTML DRIVERS
@@ -2247,7 +2196,32 @@
 				];
 				return args;
 			}
+		},
+		customEventDrivers: {
+			submit: function(selector, scope, callback) {
+				var submitters = $(selector + " input[type=submit]", scope);
+				if (submitters.length < 1) {
+					submitters = $(selector + " .firera-submitter", scope);
+				}
+				if (submitters.length === 1) {// ok, binding
+					submitters.bind('click', function(e) {
+						var hash = gather_form_values(selector, scope, true);
+						callback(e, hash, scope);
+						return false;
+					});
+				} else {
+					if (submitters.length > 1) {
+						error('Multiple submitters found!');
+					} else {
+						error('No submitters found! (' + selector + " input[type=submit]" + ")");
+					}
+				}
+			}
 		}
+	}
+	
+	for(var name in core.customEventDrivers){
+		Firera.addCustomEventDriver(name, core.customEventDrivers[name]);
 	}
 	
 	for(var name in core.customGetters){
