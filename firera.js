@@ -513,7 +513,7 @@
 	}
 	
 	Cell.prototype.alias = function(name) {
-		this.host.aliases[this.getName()] = name;
+		this.host.aliases[this.getName()] = this.host(name);
 		this.host.removeVar(this.getName());
 	}
 
@@ -892,7 +892,10 @@
 			return this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
 		},
 		getVar: function(name) {
-			var vr = this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
+			var vr = this.vars[name];
+			if(!vr && this.aliases[name]){
+				return this.aliases[name];
+			}
 			if (
 				!vr
 				&& this.host
@@ -2545,27 +2548,63 @@
 		var fields_to_pick = [];
 		var field_cells = {};
 		var cell_fields = {};
+		var parse_url_func;
 		var set_url = function(x, config){
 			var args = [];
 			var handlers = [];
+			var types = [];
 			for(var i in config.fields){
-				var f = config.fields[i];
-				var cellname = f['cell'], fieldname = f['key'] || f['cell'];
+				var f = config.fields[i], fieldname;
+				f.key = fieldname = f['key'] || f['cell'];
+				var cellname = f['cell'];
 				fields_to_pick.push(cellname);
 				cell_fields[cellname] = fieldname;
 				field_cells[fieldname] = cellname;
 				args.push(main_app_hash(cellname));
+				types.push(f['type']);
 				handlers.push(possible_handlers[f['type']].bind(null, fieldname));
 			}
 			args.unshift(function(){
-				var url = [];
+				var path_url = [], context;
+				var param_url = [];
 				for(var i in handlers){
-					url.push(handlers[i](arguments[i] || ''));
+					context = types[i] === 'param' ? param_url : path_url;
+					context.push(handlers[i](arguments[i] || ''));
 				}
-				return url.join('/');
+				return (path_url ? '' + path_url.join("/") : '') + (param_url ? '?' + param_url.join("&") : '');
 			})
 			self("url").is.apply(self("url"), args);
+		
+			var parse_url = function(){
+				var tail = location.pathname.replace(prefix, "");
+				var parts = tail.split('/');
+				var data = {};
+				var p = 0;
+				var c = 0;
+				while(parts[p]){
+					if(types[c] === 'val'){
+						data[config.fields[c].cell] = parts[p];
+						p++;
+						c++;
+						continue;
+					}
+					if(types[c] === 'key/val'){
+						data[config.fields[c].cell] = parts[p + 1];
+						p += 2;
+						c++;
+						continue;
+					}
+				}
+				var req = location.search.slice(1).split('&');
+				for(var i in req){
+					var prt = req[i].split("=");
+					data[field_cells[prt[0]]] = prt[1];
+				}
+				return data;
+			}
+			parse_url_func = parse_url;
 		}
+		
 		self('config').onChange(set_url);
 		var prefix;
 		switch(config.prefix){
@@ -2580,9 +2619,13 @@
 			default:
 				prefix = config.prefix;
 		}
-		
+		var skip = true;
 		self('url').onChange(function(old_url, new_url){
-			var url = prefix + '/' + new_url;
+			if(skip){
+				skip = false;
+				return;
+			}
+			var url = prefix + new_url;
 			var state = main_app_hash.get(fields_to_pick);
 			var st = {};
 			for(var i in state){
@@ -2591,6 +2634,10 @@
 			history.pushState(st, null, url);
 		})
 		set_url(null, config);
+		var data = parse_url_func();
+		for(var i in data){
+			main_app_hash(i).set(data[i]);
+		}
 		window.onpopstate = function(e){
 			var state = e.state;
 			for(var field in state){
