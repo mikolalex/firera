@@ -49,6 +49,17 @@
 		isInt: function(n) {
 			return n % 1 == 0;
 		},
+		
+		union: function(a, b){
+			var c = {};
+			for(var i in a){
+				c[i] = a[i];
+			}
+			for(var i in b){
+				c[i] = b[i];
+			}
+			return c;
+		},
 
 		getTagName: function($el) {
 			if($el instanceof Node){
@@ -995,8 +1006,14 @@
 			}
 			return true;
 		},
-		get: function(){
-			return collect_values(this.getAllVars());
+		get: function(arr){
+			if(!arr) return collect_values(this.getAllVars());
+			var res = {};
+			for(var i in arr){
+				var field = arr[i];
+				res[field] = this(field).get();
+			}
+			return res;
 		},
 		setHost: function(host) {
 			this.host = host;
@@ -1651,16 +1668,6 @@
 	/////
 	Firera.list = List;
 	Firera.hash = Firera;
-	Firera.join = function(a, b){
-		var c = {};
-		for(var i in a){
-			c[i] = a[i];
-		}
-		for(var i in b){
-			c[i] = b[i];
-		}
-		return c;
-	},
 	Firera.dump = function(hash){
 		var res = {
 			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
@@ -1916,7 +1923,18 @@
 			}
 		},
 		customListGetters: {
-			length: function(val) {
+			length: function() {
+					var self = this;
+					var list = this.host.host;
+					list.onChangeItem('delete', function(){
+						self.set(self.get() - 1);
+					})
+					list.onChangeItem('create', function(){
+						self.set(self.get() + 1);
+					})
+					this.set(list.list.length);
+			},
+			selectedItem: function() {
 					var self = this;
 					if(!this.host.isShared()){
 						error('cound not count length of non-list!'); return;
@@ -1929,7 +1947,7 @@
 						self.set(self.get() + 1);
 					})
 					this.set(list.list.length);
-			}
+			},
 		},
 		customListSetters: {
 			datasource: function(val) {
@@ -1967,32 +1985,6 @@
 					self.set(false);
 				})
 			},
-			selectedItem: function($el) {
-				if (!$el.length) {
-					error("No element found by selector ");
-				}
-				var self = this;
-				var items = $el.children();
-				items.each(function() {
-					if (!$(this).attr('data-value')) {
-						$(this).attr('data-value', items.index($(this)));
-					}
-				}); //just return index! 
-				if (_.getTagName($el) === 'select') {
-					var onChange = function() {
-						self.set($el.val());
-					}
-					$el.change(onChange);
-					onChange();
-				} else {
-					items.click(function() {
-						items.removeClass('selected');
-						$(this).addClass('selected');
-						var val = $(this).attr('data-value');
-						self.set(val);
-					})
-				}
-			}
 		},
 		HTMLSetters: {
 			visibility: function(val, $el) {
@@ -2058,6 +2050,46 @@
 								break;
 						}
 					})
+				}
+			},
+			
+			selectedItem: {
+				getter: function($el){
+					if (!$el.length) {
+						error("No element found by selector ");
+					}
+					var self = this;
+					var items = $el.children();
+					items.each(function() {
+						if (!$(this).attr('data-value')) {
+							$(this).attr('data-value', items.index($(this)));
+						}
+					}); //just return index! 
+					if (_.getTagName($el) === 'select') {
+						var onChange = function() {
+							self.set($el.val());
+						}
+						$el.change(onChange);
+						onChange();
+					} else {
+						items.click(function() {
+							items.removeClass('selected');
+							$(this).addClass('selected');
+							var val = $(this).attr('data-value');
+							self._selectedItem_setter_is_in_process = true;
+							self.set(val);
+						})
+					}
+				},
+				setter: function(val, $el){
+					if(this._selectedItem_setter_is_in_process){
+						this._selectedItem_setter_is_in_process = false;
+					} else {
+						if(_.isInt(val)){
+							this._selectedItem_setter_is_in_process = true;
+							$($el.children().get()[val]).click();
+						}
+					}
 				}
 			}
 		},
@@ -2483,4 +2515,80 @@
 		}
 		return this.sync.call(this, default_params);
 	});
-})()
+})();
+
+////// Firera.History
+(function(){
+
+	Firera.startHistory = function(config, main_app_hash){
+		var possible_handlers = {
+			'val': function(key, val){
+				return val;
+			},
+			'key/val': function(key, val){
+				return key + '/' + val;
+			},
+			'param': function(key, val){
+				return key + '=' + val;
+			}
+		}
+		var self = window.hist = Firera.history = new Firera.hash({config: ['just', config]});
+		var fields_to_pick = [];
+		var field_cells = {};
+		var cell_fields = {};
+		var set_url = function(x, config){
+			var args = [];
+			var handlers = [];
+			for(var i in config.fields){
+				var f = config.fields[i];
+				var cellname = f['cell'], fieldname = f['key'] || f['cell'];
+				fields_to_pick.push(cellname);
+				cell_fields[cellname] = fieldname;
+				field_cells[fieldname] = cellname;
+				args.push(main_app_hash(cellname));
+				handlers.push(possible_handlers[f['type']].bind(null, fieldname));
+			}
+			args.unshift(function(){
+				var url = [];
+				for(var i in handlers){
+					url.push(handlers[i](arguments[i] || ''));
+				}
+				return url.join('/');
+			})
+			self("url").is.apply(self("url"), args);
+		}
+		self('config').onChange(set_url);
+		var prefix;
+		switch(config.prefix){
+			case '%filename%':
+				var path = location.pathname.split('/');
+				path.pop();
+				prefix = path.join('/');
+			break;
+			case false:
+				prefix = location.pathname;
+			break;
+			default:
+				prefix = config.prefix;
+		}
+		
+		self('url').onChange(function(old_url, new_url){
+			var url = prefix + '/' + new_url;
+			var state = main_app_hash.get(fields_to_pick);
+			var st = {};
+			for(var i in state){
+				st[cell_fields[i]] = state[i];
+			}
+			history.pushState(st, null, url);
+		})
+		set_url(null, config);
+		window.onpopstate = function(e){
+			var state = e.state;
+			for(var field in state){
+				main_app_hash(field_cells[field]).set(state[field]);
+			}
+		}
+	}
+	
+}());
+
