@@ -511,6 +511,11 @@
 	Cell.prototype.force = function() {
 		this.compute();
 	}
+	
+	Cell.prototype.alias = function(name) {
+		this.host.aliases[this.getName()] = name;
+		this.host.removeVar(this.getName());
+	}
 
 	Cell.prototype.compute = function(name) {
 		if (name && this.observables[name]) {
@@ -884,10 +889,10 @@
 		},
 		///// NEW
 		getOwnVar: function(name) {
-			return this.vars[name];
+			return this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
 		},
 		getVar: function(name) {
-			var vr = this.vars[name];
+			var vr = this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
 			if (
 				!vr
 				&& this.host
@@ -901,6 +906,9 @@
 				vr = this.linked_hash.getVar(name) || false;
 			}
 			return vr;
+		},
+		removeVar: function(name){
+			delete this.vars[name];// !!! unbind also
 		},
 		setVar: function(name, val) {
 			this.vars[name] = val;
@@ -1168,6 +1176,7 @@
 			}
 		}
 		self.changers = {};
+		self.aliases = {};
 		self.vars = [];
 		self.scope = false;
 

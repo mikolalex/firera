@@ -117,10 +117,11 @@
 				}
 			});
 			app('totalnum').is('people/$length');
+			app('selected').alias('.people|selectedItem');
 			
 			Firera.startHistory({
 				fields: [{
-						cell: '.people|selectedItem',
+						cell: 'selected',
 						type: 'key/val',
 						key: 'selit',
 					}
