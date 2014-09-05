@@ -1,3 +1,11 @@
+/*
+ * 
+ * @todo Write custom getters for value range of array
+ * @todo selection(projecion) by parameter(true/false) app('numbers.even'), where .each({even: [function(n){ return n % 2 === 0;}, 'val']}})
+ * Так легко трекати зміни цих параметрів і змінювати лише ті ноди, які змінилися :)
+ * .range(10) - should return [1, 2, ..., 10]
+ * $datasource - should be able to update existing items instead of adding new
+ */
 (function(){
 	///// 
 	///// 
@@ -1424,6 +1432,9 @@
 				break;
 			case 'select':
 				this.wrapperTag = 'option';
+				break;
+			case 'svg':
+				this.wrapperTag = 'g';
 				break;
 			default:
 				this.wrapperTag = 'div';
