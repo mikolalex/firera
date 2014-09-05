@@ -1440,6 +1440,10 @@
 		return this.rootElement;
 	}
 
+	List.prototype.item = function(num) {
+		return this.list[num];
+	}
+
 	List.prototype.push = function(obj, nochange) {
 		if (obj instanceof Array) {
 			for (var i in obj) {
@@ -2117,6 +2121,25 @@
 					return res;
 				});
 				return args;
+			},
+			picks: function(arr_or_obj_cell, fields){
+				fields = fields instanceof Array ? fields : [fields];
+				var pick = function(arr_or_obj){
+					if(arr_or_obj instanceof Array){
+						var res = [];
+						for(var i in arr_or_obj){
+							res.push(pick(arr_or_obj[i]))
+						}
+						return res;
+					} else {// it should be object
+						var obj = {};
+						for(var i in fields){
+							obj[fields[i]] = arr_or_obj[fields[i]];
+						}
+						return obj;
+					}
+				}
+				return [pick, arr_or_obj_cell];
 			},
 			ifAll: function() {
 				var args = Array.prototype.slice.call(arguments);

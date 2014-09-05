@@ -11,6 +11,30 @@ describe('Simple values', function() {
 		a("foo").set('ololo');
 		assert.equal(a("foo").get(), 'ololo');
 		assert.equal(a("loo").get(), 'ololo');
+		
+		// testing pick
+		
+		a('data').just([
+			{
+				name: 'Ivan',
+				surname: 'Ivanenko',
+				age: 33,
+			},
+			{
+				name: 'Ivan',
+				surname: 'Petrenko',
+				age: 23,
+			},
+			{
+				name: 'Petro',
+				surname: 'Ivanenko',
+				age: 32,
+			},
+		]);
+		
+		a('names').picks('data', 'name');
+		
+		assert.deepEqual([{"name":"Ivan"},{"name":"Ivan"},{"name":"Petro"}], a('names').get());
 	})
 
 	it('Testing arrays(length, )', function() {
@@ -40,7 +64,7 @@ describe('Simple values', function() {
 				},
 			]
 		};		
-		var obj = new Firera.list(Firera.join(app, data));
+		var obj = new Firera.list(_.union(app, data));
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
 
@@ -79,12 +103,13 @@ describe('Simple values', function() {
 		app('street').just('Khreshchatyk');
 		app('cities').are(['Kyiv', 'Odesa', 'Lviv']);
 		app('cities2').are(['Donetsk', 'Lutsk', 'Ternopil'], {share: {
-				takes: ['street'],
-			}});
+			takes: ['street'],
+		}});
 
 		app('street').set('Maidan');
 
 		app.applyTo(".form1");
+		
 		$(".form1 input[type=text]").val('ololo').change();
 
 		assert.equal(app('cities').shared('street').get(), undefined);
