@@ -272,6 +272,13 @@
 			break;
 			case 'custom':
 				var driver_name = name.slice(1);
+				if (driver_name.contains("(")) {
+					// there are some params
+					var m = driver_name.match(/([a-z]*)\((.*)\)/i);
+					this.params = m[2].split(",");
+					console.log('we got custom params', this.params);
+					driver_name = m[1];
+				}
 				if (!customDrivers[driver_name]) {
 					error('Unknown custom driver: ' + driver_name);
 					return;
@@ -874,7 +881,10 @@
 					}
 				}
 				return '?!?';
-			} else return this.getIndex();
+			} else {
+				if(this.isShared()) return 'shared';
+				return this.getIndex();
+			}
 		},
 		getIndex: function(){
 			if(!this.host || !this.host.list) {
@@ -991,6 +1001,7 @@
 			}
 			if(prev_val !== undefined && this.host && this.host instanceof List){
 				this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
+				this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
 			}
 		},
 		onChange: function(func, fields) {
@@ -1026,6 +1037,7 @@
 		},
 		get: function(arr){
 			if(!arr) return collect_values(this.getAllVars());
+			if(!(arr instanceof Array)) return this(arr).get();
 			var res = {};
 			for(var i in arr){
 				var field = arr[i];
@@ -1312,6 +1324,7 @@
 			update: [],
 			delete: [],
 		};
+		this.field_changers = {};
 		this.list = [];
 		this.each_is_set = false;
 		this.each_hash = {};
@@ -1458,10 +1471,10 @@
 	List.prototype.push = function(obj, nochange) {
 		if (obj instanceof Array) {
 			for (var i in obj) {
-				this.push(obj[i], true)
+				this.push(obj[i], true);
+				this.changeItem('create', '*', this.list.length - 1);
 			}
-			this.rebind('push', c);
-			this.changeItem('create', c, c+obj.length);
+			this.rebind('push');
 			return;
 		}
 		if (!(obj instanceof Object)) {
@@ -1669,7 +1682,7 @@
 		// Do nothing!
 	}
 	
-	List.prototype.changeItem = function(changetype, itemnum, cellname, prev_val, new_val) {
+	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
 		for(var i in this.changers[changetype]){
 			this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
 		}
@@ -1677,7 +1690,7 @@
 	List.prototype.onChangeItem = function(changetype, func){
 		var types = [];
 		if(changetype === '*'){
-			changetype = 'create, read, update, delete';
+			changetype = 'create, update, delete';
 		}
 		if(changetype.contains(',')){// multiple events
 			types = changetype.split(", ");
@@ -1685,9 +1698,31 @@
 			types = [changetype];
 		}
 		for(var i in types){
-			if(!this.changers[types[i]]) this.changers[types[i]] = [];
+			if(!this.changers[types[i]]) this.changers[types[i]] = {};
 			this.changers[types[i]].push(func);
 		}
+	}
+	List.prototype.changeItemField = function(field, index, prev_val, new_val) {
+		for(var i in this.field_changers[field]){
+			this.field_changers[field][i](index, prev_val, new_val);
+		}
+	}
+	List.prototype.onChangeItemField = function(fields, func){
+		fields = fields.split(", ");
+		for(var i in fields){
+			var field = fields[i];
+			if(!this.field_changers[field]) this.field_changers[field] = [];
+			this.field_changers[field].push(func);
+		}
+	}
+	
+	List.prototype.pick = function(fields){
+		fields = fields instanceof Array ? fields : [fields];
+		var res = [];
+		for(var i in this.list){
+			res.push(this.list[i].get(fields))
+		}
+		return res;
 	}
 	
 	
@@ -1987,6 +2022,50 @@
 					})
 					this.set(list.list.length);
 			},
+			range: function(){
+				var field = this.params[0], list = this.host.host, self = this;
+				var max = Number.NEGATIVE_INFINITY;
+				var min = Number.POSITIVE_INFINITY;
+				list.onChangeItemField(field, function(x, y, num){
+					var changed = false;
+					if(num > max){
+						max = num;
+						changed = true;
+					}
+					if(num < min){
+						min = num;
+						changed = true;
+					}
+					if(changed){
+						self.set([min, max]);
+					}
+				})
+				list.onChangeItem('create', function(x, index){
+					var num = list.list[index](field).get();
+					var changed = false;
+					if(num > max){
+						max = num;
+						changed = true;
+					}
+					if(num < min){
+						min = num;
+						changed = true;
+					}
+					if(changed){
+						self.set([min, max]);
+					}
+				})
+				for(var i in list.list){
+					var num = list.list[i](field).get();
+					if(num > max){
+						max = num;
+					}
+					if(num < min){
+						min = num;
+					}
+				}
+				this.set([min, max]);
+			}
 		},
 		customListSetters: {
 			datasource: function(val) {
