@@ -863,11 +863,8 @@
 			if(!this.host){ return 'ROOT';};
 			if (this.host && this.host.getAllVars && !(this.host instanceof List)) {
 				var parent_vars = this.host.getAllVars();
-				for (var i = 0; i < parent_vars.length; i++) {
-					if (parent_vars[i] === this) {
-						return i;
-					}
-				}
+				var ind = parent_vars.indexOf(this);
+				if(ind !== -1) return ind;
 				var parent_mixins = this.host.mixins;
 				for (var i in parent_mixins) {
 					for(var j in parent_mixins[i]){
@@ -877,12 +874,14 @@
 					}
 				}
 				return '?!?';
-			} else {
-				for (var i = 0; i < this.host.list.length; i++) {
-					if (this.host.list[i] == this)
-						return i;
-				}
+			} else return this.getIndex();
+		},
+		getIndex: function(){
+			if(!this.host || !this.host.list) {
+				error('Cant get ondex of non-array member!');
+				return;
 			}
+			return this.host.list.indexOf(this);
 		},
 		getRoute: function() {
 			if (!this.host) {
@@ -1061,7 +1060,8 @@
 			} else {
 				var cell, frs = _.$searchAttrNotNested(this.getScope().get()[0], 'data-fr', true);
 				for (var i in frs) {
-					if (cell = this.getVar(frs[i].name)) {
+					if ((cell = this.getVar(frs[i].name)) || (_.isReservedName(frs[i].name) && (cell = this(frs[i].name)))) {
+						debug('binding cell to data-fr: ', frs[i].name);
 						if (cell.bindToDOM) {
 							cell.DOMElement = false;
 							cell.bindToDOM($(frs[i].el));
@@ -1506,7 +1506,7 @@
 	}
 
 	List.prototype.getName = function() {
-		return this.selector;
+		return this.name;
 	}
 
 	List.prototype.map = function(func) {
@@ -1516,36 +1516,38 @@
 	List.prototype.reduce = function(func) {
 
 	}
+	
+	List.prototype._remove_by_num = function(i){
+		var item_to_delete = this.list[i];
+		this.changeItem('delete', i);
+		item_to_delete && item_to_delete.remove();
+		this.list.splice(i, 1);
+		this.changeItem('afterDelete', i);
+	}
 
 	List.prototype.remove = function(func, end) {
 		if (!func && func !== 0) {
 			// Hm... remove all or nothing?
 			return;
 		}
+		
 		if (_.isInt(func)) {
 			if(end && _.isInt(end) && Number(end) > Number(func)){
 				for(var i = Number(func); i <= Number(end); i++){
 					this.remove(i);
 				}
 			}
-			this.changeItem('delete', func);
-			this.list[func] && this.list[func].remove() && this.list.splice(func, 1);
+			this._remove_by_num(func);
 			return;
 		}
 		if(func instanceof Object){// it's hash!
-			for(var i in this.list){
-				if(this.list[i] === func){
-					this.list[i].remove() && this.list.splice(i, 1);
-				}
-			}
-			return;
+			var i = this.list.indexOf(func);
+			this._remove_by_num(i);
 		}
 		var f = _.getMapFunc(func);
 		for (var i in this.list) {
 			if (f.apply(this.list[i].get())) {
-				this.changeItem('delete', i);
-				this.list[i].remove();
-				this.list.splice(i, 1);
+				this._remove_by_num(i);
 			}
 		}
 	}
@@ -1683,6 +1685,7 @@
 			types = [changetype];
 		}
 		for(var i in types){
+			if(!this.changers[types[i]]) this.changers[types[i]] = [];
 			this.changers[types[i]].push(func);
 		}
 	}
@@ -1942,7 +1945,16 @@
 	
 	var core = {
 		customGetters: {
-			
+			i: function(){
+				if(!this.host.host.list){
+					error('Cant get index of not array element in getter!'); return;
+				}
+				this.set(this.host.getIndex());
+				this.host.host.onChangeItem('afterDelete', function(){
+					if(!this.host) return;// its deleted node
+					this.set(this.host.getIndex());
+				}.bind(this))
+			}
 		},
 		customSetters: {
 			template: function(){
