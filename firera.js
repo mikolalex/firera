@@ -1490,7 +1490,7 @@
 		}
 		if (!nochange) {
 			this.rebind('push', counter);
-			this.changeItem('create', counter);
+			this.changeItem('create', '*', counter);
 		}
 		return this;
 	}
