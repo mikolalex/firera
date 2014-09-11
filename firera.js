@@ -184,7 +184,7 @@
 	var HTMLDrivers = {};
 	var customDrivers = {};
 	var customEventDrivers = {}
-	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick'];
+	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick', 'change'];
 	var get_cell_type = function(cellname) {
 		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
 	}
@@ -276,7 +276,6 @@
 					// there are some params
 					var m = driver_name.match(/([a-z]*)\((.*)\)/i);
 					this.params = m[2].split(",");
-					console.log('we got custom params', this.params);
 					driver_name = m[1];
 				}
 				if (!customDrivers[driver_name]) {
@@ -688,7 +687,7 @@
 		var val = initial_val || null;
 		for (var i = 0; i < this.handlers.length; i++) {
 			var sup = this.host.host || false;
-			val = this.handlers[i](this.host, this.host.getName(), sup, val, $el);
+			val = this.handlers[i](this.host, this.host.getName(), sup, val, $el, e);
 			if (val === false) {
 				break;
 			}
@@ -819,12 +818,18 @@
 				var member = parts[0];
 				var host;
 				if(member === '..'){// its parent
+						console.log('looking in parent');
 						if(!this.host){
 							error('Could not access parent hash as ', selector); return;
 						}
-						host = this.host;
-						if(this.host.shared = this){
-							host = this.host.host;
+						if(this.host instanceof List){
+							if(this.host.shared == this){
+								host = this.host.host;
+							} else {
+								host = this.host.shared;
+							}
+						} else {
+							host = this.host;
 						}
 				} else {
 					if(_.isInt(member)){ // its part of list
@@ -1289,6 +1294,7 @@
 			if(selector.$data){
 				self.setData(selector.$data);
 			}
+			if(self.isShared()) return self.host;
 			return true;
 		}
 		self.update = function(hash) {
@@ -1532,7 +1538,7 @@
 	
 	List.prototype._remove_by_num = function(i){
 		var item_to_delete = this.list[i];
-		this.changeItem('delete', i);
+		this.changeItem('delete', null, i);
 		item_to_delete && item_to_delete.remove();
 		this.list.splice(i, 1);
 		this.changeItem('afterDelete', i);
@@ -1698,7 +1704,7 @@
 			types = [changetype];
 		}
 		for(var i in types){
-			if(!this.changers[types[i]]) this.changers[types[i]] = {};
+			if(!this.changers[types[i]]) this.changers[types[i]] = [];
 			this.changers[types[i]].push(func);
 		}
 	}
@@ -1717,7 +1723,6 @@
 	}
 	
 	List.prototype.pick = function(fields){
-		fields = fields instanceof Array ? fields : [fields];
 		var res = [];
 		for(var i in this.list){
 			res.push(this.list[i].get(fields))
@@ -1933,6 +1938,28 @@
 		customEventDrivers[name] = func;
 	}
 	
+	Firera.addPackage = function(package){
+		var method_names = {
+			customEventDrivers: 'addCustomEventDriver',	
+			customGetters: 'addCustomGetter',
+			customSetters: 'addCustomSetter',
+			customListGetters: 'addCustomListGetter',
+			customListSetters: 'addCustomListSetter',
+			HTMLGetters: 'addHTMLGetter',
+			HTMLSetters: 'addHTMLSetter',
+			HTMLGettersSetters: 'addHTMLGetterSetter',
+			cellMacrosMethods: 'addCellMacros'
+		}
+		for(var field in method_names){
+			if(package[field]){
+				var method = method_names[field];
+				for(var name in package[field]){
+					Firera[method](name, package[field][name]);
+				}
+			}
+		}
+	}
+	
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
 		throw new Exception('Cant assign Firera library, varname already taken: ' + lib_var_name);
@@ -1949,15 +1976,18 @@
 //////////
 (function(){
 
-	var gather_form_values = function(selector, scope, clear) {
+	var gather_form_values = function(selector, scope, clear, cb) {
 		var res = {};
 		$(selector + " input", scope).each(function() {
-			var val = '';
+			var val = '', name = $(this).attr('name');
 			switch ($(this).attr('type')) {
 				case 'checkbox':
 					val = !!$(this).attr('checked');
 				break;
 				case 'submit':
+					
+				break;
+				case 'file':
 					
 				break;
 				case 'text':
@@ -1970,7 +2000,7 @@
 					val = $(this).val();
 				break;
 			}
-			res[$(this).attr('name')] = val;
+			res[name] = val;
 		})
 		$(selector + " textarea", scope).each(function() {
 			res[$(this).attr('name')] = $(this).val();
@@ -2022,50 +2052,6 @@
 					})
 					this.set(list.list.length);
 			},
-			range: function(){
-				var field = this.params[0], list = this.host.host, self = this;
-				var max = Number.NEGATIVE_INFINITY;
-				var min = Number.POSITIVE_INFINITY;
-				list.onChangeItemField(field, function(x, y, num){
-					var changed = false;
-					if(num > max){
-						max = num;
-						changed = true;
-					}
-					if(num < min){
-						min = num;
-						changed = true;
-					}
-					if(changed){
-						self.set([min, max]);
-					}
-				})
-				list.onChangeItem('create', function(x, index){
-					var num = list.list[index](field).get();
-					var changed = false;
-					if(num > max){
-						max = num;
-						changed = true;
-					}
-					if(num < min){
-						min = num;
-						changed = true;
-					}
-					if(changed){
-						self.set([min, max]);
-					}
-				})
-				for(var i in list.list){
-					var num = list.list[i](field).get();
-					if(num > max){
-						max = num;
-					}
-					if(num < min){
-						min = num;
-					}
-				}
-				this.set([min, max]);
-			}
 		},
 		customListSetters: {
 			datasource: function(val) {
@@ -2369,37 +2355,104 @@
 		}
 	}
 	
-	for(var name in core.customEventDrivers){
-		Firera.addCustomEventDriver(name, core.customEventDrivers[name]);
-	}
+	Firera.addPackage(core);
 	
-	for(var name in core.customGetters){
-		Firera.addCustomGetter(name, core.customGetters[name]);
-	}
-	for(var name in core.customSetters){
-		Firera.addCustomSetter(name, core.customSetters[name]);
-	}
+	//////////
+	//////////
+	////////// VISUALISATION package
+	//////////
+	//////////
 	
-	for(var name in core.customListGetters){
-		Firera.addCustomListGetter(name, core.customListGetters[name]);
+	var visualization = {
+		customListGetters: {
+			range: function(){
+				var field = this.params[0], list = this.host.host, self = this;
+				if(!field){// show the range of list indices!
+					var min = 0;
+					var max = list.list.length - 1;
+					this.set([min, max]);
+					list.onChangeItem('create', function(){
+						max++;
+						this.set([min, max]);
+					}.bind(this))
+					list.onChangeItem('delete', function(){
+						max--;
+						this.set([min, max]);
+					}.bind(this))
+					return;
+				}
+				var max = Number.NEGATIVE_INFINITY;
+				var min = Number.POSITIVE_INFINITY;
+				list.onChangeItemField(field, function(x, y, num){
+					var changed = false;
+					if(num > max){
+						max = num;
+						changed = true;
+					}
+					if(num < min){
+						min = num;
+						changed = true;
+					}
+					if(changed){
+						self.set([min, max]);
+					}
+				})
+				list.onChangeItem('create', function(x, index){
+					var num = list.list[index](field).get();
+					var changed = false;
+					if(num > max){
+						max = num;
+						changed = true;
+					}
+					if(num < min){
+						min = num;
+						changed = true;
+					}
+					if(changed){
+						self.set([min, max]);
+					}
+				})
+				list.onChangeItem('delete', function(x, index){
+					var num = list.list[index](field).get();
+					if(num == self.get()[0] || num == self.get()[1]){
+						// recount ranges!
+						var max = Number.NEGATIVE_INFINITY;
+						var min = Number.POSITIVE_INFINITY;
+						for(var i in list.list){
+							var num = list.list[i](field).get();
+							if(num > max){
+								max = num;
+							}
+							if(num < min){
+								min = num;
+							}
+						}
+						this.set([min, max]);
+					}
+				})
+				for(var i in list.list){
+					var num = list.list[i](field).get();
+					if(num > max){
+						max = num;
+					}
+					if(num < min){
+						min = num;
+					}
+				}
+				this.set([min, max]);
+			}
+		},
+		cellMacrosMethods: {
+			scale: function() {
+				var args = Array.prototype.slice.call(arguments);
+				args.unshift(function(input_domain, output_range, input_val) {
+					return ((input_val - input_domain[0])/(input_domain[1] - input_domain[0]))*(output_range[1] - output_range[0]) + output_range[0];
+				});
+				return args;
+			},
+		}
 	}
-	for(var name in core.customListSetters){
-		Firera.addCustomListSetter(name, core.customListSetters[name]);
-	}
-	
-	for(var name in core.HTMLGetters){
-		Firera.addHTMLGetter(name, core.HTMLGetters[name]);
-	}
-	for(var name in core.HTMLSetters){
-		Firera.addHTMLSetter(name, core.HTMLSetters[name]);
-	}
-	for(var name in core.HTMLGettersSetters){
-		Firera.addHTMLGetterSetter(name, core.HTMLGettersSetters[name]);
-	}
-	
-	for(var name in core.cellMacrosMethods){
-		Firera.addCellMacros(name, core.cellMacrosMethods[name]);
-	}
+	Firera.addPackage(visualization);
 	
 	//////////
 	//////////

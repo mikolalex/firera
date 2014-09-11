@@ -22,39 +22,15 @@
     </head>
     <body>
 	    
+	    <form action="../add_photo.php" enctype="multipart/form-data"  method="POST">
+		    <input type="file" name="pic">
+	    </form>
 <script>
-	
-	var data = [
-		{
-			name: 'Africa',
-			sales: 3500,
-		},
-		{
-			name: 'Asia',
-			sales: 34500,
-		},
-		{
-			name: 'Europe',
-			sales: 50023,
-		},
-		{
-			name: 'America',
-			sales:  45000,
-		},
-	]
-	
 	var app = Firera.hash();
-	app('sales').are([]).shared({
-		sales_range: ['is', '$range(sales)'],
-		height_range: ['just', [10, 600]],
-		width_range: ['just', [0, 1000]],
-	}).each({
-		'height': ['scale', 'sales_range', 'height_range', 'sales'],
-		'offsetX': ['scale', '../$range', 'width_range', '$i'],
+	app("input|change").then(function(){
+		console.log('input changed!', arguments);
 	});
 	app.applyTo('body');
-	
-	app('sales').push(data);
 </script>
     </body>
 </html>
