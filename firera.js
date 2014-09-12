@@ -180,7 +180,7 @@
 (function() {
 	// Firera globals
 	var $ = window['jQuery'] || window['$'] || false;
-	var debug_level = 1;// 0 - no messages shown
+	var debug_level = window.debug_level || 1;// 0 - no messages shown
 	var HTMLDrivers = {};
 	var customDrivers = {};
 	var customEventDrivers = {}
@@ -809,6 +809,13 @@
 			}
 		}
 	}
+	
+	var check_for_constructor = function(hash){
+		if (hash instanceof Function) {
+			hash = {__setup: hash};
+		}
+		return hash;
+	}
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
@@ -1366,13 +1373,13 @@
 		if (init_hash) {
 			if (init_hash.each) {
 				this.each_is_set = true;
-				this.each_hash = init_hash.each;
+				this.each_hash = check_for_constructor(init_hash.each);
 			}
 			if (init_hash.$data) {
 				for (var i = 0; i < init_hash.$data.length; i++) {
 					this.each_hash.$data = init_hash.$data[i];
 					var hash = new window[lib_var_name].hash(this.each_hash, {host: this});
-					var counter = this.list.push(hash) - 1;
+					this.list.push(hash);
 				}
 			}
 			// maybe delete .data and .each?
@@ -1400,6 +1407,7 @@
 	List.prototype.update = function(init_hash) {
 		if (init_hash.each) {
 			this.each_is_set = true;
+			init_hash.each = check_for_constructor(init_hash.each);
 			this.each(init_hash.each)
 			_.$objJoin(init_hash.each, this.each_hash, true);
 		}
@@ -1601,6 +1609,7 @@
 	};
 
 	List.prototype.each = function(hash) {
+		hash = check_for_constructor(hash);
 		this.each_is_set = true;
 		for (var i in hash) {
 			this.each_hash[i] = hash[i];
@@ -2705,6 +2714,17 @@
 		}
 		return this.sync.call(this, default_params);
 	});
+	
+	/////
+	/////
+	///// Plugins
+	/////
+	/////
+	
+	Firera.plugins = {
+		// ;)
+	}
+	
 })();
 
 ////// Firera.History
