@@ -825,12 +825,11 @@
 				var member = parts[0];
 				var host;
 				if(member === '..'){// its parent
-						console.log('looking in parent');
 						if(!this.host){
 							error('Could not access parent hash as ', selector); return;
 						}
 						if(this.host instanceof List){
-							if(this.host.shared == this){
+							if(this.isShared()){
 								host = this.host.host;
 							} else {
 								host = this.host.shared;
@@ -1181,7 +1180,7 @@
 			return true;
 		},
 		isShared: function(){
-			return this.host && this.host.shared === this;
+			return !!this.isShared;//host && this.host.shared === this;
 		}
 	}
 	
@@ -1203,7 +1202,7 @@
 			return self.create_cell_or_event(selector, pars);
 		}
 		if (params) {
-			var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config']
+			var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config', 'isShared']
 			for (var i in possible_params) {
 				if (params[possible_params[i]]) {
 					self[possible_params[i]] = params[possible_params[i]];
@@ -1346,7 +1345,7 @@
 		this.reduce_funcs = [];
 		this.count_funcs = [];
 		this.rootElement = false;
-		this.shared_config = {host: this, skip_data: true};
+		this.shared_config = {host: this, skip_data: true, isShared: true};
 		this.how_to_share_config = {takes: [], gives: []};
 		if(config && config.share) {
 			if(config.share === true){
@@ -1883,7 +1882,7 @@
 			return;
 		}
 		customDrivers[name] = {setter: function(){
-				if(!this.isShared()){
+				if(!this.host.isShared()){
 					error('Cant run list setter of a non-list!', this);
 					return;
 				}
@@ -2098,6 +2097,27 @@
 					self.set(false);
 				})
 			},
+			files: function($input_element){
+				var self = this;
+				var get_files_info = function(input){
+					var files = input.files;
+					if(files.length){
+						var res = [];
+						for(var i = 0; i < files.length; i++){
+							res.push({
+								name: files[i].name,
+								size: files[i].size,
+								type: files[i].type,
+							});
+						}
+						return res;
+					}
+				}
+				$input_element.change(function(){
+					self.set(get_files_info($(this).get()[0]));
+				})
+				this.set(get_files_info($input_element.get()[0]));
+			}
 		},
 		HTMLSetters: {
 			visibility: function(val, $el) {

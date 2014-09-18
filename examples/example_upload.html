@@ -27,8 +27,7 @@
 	    </form>
 <script>
 	var app = Firera.hash();
-	app("imgName").is('input|filename');
-	app("imgBody").is('input|filebody');
+	app("pics").are({$datasource: ['is', '../input|files']});
 	app.applyTo('body');
 </script>
     </body>
