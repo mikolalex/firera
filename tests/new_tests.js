@@ -37,7 +37,7 @@ describe('Simple values', function() {
 		assert.deepEqual([{"name":"Ivan"},{"name":"Ivan"},{"name":"Petro"}], a('names').get());
 	})
 
-	it('Testing arrays(length, range, etc)', function() {
+	it('Testing arrays(length, etc)', function() {
 		var app = new Firera;
 		app('items').are([1, 2, 3]);
 		app('itemnum').is('items/$length');
@@ -45,6 +45,10 @@ describe('Simple values', function() {
 		app('items').push(4);
 		assert.equal(app('itemnum').get(), '4');
 		
+		
+	})
+	
+	it('Testing visualization package', function(){
 		var data = [
 			{
 				name: 'Africa',
@@ -63,6 +67,7 @@ describe('Simple values', function() {
 				sales:  45000,
 			},
 		]
+		var app = new Firera;
 		app('sales').are([]).each({
 
 		}).shared({
@@ -78,7 +83,6 @@ describe('Simple values', function() {
 			[3, 50023] , 
 			app('sales/sales_range').get()
 		);
-		
 	})
 
 	it('Testing join', function() {
