@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width">
+		<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+		<script src="../jquery.js">
+		</script>
+		<script src="../firera.js"></script><script src="jquery.ajax-cross-origin.min.js"></script>
+		<style>
+			body {
+				font-size: 16px;
+				font-family: sans-serif;
+			}
+
+			.selected {
+				background-color: whitesmoke;
+				border-radius: 10px;
+			}
+
+			.man {
+				width: 400px;
+				padding: 20px;
+				margin: 20px;
+				background-color: whitesmoke;
+			}
+
+			.buttons {
+				width: 200px;
+				float:right;
+			} 
+			
+			.tmpl1, .tmpl2 {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div data-fr="user" class="people">
+		</div>
+		<div class="tmpl1">
+			<div class="man">
+				<div class="buttons">
+					<a href="" class="remove">Remove</a> <a href="" class="edit">Edit</a>
+				</div>
+				<div data-fr="name">
+
+				</div>
+				<div data-fr="surname">
+
+				</div>
+			</div>
+		</div>
+		<div class="tmpl2">
+			<div class="man">
+				<div class="buttons">
+					<a href="" class="stop-editing">Finish editing</a>
+				</div>
+				<div>
+					Name: <input type="text" data-fr="name">
+				</div>
+				<div>
+					Surname: <input type="text" data-fr="surname">
+				</div>
+			</div>
+		</div>
+		<form class="add-men">
+			<input type="text" name="name" /> - name<br />
+			<input type="text" name="surname" /> - surname<br />
+			<input type="submit" value="Add!" /> 
+		</form>
+		<div data-fr="totalnum">
+			
+		</div>
+		<div data-fr="selit">
+			
+		</div>
+		<script>
+			var ifEqualThen = function(comp, val1, val2){
+				return function(val){
+					return val === comp ? val1 : val2;
+				}
+			}
+			var checker = ifEqualThen('editing', $(".tmpl2").html(), $(".tmpl1").html());
+			
+			var app = Firera.hash();
+			app('city').just('Kyiv');
+			app('user').are([]).each({
+				".remove|click": ['removesSelf'],
+				".edit|click": ['sets', '$state', 'editing'],
+				"|dblclick": ['sets', '$state', 'editing'],
+				".stop-editing|click": ['sets', '$state', 'static'],
+				"$template": [checker, '$state']
+			})
+			app(".add-men|submit").pushTo('user');
+			app.applyTo('body');
+
+			app('user').DChSync({
+				fields: ['name', 'surname'],
+				idFields: false,
+				read: false,
+				host: 'http://localhost:8080',
+				datatype: 'jsonp',
+				contextvars: {city: '../city'},
+			});
+			app('totalnum').is('user/$length');
+			app('selected').alias('.people|selectedItem');
+		</script>
+	</body>
+</html>

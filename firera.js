@@ -921,7 +921,7 @@
 		},
 		getVar: function(name) {
 			var vr = this.vars[name];
-			if(!vr && this.host && !this.isShared()){// hash attached to hash
+			if(!vr && this.host && !this.isShared() && (!this.host instanceof List)){// hash attached to hash
 				vr = this.host.getVar(name);
 			}
 			if(!vr && this.aliases[name]){
@@ -2410,10 +2410,11 @@
 			return _.getMergedObject(data, getContext());
 		};
 		var needed_params = {
-			
+			host: '',
 			contextvars: [],
 			fields: true,
 			idFields: ['id'],
+			dataType: 'json',
 			
 			create: 'onCreate',// (default), 'manual', 60(interval in seconds)
 			createURL: '/' + name,// default: "/hashName"
@@ -2475,15 +2476,18 @@
 			if(list.dontfirechange) return;
 			var fields = getData('fields');
 			var data = _.filterFields(list.list[itemnum].get(), fields);
-			data = getFunc('createRequest')(data);
-			$.ajax({
-				url: getData('createURL', name, data),
+			data = getFunc('createRequest')(data, name);
+			var params = {
+				url: getData('createURL', name, data, getData('host')),
 				type: getData('createMethod'),
 				data: data,
+				dataType: getData('datatype'),
 				success: function(result) {
 				    // Do something with the result
 				}
-			});
+			}
+			console.log(params);
+			$.ajax(params);
 		})
 		
 		var changer;
@@ -2496,12 +2500,12 @@
 					var where_fields = _.filterFields(list.list[itemnum].get(), getData('idFields'));
 					var req = {};
 					req[field] = new_val;
-					var data = getData('getUpdateRequestData', req, where_fields);
+					var data = getData('getUpdateRequestData', req, where_fields, name);
 					$.ajax({
-						url: getData('updateURL'),
+						url: getData('updateURL', name, getData('host')),
 						type: getData('updateMethod'),
 						data: data,
-						dataType: 'json',// !!!
+						dataType: getData('datatype'),
 						success: function(result) {
 						    // Do something with the result
 						}
@@ -2532,12 +2536,12 @@
 						for(var i in c){
 							data[i] = h(i).get();
 						}
-						data = getData('getUpdateRequestData', data, where_fields);
+						data = getData('getUpdateRequestData', data, where_fields, name);
 						$.ajax({
-							url: getData('updateURL', name),
+							url: getData('updateURL', name, getData('host')),
 							type: getData('updateMethod'),
 							data: data,
-							dataType: 'json',// !!!
+							dataType: getData('datatype'),
 							success: function() {
 							}
 						});
@@ -2569,7 +2573,7 @@
 			var data = _.filterFields(_.filterFields(list.list[itemnum].get(), fields), getData('idFields'));
 			data = getFunc('deleteRequest')(data);
 			$.ajax({
-				url: getData('deleteURL', name),
+				url: getData('deleteURL', name, getData('host')),
 				type: getData('deleteMethod'),
 				data: data,
 				success: function(result) {
@@ -2590,10 +2594,10 @@
 					}
 				}
 				var req_config = {
-					url: getData('readURL', name),
+					url: getData('readURL', name, getData('host')),
 					type: getData('readMethod'),
 					data: getData('readRequest', dt),
-					dataType: 'json',// !!!
+					dataType: getData('datatype'),
 					success: function(result) {
 					    if(result){
 						    list.dontfirechange = true;
@@ -2609,8 +2613,9 @@
 			break;
 			case 'onContextChange':
 				contextvars.unshift({
-					url: getData('readURL', name),
+					url: getData('readURL', name, getData('host')),
 					type: getData('readMethod'),
+					dataType: getData('datatype'),
 					getRequestHash: getFunc('readRequest')
 				});
 				list.shared('$datasource').gets.apply(list.shared('$datasource'), contextvars);
@@ -2634,6 +2639,47 @@
 			},
 			deleteMethod: 'GET',
 			createMethod: 'POST',
+		}
+		for(var i in params){
+			default_params[i] = params[i];
+		}
+		return this.sync.call(this, default_params);
+	});
+	
+	Firera.addListMethod('DChSync', function(params){
+		var default_params = {
+			createRequest: function(data, name){
+				var res = {};
+				for(var i in data){
+					res[name + '_' + i] = data[i];
+				}
+				return res;
+			},
+			readURL: function(name, host){
+				return host + '/get_' + name;
+			},
+			updateURL: function(name, host){
+				return host + '/edit_' + name;
+			},
+			createURL: function(name, data, host){
+				return host + '/add_' + name;
+			},
+			deleteURL: function(name, host){
+				return host + '/remove_' + name;
+			},
+			getUpdateRequestData: function(changeset, id_fields, name){
+				/*if(!id_fields){
+					for(var i in fields){
+						changeset['where_' + i] = fields[i];
+					}
+				}*/
+				var res = {};
+				
+				return changeset;
+			},
+			deleteMethod: 'GET',
+			createMethod: 'GET',
+			updateMethod: 'GET',
 		}
 		for(var i in params){
 			default_params[i] = params[i];
