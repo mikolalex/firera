@@ -268,5 +268,24 @@ describe('Tests from guide', function() {
 		fequal(app('rounds/2/square'), 5542);
 		
 	})
+	
+	it('testing basic HTML binding', function(){
+		var validate_string = function(str){
+		    return !str || str.length < 4 ? "It's too short!" : str;
+		}
+
+		var app = new Firera;
+		app('name').is(validate_string, "input[type=text]|value");
+		// very important step
+		app.applyTo('.user');
+		$(".user input[type=text]").val('Li');
+		var msg = $(".user [data-fr=name]").html();
+		assert.equal(msg, "It's too short!");
+		
+		
+		$(".user input[type=text]").val('Mykola').blur();
+		msg = $(".user [data-fr=name]").html();
+		assert.equal(msg, 'Mykola');
+	})
 
 })

@@ -2187,7 +2187,7 @@
 				getter: function($el) {
 					var self = this;
 					var type = $el.attr('type');
-					$el.bind("change, keyup, input", function() {
+					$el.bind("change, keyup, input, focus, blur", function() {
 						switch (type) {
 							case 'checkbox':
 								self.set($(this).attr('checked'));
