@@ -15,4 +15,4 @@ app('b').get();// 13
 ```
 
 The main feature of Firera is andvanced using of FRP with DOM for building and managing GUI.
-You can read the [guide|https://github.com/mikolalex/firera/blob/master/GUIDE.md] or ask me a [question|mailto:mikolalex@hushmail.com]
+You can read the [guide](https://github.com/mikolalex/firera/blob/master/GUIDE.md) or ask me a [question](mailto:mikolalex@hushmail.com)
