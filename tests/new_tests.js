@@ -1,3 +1,7 @@
+var fequal = function(fvar, val) {
+	assert.equal(fvar.get(), val);
+}
+
 describe('Simple values', function() {
 	it('Testing simple values', function() {
 		var a = new Firera;
@@ -11,9 +15,9 @@ describe('Simple values', function() {
 		a("foo").set('ololo');
 		assert.equal(a("foo").get(), 'ololo');
 		assert.equal(a("loo").get(), 'ololo');
-		
+
 		// testing pick
-		
+
 		a('data').just([
 			{
 				name: 'Ivan',
@@ -31,10 +35,10 @@ describe('Simple values', function() {
 				age: 32,
 			},
 		]);
-		
+
 		a('names').picks('data', 'name');
-		
-		assert.deepEqual([{"name":"Ivan"},{"name":"Ivan"},{"name":"Petro"}], a('names').get());
+
+		assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
 	})
 
 	it('Testing arrays(length, etc)', function() {
@@ -44,11 +48,11 @@ describe('Simple values', function() {
 		assert.equal(app('itemnum').get(), '3');
 		app('items').push(4);
 		assert.equal(app('itemnum').get(), '4');
-		
-		
+
+
 	})
-	
-	it('Testing visualization package', function(){
+
+	it('Testing visualization package', function() {
 		var data = [
 			{
 				name: 'Africa',
@@ -64,31 +68,32 @@ describe('Simple values', function() {
 			},
 			{
 				name: 'America',
-				sales:  45000,
+				sales: 45000,
 			},
 		]
 		var app = new Firera;
 		app('sales').are([]).each({
-
 		}).shared({
 			sales_range: ['is', '$range(sales)']
 		});
 		app('sales').push(data);
 		assert.deepEqual(
-			[3500, 50023] , 
+			[3500, 50023],
 			app('sales/sales_range').get()
-		);
+			);
 		app('sales').push({name: 'Antarctica', sales: 3});
 		assert.deepEqual(
-			[3, 50023] , 
+			[3, 50023],
 			app('sales/sales_range').get()
-		);
+			);
 	})
 
 	it('Testing join', function() {
 		var app = {
 			each: {
-				fullname: ['is', function(a, b){ return a + ' ' + b;}, 'name', 'surname'],
+				fullname: ['is', function(a, b) {
+						return a + ' ' + b;
+					}, 'name', 'surname'],
 			}
 		};
 		var data = {
@@ -102,7 +107,7 @@ describe('Simple values', function() {
 					surname: 'Biletskyi',
 				},
 			]
-		};		
+		};
 		var obj = new Firera.list(_.union(app, data));
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
@@ -118,7 +123,7 @@ describe('Simple values', function() {
 		assert.equal(app('absnum').get(), 34);
 		app('somenum').set(-3);
 		assert.equal(app('absnum').get(), 3);
-		
+
 		app('a').just(false);
 		app('b').just(true);
 		app('c').ifAny('a', 'b');
@@ -142,13 +147,13 @@ describe('Simple values', function() {
 		app('street').just('Khreshchatyk');
 		app('cities').are(['Kyiv', 'Odesa', 'Lviv']);
 		app('cities2').are(['Donetsk', 'Lutsk', 'Ternopil'], {share: {
-			takes: ['street'],
-		}});
+				takes: ['street'],
+			}});
 
 		app('street').set('Maidan');
 
 		app.applyTo(".form1");
-		
+
 		$(".form1 input[type=text]").val('ololo').change();
 
 		assert.equal(app('cities').shared('street').get(), undefined);
@@ -164,6 +169,104 @@ describe('Simple values', function() {
 		console.dir(first);
 		// to be continued...
 		//app('items').shared('datasource').sync();
+	})
+
+})
+
+describe('Tests from guide', function() {
+
+	it('Cells with dependancy', function() {
+		/*
+		 * 
+		 * Tests from guide
+		 * 
+		 */
+
+		var app = new Firera;
+		app('a').just(42);
+		app('b').is(function(num) {
+			return num + 3;
+		}, 'a');
+		assert.equal(app('b').get(), 45);// 45
+		// now the most important
+
+		app('a').set(10);
+		assert.equal(app('b').get(), 13);// 13
+
+
+		var get_greeting = function(firstname, lastname) {
+			return 'Hello, ' + firstname + ' ' + lastname + '!';
+		}
+
+		app('name').just('Aare');
+		app('surname').just('Olander');
+
+		app('greeting').is(get_greeting, 'name', 'surname');
+
+		fequal(app('greeting'), 'Hello, Aare Olander!');
+
+	})
+
+	it('Simple arrays', function() {
+		var app = new Firera;
+		app('people').are(['Ivan', 'Sasha', 'Ed']);
+		app('peoplenum').is('people/$length');
+		app('peoplenum').get();// 3
+		fequal(app('peoplenum'), 3);
+
+		app('people').push('Lena');
+		app('peoplenum').get();
+		fequal(app('peoplenum'), 4);
+
+		fequal(app('people/2'), 'Ed');
+	})
+
+	it('Lists from array of objects', function() {
+		var app = new Firera;
+		app('cities').are([
+			{
+				name: 'Kyiv',
+				population: 4000000,
+			},
+			{
+				name: 'Kharkiv',
+				population: 1500000,
+			},
+			{
+				name: 'Kostyantunivka',
+				population: 60000,
+			}
+		])
+		app('cities').each({
+			country: 'Ukraine',
+			isbig: [function(num) {
+					return num > 1000000;
+				}, 'population']
+		})
+		assert.deepEqual(app('cities/1').get(), {name: "Kharkiv", population: 1500000, country: "Ukraine", isbig: true});
+	})
+	
+	it('Testing shared for lists', function(){
+		var app = new Firera;
+
+		app('rounds').are([
+		    {
+			radius: 10,
+		    },
+		    {
+			radius: 20,
+		    },
+		    {
+			radius: 42,
+		    },
+
+		])
+		app('rounds').shared('pi').just(Math.PI);
+		app('rounds').each({
+		    square: [function(p, r){ return Math.round(p*r*r)}, 'pi', 'radius'],
+		})
+		fequal(app('rounds/2/square'), 5542);
+		
 	})
 
 })

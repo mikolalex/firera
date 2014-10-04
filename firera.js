@@ -202,7 +202,7 @@
 			return function(){}
 		} else {
 			return function(){
-				console.log.apply(console, ['DEBUG: '].concat(Array.prototype.slice.call(arguments)));
+				console.log.apply(console, ['--------DEBUG: '].concat(Array.prototype.slice.call(arguments)));
 			}
 		}
 	})(debug_level)
@@ -819,6 +819,9 @@
 
 	var hash_methods = {
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
+			if(_.isInt(selector) && this.isSharedHash){
+				return this.host.list[selector];
+			}
 			if(!selector) error('No selector provided', arguments);
 			if(selector.contains('/')){
 				var parts = selector.split('/');
@@ -842,12 +845,15 @@
 						if(this instanceof List && this.list){
 							host = this.list[member];
 						} else {
-							error('Could not access list member as ', selector); return;
+							if(this.isShared()){
+								host = this.host.list[member];
+							} else {
+								error('Could not access list member as ', selector, this.isSharedHash); return;
+							}
 						}
 					} else {
 						if(this instanceof List){
 							host = this.shared.getVar(member);
-							//error('Could not access shared member as ', selector); return;
 						} else {
 							host = this.getVar(member);
 						}
@@ -1050,7 +1056,11 @@
 			return true;
 		},
 		get: function(arr){
-			if(!arr) return collect_values(this.getAllVars());
+			if(!arr) {
+				var vars = this.getAllVars();
+				if(vars.__val) return vars.__val.get();
+				return collect_values(vars);
+			}
 			if(!(arr instanceof Array)) return this(arr).get();
 			var res = {};
 			for(var i in arr){
@@ -1182,7 +1192,8 @@
 			}
 			return true;
 		},
-		isShared: function(){
+		isShared: function(a){
+			if(a) console.log('checkig if shared', this.host.shared === this);
 			return !!this.isSharedHash;//host && this.host.shared === this;
 		}
 	}
@@ -1205,7 +1216,7 @@
 			return self.create_cell_or_event(selector, pars);
 		}
 		if (params) {
-			var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config', 'isShared']
+			var possible_params = ['host', 'linked_hash', 'isSingleVar', 'noTemplateRenderingAllowed', 'config', 'isSharedHash']
 			for (var i in possible_params) {
 				if (params[possible_params[i]]) {
 					self[possible_params[i]] = params[possible_params[i]];
@@ -1900,7 +1911,7 @@
 		customDrivers[name] = {
 			getter: function(){
 				if(!this.host || !this.host.isShared()){
-					error('Cant run list getter of a non-list!', this);
+					error('Cant run list getter ' + name + ' of a non-list!', this.host.host);
 					return;
 				}
 				return func.apply(this, arguments);
