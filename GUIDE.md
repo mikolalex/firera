@@ -124,11 +124,48 @@ The simplest way to use it is just binding some cells to DOM elements.
     var app = new Firera;
     app('name').is("input[type=text]|value");
     // very important step
-    app.applyTo('user');
+    app.applyTo('.user');
 </script>
 ```
 If the Firera hash(which is created by new Firera) is applied to a DOM node, it starts trying to bind it's variables to inner nodes, which are marked with "data-fr" attribute.
 Now, as you start typing in input, the "div" with class "name" will be dynamically filled with what you type.
+Let's improve our example.
+```html
+<div class="user">
+    <div class="name" data-fr="name"></div>
+    <div class="name-input">
+        <input type="text"> - enter your name
+    </div>
+</div>
+<script>
+    var validate_string = function(str){
+        return str.length < 4 ? "It's too short!" : str;
+    }
+
+    var app = new Firera;
+    app('name').is(validate_string, "input[type=text]|value");
+    // very important step
+    app.applyTo('.user');
+</script>
+```
+Let's read it step by step.
+
+validate_string() is just pure function, that takes string and returns an "error message" if it's too short, or the string itself otherwise.
+
+app('name').is(validate_string, "input[type=text]|value"); - it's just an assighment of new variable called "name".
+It is calculated by applying validate_string() function to the variable "input[type=text]|value". But what is this variable?
+It was not assigned before, thus we use it. 
+
+That is special kind of variables, called HTML cells.
+It contains of two parts: CSS selector and an aspect, divided by "|". CSS selector tells us, what node to select, and "aspect" means what kind of information we'll take from the node.
+
+Here are some aspects:
+* value - returns a value of input element or innerHTML of usual tag(.e.g. div). String
+* mouseover - return if the mouse is over this element. Boolean.
+* visibility - if the element is visible. Boolean.
+And you can add new aspects by yourself, if you need.
+
+
 
 
 
