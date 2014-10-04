@@ -108,6 +108,29 @@ app('rounds/2/square').get();// 5542
 
 ```
 
+Binding to HTML
+--------
+The main feature of Firera is not just FRP(for it was invented and developed in many libraries before), but an advanced usage of FRP with DOM.
+The simplest way to use it is just binding some cells to DOM elements.
+```html
+<div class="user">
+    <div class="name" data-fr="name"></div>
+    <div class="name-input">
+        <input type="text"> - enter your name
+    </div>
+</div>
+<script>
+
+    var app = new Firera;
+    app('name').is("input[type=text]|value");
+    // very important step
+    app.applyTo('user');
+</script>
+```
+If the Firera hash(which is created by new Firera) is applied to a DOM node, it starts trying to bind it's variables to inner nodes, which are marked with "data-fr" attribute.
+Now, as you start typing in input, the "div" with class "name" will be dynamically filled with what you type.
+
+
 
 
 
