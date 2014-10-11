@@ -163,7 +163,88 @@ Here are some aspects:
 * value - returns a value of input element or innerHTML of usual tag(.e.g. div). String
 * mouseover - return if the mouse is over this element. Boolean.
 * visibility - if the element is visible. Boolean.
+
 And you can add new aspects by yourself, if you need.
+
+Default cell binding. HTML templates
+---------------------
+
+As you can see, by default, all cells are bound to HTML tags, marked by attribute 'data-fr="%cellname%"'. In Firera, there is no way to restrict output of cells to HTML(like projections). This is done for simplicity. If you don't need some variable to be shown, don't mention it in the HTML.
+There are multiple ways to set template of the current Firera hash.
+The first is to apply a hash to existing node, so that it's innerHTML will become a template(as you'v seen previously).
+The second way is by assigning a cell named "$template" to the hash(cells that begin with "$" are inner special vars, so you should use $  in the beginning for usual cells).
+```html
+<script>
+
+var get_user_template_by_gender = function(gender){
+    return gender === 'female'
+            ?
+            '<div class="woman">Hi, Ms.<span data-fr="name"></span> <span data-fr="surname"></span>!</div>'
+            :
+            '<div class="man">Hi, Mr.<span data-fr="name"></span> <span data-fr="surname"></span>!</div>';
+}
+
+app('name').just('Sergiy');
+app('surname').just('Ivanenko');
+app('gender').just('male');
+
+app('$template').is(get_user_template_by_gender, 'gender');
+
+app.applyTo('.current_user');
+
+</script>
+<div class="current_user">
+
+</div>
+
+
+```
+
+Array rendering
+---------------------
+
+But how we can render an array to HTML?
+```html
+<div class="models-list">
+    <h1> Popular color models </h1>
+    <div data-fr="models">
+        <div class="model">
+            <h3>Name</h3>
+            <div data-fr="name"></div>
+            <h3>Description</h3>
+            <div data-fr="descr"></div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+app('models').are([
+    {
+        name: 'CMYK',
+        descr: 'Cyan, Magenta, Yellow, BlacK',
+    },
+    {
+        name: 'RGB',
+        descr: 'Red, Green, Blue',
+    },
+    {
+        name: 'LAB',
+        descr: 'Lightness, A, B',
+    },
+
+]);
+
+app.applyTo('models-list');
+
+</script>
+
+
+
+```
+
+
 
 
 

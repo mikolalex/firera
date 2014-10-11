@@ -245,33 +245,34 @@ describe('Tests from guide', function() {
 		})
 		assert.deepEqual(app('cities/1').get(), {name: "Kharkiv", population: 1500000, country: "Ukraine", isbig: true});
 	})
-	
-	it('Testing shared for lists', function(){
+
+	it('Testing shared for lists', function() {
 		var app = new Firera;
 
 		app('rounds').are([
-		    {
-			radius: 10,
-		    },
-		    {
-			radius: 20,
-		    },
-		    {
-			radius: 42,
-		    },
-
+			{
+				radius: 10,
+			},
+			{
+				radius: 20,
+			},
+			{
+				radius: 42,
+			},
 		])
 		app('rounds').shared('pi').just(Math.PI);
 		app('rounds').each({
-		    square: [function(p, r){ return Math.round(p*r*r)}, 'pi', 'radius'],
+			square: [function(p, r) {
+					return Math.round(p * r * r)
+				}, 'pi', 'radius'],
 		})
 		fequal(app('rounds/2/square'), 5542);
-		
+
 	})
-	
-	it('testing basic HTML binding', function(){
-		var validate_string = function(str){
-		    return !str || str.length < 4 ? "It's too short!" : str;
+
+	it('testing basic HTML binding', function() {
+		var validate_string = function(str) {
+			return !str || str.length < 4 ? "It's too short!" : str;
 		}
 
 		var app = new Firera;
@@ -281,11 +282,56 @@ describe('Tests from guide', function() {
 		$(".user input[type=text]").val('Li');
 		var msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, "It's too short!");
-		
-		
+
+
 		$(".user input[type=text]").val('Mykola').blur();
 		msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, 'Mykola');
+	})
+
+	it('Testing $template', function() {
+		var app = new Firera;
+		var get_user_template_by_gender = function(gender) {
+			return gender === 'female'
+				?
+				'<div class="woman">Hi, Ms.<span data-fr="name"></span> <span data-fr="surname"></span>!</div>'
+				:
+				'<div class="man">Hi, Mr.<span data-fr="name"></span> <span data-fr="surname"></span>!</div>';
+		}
+
+		app('name').just('Sergiy');
+		app('surname').just('Ivanenko');
+		app('gender').just('male');
+
+		app('$template').is(get_user_template_by_gender, 'gender');
+
+		app.applyTo('.current_user');
+
+		assert.equal($(".current_user .man").html(), 'Hi, Mr.<span data-fr="name">Sergiy</span> <span data-fr="surname">Ivanenko</span>!');
+
+		app('gender').just('female');
+		assert.equal($(".current_user .woman").html(), 'Hi, Ms.<span data-fr="name">Sergiy</span> <span data-fr="surname">Ivanenko</span>!');
+
+	})
+
+	it('Testing array template - from HTML', function() {
+		var app = new Firera;
+		app('models').are([
+			{
+				name: 'CMYK',
+				descr: 'Cyan, Magenta, Yellow, BlacK',
+			},
+			{
+				name: 'RGB',
+				descr: 'Red, Green, Blue',
+			},
+			{
+				name: 'LAB',
+				descr: 'Lightness, A, B',
+			},
+		]);
+
+		app.applyTo('.models-list');
 	})
 
 })
