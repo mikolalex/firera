@@ -332,6 +332,111 @@ describe('Tests from guide', function() {
 		]);
 
 		app.applyTo('.models-list');
+		
+		assert.equal('<div class="firera-item"><div class="model">\n'+
+'					<h3>Name</h3>\n'+
+'					<div data-fr="name">CMYK</div>\n'+
+'					<h3>Description</h3>\n'+
+'					<div data-fr="descr">Cyan, Magenta, Yellow, BlacK</div>\n'+
+'				</div></div><div class="firera-item"><div class="model">\n'+
+'					<h3>Name</h3>\n'+
+'					<div data-fr="name">RGB</div>\n'+
+'					<h3>Description</h3>\n'+
+'					<div data-fr="descr">Red, Green, Blue</div>\n'+
+'				</div></div><div class="firera-item"><div class="model">\n'+
+'					<h3>Name</h3>\n'+
+'					<div data-fr="name">LAB</div>\n'+
+'					<h3>Description</h3>\n'+
+'					<div data-fr="descr">Lightness, A, B</div>\n'+
+'				</div></div>', $(".models-list [data-fr=models]").html())
+
 	})
+	
+	it('Testing HTMl template - from shared', function(){
+		var app = new Firera;
+		app('models').are([
+			{
+				name: 'CMYK',
+				descr: 'Cyan, Magenta, Yellow, BlacK',
+			},
+			{
+				name: 'RGB',
+				descr: 'Red, Green, Blue',
+			},
+			{
+				name: 'LAB',
+				descr: 'Lightness, A, B',
+			},
+		]);
+		app('models').shared('$template').just('<div>Some dummy template</div>');
+
+		assert.equal(app('models').list[0]('$template').get(), '<div>Some dummy template</div>');
+		assert.equal(app('models').list[2]('$template').get(), '<div>Some dummy template</div>');
+		
+		
+		app('models/0/$template').just('ololo');
+		assert.equal(app('models/1/$template').get(), 'ololo');
+		assert.equal(app('models/0/$template').get(), 'ololo');
+	})
+
+	/*(it('Testing array projections', function() {
+		var app = new Firera;
+		app('employees').are([
+			{
+				name: 'Ivan',
+				surname: 'Petrenko',
+				age: 23,
+				salary: 2300,
+			},
+			{
+				name: 'Mykola',
+				surname: 'Ivanenko',
+				age: 45,
+				salary: 4500,
+			},
+			{
+				name: 'Ivan',
+				surname: 'Semenchenko',
+				age: 40,
+				salary: 4200,
+			},
+			{
+				name: 'John',
+				surname: 'Sergiyenko',
+				age: 24,
+				salary: 1000,
+			},
+			{
+				name: 'Carl',
+				surname: 'Petrenko',
+				age: 28,
+				salary: 3000,
+			},
+			{
+				name: 'Zoya',
+				surname: 'Petryshyn',
+				age: 29,
+				salary: 2000,
+			},
+			{
+				name: 'Olya',
+				surname: 'Bilenko',
+				age: 34,
+				salary: 4000,
+			},
+			{
+				name: 'Sergiy',
+				surname: 'Stepanenko',
+				age: 31,
+				salary: 3500,
+			},
+		]);
+		
+		app('older').projects('employees', '*', function(num){ return num > 40; }, 'employees.age');
+		console.log('123');
+		console.log(Firera.dump(app));
+	}) - to be written sometimes)*/
+	
+	
 
 })

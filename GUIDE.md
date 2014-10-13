@@ -199,8 +199,13 @@ app.applyTo('.current_user');
 
 
 ```
+So, the content of div.current_user will be 
+```html 
+<div class="man">Hi, Mr.<span data-fr="name">Sergiy</span> <span data-fr="surname">Ivanenko</span>!</div>
+```
+As you might notice, when binding the cell to DOM node with "data-fr" attribute there is no need in assinging innerHTML for this node, because it'll be overwritten by the value of cell.
 
-Array rendering
+List rendering
 ---------------------
 
 But how we can render an array to HTML?
@@ -240,10 +245,34 @@ app.applyTo('models-list');
 
 </script>
 
+```
+
+When list is bounded to the HTML tag with "data-fr" attribute, it's innerHTML beacomes a template for the list!
+Each member of the list app('models') will receive the following template:
+```html
+        <div class="model">
+            <h3>Name</h3>
+            <div data-fr="name"></div>
+            <h3>Description</h3>
+            <div data-fr="descr"></div>
+        </div>
+```
+You can still set a template for the list manually by assigning variable $template
+```js
+app('models').shared('$template').just('<div>Some dummy template</div>');
+// 'Shared' part of list is accessible from all it's items
+app('models').list[0]('$template').get();// <div>Some dummy template</div>
+app('models').list[2]('$template').get();// <div>Some dummy template</div>
 
 
 ```
+You might try to change the template of particular item:
+```js
+app('models/0/$template').just('ololo');// this doesn't work!
 
+```
+But it will not work as you expect!
+Instead of changing the template of one item, it'll change the shared $template variable for all list items!
 
 
 

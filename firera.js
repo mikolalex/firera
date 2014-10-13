@@ -485,6 +485,19 @@
 		arr.rebind();
 		return arr;
 	}
+
+	/* To be done :)
+	Cell.prototype.projects = function(arr_name, fields, map_func, map_fields) {
+		var conf = {};
+		conf.host = this.host;
+		conf.selector = this.selector;
+		var arr = new List({}, conf);
+		_.$objJoin(this, arr);
+		arr.setScope(this.DOMElement);
+		this.host.setVar(this.getName(), arr);
+		arr.rebind();
+		return arr;
+	}*/
 	
 	var typical_compute = function(list, func, listname) {
 		var old_val = this.val;
