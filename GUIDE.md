@@ -274,6 +274,103 @@ app('models/0/$template').just('ololo');// this doesn't work!
 But it will not work as you expect!
 Instead of changing the template of one item, it'll change the shared $template variable for all list items!
 
+What can you do with Lists
+--------
+```js
+// Init empty list
+app('fruits').are([]);
+
+// create link for quick access
+var fruits = app('fruits');
+
+// Add an item to it
+fruits.push('apple');
+fruits.push('pear');
+
+// Count the number of items in list
+fruits.shared('$length').get();// 1
+
+// Get a particular element
+fruits.get(1);// 'pear'
+
+// Clear list and set new data
+fruits.setData(['apricot', 'peach']);
+fruits.get();// ['apricot', 'peach']
+
+
+```
+
+As you noticed, you may push to array both objects and primitive values.
+When you push a primitive value, it's automnativally converted to an object {__val: 'your_primitive_value'}
+
+```js
+fruits.list[0]('__val').get();
+fruits.list[0].get();
+// - it's equal for primitive values in List
+
+```
+You can add some cell dependencies while creating the list, or do it later.
+you push a primitive value, it's automnativally converted to an object {__val: 'your_value'}
+
+```js
+app('rounds').are({
+    $data: [// $data field contains plain data
+        { 
+            radius: 10,
+        },
+        { 
+            radius: 44,
+        },
+        { 
+            radius: 37,
+        },
+    ],
+    each: { // each field contains cell dependencies, formulas
+        'area': [function(r){ return Math.PI * r *r;}, 'radius'],
+    }
+})
+
+// So it will look like
+
+app('rounds').get();
+
+/*
+
+[  
+   {  
+      "radius":10,
+      "area":314.1592653589793
+   },
+   {  
+      "radius":44,
+      "area":6082.123377349839
+   },
+   {  
+      "radius":37,
+      "area":4300.840342764427
+   }
+]
+
+*/
+
+app('rounds').each({
+    circumference: [function(r){ return Math.round(2*Math.PI*r);}, 'radius']
+})
+
+// You can get only some fields of list items
+
+app('rounds').pick(['circumference', 'radius']);
+// [{"circumference":63,"radius":10},{"circumference":276,"radius":44},{"circumference":232,"radius":37}] 
+
+app('rounds').pick('circumference'); 
+// [63, 276, 232] 
+
+```
+
+```js
+
+```
+
 
 
 
