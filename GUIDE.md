@@ -1,5 +1,13 @@
 Firera
 =========
+### Table of contents
+* About. Simple cells
+* Hashes
+* HTML binding
+* HTML aspects
+* Events
+* Lists
+
 About. Simple cells
 -------
 Firera is a Javascript library, which implements FRP(functional reactive programming) approach.
@@ -33,11 +41,141 @@ app('surname').just('Olander');
 app('greeting').is(get_greeting, 'name', 'surname');
 
 ```
-As you see, Firera also makes you to write functions, that MUST be pure.
+As you see, Firera also makes you to write functions, that must be pure.
 But let's go forward for something more useful.
 
-Arrays
+Hashes
 ------------
+As you've seen, Firera reactive variables(cells) are not global, they are contained inside an object, like namespace.
+This container object is called Hash. Think of it like a dictionary, containing string keys and values(cells).
+It's a bit similar to native Javascript Object.
+
+```js
+// native JS Object
+
+var man = {};
+man.name = 'John';
+man.surname = 'Doe';
+man.setFullname = function(){
+    this.fullname = this.name + ' ' + this.surname;
+}
+man.getFullname = function(){
+    return this.fullname;
+}
+
+// Firera Hash
+
+var man = new Firera;
+man('name').just('John');
+man('surname').just('Doe');
+man('fullname').is(function(a, b){ return a + ' ' + b;}, 'name', 'surname');
+
+```
+Let's look and compare the usage. 
+```js
+// Imagine we need to change the surname of this man. Native JS way:
+
+man.surname = 'Stevens';
+// We should refresh his fullname also!
+man.setFullname();
+
+// Firera way
+
+man('surname').set('Stevens');
+// It's done! Lets' check.
+man('fullname').get();// 'John Stevens'
+
+```
+This example is very simplified, but it's enough to see: Firera alway keeps your state consistent.
+Each hash has it's own namespace.
+```js
+var admin = new Firera;
+admin('login'.just('Mikolalex');
+admin('rights').are(['create', 'read', 'update', 'delete']);// gradually demonstrating Firera Lists! ;)
+
+var user = new Firera;
+user('login').just('Kostya');
+user('rights').are(['read']);
+
+```
+Obviously, 'rights' in user and admin hashes are completely different.
+Let's improve our example
+```js
+
+var user1 = new Firera;
+user1('login').just('Lobster');
+user1('type').just('user');
+
+var user2 = new Firera;
+user2('login').just('Salmon');
+user2('type').just('admin');
+
+var user3 = new Firera;
+user3('login').just('Carp');
+user3('type').just('moder');
+
+// Their rights should be defined automatically, based on user type
+
+user1('rights').is(function(type){
+    switch(type){
+        case 'user':
+            return 'r';
+        case 'admin':
+            return 'rw';
+        default:
+            return '';
+        break;
+    }
+
+}, 'type');
+
+user1('rights').get();// 'r'
+user2('rights').get();// undefined
+
+```
+But how can we apply same rule to the dirrerent hashes?
+Is JS we can play with prototypes, in Firera we just join these objects into List and apply changes on them.
+
+
+Lists
+------------
+```js
+var site = new Firera;
+site('users').are([
+    {
+        login: 'Lobster',
+        type: 'user',
+    },
+    {
+        login: 'Salmon',
+        type: 'admin',
+    },
+    {
+        login: 'Carp',
+        type: 'moder',
+    },
+])
+site('users').each({
+    rights: [
+        function(type){
+            switch(type){
+                case 'user':
+                    return 'r';
+                case 'admin':
+                    return 'rw';
+                default:
+                    return '';
+                break;
+            }
+        
+        }, 
+        'type'
+    ]
+})
+
+```
+Done!
+Now all users have their rights assigned.
 You can assign FRP-arrays by passing an array to are() method.
 
 ```js

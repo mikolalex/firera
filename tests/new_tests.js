@@ -41,6 +41,40 @@ describe('Simple values', function () {
         assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
     })
 
+    it('Calling not existing variable', function(){
+        
+        var user1 = new Firera;
+        user1('login').just('Lobster');
+        user1('type').just('user');
+
+        var user2 = new Firera;
+        user2('login').just('Salmon');
+        user2('type').just('admin');
+
+        var user3 = new Firera;
+        user3('login').just('Carp');
+        user3('type').just('moder');
+
+        // Their rights should be defined automatically, based on user type
+
+        user1('rights').is(function(type){
+            switch(type){
+                case 'user':
+                    return 'r';
+                case 'admin':
+                    return 'rw';
+                default:
+                    return '';
+                break;
+            }
+
+        }, 'type');
+
+        assert.equal(user1('rights').get(), 'r');
+        assert.equal(user2('rights').get(), undefined);
+        
+    })
+
     it('Testing arrays(length, etc)', function () {
         var app = new Firera;
         app('items').are([1, 2, 3]);
