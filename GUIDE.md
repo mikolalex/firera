@@ -29,6 +29,12 @@ app('b').get();// 13
 Some vars are free, independend, like "a" in this examples. Such vars can se set manually by set() function. The others are dependent, computable vriables, their value depend on other variables and a formula(function passed).
 When assigning dependent variable, you should pass a function first, and then the names of variables.
 All variable in Firera are usually called "cells", as the Excel cells.
+Other MV* frameworks also include something similar, like "two-way binding", but is has a limited scope of use.
+
+**In Firera, such cell dependency mechanism is a real atomic engine, which enables all parts of the framework.**
+
+All the other parts of Firera are designed to structure the use of cell dependencies.
+
 
 ```js
 var get_greeting = function(firstname, lastname){

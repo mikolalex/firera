@@ -41,8 +41,8 @@ describe('Simple values', function () {
         assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
     })
 
-    it('Calling not existing variable', function(){
-        
+    it('Calling not existing variable', function () {
+
         var user1 = new Firera;
         user1('login').just('Lobster');
         user1('type').just('user');
@@ -57,22 +57,22 @@ describe('Simple values', function () {
 
         // Their rights should be defined automatically, based on user type
 
-        user1('rights').is(function(type){
-            switch(type){
+        user1('rights').is(function (type) {
+            switch (type) {
                 case 'user':
                     return 'r';
                 case 'admin':
                     return 'rw';
                 default:
                     return '';
-                break;
+                    break;
             }
 
         }, 'type');
 
         assert.equal(user1('rights').get(), 'r');
         assert.equal(user2('rights').get(), undefined);
-        
+
     })
 
     it('Testing arrays(length, etc)', function () {
@@ -429,52 +429,56 @@ describe('Tests from guide', function () {
         // Count the number of items in list
         assert.equal(fruits.shared('$length').get(), 2);// 2
         assert.equal(fruits.list[0].get(), fruits.list[0]('__val').get());
-        
-        
+
+
         fruits.setData(['apricot', 'peach']);
         assert.deepEqual(fruits.get(), ['apricot', 'peach']);
-        
-        
+
+
         app('rounds').are({
             $data: [// $data field contains plain data
-                    { 
-                        radius: 10,
-                    },
-                    { 
-                        radius: 44,
-                    },
-                    { 
-                        radius: 37,
-                    },
+                {
+                    radius: 10,
+                },
+                {
+                    radius: 44,
+                },
+                {
+                    radius: 37,
+                },
             ],
-            each: { // each field contains cell dependencies, formulas
-                area: [function(r){ return Math.PI * r *r;}, 'radius'],
+            each: {// each field contains cell dependencies, formulas
+                area: [function (r) {
+                        return Math.PI * r * r;
+                    }, 'radius'],
             }
         })
 
         // So it will look like
 
-        assert.deepEqual([  
-            {  
-               "radius":10,
-               "area":314.1592653589793
+        assert.deepEqual([
+            {
+                "radius": 10,
+                "area": 314.1592653589793
             },
-            {  
-               "radius":44,
-               "area":6082.123377349839
+            {
+                "radius": 44,
+                "area": 6082.123377349839
             },
-            {  
-               "radius":37,
-               "area":4300.840342764427
+            {
+                "radius": 37,
+                "area": 4300.840342764427
             }
         ], app('rounds').get());
-         
+
         app('rounds').each({
-            circumference: [function(r){ return Math.round(2*Math.PI*r);}, 'radius']
+            circumference: [function (r) {
+                    return Math.round(2 * Math.PI * r);
+                }, 'radius']
         })
-        
-        assert.deepEqual(app('rounds').pick(['circumference', 'radius']), [{"circumference":63,"radius":10},{"circumference":276,"radius":44},{"circumference":232,"radius":37}] );
-        
+
+        assert.deepEqual(app('rounds').pick(['circumference', 'radius']), [{"circumference": 63, "radius": 10}, {"circumference": 276, "radius": 44}, {"circumference": 232, "radius": 37}]);
+
         assert.deepEqual(app('rounds').pick('circumference'), [63, 276, 232]);
 
 
@@ -537,6 +541,47 @@ describe('Tests from guide', function () {
      console.log('123');
      console.log(Firera.dump(app));
      }) - to be written sometimes)*/
+
+    it('Testing "picks" predicate', function () {
+        var fr = new Firera;
+        fr('locos').are([
+            {
+                type: 'steam',
+                adhesion_weight: 2000,
+                name: 'A10',
+            }, 
+            {
+                type: 'diesel',
+                adhesion_weight: 3000,
+                name: '2TE116',
+            }, 
+            {
+                type: 'diesel',
+                adhesion_weight: 2500,
+                name: '2TE10L',
+            }, 
+        ])
+        
+        fr('locos').each({
+            'diesel': [_.isEqualTo('diesel'), 'type']
+        })
+        
+        
+        fr('diesels').takes('locos.diesel', ['adhesion_weight', 'name']);
+        
+        fr('locos').push({
+            type: 'diesel',
+            adhesion_weight: 3000,
+            name: '2TE10M',
+        });
+        
+        /*assert.deepEqual(fr('diesels').get(), [
+            {name: '2TE116', adhesion_weight: '3000'}, 
+            {name: '2TE10L', adhesion_weight: '2500'}, 
+            {name: '2TE10M', adhesion_weight: '3000'}
+        ]);*/
+        
+    })
 
 
 
