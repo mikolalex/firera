@@ -388,6 +388,11 @@
         this.invalidateObservers(this.getName());
         this.updateObservers(this.getName());
         this.change(old_val, new_val);
+        if(this.host.slaves){// updating slave hashes
+            for(var i in this.host.slaves){
+                this.host.slaves[i](this.name).set(new_val);
+            }
+        }
         return this;
     }
 
@@ -481,7 +486,7 @@
         return arr;
     }
 
-    Cell.prototype.takes = function (array, fields) {
+    Cell.prototype.slices = function (array, fields) {
         var listname, list, projection;
         // Check for it's projections (e.g. "locos.diesel")
         if (array.contains('.')) {
@@ -1068,8 +1073,9 @@
                 fields = ['_all'];
             }
             for (var i in fields) {
-                if (this.changers[fields[i]])
+                if (!this.changers[fields[i]]){
                     this.changers[fields[i]] = [];
+                }
                 this.changers[fields[i]].push(func);
             }
         },
@@ -1251,16 +1257,28 @@
             var slave, self = this;
             var create = function(){
                 var ind = arr.push(self.get(fields));
-                slave = arr[ind];
+                slave = arr.list[ind];
+                self.slaves.push(slave);
             }
             var remove = function(){
                 slave.remove();
+                for(var i in self.slaves){
+                    if(self.slaves[i] === slave){
+                        self.slaves.splice(i, 1);
+                    }
+                }
             }
             if(projection){
-                this.onChange(function(){
-                    
-                    console.log('projected field changed');
-                    
+                var cur_val = this(projection).get();
+                if(cur_val){
+                    create();
+                }
+                this.onChange(function(f, o, n){
+                    if(n){
+                        create();
+                    } else {
+                        remove();
+                    }                    
                 }, [projection])
             } else {
                 create();
@@ -1299,6 +1317,7 @@
         self.onRemove = [];
         self.aliases = {};
         self.vars = [];
+        self.slaves = [];
         self.scope = false;
 
         for (var i in hash_methods) {

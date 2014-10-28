@@ -549,38 +549,45 @@ describe('Tests from guide', function () {
                 type: 'steam',
                 adhesion_weight: 2000,
                 name: 'A10',
-            }, 
+            },
             {
                 type: 'diesel',
                 adhesion_weight: 3000,
                 name: '2TE116',
-            }, 
+            },
             {
                 type: 'diesel',
                 adhesion_weight: 2500,
                 name: '2TE10L',
-            }, 
+            },
         ])
-        
+
         fr('locos').each({
             'diesel': [_.isEqualTo('diesel'), 'type']
         })
-        
-        
-        fr('diesels').takes('locos.diesel', ['adhesion_weight', 'name']);
-        
+
+
+        fr('diesels').slices('locos.diesel', ['adhesion_weight', 'name']);
+
         fr('locos').push({
-            type: 'diesel',
+            type: 'steam',
             adhesion_weight: 3000,
             name: '2TE10M',
         });
-        
+        assert.equal(fr('diesels').list.length, 2);
+
+        fr('locos').list[3]('type').set('diesel');
+        assert.equal(fr('diesels').list.length, 3);
+
+        fr('locos').list[3]('adhesion_weight').set(3373);
+        assert.equal(fr('diesels').list[2]('adhesion_weight').get(), 3373);
+
         /*assert.deepEqual(fr('diesels').get(), [
-            {name: '2TE116', adhesion_weight: '3000'}, 
-            {name: '2TE10L', adhesion_weight: '2500'}, 
-            {name: '2TE10M', adhesion_weight: '3000'}
-        ]);*/
-        
+         {name: '2TE116', adhesion_weight: '3000'}, 
+         {name: '2TE10L', adhesion_weight: '2500'}, 
+         {name: '2TE10M', adhesion_weight: '3000'}
+         ]);*/
+
     })
 
 
