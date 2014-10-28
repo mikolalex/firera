@@ -233,7 +233,7 @@
                 if (this.getScope()) {
                     var root_element = name === '__val' ? this.getScope() : $('[data-fr=' + this.getName() + ']', this.getScope());
                     if (root_element.length) {
-                        this.bindToDOM(root_element, this.getName());
+                        this._bindToDOM(root_element, this.getName());
                     }
                 }
                 params && params.dumb && (this.dumb = true);
@@ -254,7 +254,7 @@
                 var driver = this.driver = HTMLDrivers[parts[1]];
                 if (driver.def)
                     this.val = driver.def;
-                this.rebind = function () {
+                this._rebind = function () {
                     this.HTMLElement = false;// abort link to old element
                     driver.getter && driver.getter.apply(this, [this.getElement()].concat(this.params));
                     if (this.driver.setter && this.getScope()) {
@@ -262,7 +262,7 @@
                     }
                     return this;
                 }
-                driver.getter && this.getScope() && this.rebind('cell constructor');
+                driver.getter && this.getScope() && this._rebind('cell constructor');
                 break;
             case 'custom':
                 var driver_name = name.slice(1);
@@ -280,7 +280,7 @@
                 if (driver.def)
                     this.val = driver.def;
                 if (driver.setter) {
-                    this.rebind = function () {
+                    this._rebind = function () {
                         this.driver.setter.apply(this, [this.val].concat(this.params));
                         return this;
                     }
@@ -319,37 +319,37 @@
 
     Cell.prototype.remove = function () {
         for (var i in this.deps) {
-            this.deps[i].removeObserver(this);
+            this.deps[i]._removeObserver(this);
         }
     }
 
-    Cell.prototype.addObservable = function (cellname) {
+    Cell.prototype._addObservable = function (cellname) {
         this.observables[cellname] = 0;
     }
 
-    Cell.prototype.invalidateObservers = function (name) {
+    Cell.prototype._invalidateObservers = function (name) {
         if (this.getName() != name)
             this.observables[name]++;
         for (var i in this.observers) {
-            this.observers[i].invalidateObservers(name);
+            this.observers[i]._invalidateObservers(name);
         }
     }
 
-    Cell.prototype.addObserver = function (cell) {
+    Cell.prototype._addObserver = function (cell) {
         this.observers.push(cell);
     }
 
-    Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
+    Cell.prototype._removeObserver = _.$remove.bind(null, this.observers);
 
     Cell.prototype.get = function () {
         return this.val;
     }
 
-    Cell.prototype.getType = function () {
+    Cell.prototype._getType = function () {
         return 'cell';
     }
 
-    Cell.prototype.rebind = function () {
+    Cell.prototype._rebind = function () {
         /* empty for default cell, will be overwritten for self-refreshing cells */
     }
 
@@ -382,11 +382,11 @@
         }
 
         if (this.getScope() && this.DOMElement) {
-            this.updateDOMElement();
+            this._updateDOMElement();
         }
         //////////
-        this.invalidateObservers(this.getName());
-        this.updateObservers(this.getName());
+        this._invalidateObservers(this.getName());
+        this._updateObservers(this.getName());
         this.change(old_val, new_val);
         if(this.host.slaves){// updating slave hashes
             for(var i in this.host.slaves){
@@ -396,9 +396,9 @@
         return this;
     }
 
-    Cell.prototype.updateObservers = function (name) {
+    Cell.prototype._updateObservers = function (name) {
         for (var i in this.observers) {
-            this.observers[i].compute(name);
+            this.observers[i]._compute(name);
         }
     }
 
@@ -424,7 +424,7 @@
         return this;
     }
 
-    Cell.prototype.bindToDOM = function ($el) {
+    Cell.prototype._bindToDOM = function ($el) {
         var self = this;
         var tags = $el.get();
         for (var i in tags) {
@@ -439,15 +439,15 @@
         } else {
             this.DOMElement = $el;
         }
-        return this.updateDOMElement();
+        return this._updateDOMElement();
     }
 
-    Cell.prototype.unbindToDOM = function () {
+    Cell.prototype._unbindToDOM = function () {
         this.DOMElement = false;
         return this;
     }
 
-    Cell.prototype.updateDOMElement = function () {
+    Cell.prototype._updateDOMElement = function () {
         var val = this.get();
         this.DOMElement.each(function () {
             if (_.isValuable(_.getTagName($(this)))) {
@@ -482,7 +482,7 @@
             var element = mass[i] instanceof Object ? mass[i] : {__val: mass[i]};
             arr.push(element);
         }
-        arr.rebind();
+        arr._rebind();
         return arr;
     }
 
@@ -515,7 +515,7 @@
         // set a watch function to array
         list._addSubset(arr, projection, fields);
 
-        arr.rebind();
+        arr._rebind();
         return arr;
     }
 
@@ -528,13 +528,13 @@
         this.val = new_val;
 
         if (this.DOMElement) {
-            this.updateDOMElement();
+            this._updateDOMElement();
         }
         if (this.getScope() && this.driver.setter) {
             this.driver.setter.apply(this, [this.val, this.getElement()]);
         }
         this.change(old_val, this.val);
-        this.updateObservers(listname);
+        this._updateObservers(listname);
         return this;
     }
 
@@ -547,16 +547,16 @@
         var list = this.host.getVar(listname);
         var self = this;
         list.onChangeItem('*', function () {
-            self.compute();
+            self._compute();
         })
-        //list.addObserver(this);
+        //list._addObserver(this);
         func = _.getMapFunc(func);
-        this.compute = typical_compute.bind(this, list, func, listname);
-        return this.compute();
+        this._compute = typical_compute.bind(this, list, func, listname);
+        return this._compute();
     }
 
     Cell.prototype.force = function () {
-        this.compute();
+        this._compute();
     }
 
     Cell.prototype.alias = function (name) {
@@ -564,7 +564,7 @@
         this.host.removeVar(this.getName());
     }
 
-    Cell.prototype.compute = function (name) {
+    Cell.prototype._compute = function (name) {
         if (name && this.observables[name]) {
             this.observables[name]--;
             if (this.observables[name] > 0)
@@ -581,7 +581,7 @@
         }
         this.val = new_val;
         if (this.DOMElement) {
-            this.updateDOMElement();
+            this._updateDOMElement();
         }
         if (
                 this.driver
@@ -595,7 +595,7 @@
             this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
         }
         this.change(old_val, this.val);
-        this.updateObservers(name);
+        this._updateObservers(name);
         return this;
     }
 
@@ -604,13 +604,13 @@
         for (var i = 0; i < cells.length; i++) {
             this.deps.push(cells[i]);
             if (!(Object.keys(cells[i].observables).length)) {
-                this.addObservable(cells[i].getName());
+                this._addObservable(cells[i].getName());
             } else {
                 for (var x in cells[i].observables) {
-                    this.addObservable(x);
+                    this._addObservable(x);
                 }
             }
-            cells[i].addObserver(this);
+            cells[i]._addObserver(this);
         }
     }
 
@@ -660,7 +660,7 @@
         this.free = false;
 
         if (args.length)
-            this.compute();
+            this._compute();
         return this;
     }
 
@@ -681,7 +681,7 @@
         this.event = selector.split("|")[1];
         this.handlers = [];
         if (this.getScope()) {
-            this.rebind('event constructor');
+            this._rebind('event constructor');
         }
     }
 
@@ -693,7 +693,7 @@
         return this.host.getScope();
     }
 
-    Event.prototype.rebind = function () {
+    Event.prototype._rebind = function () {
         if (customEventDrivers[this.event]) {
             customEventDrivers[this.event](this.getSelector(), this.getScope(), this.process.bind(this));
         } else {
@@ -727,7 +727,7 @@
         }
     }
 
-    Event.prototype.getType = function () {
+    Event.prototype._getType = function () {
         return 'event';
     }
 
@@ -1005,7 +1005,7 @@
         getScope: function (func) {
             return this.rootElement;
         },
-        getType: function () {
+        _getType: function () {
             return 'hash';
         },
         setScope: function (scope2) {
@@ -1120,11 +1120,11 @@
         setHost: function (host) {
             this.host = host;
         },
-        unbindToDOM: function () {
+        _unbindToDOM: function () {
             var vars = this.getAllVars();
             for (var i in vars) {
-                if (vars[i].unbindToDOM)
-                    vars[i].unbindToDOM();
+                if (vars[i]._unbindToDOM)
+                    vars[i]._unbindToDOM();
             }
             return this;
         },
@@ -1137,19 +1137,19 @@
             } else {// rare case, only for root objects
                 this.rootElement = $(selector_or_element);
             }
-            this.unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
+            this._unbindToDOM().checkForTemplate().refreshTemplate().attachEventHandlers();
         },
         updateVarsBindings: function () {
             if (this.isSingleVar) {
-                this.getVar("__val").bindToDOM(this.getScope());
+                this.getVar("__val")._bindToDOM(this.getScope());
             } else {
                 var cell, frs = _.$searchAttrNotNested(this.getScope().get()[0], 'data-fr', true);
                 for (var i in frs) {
                     if ((cell = this.getVar(frs[i].name)) || (_.isReservedName(frs[i].name) && (cell = this(frs[i].name)))) {
                         debug('binding cell to data-fr: ', frs[i].name);
-                        if (cell.bindToDOM) {
+                        if (cell._bindToDOM) {
                             cell.DOMElement = false;
-                            cell.bindToDOM($(frs[i].el));
+                            cell._bindToDOM($(frs[i].el));
                         }
                     }
                 }
@@ -1219,7 +1219,7 @@
                 if (vars[i].applyTo) {
                     vars[i].applyTo();
                 } else {
-                    vars[i].rebind();
+                    vars[i]._rebind();
                 }
             }
             return this;
@@ -1229,7 +1229,7 @@
             for (var i in vars) {
                 if (!(vars[i] instanceof Event))
                     continue;
-                vars[i].rebind();
+                vars[i]._rebind();
             }
             return this;
         },
@@ -1332,7 +1332,7 @@
                 }
                 var cell = self.create_cell_or_event(i, undefined, true);
 
-                var cell_type = cell.getType();
+                var cell_type = cell._getType();
                 if (i === 'each') {
                     continue;
                 }
@@ -1524,7 +1524,7 @@
         make_window_between_hashes(this.host, this.shared, this.how_to_share_config);
     }
 
-    List.prototype.getType = function () {
+    List.prototype._getType = function () {
         return 'list';
     }
 
@@ -1594,7 +1594,7 @@
                 this.push(obj[i], true);
                 this.changeItem('create', '*', this.list.length - 1);
             }
-            this.rebind('push');
+            this._rebind('push');
             return;
         }
         if (!(obj instanceof Object)) {
@@ -1609,7 +1609,7 @@
             this.list[counter].update(this.each_hash);
         }
         if (!nochange) {
-            this.rebind('push', counter);
+            this._rebind('push', counter);
             this.changeItem('create', '*', counter);
         }
         return counter;
@@ -1737,7 +1737,7 @@
         return this;
     }
 
-    List.prototype.bindToDOM = function ($el) {
+    List.prototype._bindToDOM = function ($el) {
         if (this.rootElement instanceof $) {
             this.setScope(this.getScope().add($el));
         } else {
@@ -1746,7 +1746,7 @@
         return this;
     }
 
-    List.prototype.unbindToDOM = function () {
+    List.prototype._unbindToDOM = function () {
 
     }
 
@@ -1780,7 +1780,7 @@
         return this;
     }
 
-    List.prototype.rebind = function (msg, start_index, end_index) {
+    List.prototype._rebind = function (msg, start_index, end_index) {
         if (this.getScope()) {
             for (var i in this.list) {
                 if ((start_index && i < start_index) || (end_index && i > end_index))
@@ -1799,7 +1799,7 @@
         }
     }
 
-    List.prototype.updateDOMElement = function () {
+    List.prototype._updateDOMElement = function () {
         // Do nothing!
     }
 
