@@ -589,6 +589,17 @@ describe('Tests from guide', function () {
          ]);*/
 
     })
+    
+    it('testing funnel', function(){
+        var fr = new Firera;
+        fr('a').just(42);
+        fr('b').just(77);
+        fr('z').funnel(function(field, val){
+            console.log('funnel computing, field:', field, 'val', val);
+        }, 'a', 'b');
+        fr('b').set(35);
+        fr('a').set(45);
+    })
 
 
 

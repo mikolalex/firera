@@ -398,7 +398,7 @@
 
     Cell.prototype._updateObservers = function (name) {
         for (var i in this.observers) {
-            this.observers[i]._compute(name);
+            this.observers[i]._compute(name, this.name);
         }
     }
 
@@ -662,6 +662,50 @@
         if (args.length)
             this._compute();
         return this;
+    }
+    
+    // should react on changes in every var of provided
+    Cell.prototype.funnel = function(formula/*, master_variables*/){
+        var args = Array.prototype.slice.call(arguments, 1);
+        for (var i = 0; i < args.length; i++) {
+            if (!(args[i] instanceof Cell)) {
+                args[i] = this.host.create_cell_or_event(args[i], {dumb: true});
+            }
+        }
+        this.args = args;
+        this.formula = formula;
+
+        this.depend(this.args);
+        this.free = false;
+        
+        // The apex of the funnnel() func
+        this._compute = function(name, parent_name){
+            var old_val = this.val;
+            var new_val = this.formula.call(this, parent_name, this.host(parent_name).get());
+            for (var i = 0; i < this.modifiers.length; i++) {
+                new_val = this.modifiers[i](new_val);
+            }
+            this.val = new_val;
+            if (this.DOMElement) {
+                this._updateDOMElement();
+            }
+            if (
+                    this.driver
+                    && this.driver.setter
+                    && (
+                            this.getScope()
+                            ||
+                            _.isReservedName(this.getName())
+                            )
+                    ) {
+                this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
+            }
+            this.change(old_val, this.val);
+            this._updateObservers(name);
+            return this;
+                 
+        }
+        
     }
 
     Cell.prototype.change = function (prev_val, new_val) {
