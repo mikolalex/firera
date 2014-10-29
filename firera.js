@@ -599,7 +599,7 @@
         return this;
     }
 
-    Cell.prototype.depend = function (cells) {
+    Cell.prototype._depend = function (cells) {
         var arr = (cells instanceof Array) ? cells : [cells];
         for (var i = 0; i < cells.length; i++) {
             this.deps.push(cells[i]);
@@ -656,7 +656,7 @@
         this.args = args;
         this.formula = formula;
 
-        this.depend(this.args);
+        this._depend(this.args);
         this.free = false;
 
         if (args.length)
@@ -675,7 +675,7 @@
         this.args = args;
         this.formula = formula;
 
-        this.depend(this.args);
+        this._depend(this.args);
         this.free = false;
         
         // The apex of the funnnel() func
@@ -1357,7 +1357,11 @@
                 }
             }
         }
-        self.changers = {};
+        self.changers = {'_all': [
+                function(){
+                    console.log('all changer fired!', arguments);
+                }
+        ]};
         self.onRemove = [];
         self.aliases = {};
         self.vars = [];
@@ -2207,7 +2211,13 @@
         customSetters: {
             template: function () {
                 this.host && this.host.refreshTemplate && this.host.refreshTemplate();
-            }
+            },
+            rootSelector: function(){
+                var scope = this.host("$htmlScope").get() || document;
+                var root = $(this.get(), scope);
+                this.host("$rootNode").set(root);
+            },
+            rootNode: function(){},
         },
         customListGetters: {
             length: function () {

@@ -596,9 +596,18 @@ describe('Tests from guide', function () {
         fr('b').just(77);
         fr('z').funnel(function(field, val){
             console.log('funnel computing, field:', field, 'val', val);
+            return field + ':' + val;
         }, 'a', 'b');
         fr('b').set(35);
         fr('a').set(45);
+        
+        assert.equal(fr('z').get(), 'a:45');
+    })
+    
+    it('testing $rootSelector', function(){
+        var fr = new Firera;
+        fr('$rootSelector').set('.container');
+        console.log('$rootNode', fr("$rootNode").get());
     })
 
 
