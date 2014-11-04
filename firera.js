@@ -174,7 +174,8 @@
     var debug_level = window.debug_level || 1;// 0 - no messages shown
     var HTMLDrivers = {};
     var customDrivers = {};
-    var customEventDrivers = {}
+    var customEventDrivers = {};
+    var customFormulae = {};
     var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick', 'change'];
     var get_cell_type = function (cellname) {
         return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
@@ -271,6 +272,11 @@
                     var m = driver_name.match(/([a-z]*)\((.*)\)/i);
                     this.params = m[2].split(",");
                     driver_name = m[1];
+                }
+                if(customFormulae[driver_name]){
+                    init_cell_from_hash(this, customFormulae[driver_name]);
+                    console.log('assigning custom formula!', driver_name, customFormulae[driver_name]);
+                    return;
                 }
                 if (!customDrivers[driver_name]) {
                     error('Unknown custom driver: ' + driver_name);
@@ -1331,6 +1337,21 @@
             
         }
     }
+    
+    var init_cell_from_hash = function(cell, val){
+        if (val instanceof Array) {
+            if (val[0] instanceof Function) {
+                cell['is'].apply(cell, val);
+            } else {
+                if (!cell[val[0]]) {
+                    error('Using unknown function:', val);
+                }
+                cell[val[0]].apply(cell, val.slice(1));
+            }
+        } else {
+            cell.just(val);
+        }  
+    }
 
     /////
     /////
@@ -1359,7 +1380,7 @@
         }
         self.changers = {'_all': [
                 function(){
-                    console.log('all changer fired!', arguments);
+                    //console.log('all changer fired!', arguments);
                 }
         ]};
         self.onRemove = [];
@@ -1390,18 +1411,7 @@
                 }
                 switch (cell_type) {
                     case 'cell':
-                        if (selector[i] instanceof Array) {
-                            if (selector[i][0] instanceof Function) {
-                                cell['is'].apply(cell, selector[i]);
-                            } else {
-                                if (!cell[selector[i][0]]) {
-                                    error('Using unknown function:', selector[i], selector);
-                                }
-                                cell[selector[i][0]].apply(cell, selector[i].slice(1));
-                            }
-                        } else {
-                            cell.just(selector[i]);
-                        }
+                        init_cell_from_hash(cell, selector[i]);
                         break;
                     case 'event':
                         if (selector[i] instanceof Function) {
@@ -2049,6 +2059,13 @@
         }
         customDrivers[name] = {getter: func, def: def};
     }
+    Firera.addCustomFormula = function (name, arr, def) {
+        if (customFormulae[name]) {
+            error('Cant add custom formula - name already taken!', name);
+            return;
+        }
+        customFormulae[name] = arr;
+    }
 
     Firera.addCustomListSetter = function (name, func, def) {
         if (customDrivers[name]) {
@@ -2127,6 +2144,7 @@
         var method_names = {
             customEventDrivers: 'addCustomEventDriver',
             customGetters: 'addCustomGetter',
+            customFormulae: 'addCustomFormula',
             customSetters: 'addCustomSetter',
             customListGetters: 'addCustomListGetter',
             customListSetters: 'addCustomListSetter',
@@ -2194,6 +2212,9 @@
     }
 
     var core = {
+        customFormulae: {
+            templateX: ['dom', '|html']
+        },
         customGetters: {
             i: function () {
                 if (!this.host.host.list) {
@@ -2413,6 +2434,32 @@
             }
         },
         cellMacrosMethods: {
+            dom: function(selector_and_aspect){
+                var q = selector_and_aspect.split('|'),
+                    selector = q[0], 
+                    aspect = q[1];
+                return [function(root){
+                        var el;
+                        if(!root){
+                            return undefined;
+                        }
+                        if(selector === '' || selector === 'root'){
+                            el = $(root);
+                        } else {
+                            el = $(selector, root);
+                        }
+                        switch(aspect){
+                            case 'html':
+                                return el.html();
+                            break;
+                            default:
+                                error('This aspect is currently not supported by dom() macro!')
+                                return;
+                            break;
+                        }
+                }, '$rootNode'];
+                
+            },
             ifAny: function () {
                 var args = Array.prototype.slice.call(arguments);
                 args.unshift(function () {

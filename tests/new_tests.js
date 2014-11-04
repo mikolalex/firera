@@ -607,7 +607,29 @@ describe('Tests from guide', function () {
     it('testing $rootSelector', function(){
         var fr = new Firera;
         fr('$rootSelector').set('.container');
-        console.log('$rootNode', fr("$rootNode").get());
+        assert.equal(fr("$rootNode").get().get()[0] === $(".container").get()[0], true);
+    })
+    
+    it('testing dom() macro', function(){
+        var fr = new Firera;
+        
+        fr('olo').dom('.some-shitty-container|html');
+        assert.equal(fr("olo").get(), undefined);
+        
+        fr('$rootSelector').just('.container');
+        assert.equal(fr("olo").get(), "Ololo!");
+        
+    })
+    
+    it('testing customFormulae', function(){
+        var fr = new Firera;
+        fr('a').is('$templateX');
+        
+        assert.equal(fr("a").get(), undefined);
+        
+        fr('$rootSelector').just('.container');
+        
+        assert.equal(fr("a").get(), $(".container").html());
     })
 
 
