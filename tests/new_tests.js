@@ -631,6 +631,16 @@ describe('Tests from guide', function () {
         
         assert.equal(fr("a").get(), $(".container").html());
     })
+    
+    it('testing $wrapperTag', function(){
+        var fr = new Firera;
+        
+        fr('$rootSelector').just('.wrapped-div');
+        assert.equal(fr("$wrapperTag").get(), 'DIV');
+        
+        fr('$rootSelector').set('.wrapped-select');
+        assert.equal(fr("$wrapperTag").get(), 'SELECT');
+    })
 
 
 

@@ -155,6 +155,17 @@
             return function (a) {
                 return a === str;
             }
+        },
+        parseParams: function(str){ // from strings like "prop(tagName,width)"
+                var params, m, prefix;
+                if (str.contains("(")) {
+                    // there are some params
+                    m = str.match(/([a-z]*)\((.*)\)/i);
+                    params = m[2].split(",");
+                    return [m[1], params];
+                } else {
+                    return [str];
+                }
         }
     }
 
@@ -242,12 +253,9 @@
             case 'HTML':
                 var parts = name.split("|");
                 this.jquerySelector = parts[0];
-                if (parts[1].contains("(")) {
-                    // there are some params
-                    var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-                    this.params = m[2].split(",");
-                    parts[1] = m[1];
-                }
+                var parsed = _.parseParams(parts[1]);
+                parts[1] = parsed[0];
+                parsed[1] && (this.params = parsed[1]);
                 if (!HTMLDrivers[parts[1]]) {
                     error('Unknown driver: ' + parts[1]);
                     return;
@@ -267,15 +275,12 @@
                 break;
             case 'custom':
                 var driver_name = name.slice(1);
-                if (driver_name.contains("(")) {
-                    // there are some params
-                    var m = driver_name.match(/([a-z]*)\((.*)\)/i);
-                    this.params = m[2].split(",");
-                    driver_name = m[1];
-                }
+                var pars = _.parseParams(driver_name);
+                driver_name = pars[0];
+                pars[1] && (this.params = pars[1]);
                 if(customFormulae[driver_name]){
                     init_cell_from_hash(this, customFormulae[driver_name]);
-                    console.log('assigning custom formula!', driver_name, customFormulae[driver_name]);
+                    //console.log('assigning custom formula!', driver_name, customFormulae[driver_name]);
                     return;
                 }
                 if (!customDrivers[driver_name]) {
@@ -2213,7 +2218,8 @@
 
     var core = {
         customFormulae: {
-            templateX: ['dom', '|html']
+            templateX: ['dom', '|html'],
+            wrapperTag: ['dom', '|prop(tagName)']
         },
         customGetters: {
             i: function () {
@@ -2434,12 +2440,18 @@
             }
         },
         cellMacrosMethods: {
-            dom: function(selector_and_aspect){
-                var q = selector_and_aspect.split('|'),
-                    selector = q[0], 
+            dom: function(selector_and_aspect, maybe){
+                var selector, aspect;
+                if(maybe){
+                    selector = selector_and_aspect;
+                    aspect = maybe;
+                } else {
+                    var q = selector_and_aspect.split('|');
+                    selector = q[0];
                     aspect = q[1];
+                }
                 return [function(root){
-                        var el;
+                        var el, actual_aspect;
                         if(!root){
                             return undefined;
                         }
@@ -2448,11 +2460,20 @@
                         } else {
                             el = $(selector, root);
                         }
-                        switch(aspect){
+                        
+                        var parsed = _.parseParams(aspect);
+                        actual_aspect = parsed[0];
+                        var params = parsed[1];
+                        
+                        switch(actual_aspect){
                             case 'html':
                                 return el.html();
                             break;
+                            case 'prop':
+                                return el.prop(params[0]);
+                            break;
                             default:
+                                
                                 error('This aspect is currently not supported by dom() macro!')
                                 return;
                             break;
