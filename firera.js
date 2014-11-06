@@ -5,7 +5,7 @@
  * Так легко трекати зміни цих параметрів і змінювати лише ті ноди, які змінилися :)
  * .range(10) - should return [1, 2, ..., 10]
  * $datasource - should be able to update existing items instead of adding new
- */
+ */    
 (function () {
     ///// 
     ///// 
@@ -65,7 +65,7 @@
                 return $el.tagName;
             }
             if ($el && $el.get().length && $el.get()[0].tagName) {
-                return $el.get()[0].tagName.toLowerCase()
+                return $el.get()[0].tagName.toLowerCase();
             }
             else
                 return '';
@@ -73,16 +73,17 @@
         $searchAttrNotNested: function (element, attr, skip_root) {
             var res = [];
             var searcher = function (el, skip_root) {
-                if (!el)
+                if (!el) {
                     return;
+                }
                 if (el.getAttribute(attr) && !skip_root) {
-                    res.push({name: el.getAttribute(attr), el: el})
+                    res.push({name: el.getAttribute(attr), el: el});
                 } else {
                     for (var i = 0; i < el.children.length; i++) {
                         searcher(el.children[i]);
                     }
                 }
-            }
+            };
             searcher(element, skip_root);
             return res;
         },
@@ -234,11 +235,10 @@
         this.host = host;
         this.deps = [];
         this.inited = false;
-        this.modifiers = [];
         this.observables = {};
         this.changers = [];
         this.observers = [];
-        var name = this.name = selector;
+        var name = this.name = selector || '__anonymous__';
 
         switch (_.getTypeOfCellByName(this.getName())) {
             case 'common':
@@ -364,10 +364,6 @@
         /* empty for default cell, will be overwritten for self-refreshing cells */
     }
 
-    Cell.prototype.then = function (func) {
-        this.modifiers.push(func);
-    }
-
     Cell.prototype.map = function (map) {
         this.then(function (val) {
             if (map[val] !== undefined)
@@ -383,9 +379,6 @@
         }
         var old_val = this.val;
         var new_val = val;
-        for (var i = 0; i < this.modifiers.length; i++) {
-            new_val = this.modifiers[i](new_val);
-        }
         this.val = new_val;
         //////////
         if (this.driver && this.driver.setter) {
@@ -533,9 +526,6 @@
     var typical_compute = function (list, func, listname) {
         var old_val = this.val;
         var new_val = list.count(func);
-        for (var i = 0; i < this.modifiers.length; i++) {
-            new_val = this.modifiers[i](new_val);
-        }
         this.val = new_val;
 
         if (this.DOMElement) {
@@ -587,9 +577,7 @@
         }
         var old_val = this.val;
         var new_val = this.formula.apply(this, args1);
-        for (var i = 0; i < this.modifiers.length; i++) {
-            new_val = this.modifiers[i](new_val);
-        }
+        
         this.val = new_val;
         if (this.DOMElement) {
             this._updateDOMElement();
@@ -693,9 +681,7 @@
         this._compute = function(name, parent_name){
             var old_val = this.val;
             var new_val = this.formula.call(this, parent_name, this.host(parent_name).get());
-            for (var i = 0; i < this.modifiers.length; i++) {
-                new_val = this.modifiers[i](new_val);
-            }
+            
             this.val = new_val;
             if (this.DOMElement) {
                 this._updateDOMElement();
