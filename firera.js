@@ -398,11 +398,6 @@
         }
     }
 
-    Cell.prototype.just = function (val) {
-        this.set(val);// just a value
-        return this;
-    }
-
     Cell.prototype.load = function (url) {
         var self = this;
         $.get(url, function (data) {
@@ -1127,7 +1122,7 @@
                     if (hash[i] instanceof Object) {
                         // Ready Firera List object
                     } else {
-                        cell.just(hash[i]);
+                        cell.set(hash[i]);
                     }
                 }
 
@@ -1332,7 +1327,7 @@
                 cell[val[0]].apply(cell, val.slice(1));
             }
         } else {
-            cell.just(val);
+            cell.set(val);
         }  
     }
 
@@ -1585,7 +1580,7 @@
         this.getScope() && this.getScope().html('');
         if (this.wrapperTag === 'option') {// this is SELECT tag
             this.template_source = 'No template';
-            this.each({$template: ['just', '']});
+            this.each({$template: ['set', '']});
         }
         if (!this.shared.getVar('$template') && inline_template) {
             this.template_source = 'HTML';
@@ -1593,8 +1588,8 @@
                 //this.shared('$template').is(_.attrGetter(states), '$state');
                 this.each({$template: [_.attrGetter(states), '$state']});
             } else {
-                //this.shared('$template').just(inline_template);
-                this.each({$template: ['just', inline_template]});
+                //this.shared('$template').set(inline_template);
+                this.each({$template: ['set', inline_template]});
             }
             this.getScope().html('');
         }
@@ -2946,7 +2941,7 @@
                 return key + '=' + val;
             }
         }
-        var self = window.hist = Firera.history = new Firera.hash({config: ['just', config]});
+        var self = window.hist = Firera.history = new Firera.hash({config: ['set', config]});
         var fields_to_pick = [];
         var field_cells = {};
         var cell_fields = {};

@@ -5,9 +5,9 @@ var fequal = function (fvar, val) {
 describe('Simple values', function () {
     it('Testing simple values', function () {
         var a = new Firera;
-        a("foo").just('bar');
+        a("foo").set('bar');
         a("loo").is("foo");
-        a("doo").just(true);
+        a("doo").set(true);
         a("koo").isNot("doo");
         assert.equal(a("foo").get(), 'bar');
         assert.equal(a("loo").get(), 'bar');
@@ -18,7 +18,7 @@ describe('Simple values', function () {
 
         // testing pick
 
-        a('data').just([
+        a('data').set([
             {
                 name: 'Ivan',
                 surname: 'Ivanenko',
@@ -44,16 +44,16 @@ describe('Simple values', function () {
     it('Calling not existing variable', function () {
 
         var user1 = new Firera;
-        user1('login').just('Lobster');
-        user1('type').just('user');
+        user1('login').set('Lobster');
+        user1('type').set('user');
 
         var user2 = new Firera;
-        user2('login').just('Salmon');
-        user2('type').just('admin');
+        user2('login').set('Salmon');
+        user2('type').set('admin');
 
         var user3 = new Firera;
-        user3('login').just('Carp');
-        user3('type').just('moder');
+        user3('login').set('Carp');
+        user3('type').set('moder');
 
         // Their rights should be defined automatically, based on user type
 
@@ -152,14 +152,14 @@ describe('Simple values', function () {
             var n = Number(num);
             return n > 0 ? n : -n;
         })
-        app('somenum').just(34);
+        app('somenum').set(34);
         app('absnum').abs('somenum');
         assert.equal(app('absnum').get(), 34);
         app('somenum').set(-3);
         assert.equal(app('absnum').get(), 3);
 
-        app('a').just(false);
-        app('b').just(true);
+        app('a').set(false);
+        app('b').set(true);
         app('c').ifAny('a', 'b');
         assert.equal(app('c').get(), true);
         app('b').set(false);
@@ -178,7 +178,7 @@ describe('Simple values', function () {
                 surname: 'Ivanov',
             }
         ]);
-        app('street').just('Khreshchatyk');
+        app('street').set('Khreshchatyk');
         app('cities').are(['Kyiv', 'Odesa', 'Lviv']);
         app('cities2').are(['Donetsk', 'Lutsk', 'Ternopil'], {share: {
                 takes: ['street'],
@@ -217,7 +217,7 @@ describe('Tests from guide', function () {
          */
 
         var app = new Firera;
-        app('a').just(42);
+        app('a').set(42);
         app('b').is(function (num) {
             return num + 3;
         }, 'a');
@@ -232,8 +232,8 @@ describe('Tests from guide', function () {
             return 'Hello, ' + firstname + ' ' + lastname + '!';
         }
 
-        app('name').just('Aare');
-        app('surname').just('Olander');
+        app('name').set('Aare');
+        app('surname').set('Olander');
 
         app('greeting').is(get_greeting, 'name', 'surname');
 
@@ -294,7 +294,7 @@ describe('Tests from guide', function () {
                 radius: 42,
             },
         ])
-        app('rounds').shared('pi').just(Math.PI);
+        app('rounds').shared('pi').set(Math.PI);
         app('rounds').each({
             square: [function (p, r) {
                     return Math.round(p * r * r)
@@ -333,9 +333,9 @@ describe('Tests from guide', function () {
                     '<div class="man">Hi, Mr.<span data-fr="name"></span> <span data-fr="surname"></span>!</div>';
         }
 
-        app('name').just('Sergiy');
-        app('surname').just('Ivanenko');
-        app('gender').just('male');
+        app('name').set('Sergiy');
+        app('surname').set('Ivanenko');
+        app('gender').set('male');
 
         app('$template').is(get_user_template_by_gender, 'gender');
 
@@ -343,7 +343,7 @@ describe('Tests from guide', function () {
 
         assert.equal($(".current_user .man").html(), 'Hi, Mr.<span data-fr="name">Sergiy</span> <span data-fr="surname">Ivanenko</span>!');
 
-        app('gender').just('female');
+        app('gender').set('female');
         assert.equal($(".current_user .woman").html(), 'Hi, Ms.<span data-fr="name">Sergiy</span> <span data-fr="surname">Ivanenko</span>!');
 
     })
@@ -402,13 +402,13 @@ describe('Tests from guide', function () {
                 descr: 'Lightness, A, B',
             },
         ]);
-        app('models').shared('$template').just('<div>Some dummy template</div>');
+        app('models').shared('$template').set('<div>Some dummy template</div>');
 
         assert.equal(app('models').list[0]('$template').get(), '<div>Some dummy template</div>');
         assert.equal(app('models').list[2]('$template').get(), '<div>Some dummy template</div>');
 
 
-        app('models/0/$template').just('ololo');
+        app('models/0/$template').set('ololo');
         assert.equal(app('models/1/$template').get(), 'ololo');
         assert.equal(app('models/0/$template').get(), 'ololo');
     })
@@ -592,8 +592,8 @@ describe('Tests from guide', function () {
     
     it('testing funnel', function(){
         var fr = new Firera;
-        fr('a').just(42);
-        fr('b').just(77);
+        fr('a').set(42);
+        fr('b').set(77);
         fr('z').funnel(function(field, val){
             console.log('funnel computing, field:', field, 'val', val);
             return field + ':' + val;
@@ -616,7 +616,7 @@ describe('Tests from guide', function () {
         fr('olo').dom('.some-shitty-container|html');
         assert.equal(fr("olo").get(), undefined);
         
-        fr('$rootSelector').just('.container');
+        fr('$rootSelector').set('.container');
         assert.equal(fr("olo").get(), "Ololo!");
         
     })
@@ -627,7 +627,7 @@ describe('Tests from guide', function () {
         
         assert.equal(fr("a").get(), undefined);
         
-        fr('$rootSelector').just('.container');
+        fr('$rootSelector').set('.container');
         
         assert.equal(fr("a").get(), $(".container").html());
     })
@@ -635,7 +635,7 @@ describe('Tests from guide', function () {
     it('testing $wrapperTag', function(){
         var fr = new Firera;
         
-        fr('$rootSelector').just('.wrapped-div');
+        fr('$rootSelector').set('.wrapped-div');
         assert.equal(fr("$wrapperTag").get(), 'DIV');
         
         fr('$rootSelector').set('.wrapped-select');
