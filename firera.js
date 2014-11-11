@@ -2191,8 +2191,28 @@
 
     var core = {
         customFormulae: {
-            templateX: ['dom', '|html'],
-            wrapperTag: ['dom', '|prop(tagName)']
+            templateRaw: ['dom', '|html'],
+            rootTag: ['dom', '|prop(tagName)'],
+            wrapperTag: [function(tag){
+                var t = 'div';
+                switch (tag) {
+                    case 'UL':
+                    case 'OL':
+                    case 'MENU':
+                        t = 'li';
+                    break;
+                    case 'SELECT':
+                        t = 'option';
+                    break;
+                    case 'SVG':
+                        t = 'g';
+                    break;
+                }
+                return t;
+            }, '$rootTag'],
+            templateX: [function(rawHTML, wrapper){
+                    return '<' + wrapper + '>' + rawHTML + '</' + wrapper + '>';
+            }, '$templateRaw', '$wrapperTag']
         },
         customGetters: {
             i: function () {
@@ -2711,7 +2731,6 @@
                     // Do something with the result
                 }
             }
-            console.log(params);
             $.ajax(params);
         })
 
@@ -2721,8 +2740,6 @@
                 changer = function (x, itemnum, field, old_val, new_val) {
                     if (list.dontfirechange)
                         return;
-
-                    console.log(arguments);
                     var where_fields = _.filterFields(list.list[itemnum].get(), getData('idFields'));
                     var req = {};
                     req[field] = new_val;

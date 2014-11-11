@@ -623,7 +623,7 @@ describe('Tests from guide', function () {
     
     it('testing customFormulae', function(){
         var fr = new Firera;
-        fr('a').is('$templateX');
+        fr('a').is('$templateRaw');
         
         assert.equal(fr("a").get(), undefined);
         
@@ -632,14 +632,17 @@ describe('Tests from guide', function () {
         assert.equal(fr("a").get(), $(".container").html());
     })
     
-    it('testing $wrapperTag', function(){
+    it('testing $wrapperTag and $rootTag', function(){
         var fr = new Firera;
         
-        fr('$rootSelector').set('.wrapped-div');
-        assert.equal(fr("$wrapperTag").get(), 'DIV');
         
         fr('$rootSelector').set('.wrapped-select');
-        assert.equal(fr("$wrapperTag").get(), 'SELECT');
+        assert.equal(fr("$rootTag").get(), 'SELECT');
+        assert.equal(fr("$wrapperTag").get(), 'option');
+        
+        fr('$rootSelector').set('.wrapped-div');
+        assert.equal(fr("$rootTag").get(), 'DIV');
+        console.log('XXX', fr("$templateX").get());
     })
 
 
