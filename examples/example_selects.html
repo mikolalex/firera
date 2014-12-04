@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+	<script src="../jquery.js">
+	</script>
+        <script src="../firera.js"></script>
+	<style>
+	    body {
+		font-size: 16px;
+		font-family: sans-serif;
+	    }
+	    
+	    .selected {
+		background-color: whitesmoke;
+		border-radius: 10px;
+	    }
+	</style>
+    </head>
+    <body>
+	    
+        <select data-fr="s1">
+            
+        </select>
+        <select data-fr="s2">
+            
+        </select>
+        <select data-fr="s3">
+            
+        </select>
+<script>
+	var app = Firera.hash();
+	app.applyTo('body');
+        
+        var options = ['ololo', 'alala', 'ululu', 'ilili'];
+        app("s2").are(options);
+        app("s3").are(options);
+        app("s1").are(options, {share: {takes: {
+                    'sel1': '[data-fr=s2]|selectedItem',
+                    'sel2': '[data-fr=s3]|selectedItem',
+                }}}).each({
+            "|attr(disabled)": [function(a, b, c){
+                    return a === c || b === c;
+            }, 'sel1', 'sel2', "__val"]
+        })
+</script>
+    </body>
+</html>
