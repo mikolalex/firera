@@ -1108,6 +1108,9 @@
             }
         },
         init_with_data: function (hash) {
+            if(!(hash instanceof Object)){
+                hash = {__val: hash};
+            }
             for (var i in hash) {
                 var cell = this.create_cell_or_event(i);
                 if (hash[i] instanceof Array) {
