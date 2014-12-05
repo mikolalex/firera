@@ -1370,19 +1370,17 @@
         for (var i in hash_methods) {
             self[i] = hash_methods[i];
         }
+        //self.prototype = hash_methods; Would be great!..
 
         //////////////////////////////////////////
         var init_with_hash = function (selector, params) {
             for (var i in selector) {
-                if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data') {
+                if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data' || i === 'each') {
                     continue;
                 }
                 var cell = self.create_cell_or_event(i, undefined, true);
 
                 var cell_type = cell._getType();
-                if (i === 'each') {
-                    continue;
-                }
                 if (selector[i] instanceof Object && !(selector[i] instanceof Array) && !(selector[i] instanceof Function)) {
                     self(i).are(selector[i]);
                     continue;
@@ -1439,7 +1437,7 @@
             if (selector.__setup) {// run setup function
                 selector.__setup.call(self, params);
             }
-            if (selector.$data) {
+            if (selector.$data && !self.isShared()) {
                 self.setData(selector.$data);
             }
             if (self.isShared())

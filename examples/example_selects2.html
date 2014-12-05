@@ -32,20 +32,32 @@
             
         </select>
 <script>
-	var app = Firera.hash();
         
         var options = ['ololo', 'alala', 'ululu', 'ilili'];
-        app("s2").are(options);
-        app("s3").are(options);
-        app("s1").are(options, {share: {takes: {
-            'selected_1': '.s2|selectedItem',
+        
+	var app = Firera.hash({
+            s2: ['are', options],
+            s3: ['are', options],
+            selected_2: '.s2|selectedItem',
+            selected_3: '.s3|selectedItem',
+            s1: ['are', {
+                    $data: options,
+                    each: {
+                        "|attr(disabled)": [function(a, b, c){
+                                return a === b || a === c;
+                        },'__val', 'selected_2', 'selected_3']
+                    }
+            }]
+        });
+        /*app("s1").are(options, {share: {takes: {
+            'selected_1': ,
             'selected_2': '.s3|selectedItem',
         }}}).each({
             "|attr(disabled)": [function(a, b, c){
                     return a === b || a === c;
             }, '__val', 'selected_1', 'selected_2'
             ]
-        })
+        })*/
         
 	app.applyTo('body');
 </script>
