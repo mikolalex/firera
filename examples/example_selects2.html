@@ -22,28 +22,31 @@
     </head>
     <body>
 	    
-        <select class="s1" data-fr="s1">
-            
-        </select>
-        <select class="s2" data-fr="s2">
-            
-        </select>
-        <select class="s3" data-fr="s3">
-            
-        </select>
+        <select class="s1" data-fr="s1"></select>
+        <select class="s2" data-fr="s2"></select>
+        <select class="s3" data-fr="s3"></select>
         <script>
-
+                // data
                 var options = ['ololo', 'alala', 'ululu', 'ilili'];
+                
+                // pure functions
+                var comparator = function(a, b, c){
+                        return a === b || a === c;
+                }
 
+                // app logics
                 var app = Firera.hash({
                     s2: ['are', options],
                     s3: ['are', options],
                     s1: ['are', {
                             $data: options,
                             each: {
-                                "|attr(disabled)": [function(a, b, c){
-                                        return a === b || a === c;
-                                },'__val', '../.s2|selectedItem', '../.s3|selectedItem']
+                                '|attr(disabled)': [
+                                    comparator,
+                                    '__val',
+                                    '../.s2|selectedItem',
+                                    '../.s3|selectedItem'
+                                ]
                             }
                     }]
                 });
