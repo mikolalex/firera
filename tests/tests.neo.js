@@ -52,7 +52,7 @@ describe('Simple values', function() {
 
 	})
 
-	it('Testing visualization package', function() {
+	/*it('Testing visualization package', function() {
 		var data = [
 			{
 				name: 'Africa',
@@ -86,7 +86,7 @@ describe('Simple values', function() {
 			[3, 50023],
 			app('sales/sales_range').get()
 			);
-	})
+	})*/
 
 	it('Testing join', function() {
 		var app = {
@@ -265,7 +265,7 @@ describe('Tests from guide', function() {
 		fequal(app('rounds/2/square'), 5542);
 
 	})
-	/*
+	
 	it('testing basic HTML binding', function() {
 		var validate_string = function(str) {
 			return !str || str.length < 4 ? "It's too short!" : str;
@@ -284,7 +284,7 @@ describe('Tests from guide', function() {
 		msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, 'Mykola');
 	})
-
+	/*
 	it('Testing $template', function() {
 		var app = new Firera;
 		var get_user_template_by_gender = function(gender) {

@@ -96,12 +96,6 @@
 			searcher(element, skip_root);
 			return res;
 		},
-		
-		getTypeOfCellByName: function(name){
-			if(name[0] === '$') return 'custom';
-			if(name.indexOf('|') !== -1) return 'HTML';
-			return 'common';
-		},
 
 		isValuable: function(tagname) {
 			return ['input', 'select', 'textarea'].indexOf(tagname.toLowerCase()) !== -1;
@@ -235,60 +229,7 @@
 		this.observers = [];
 		var name = this.name = selector;
 		
-		switch(_.getTypeOfCellByName(this.getName())){
-			case 'common':
-				params && params.dumb && (this.dumb = true);
-			break;
-			case 'HTML':
-				var parts = name.split("|");
-				this.jquerySelector = parts[0];
-				if (parts[1].contains("(")) {
-					// there are some params
-					var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-					this.params = m[2].split(",");
-					parts[1] = m[1];
-				}
-				if (!HTMLDrivers[parts[1]]) {
-					error('Unknown driver: ' + parts[1]);
-					return;
-				}
-				var driver = this.driver = HTMLDrivers[parts[1]];
-				if (driver.def) this.val = driver.def;
-				this.rebind = function() {
-					this.HTMLElement = false;// abort link to old element
-					driver.getter && driver.getter.apply(this, this.params);
-					if (this.driver.setter && this.getScope()) {
-						this.driver.setter.apply(this, [this.val].concat(this.params));
-					}
-					return this;
-				}
-				driver.getter && this.getScope() && this.rebind('cell constructor');
-			break;
-			case 'custom':
-				var driver_name = name.slice(1);
-				if (driver_name.contains("(")) {
-					// there are some params
-					var m = driver_name.match(/([a-z]*)\((.*)\)/i);
-					this.params = m[2].split(",");
-					driver_name = m[1];
-				}
-				if (!customDrivers[driver_name]) {
-					error('Unknown custom driver: ' + driver_name);
-					return;
-				}
-				var driver = this.driver = customDrivers[driver_name];
-				if (driver.def) this.val = driver.def;
-				if(driver.setter){
-					this.rebind = function() {
-						this.driver.setter.apply(this, [this.val].concat(this.params));
-						return this;
-					}
-				}
-				if(driver.getter){
-					driver.getter.apply(this, this.params);
-				}
-			break;
-		}
+		Firera.find_cell_driver(this.getName()).call(this, this.getName());
 	}
 
 	Cell.prototype.getName = function() {
@@ -1167,7 +1108,6 @@
 				this.push(obj[i], true);
 				this.changeItem('create', '*', this.list.length - 1);
 			}
-			this.rebind('push');
 			return;
 		}
 		if (!(obj instanceof Object)) {
@@ -1182,7 +1122,6 @@
 			this.list[counter].update(this.each_hash);
 		}
 		if (!nochange) {
-			this.rebind('push', counter);
 			this.changeItem('create', '*', counter);
 		}
 		return this;
@@ -1355,6 +1294,67 @@
 		return res;
 	}
 	
+	Firera.get_params = function(str){
+		var m = str.match(/([a-z]*)\((.*)\)/i);
+		return m[2].split(",");
+	}
+	
+	Firera.cell_drivers = [
+		{
+			name: 'system',
+			regex: new RegExp('^\\$.*'),
+			func: function(name){
+				var params;
+				var driver_name = name.slice(1);
+				if (driver_name.contains("(")) {
+					params = Firera.get_params(driver_name);
+				}
+				if (!customDrivers[driver_name]) {
+					error('Unknown custom driver: ' + driver_name);
+					return;
+				}
+				var driver = this.driver = customDrivers[driver_name];
+				if (driver.def) this.val = driver.def;
+				driver.getter && driver.getter.call(this);
+			}
+		},
+		{
+			name: 'HTML',
+			regex: new RegExp('(.|\s)*\\|.*'),
+			func: function(name){
+				var parts = name.split("|");
+				if (parts[1].contains("(")) {
+					// there are some params
+					var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+					this.params = m[2].split(",");
+					parts[1] = m[1];
+				}
+				if (!HTMLDrivers[parts[1]]) {
+					error('Unknown driver: ' + parts[1]);
+					return;
+				}
+				this.driver = HTMLDrivers[parts[1]];
+				if (this.driver.def) this.val = this.driver.def;
+				//@todo
+			}
+		},
+		{
+			name: 'common',
+			regex: new RegExp('.*'),
+			func: function(){
+				this.dumb = true;
+			}
+		},
+	];
+	
+	Firera.find_cell_driver = function(name){
+		for(var i in this.cell_drivers){
+			if(this.cell_drivers[i].regex.test(name)){
+				console.log('&&&&&&&&&& Cell ' + name +' is ' + this.cell_drivers[i].name);
+				return this.cell_drivers[i].func;
+			}
+		}
+	}
 	
 	/////
 	/////
