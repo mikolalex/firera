@@ -294,15 +294,7 @@
 	Cell.prototype.rebind = function() {
 		/* empty for default cell, will be overwritten for self-refreshing cells */
 	}
-
-	Cell.prototype.map = function(map) {
-		this.then(function(val) {
-			if (map[val] !== undefined)
-				return map[val];
-			return val;
-		})
-	}
-
+        
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
 		if(Object.keys(this.observables).length && !setanyway){
