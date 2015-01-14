@@ -247,7 +247,6 @@
 		this.host = host;
 		this.deps = [];
 		this.inited = false;
-		this.modifiers = [];
 		this.observables = {};
 		this.changers = [];
 		this.observers = [];
@@ -296,10 +295,6 @@
 		/* empty for default cell, will be overwritten for self-refreshing cells */
 	}
 
-	Cell.prototype.then = function(func) {
-		this.modifiers.push(func);
-	}
-
 	Cell.prototype.map = function(map) {
 		this.then(function(val) {
 			if (map[val] !== undefined)
@@ -314,16 +309,13 @@
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
 		}
-		var old_val = this.val;
-		var new_val = val;
-		for (var i = 0; i < this.modifiers.length; i++) {
-			new_val = this.modifiers[i](new_val);
-		}
+		var old_val = this.val,
+		    new_val = val;
 		this.val = new_val;
 		//////////
 		// @todo: should be if(this.settable){ this.run_writer();}
 		if (this.driver && this.driver.writer) {
-			this.driver.writer.apply(this, [this.val, this.getElement()].concat(this.params));
+			this.driver.writer.apply(this, [this.val].concat(this.params));
 		}
 		//////////
 		this.invalidateObservers(this.getName());
@@ -401,9 +393,6 @@
 	var typical_compute = function(list, func, listname) {
 		var old_val = this.val;
 		var new_val = list.count(func);
-		for (var i = 0; i < this.modifiers.length; i++) {
-			new_val = this.modifiers[i](new_val);
-		}
 		this.val = new_val;
 
 		if (this.driver.writer) {
@@ -435,9 +424,6 @@
 		}
 		var old_val = this.val;
 		var new_val = this.formula.apply(this, args1);
-		for (var i = 0; i < this.modifiers.length; i++) {
-			new_val = this.modifiers[i](new_val);
-		}
 		this.val = new_val;
 		if (
 			this.driver 
