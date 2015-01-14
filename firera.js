@@ -813,6 +813,14 @@
         return this;
     }
 
+    Event.prototype.setTo = function (cell) {
+        this.handlers.push(function (self, _, _, val) {
+            console.log('VAL is', val);
+            //self(cell).push(val);
+        });
+        return this;
+    }
+
     Event.prototype.clearInputs = function (arr) {
         this.handlers.push(function (self, _, _, _, $el) {
             $el.find('input[type!="submit"], textarea').val('');
