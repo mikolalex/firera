@@ -321,9 +321,9 @@
 		}
 		this.val = new_val;
 		//////////
-		// @todo: should be if(this.settable){ this.run_setter();}
-		if (this.driver && this.driver.setter) {
-			this.driver.setter.apply(this, [this.val, this.getElement()].concat(this.params));
+		// @todo: should be if(this.settable){ this.run_writer();}
+		if (this.driver && this.driver.writer) {
+			this.driver.writer.apply(this, [this.val, this.getElement()].concat(this.params));
 		}
 		//////////
 		this.invalidateObservers(this.getName());
@@ -406,8 +406,8 @@
 		}
 		this.val = new_val;
 
-		if (this.driver.setter) {
-			this.run_setter();
+		if (this.driver.writer) {
+			this.run_writer();
 		}
 		this.change(old_val, this.val);
 		this.updateObservers(listname);
@@ -441,12 +441,12 @@
 		this.val = new_val;
 		if (
 			this.driver 
-			&& this.driver.setter 
+			&& this.driver.writer 
 			&& (
 				_.isReservedName(this.getName())
 			)
 		) {
-			this.driver.setter.apply(this, [this.val].concat(this.params));
+			this.driver.writer.apply(this, [this.val].concat(this.params));
 		}
 		this.change(old_val, this.val);
 		this.updateObservers(name);
@@ -1496,27 +1496,27 @@
 		}
 		HTMLDrivers[name] = {getter: func, def: def};
 	}
-	Firera.addHTMLSetter = function(name, func, def){
+	Firera.addHTMLWriter = function(name, func, def){
 		if(HTMLDrivers[name]) {
-			error('Cant add HTML setter - name already taken!', name);
+			error('Cant add HTML writer - name already taken!', name);
 			return;
 		}
-		HTMLDrivers[name] = {setter: func, def: def};
+		HTMLDrivers[name] = {writer: func, def: def};
 	}
-	Firera.addHTMLGetterSetter = function(name, func, def){
+	Firera.addHTMLGetterWriter = function(name, func, def){
 		if(HTMLDrivers[name]) {
-			error('Cant add HTML setter - name already taken!', name);
+			error('Cant add HTML writer - name already taken!', name);
 			return;
 		}
-		HTMLDrivers[name] = {setter: func.setter, getter: func.getter, def: def};
+		HTMLDrivers[name] = {writer: func.writer, getter: func.getter, def: def};
 	}
 	
-	Firera.addCustomSetter = function(name, func, def){
+	Firera.addCustomWriter = function(name, func, def){
 		if(customDrivers[name]) {
-			error('Cant add custom setter - name already taken!', name);
+			error('Cant add custom writer - name already taken!', name);
 			return;
 		}
-		customDrivers[name] = {setter: func, def: def};
+		customDrivers[name] = {writer: func, def: def};
 	}
 	Firera.addCustomGetter = function(name, func, def){
 		if(customDrivers[name]) {
@@ -1533,14 +1533,14 @@
 		customDrivers[name] = {depends: args};
 	}
 	
-	Firera.addCustomListSetter = function(name, func, def){
+	Firera.addCustomListWriter = function(name, func, def){
 		if(customDrivers[name]) {
-			error('Cant add custom list setter - name already taken!', name);
+			error('Cant add custom list writer - name already taken!', name);
 			return;
 		}
-		customDrivers[name] = {setter: function(){
+		customDrivers[name] = {writer: function(){
 				if(!this.host.isShared()){
-					error('Cant run list setter of a non-list!', this);
+					error('Cant run list writer of a non-list!', this);
 					return;
 				}
 				return func.apply(this, arguments);
@@ -1607,13 +1607,13 @@
 		var method_names = {
 			customEventDrivers: 'addCustomEventDriver',	
 			customGetters: 'addCustomGetter',
-			customSetters: 'addCustomSetter',
+			customWriters: 'addCustomWriter',
 			customListGetters: 'addCustomListGetter',
 			customVars: 'addCustomVar',
-			customListSetters: 'addCustomListSetter',
+			customListWriters: 'addCustomListWriter',
 			HTMLGetters: 'addHTMLGetter',
-			HTMLSetters: 'addHTMLSetter',
-			HTMLGettersSetters: 'addHTMLGetterSetter',
+			HTMLWriters: 'addHTMLWriter',
+			HTMLGettersWriters: 'addHTMLGetterWriter',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for(var field in method_names){
@@ -1687,7 +1687,7 @@
 				}.bind(this))
 			}
 		},
-		customSetters: {
+		customWriters: {
 			template: function(){
 				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
 			}
@@ -1724,7 +1724,7 @@
 					this.set(list.list.length);
 			},
 		},
-		customListSetters: {
+		customListWriters: {
 			datasource: function(val) {
 				if (this.host && this.host.host) {// should be a list
 					if (!val)
@@ -1733,7 +1733,7 @@
 				}
 			},
 			shownItems: {
-				setter: function(val) {
+				writer: function(val) {
 					var scope = this.host.host.getScope();
 					if(scope){
 						var items = scope.children();
@@ -1782,7 +1782,7 @@
 				this.set(get_files_info($input_element.get()[0]));
 			}
 		},
-		HTMLSetters: {
+		HTMLWriters: {
 			visibility: function(val, $el) {
 				if (val) {
 					$el.show();
@@ -1821,9 +1821,9 @@
 				$el.attr(atrname, val);
 			}
 		},
-		HTMLGettersSetters: {
+		HTMLGettersWriters: {
 			value: {
-				setter: function(val, $el) {
+				writer: function(val, $el) {
 					switch ($el.attr('type')) {
 						case 'checkbox':
 							$el.attr('checked', !!val);
@@ -1872,17 +1872,17 @@
 							items.removeClass('selected');
 							$(this).addClass('selected');
 							var val = $(this).attr('data-value');
-							self._selectedItem_setter_is_in_process = true;
+							self._selectedItem_writer_is_in_process = true;
 							self.set(val);
 						})
 					}
 				},
-				setter: function(val, $el){
-					if(this._selectedItem_setter_is_in_process){
-						this._selectedItem_setter_is_in_process = false;
+				writer: function(val, $el){
+					if(this._selectedItem_writer_is_in_process){
+						this._selectedItem_writer_is_in_process = false;
 					} else {
 						if(_.isInt(val)){
-							this._selectedItem_setter_is_in_process = true;
+							this._selectedItem_writer_is_in_process = true;
 							$($el.children().get()[val]).click();
 						}
 					}
