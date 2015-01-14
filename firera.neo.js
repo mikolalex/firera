@@ -1,6 +1,6 @@
 /*
  * 
- * @todo Write custom getters for value range of array
+ * @todo Write custom readers for value range of array
  * @todo selection(projecion) by parameter(true/false) app('numbers.even'), where .each({even: [function(n){ return n % 2 === 0;}, 'val']}})
  * РўР°Рє Р»РµРіРєРѕ С‚СЂРµРєР°С‚Рё Р·РјС–РЅРё С†РёС… РїР°СЂР°РјРµС‚СЂС–РІ С– Р·РјС–РЅСЋРІР°С‚Рё Р»РёС€Рµ С‚С– РЅРѕРґРё, СЏРєС– Р·РјС–РЅРёР»РёСЃСЏ :)
  * .range(10) - should return [1, 2, ..., 10]
@@ -124,7 +124,7 @@
 			return res.join('');
 		},
 
-		attrGetter: function(obj){
+		attrReader: function(obj){
 			return function(key){
 				//console.log('got', key, 'return', obj[key], 'form', obj);
 				return obj[key] ? obj[key] : '';
@@ -1348,7 +1348,7 @@
 			}
 			var driver = this.driver = customDrivers[driver_name];
 			if (driver.def) this.val = driver.def;
-			driver.getter && driver.getter.call(this);
+			driver.reader && driver.reader.call(this);
 			if(driver.depends){
 				//console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
 				Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
@@ -1489,12 +1489,12 @@
 	}
 	
 	// Methos for adding some special cellnames. For example, app(".name|visibility") - here visibility is a custom HTML driver
-	Firera.addHTMLGetter = function(name, func, def){
+	Firera.addHTMLReader = function(name, func, def){
 		if(HTMLDrivers[name]) {
-			error('Cant add HTML getter - name already taken!', name);
+			error('Cant add HTML reader - name already taken!', name);
 			return;
 		}
-		HTMLDrivers[name] = {getter: func, def: def};
+		HTMLDrivers[name] = {reader: func, def: def};
 	}
 	Firera.addHTMLWriter = function(name, func, def){
 		if(HTMLDrivers[name]) {
@@ -1503,12 +1503,12 @@
 		}
 		HTMLDrivers[name] = {writer: func, def: def};
 	}
-	Firera.addHTMLGetterWriter = function(name, func, def){
+	Firera.addHTMLReaderWriter = function(name, func, def){
 		if(HTMLDrivers[name]) {
 			error('Cant add HTML writer - name already taken!', name);
 			return;
 		}
-		HTMLDrivers[name] = {writer: func.writer, getter: func.getter, def: def};
+		HTMLDrivers[name] = {writer: func.writer, reader: func.reader, def: def};
 	}
 	
 	Firera.addCustomWriter = function(name, func, def){
@@ -1518,12 +1518,12 @@
 		}
 		customDrivers[name] = {writer: func, def: def};
 	}
-	Firera.addCustomGetter = function(name, func, def){
+	Firera.addCustomReader = function(name, func, def){
 		if(customDrivers[name]) {
-			error('Cant add custom getter - name already taken!', name);
+			error('Cant add custom reader - name already taken!', name);
 			return;
 		}
-		customDrivers[name] = {getter: func, def: def};
+		customDrivers[name] = {reader: func, def: def};
 	}
 	Firera.addCustomVar = function(name, args){
 		if(customDrivers[name]) {
@@ -1546,15 +1546,15 @@
 				return func.apply(this, arguments);
 		}, def: def};
 	};
-	Firera.addCustomListGetter = function(name, func, def){
+	Firera.addCustomListReader = function(name, func, def){
 		if(customDrivers[name]) {
-			error('Cant add custom list getter - name already taken!', name);
+			error('Cant add custom list reader - name already taken!', name);
 			return;
 		}
 		customDrivers[name] = {
-			getter: function(){
+			reader: function(){
 				if(!this.host || !this.host.isShared()){
-					error('Cant run list getter ' + name + ' of a non-list!', this.host.host);
+					error('Cant run list reader ' + name + ' of a non-list!', this.host.host);
 					return;
 				}
 				return func.apply(this, arguments);
@@ -1606,14 +1606,14 @@
 	Firera.addPackage = function(package){
 		var method_names = {
 			customEventDrivers: 'addCustomEventDriver',	
-			customGetters: 'addCustomGetter',
+			customReaders: 'addCustomReader',
 			customWriters: 'addCustomWriter',
-			customListGetters: 'addCustomListGetter',
+			customListReaders: 'addCustomListReader',
 			customVars: 'addCustomVar',
 			customListWriters: 'addCustomListWriter',
-			HTMLGetters: 'addHTMLGetter',
+			HTMLReaders: 'addHTMLReader',
 			HTMLWriters: 'addHTMLWriter',
-			HTMLGettersWriters: 'addHTMLGetterWriter',
+			HTMLReadersWriters: 'addHTMLReaderWriter',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for(var field in method_names){
@@ -1675,10 +1675,10 @@
 	}
 	
 	var core = {
-		customGetters: {
+		customReaders: {
 			i: function(){
 				if(!this.host.host.list){
-					error('Cant get index of not array element in getter!'); return;
+					error('Cant get index of not array element in reader!'); return;
 				}
 				this.set(this.host.getIndex());
 				this.host.host.onChangeItem('afterDelete', function(){
@@ -1697,7 +1697,7 @@
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode']
 		},
-		customListGetters: {
+		customListReaders: {
 			length: function() {
 					var self = this;
 					var list = this.host.host;
@@ -1751,7 +1751,7 @@
 				}
 			},
 		},
-		HTMLGetters: {
+		HTMLReaders: {
 			mouseover: function($el) {
 				var self = this;
 				$el.mouseenter(function() {
@@ -1821,7 +1821,7 @@
 				$el.attr(atrname, val);
 			}
 		},
-		HTMLGettersWriters: {
+		HTMLReadersWriters: {
 			value: {
 				writer: function(val, $el) {
 					switch ($el.attr('type')) {
@@ -1833,7 +1833,7 @@
 							break;
 					}
 				},
-				getter: function($el) {
+				reader: function($el) {
 					var self = this;
 					var type = $el.attr('type');
 					$el.bind("change, keyup, input, focus, blur", function() {
@@ -1850,7 +1850,7 @@
 			},
 			
 			selectedItem: {
-				getter: function($el){
+				reader: function($el){
 					if (!$el.length) {
 						error("No element found by selector ");
 					}
