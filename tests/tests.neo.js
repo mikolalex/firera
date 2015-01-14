@@ -52,6 +52,12 @@ describe('Simple values', function() {
 
 	})
 
+	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
+		var app = new Firera;
+		app('$rootSelector').set('.pickleberry');
+		assert.equal(app('$templateX').get(), '<h2>Hey, dude!</h2>');
+	})
+
 	/*it('Testing visualization package', function() {
 		var data = [
 			{

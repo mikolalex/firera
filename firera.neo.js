@@ -2,7 +2,7 @@
  * 
  * @todo Write custom getters for value range of array
  * @todo selection(projecion) by parameter(true/false) app('numbers.even'), where .each({even: [function(n){ return n % 2 === 0;}, 'val']}})
- * Так легко трекати зміни цих параметрів і змінювати лише ті ноди, які змінилися :)
+ * РўР°Рє Р»РµРіРєРѕ С‚СЂРµРєР°С‚Рё Р·РјС–РЅРё С†РёС… РїР°СЂР°РјРµС‚СЂС–РІ С– Р·РјС–РЅСЋРІР°С‚Рё Р»РёС€Рµ С‚С– РЅРѕРґРё, СЏРєС– Р·РјС–РЅРёР»РёСЃСЏ :)
  * .range(10) - should return [1, 2, ..., 10]
  * $datasource - should be able to update existing items instead of adding new
  */
@@ -908,7 +908,7 @@
 		for (var i in hash_methods) {
 			self[i] = hash_methods[i];
 		}
-
+		
 		//////////////////////////////////////////
 		var init_with_hash = function(selector, params) {
 			for (var i in selector) {
@@ -916,65 +916,10 @@
 					continue;
 				}
 				var cell = self.create_cell_or_event(i, undefined, true);
-
-				var cell_type = cell.getType();
 				if(i === 'each'){
 					continue;
 				}
-				if(selector[i] instanceof Object && !(selector[i] instanceof Array) && !(selector[i] instanceof Function)){
-					self(i).are(selector[i]);
-					continue;
-				}
-				switch (cell_type) {
-					case 'cell':
-						if (selector[i] instanceof Array) {
-							if (selector[i][0] instanceof Function) {
-								cell['is'].apply(cell, selector[i]);
-							} else {
-								if (!cell[selector[i][0]]) {
-									error('Using unknown function:', selector[i], selector);
-								}
-								cell[selector[i][0]].apply(cell, selector[i].slice(1));
-							}
-						} else {
-							cell.just(selector[i]);
-						}
-						break;
-					case 'event':
-						if (selector[i] instanceof Function) {
-							cell.then(selector[i]);
-						} else {
-							if (selector[i] instanceof Array) {
-								if (!(selector[i][0] instanceof Array) && !(selector[i][0] instanceof Function)) {
-									//selector[i][0] = [selector[i][0]];
-									// its some event method
-									if(!Event.prototype[selector[i][0]]){
-										error('Unknown method for event: ', selector[i]);
-									} else {
-										Event.prototype[selector[i][0]].apply(cell, selector[i].slice(1));
-									}
-								} else {
-									for (var j = 0; j < selector[i].length; j++) {
-										if (selector[i][j] instanceof Function) {
-											cell.then(selector[i][j]);
-										} else {
-											if (selector[i][j] instanceof Array) {
-												var func = selector[i][j][0];
-												cell[func].apply(cell, selector[i][j].slice(1));
-											} else {
-												error('wrong parameter type for cell creation!');
-											}
-										}
-									}
-								}
-							}
-						}
-						break;
-					case 'list':
-						cell.update(selector[i]);
-						break;
-				}
-
+				Firera.apply_dependency_to_cell_from_hash(cell, selector[i]);
 			}
 			if (selector.__mixins) {// special case)
 				if (!(selector.__mixins instanceof Array)) {
@@ -1299,58 +1244,119 @@
 		return m[2].split(",");
 	}
 	
+	Firera.apply_dependency_to_cell_from_hash = function(cell, row){
+		var cell_type = cell.getType();
+		if(row instanceof Object && !(row instanceof Array) && !(row instanceof Function)){
+			self(i).are(row);
+			return;
+		}
+		switch (cell_type) {
+			case 'cell':
+				if (row instanceof Array) {
+					if (row[0] instanceof Function) {
+						cell['is'].apply(cell, row);
+					} else {
+						if (!cell[row[0]]) {
+							error('Using unknown function:', row);
+						}
+						cell[row[0]].apply(cell, row.slice(1));
+					}
+				} else {
+					cell.just(row);
+				}
+				break;
+			case 'event':
+				if (row instanceof Function) {
+					cell.then(row);
+				} else {
+					if (row instanceof Array) {
+						if (!(row[0] instanceof Array) && !(row[0] instanceof Function)) {
+							//row[0] = [row[0]];
+							// its some event method
+							if(!Event.prototype[row[0]]){
+								error('Unknown method for event: ', row);
+							} else {
+								Event.prototype[row[0]].apply(cell, row.slice(1));
+							}
+						} else {
+							for (var j = 0; j < row.length; j++) {
+								if (row[j] instanceof Function) {
+									cell.then(row[j]);
+								} else {
+									if (row[j] instanceof Array) {
+										var func = row[j][0];
+										cell[func].apply(cell, row[j].slice(1));
+									} else {
+										error('wrong parameter type for cell creation!');
+									}
+								}
+							}
+						}
+					}
+				}
+				break;
+			case 'list':
+				cell.update(row);
+				break;
+		}
+	}
+	
 	Firera.cell_drivers = [
-		{
-			name: 'system',
-			regex: new RegExp('^\\$.*'),
-			func: function(name){
-				var params;
-				var driver_name = name.slice(1);
-				if (driver_name.contains("(")) {
-					params = Firera.get_params(driver_name);
-				}
-				if (!customDrivers[driver_name]) {
-					error('Unknown custom driver: ' + driver_name);
-					return;
-				}
-				var driver = this.driver = customDrivers[driver_name];
-				if (driver.def) this.val = driver.def;
-				driver.getter && driver.getter.call(this);
+	{
+		name: 'system',
+		regex: new RegExp('^\\$.*'),
+		func: function(name){
+			var params;
+			var driver_name = name.slice(1);
+			if (driver_name.contains("(")) {
+				params = Firera.get_params(driver_name);
 			}
-		},
-		{
-			name: 'HTML',
-			regex: new RegExp('(.|\s)*\\|.*'),
-			func: function(name){
-				var parts = name.split("|");
-				if (parts[1].contains("(")) {
-					// there are some params
-					var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-					this.params = m[2].split(",");
-					parts[1] = m[1];
-				}
-				if (!HTMLDrivers[parts[1]]) {
-					error('Unknown driver: ' + parts[1]);
-					return;
-				}
-				this.driver = HTMLDrivers[parts[1]];
-				if (this.driver.def) this.val = this.driver.def;
-				//@todo
+			if (!customDrivers[driver_name]) {
+				// it's a free, but system variable
+				//error('Unknown custom driver: ' + driver_name);
+				return;
 			}
-		},
-		{
-			name: 'common',
-			regex: new RegExp('.*'),
-			func: function(){
-				this.dumb = true;
+			var driver = this.driver = customDrivers[driver_name];
+			if (driver.def) this.val = driver.def;
+			driver.getter && driver.getter.call(this);
+			if(driver.depends){
+				//console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
+				Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
 			}
-		},
+		}
+	},
+	{
+		name: 'HTML',
+		regex: new RegExp('(.|\s)*\\|.*'),
+		func: function(name){
+			var parts = name.split("|");
+			if (parts[1].contains("(")) {
+				// there are some params
+				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+				this.params = m[2].split(",");
+				parts[1] = m[1];
+			}
+			if (!HTMLDrivers[parts[1]]) {
+				error('Unknown driver: ' + parts[1]);
+				return;
+			}
+			this.driver = HTMLDrivers[parts[1]];
+			if (this.driver.def) this.val = this.driver.def;
+			//@todo
+		}
+	},
+	{
+		name: 'common',
+		regex: new RegExp('.*'),
+		func: function(){
+			this.dumb = true;
+		}
+	},
 	];
 	
 	Firera.find_cell_driver = function(name){
 		for(var i in this.cell_drivers){
 			if(this.cell_drivers[i].regex.test(name)){
-				console.log('&&&&&&&&&& Cell ' + name +' is ' + this.cell_drivers[i].name);
 				return this.cell_drivers[i].func;
 			}
 		}
@@ -1489,6 +1495,13 @@
 		}
 		customDrivers[name] = {getter: func, def: def};
 	}
+	Firera.addCustomVar = function(name, args){
+		if(customDrivers[name]) {
+			error('Cant add custom var - name already taken!', name);
+			return;
+		}
+		customDrivers[name] = {depends: args};
+	}
 	
 	Firera.addCustomListSetter = function(name, func, def){
 		if(customDrivers[name]) {
@@ -1566,6 +1579,7 @@
 			customGetters: 'addCustomGetter',
 			customSetters: 'addCustomSetter',
 			customListGetters: 'addCustomListGetter',
+			customVars: 'addCustomVar',
 			customListSetters: 'addCustomListSetter',
 			HTMLGetters: 'addHTMLGetter',
 			HTMLSetters: 'addHTMLSetter',
@@ -1647,6 +1661,13 @@
 			template: function(){
 				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
 			}
+		},
+		customVars: {
+			rootNodeX: ['el', '$rootSelector'],
+			actualRootNode: [function(a, b){
+					return a ? a : b;
+			}, '$rootNode', '$rootNodeX'],
+			templateX: ['html', '$actualRootNode']
 		},
 		customListGetters: {
 			length: function() {
@@ -1888,6 +1909,16 @@
 				return [function(flag) {
 					return flag ? (_.existy(then) ? then : true) : (_.existy(otherwise) ? otherwise : false);
 				}, cond];
+			},
+			html: function(cellname) {
+				return [function(el) {
+					return $(el).html();
+				}, cellname];
+			},
+			el: function(cellname) {
+				return [function(selector) {
+					return $(selector);
+				}, cellname];
 			},
 			gets: function() {
 				var self = this;
