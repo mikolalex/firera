@@ -137,6 +137,30 @@
 					b[i] = a[i];
 			}
 		},
+                
+                firstExisting: function(/* args */){
+                    for(var i = 0; i < arguments.length; ++i){
+                        if(arguments[i] !== undefined && arguments[i] !== null) {
+                            return arguments[i];
+                        }
+                    }
+                },
+                
+                compose: function(funcs){
+                    for(var i = 0; i< funcs.length; ++i){
+                        if(funcs[i] instanceof Array){
+                            // it should be a funcion with arguments, let's bind it
+                            funcs[i] = funcs[i][0].bind(null, funcs[i].slice(1));
+                        }
+                    }
+                    return function(val){
+                        var v = val;
+                        for(var i = 0; i< funcs.length; ++i){
+                            v = funcs[i](v);
+                        }
+                        return v;
+                    }
+                },
 
 		getMapFunc: function(func) {
 			var res;
@@ -459,9 +483,15 @@
 			this.inited = true;
 		}
 
-		if (formula instanceof Array) {// creating new Firera hash
+		if (formula instanceof Array) {
+                    if(arguments.length === 1){
+                        // creating new Firera List from array
 			this.self = new List(formula, {host: this.host});
 			return this;
+                    } else {
+                        // it's function composition!
+                       formula = _.compose(formula);
+                    }
 		}
 		if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
 			this.self = Firera.hash(formula, {host: this.host});
@@ -1664,9 +1694,7 @@
 		},
 		customVars: {
 			rootNodeX: ['el', '$rootSelector'],
-			actualRootNode: [function(a, b){
-					return a ? a : b;
-			}, '$rootNode', '$rootNodeX'],
+			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode']
 		},
 		customListGetters: {

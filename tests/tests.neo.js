@@ -58,6 +58,19 @@ describe('Simple values', function() {
 		assert.equal(app('$templateX').get(), '<h2>Hey, dude!</h2>');
 	})
 
+	it('Testing function composition', function() {
+                var add_10 = function(a){ return a + 10;};
+                var multiply = function(a, b){
+                    return a*b;
+                }
+		var app = new Firera;
+		app('a').set(3);
+                app('b').is([add_10, [multiply, 5]], 'a');
+		assert.equal(app('b').get(), 65);
+		app('a').set(10);
+		assert.equal(app('b').get(), 100);
+	})
+
 	/*it('Testing visualization package', function() {
 		var data = [
 			{
