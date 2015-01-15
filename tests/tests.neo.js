@@ -71,6 +71,17 @@ describe('Simple values', function() {
 		assert.equal(app('b').get(), 100);
 	})
 
+	it('Testing HTML getters and setters', function() {
+               
+		var app = new Firera;
+		app.applyTo(".getsettest");
+		app('a').set('Hans');
+		app('b').set('Hansson');
+		app(".ololo1|attr(data-name)").is(function(a, b){ return a + ' ' + b;}, 'a', 'b');
+		app('a').set('Mans');
+		assert.equal($(".getsettest .ololo1").attr('data-name'), 'Mans Hansson');
+	})
+
 	/*it('Testing visualization package', function() {
 		var data = [
 			{
@@ -185,7 +196,7 @@ describe('Simple values', function() {
 		var app = new Firera;
 		app('items').are([1, 2, 3]);
 		var first = app('items').get(0);
-		console.dir(first);
+		//console.dir(first);
 		// to be continued...
 		//app('items').shared('datasource').sync();
 	})

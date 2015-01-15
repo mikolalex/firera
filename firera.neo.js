@@ -111,6 +111,13 @@
 			}
 			return res;
 		},
+		
+		chainLog: function(msg){
+			return function(val){
+				console.log('chain log val::' + msg + '::', val);
+				return val;
+			}
+		},
 
 		getDefaultTemplate: function(vars) {
 			if (vars.length === 1 && vars[0] === '__val'){
@@ -153,9 +160,11 @@
                             funcs[i] = funcs[i][0].bind(null, funcs[i].slice(1));
                         }
                     }
-                    return function(val){
-                        var v = val;
-                        for(var i = 0; i< funcs.length; ++i){
+                    return function(){
+			// pass all the args to the first function,
+			// then pass it's result to the next func
+                        var v = funcs[0].apply(null, arguments);
+                        for(var i = 1; i< funcs.length; ++i){
                             v = funcs[i](v);
                         }
                         return v;
@@ -304,10 +313,8 @@
 		var old_val = this.val,
 		    new_val = val;
 		this.val = new_val;
-		//////////
-		// @todo: should be if(this.settable){ this.run_writer();}
-		if (this.driver && this.driver.writer) {
-			this.driver.writer.apply(this, [this.val].concat(this.params));
+		if (this.writer) {
+			this.writer.apply(this, [this.val].concat(this.params));
 		}
 		//////////
 		this.invalidateObservers(this.getName());
@@ -387,8 +394,8 @@
 		var new_val = list.count(func);
 		this.val = new_val;
 
-		if (this.driver.writer) {
-			this.run_writer();
+		if (this.writer) {
+			this.writer();
 		}
 		this.change(old_val, this.val);
 		this.updateObservers(listname);
@@ -417,14 +424,8 @@
 		var old_val = this.val;
 		var new_val = this.formula.apply(this, args1);
 		this.val = new_val;
-		if (
-			this.driver 
-			&& this.driver.writer 
-			&& (
-				_.isReservedName(this.getName())
-			)
-		) {
-			this.driver.writer.apply(this, [this.val].concat(this.params));
+		if (this.writer && !_.isReservedName(this.getName())) {
+			this.writer.apply(this, [this.val].concat(this.params));
 		}
 		this.change(old_val, this.val);
 		this.updateObservers(name);
@@ -848,7 +849,7 @@
 			this.host = host;
 		},
 		applyTo: function(selector_or_element) {
-			
+			this('$rootSelector').set(selector_or_element);
 		},
 		getRebindableVars: function() {
 			var vars = this.getAllVars();
@@ -891,7 +892,7 @@
 	/////
 
 	var Firera = function(init_hash, params) {
-		debug('New hash created', init_hash, params);
+		//debug('New hash created', init_hash, params);
 		var self = function(selector) {
 			if (selector instanceof Function)
 				return self({__setup: selector});
@@ -1264,10 +1265,14 @@
 					if (row[0] instanceof Function) {
 						cell['is'].apply(cell, row);
 					} else {
-						if (!cell[row[0]]) {
-							error('Using unknown function:', row);
+						if(row[0] instanceof Array){
+							cell['is'].apply(cell, row);
+						} else {
+							if (!cell[row[0]]) {
+								error('Using unknown function:', row);
+							}
+							cell[row[0]].apply(cell, row.slice(1));
 						}
-						cell[row[0]].apply(cell, row.slice(1));
 					}
 				} else {
 					cell.just(row);
@@ -1348,9 +1353,19 @@
 				error('Unknown driver: ' + parts[1]);
 				return;
 			}
+			var selector = parts[0];
 			this.driver = HTMLDrivers[parts[1]];
 			if (this.driver.def) this.val = this.driver.def;
-			//@todo
+			if (this.driver.writer) {
+				this.writer = function(val/*, params */){
+					var element = $(selector, this.host('$actualRootNode').get());
+					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
+					var args = Array.prototype.slice.call(arguments);
+					args.splice(1, 0, element);
+					//console.log('args are', args);
+					this.driver.writer.apply(this, args);
+				}
+			}
 		}
 	},
 	{
