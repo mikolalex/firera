@@ -1594,6 +1594,7 @@
 			}
 		}
 	}
+        Firera.HTMLDrivers = HTMLDrivers;
 	
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
@@ -1656,13 +1657,12 @@
                                         this.params = m[2].split(",");
                                         parts[1] = m[1];
                                 }
-                                console.log('HTML', HTMLDrivers);
-                                if (!HTMLDrivers[parts[1]]) {
+                                if (!Firera.HTMLDrivers[parts[1]]) {
                                         error('Unknown driver: ' + parts[1]);
                                         return;
                                 }
                                 var selector = parts[0];
-                                this.driver = HTMLDrivers[parts[1]];
+                                this.driver = Firera.HTMLDrivers[parts[1]];
                                 if (this.driver.def) this.val = this.driver.def;
                                 if (this.driver.writer) {
                                         this.writer = function(val/*, params */){
