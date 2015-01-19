@@ -265,8 +265,8 @@
 		this.observers = [];
 		this.args = [];
 		var name = this.name = selector;
-		
-		Firera.find_cell_driver(this.getName()).call(this, this.getName());
+		var driver = Firera.find_cell_driver(this.getName());
+                driver.call(this, this.getName());
 	}
 
 	Cell.prototype.getName = function() {
@@ -1310,81 +1310,41 @@
 	}
 	
 	Firera.cell_drivers = [
-	{
-		name: 'system',
-		regex: new RegExp('^\\$.*'),
-		func: function(name){
-			var params;
-			var driver_name = name.slice(1);
-			if (driver_name.contains("(")) {
-				params = Firera.get_params(driver_name);
-			}
-			if (!customDrivers[driver_name]) {
-				// it's a free, but system variable
-				//error('Unknown custom driver: ' + driver_name);
-				return;
-			}
-			var driver = this.driver = customDrivers[driver_name];
-			if (driver.def) this.val = driver.def;
-			driver.reader && driver.reader.call(this);
-			if(driver.depends){
-				//console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
-				Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
-			}
-		}
-	},
-	{
-		name: 'HTML',
-		regex: new RegExp('(.|\s)*\\|.*'),
-		func: function(name){
-			var parts = name.split("|");
-			if (parts[1].contains("(")) {
-				// there are some params
-				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-				this.params = m[2].split(",");
-				parts[1] = m[1];
-			}
-			if (!HTMLDrivers[parts[1]]) {
-				error('Unknown driver: ' + parts[1]);
-				return;
-			}
-			var selector = parts[0];
-			this.driver = HTMLDrivers[parts[1]];
-			if (this.driver.def) this.val = this.driver.def;
-			if (this.driver.reader) {
-				this.depend(this.host('$actualRootNode'));
-				this.reader = true;
-				this.formula = function(){
-					var element = $(selector, this.host('$actualRootNode').get());
-					if(element.length){
-						this.driver.reader.call(this, element);
-					}
-				}
-				this.formula();
-			}
-			if (this.driver.writer) {
-				this.depend(this.host('$actualRootNode'));
-				this.writer = function(val/*, params */){
-					var element = $(selector, this.host('$actualRootNode').get());
-					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
-					var args = Array.prototype.slice.call(arguments);
-					args.splice(1, 0, element);
-					this.driver.writer.apply(this, args);
-				}
-			}
-		}
-	},
-	{
-		name: 'common',
-		regex: new RegExp('.*'),
-		func: function(){
-			this.dumb = true;
-		}
-	},
+            {
+                    name: 'common',
+                    regex: new RegExp('.*'),
+                    func: function(){
+                            this.dumb = true;
+                    }
+            },
+            {
+                    name: 'system',
+                    regex: new RegExp('^\\$.*'),
+                    func: function(name){
+                            var params;
+                            var driver_name = name.slice(1);
+                            if (driver_name.contains("(")) {
+                                    params = Firera.get_params(driver_name);
+                            }
+                            if (!customDrivers[driver_name]) {
+                                    // it's a free, but system variable
+                                    //error('Unknown custom driver: ' + driver_name);
+                                    return;
+                            }
+                            var driver = this.driver = customDrivers[driver_name];
+                            if (driver.def) this.val = driver.def;
+                            driver.reader && driver.reader.call(this);
+                            if(driver.depends){
+                                    //console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
+                                    Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
+                            }
+                    }
+            }
 	];
 	
 	Firera.find_cell_driver = function(name){
-		for(var i in this.cell_drivers){
+                var i = this.cell_drivers.length;
+		while(i--){
 			if(this.cell_drivers[i].regex.test(name)){
 				return this.cell_drivers[i].func;
 			}
@@ -1602,6 +1562,10 @@
 		customEventDrivers[name] = func;
 	}
 	
+	Firera.addCellDriver = function(_, driver){
+		Firera.cell_drivers.push(driver);
+	}
+	
 	Firera.addPackage = function(package){
 		var method_names = {
 			customEventDrivers: 'addCustomEventDriver',	
@@ -1613,6 +1577,7 @@
 			HTMLReaders: 'addHTMLReader',
 			HTMLWriters: 'addHTMLWriter',
 			HTMLReadersWriters: 'addHTMLReaderWriter',
+                        cellDrivers: 'addCellDriver',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for(var field in method_names){
@@ -1624,6 +1589,7 @@
 			}
 		}
 	}
+        Firera.HTMLDrivers = HTMLDrivers;
 	
 	Firera.error = error;
 	
@@ -1676,6 +1642,49 @@
 	}
 	
 	var core = {
+                cellDrivers: [
+                    {
+			name: 'HTML',
+			regex: new RegExp('(.|\s)*\\|.*'),
+			func: function(name){
+			    var parts = name.split("|");
+			    if (parts[1].contains("(")) {
+				// there are some params
+				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+				this.params = m[2].split(",");
+				parts[1] = m[1];
+			    }
+			    if (!Firera.HTMLDrivers[parts[1]]) {
+				    error('Unknown driver: ' + parts[1]);
+				    return;
+			    }
+			    var selector = parts[0];
+			    this.driver = Firera.HTMLDrivers[parts[1]];
+			    if (this.driver.def) this.val = this.driver.def;
+			    if (this.driver.reader) {
+				this.depend(this.host('$actualRootNode'));
+				this.reader = true;
+				this.formula = function(){
+					var element = $(selector, this.host('$actualRootNode').get());
+					if(element.length){
+						this.driver.reader.call(this, element);
+					}
+				}
+				this.formula();
+			    }
+			    if (this.driver.writer) {
+				this.depend(this.host('$actualRootNode'));
+				this.writer = function(val/*, params */){
+					var element = $(selector, this.host('$actualRootNode').get());
+					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
+					var args = Array.prototype.slice.call(arguments);
+					args.splice(1, 0, element);
+					this.driver.writer.apply(this, args);
+				}
+			    }
+			}
+                    },
+                ],
 		customReaders: {
 			i: function(){
 				if(!this.host.host.list){
