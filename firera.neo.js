@@ -234,8 +234,12 @@
 		}
 	})(debug_level)
 	var error = function() {
-		//throw new Error(['ERROR!'].concat(Array.prototype.slice.call(arguments)).join(' '));
-		console.log.apply(console, ['ERROR!'].concat(Array.prototype.slice.call(arguments)));
+		try {
+			throw new Error(Array.prototype.join.call(arguments, " "));
+		} catch(e) {
+			var stack = e.stack;
+			console.error(stack);
+		}
 	}
 	var collect_values = function(obj) {
 		var res = {};
@@ -259,6 +263,7 @@
 		this.observables = {};
 		this.changers = [];
 		this.observers = [];
+		this.args = [];
 		var name = this.name = selector;
 		
 		Firera.find_cell_driver(this.getName()).call(this, this.getName());
@@ -306,7 +311,7 @@
         
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
-		if(Object.keys(this.observables).length && !setanyway){
+		if(Object.keys(this.observables).length && !setanyway && !this.reader){
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
 		}
@@ -389,19 +394,6 @@
 		return arr;
 	}*/
 	
-	var typical_compute = function(list, func, listname) {
-		var old_val = this.val;
-		var new_val = list.count(func);
-		this.val = new_val;
-
-		if (this.writer) {
-			this.writer();
-		}
-		this.change(old_val, this.val);
-		this.updateObservers(listname);
-		return this;
-	}
-	
 	Cell.prototype.force = function() {
 		this.compute();
 	}
@@ -412,6 +404,9 @@
 	}
 
 	Cell.prototype.compute = function(name) {
+		if(!this.formula){// something strange
+			return;
+		}
 		if (name && this.observables[name]) {
 			this.observables[name]--;
 			if (this.observables[name] > 0)
@@ -1356,14 +1351,24 @@
 			var selector = parts[0];
 			this.driver = HTMLDrivers[parts[1]];
 			if (this.driver.def) this.val = this.driver.def;
+			if (this.driver.reader) {
+				this.depend(this.host('$actualRootNode'));
+				this.reader = true;
+				this.formula = function(){
+					var element = $(selector, this.host('$actualRootNode').get());
+					if(element.length){
+						this.driver.reader.call(this, element);
+					}
+				}
+				this.formula();
+			}
 			if (this.driver.writer) {
-				this.depend(this.host('$actualRootNode'), 35);
+				this.depend(this.host('$actualRootNode'));
 				this.writer = function(val/*, params */){
 					var element = $(selector, this.host('$actualRootNode').get());
 					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
 					var args = Array.prototype.slice.call(arguments);
 					args.splice(1, 0, element);
-					//console.log('args are', args);
 					this.driver.writer.apply(this, args);
 				}
 			}
@@ -1620,6 +1625,8 @@
 		}
 	}
 	
+	Firera.error = error;
+	
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
 		throw new Exception('Cant assign Firera library, varname already taken: ' + lib_var_name);
@@ -1786,7 +1793,7 @@
 			},
 			html: function(val, $el) {
 				if (!$el.length) {
-					error('Empty selector in html');
+					//Firera.error('Empty selector in html');
 					return;
 				}
 				$el.html(val);
@@ -1830,15 +1837,17 @@
 				reader: function($el) {
 					var self = this;
 					var type = $el.attr('type');
-					$el.bind("change, keyup, input, focus, blur", function() {
+					$el.bind("keyup, input, focus, keypress, blur, change", function() {
+						var val;
 						switch (type) {
 							case 'checkbox':
-								self.set($(this).attr('checked'));
+								val = $(this).attr('checked');
 								break;
 							default:
-								self.set($(this).val());
+								val = $(this).val();
 								break;
 						}
+						self.set(val);
 					})
 				}
 			},

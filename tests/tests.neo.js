@@ -78,10 +78,14 @@ describe('Simple values', function() {
 		app('a').set('Hans');
 		app('b').set('Hansson');
 		app(".ololo1|attr(data-name)").is(function(a, b){ return a + ' ' + b;}, 'a', 'b');
+		app("name").is('.inp|value');
 		app('a').set('Mans');
 		assert.equal($(".getsettest .ololo1").attr('data-name'), 'Mans Hansson');
 		app.applyTo(".getsettest2");
 		assert.equal($(".getsettest2 .ololo1").attr('data-name'), 'Mans Hansson');
+		app('.outp|html').is('name');
+		$(".getsettest2 .inp").val('42').change();
+		assert.equal($(".getsettest2 .outp").html(), '42');
 	})
 
 	/*it('Testing visualization package', function() {
