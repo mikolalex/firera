@@ -434,16 +434,16 @@
 
 	Cell.prototype.depend = function(cells) {
 		var arr = (cells instanceof Array) ? cells : [cells];
-		for (var i = 0; i < cells.length; i++) {
-			this.deps.push(cells[i]);
-			if (!(Object.keys(cells[i].observables).length)) {
-				this.addObservable(cells[i].getName());
+		for (var i = 0; i < arr.length; i++) {
+			this.deps.push(arr[i]);
+			if (!(Object.keys(arr[i].observables).length)) {
+				this.addObservable(arr[i].getName());
 			} else {
-				for (var x in cells[i].observables) {
+				for (var x in arr[i].observables) {
 					this.addObservable(x);
 				}
 			}
-			cells[i].addObserver(this);
+			arr[i].addObserver(this);
 		}
 	}
 
@@ -1357,6 +1357,7 @@
 			this.driver = HTMLDrivers[parts[1]];
 			if (this.driver.def) this.val = this.driver.def;
 			if (this.driver.writer) {
+				this.depend(this.host('$actualRootNode'), 35);
 				this.writer = function(val/*, params */){
 					var element = $(selector, this.host('$actualRootNode').get());
 					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);

@@ -80,6 +80,8 @@ describe('Simple values', function() {
 		app(".ololo1|attr(data-name)").is(function(a, b){ return a + ' ' + b;}, 'a', 'b');
 		app('a').set('Mans');
 		assert.equal($(".getsettest .ololo1").attr('data-name'), 'Mans Hansson');
+		app.applyTo(".getsettest2");
+		assert.equal($(".getsettest2 .ololo1").attr('data-name'), 'Mans Hansson');
 	})
 
 	/*it('Testing visualization package', function() {
