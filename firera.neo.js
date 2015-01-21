@@ -170,6 +170,18 @@
                         return v;
                     }
                 },
+                
+                canTakeArray: function(func){
+                    return function(val){
+                        if(val instanceof Array){
+                            for(var i in val){
+                                func.apply(this, (val[i] instanceof Array) ? val[i] : [val[i]]);
+                            }
+                        } else {
+                            func.apply(this, arguments);
+                        }
+                    }
+                },
 
 		getMapFunc: function(func) {
 			var res;
@@ -235,7 +247,8 @@
 	})(debug_level)
 	var error = function() {
 		try {
-			throw new Error(Array.prototype.join.call(arguments, " "));
+                    console.log(arguments[1]);
+                    throw new Error('|' + Array.prototype.join.call(arguments, "|") + '|');
 		} catch(e) {
 			var stack = e.stack;
 			console.error(stack);
@@ -263,7 +276,6 @@
 		this.observables = {};
 		this.changers = [];
 		this.observers = [];
-		this.args = [];
 		var name = this.name = selector;
 		var driver = Firera.find_cell_driver(this.getName());
                 driver.call(this, this.getName());
@@ -287,12 +299,12 @@
 		if (this.getName() != name)
 			this.observables[name]++;
 		for (var i in this.observers) {
-			this.observers[i].invalidateObservers(name);
+			this.observers[i].cell.invalidateObservers(name);
 		}
 	}
 
-	Cell.prototype.addObserver = function(cell) {
-		this.observers.push(cell);
+	Cell.prototype.addObserver = function(cell, index) {
+		this.observers.push({cell: cell, index: index});
 	}
 
 	Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
@@ -330,7 +342,7 @@
 
 	Cell.prototype.updateObservers = function(name) {
 		for (var i in this.observers) {
-			this.observers[i].compute(name);
+			this.observers[i].cell.compute(name, this.observers[i].index, this.val);
 		}
 	}
 
@@ -394,16 +406,20 @@
 		return arr;
 	}*/
 	
-	Cell.prototype.force = function() {
-		this.compute();
-	}
-	
 	Cell.prototype.alias = function(name) {
 		this.host.aliases[this.getName()] = this.host(name);
 		this.host.removeVar(this.getName());
 	}
+        
+        Cell.prototype.getArgsValues = function(){
+            var args1 = [];
+            for (var i in this.argsValues) {
+                    args1.push(this.argsValues[i]);
+            }
+            return args1;
+        }
 
-	Cell.prototype.compute = function(name) {
+	Cell.prototype.compute = function(name, key, val) {
 		if(!this.formula){// something strange
 			return;
 		}
@@ -412,12 +428,11 @@
 			if (this.observables[name] > 0)
 				return;
 		}
-		var args1 = [];
-		for (var i = 0; i < this.args.length; i++) {
-			args1.push(this.args[i].get());
-		}
+                if(key !== undefined){
+                    this.argsValues[key] = val;
+                }
 		var old_val = this.val;
-		var new_val = this.formula.apply(this, args1);
+		var new_val = this.formula.apply(this, this.argsValues);
 		this.val = new_val;
 		if (this.writer && !_.isReservedName(this.getName())) {
 			this.writer.apply(this, [this.val].concat(this.params));
@@ -427,20 +442,17 @@
 		return this;
 	}
 
-	Cell.prototype.depend = function(cells) {
-		var arr = (cells instanceof Array) ? cells : [cells];
-		for (var i = 0; i < arr.length; i++) {
-			this.deps.push(arr[i]);
-			if (!(Object.keys(arr[i].observables).length)) {
-				this.addObservable(arr[i].getName());
-			} else {
-				for (var x in arr[i].observables) {
-					this.addObservable(x);
-				}
-			}
-			arr[i].addObserver(this);
-		}
-	}
+	Cell.prototype.depend = _.canTakeArray(function(cell, index) {
+            this.deps.push(cell);
+            if (!(Object.keys(cell.observables).length)) {
+                    this.addObservable(cell.getName());
+            } else {
+                    for (var x in cell.observables) {
+                            this.addObservable(x);
+                    }
+            }
+            cell.addObserver(this, index);
+	});
 
 	Cell.prototype.is = function(f) {
 		if (f instanceof Cell) {
@@ -478,23 +490,45 @@
 			formula = function(val) {
 				return val;
 			};
-		}
+		} else {
+                    // it's function, defned by string, like '+'
+                    if(formula.replace){
+                        switch(formula){
+                            case '+':
+                                formula = function(a, b){ return a + b;};
+                            break;
+                            case '-':
+                                formula = function(a, b){ return a - b;};
+                            break;
+                            case '*':
+                                formula = function(a, b){ return a * b;};
+                            break;
+                            case '/':
+                                formula = function(a, b){ return a / b;};
+                            break;
+                            default:
+                                error('Formula cant be string:', formula);
+                                return;
+                        }
+                    }
+                }
 		if ((args[0] instanceof Array) && !(args[1])) {
 			args = args[0];
 		}
+                this.argsValues = [];
 		for (var i = 0; i < args.length; i++) {
-			if (!(args[i] instanceof Cell)) {
-				args[i] = this.host.create_cell_or_event(args[i], {dumb: true});
-			}
+                        var cell = args[i];
+			if (args[i] instanceof Cell) {
+                            args[i] = args[i].getName();
+			} else {
+                            cell = this.host.create_cell_or_event(args[i], {dumb: true});
+                        }
+                        this.depend(cell, i);
+                        this.argsValues.push(this.host(args[i]).get());
 		}
-		this.args = args;
 		this.formula = formula;
-
-		this.depend(this.args);
 		this.free = false;
-
-		if (args.length)
-			this.compute();
+		if (args.length) this.compute('first');
 		return this;
 	}
 	
@@ -1264,7 +1298,7 @@
 							cell['is'].apply(cell, row);
 						} else {
 							if (!cell[row[0]]) {
-								error('Using unknown function:', row);
+								error('Using unknown function:', arguments);
 							}
 							cell[row[0]].apply(cell, row.slice(1));
 						}

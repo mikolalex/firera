@@ -40,7 +40,7 @@ describe('Simple values', function() {
 
 		assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
 	})
-
+        
 	it('Testing arrays(length, etc)', function() {
 		var app = new Firera;
 		app('items').are([1, 2, 3]);
@@ -86,6 +86,18 @@ describe('Simple values', function() {
 		app('.outp|html').is('name');
 		$(".getsettest2 .inp").val('42').change();
 		assert.equal($(".getsettest2 .outp").html(), '42');
+	})
+
+	it('Testing "+" formulas and stream', function() {
+		var app = new Firera;
+		app('a').set(42);
+		app('b').set(23);
+		app('c').is('+', 'a', 'b');
+		assert.equal(app.get('c'), 65);
+                /*app('vals').streams(function(val, key){
+                    console.log('stream got', arguments);
+                }, ['a', 'c']);
+                console.log(app.get('c'));*/
 	})
 
 	/*it('Testing visualization package', function() {
