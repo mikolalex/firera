@@ -94,10 +94,13 @@ describe('Simple values', function() {
 		app('b').set(23);
 		app('c').is('+', 'a', 'b');
 		assert.equal(app.get('c'), 65);
-                /*app('vals').streams(function(val, key){
-                    console.log('stream got', arguments);
+                app('vals').streams(function(val, key){
+                    return key === 'c' ? val : val*2;
                 }, ['a', 'c']);
-                console.log(app.get('c'));*/
+                app('a').set(35);
+		assert.equal(app.get('vals'), 70);
+                app('b').set(14);
+		assert.equal(app.get('vals'), 49);
 	})
 
 	/*it('Testing visualization package', function() {

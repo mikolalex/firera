@@ -33,6 +33,8 @@
 				}
 			}
 		},
+                
+                id: function(a){ return a},
 		
 		$getScopedElement: function(selector, $scope){
 			if(selector === '' || selector === 'root'){
@@ -342,7 +344,7 @@
 
 	Cell.prototype.updateObservers = function(name) {
 		for (var i in this.observers) {
-			this.observers[i].cell.compute(name, this.observers[i].index, this.val);
+			this.observers[i].cell.compute(name, this.observers[i].index, this.val, this.name);
 		}
 	}
 
@@ -419,7 +421,7 @@
             return args1;
         }
 
-	Cell.prototype.compute = function(name, key, val) {
+	Cell.prototype.compute = function(name, key, val, cellname) {
 		if(!this.formula){// something strange
 			return;
 		}
@@ -528,9 +530,51 @@
 		}
 		this.formula = formula;
 		this.free = false;
-		if (args.length) this.compute('first');
+		if (args.length) this.compute();
 		return this;
 	}
+        
+        var stream_compute = function(name, key, val, cellname){
+            if (name && this.observables[name]) {
+                    this.observables[name]--;
+                    if (this.observables[name] > 0)
+                            return;
+            }
+            var old_val = this.val;
+            var new_val = this.formula.call(this, val, cellname);
+            this.val = new_val;
+            if (this.writer && !_.isReservedName(this.getName())) {
+                    this.writer.apply(this, [this.val].concat(this.params));
+            }
+            this.change(old_val, this.val);
+            this.updateObservers(name);
+            return this;
+        }
+        
+        Cell.prototype.streams = function(){
+            var vars = [], func, args = Array.prototype.slice.call(arguments);
+            if(typeof args[0] === 'function'){
+                func = args.shift();
+            }
+            if(args[0] instanceof Array){
+                // it's a list of variables
+                vars = args[0];
+            } else if(typeof args[0] === 'string'){
+                // it's var name
+                vars = args;
+            }
+            this.formula = func || _.id;
+            this.free = false;
+            for (var i = 0; i < vars.length; i++) {
+                var cell = vars[i];
+                if (!(vars[i] instanceof Cell)) {
+                    cell = this.host.create_cell_or_event(vars[i], {dumb: true});
+                }
+                this.depend(cell, i);
+            }
+            this.compute = stream_compute;
+            return this;
+        }
 	
 	Cell.prototype.change = function(prev_val, new_val) {
 		for (var i = 0; i < this.changers.length; i++) {
