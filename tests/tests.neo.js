@@ -97,10 +97,18 @@ describe('Simple values', function() {
                 app('vals').streams(function(val, key){
                     return key === 'c' ? val : val*2;
                 }, ['a', 'c']);
+                app('vars').is(function(){
+                    return arguments[0];
+                }, '$vars');
+                app('something').streams(function(val){
+                    return val;
+                }, 'vars', 'vals');
                 app('a').set(35);
 		assert.equal(app.get('vals'), 70);
                 app('b').set(14);
 		assert.equal(app.get('vals'), 49);
+		assert.deepEqual(app.get('something'), {val: 14, key: "b"});
+                //console.log('ST', app.get('something'));
 	})
 
 	/*it('Testing visualization package', function() {

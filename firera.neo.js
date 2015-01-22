@@ -342,9 +342,9 @@
 		return this;
 	}
 
-	Cell.prototype.updateObservers = function(name) {
+	Cell.prototype.updateObservers = function(name, no_change) {
 		for (var i in this.observers) {
-			this.observers[i].cell.compute(name, this.observers[i].index, this.val, this.name);
+			this.observers[i].cell.compute(name, this.observers[i].index, this.val, this.name, no_change);
 		}
 	}
 
@@ -421,7 +421,7 @@
             return args1;
         }
 
-	Cell.prototype.compute = function(name, key, val, cellname) {
+	Cell.prototype.compute = function(name, key, val, cellname, no_change) {
 		if(!this.formula){// something strange
 			return;
 		}
@@ -439,8 +439,8 @@
 		if (this.writer && !_.isReservedName(this.getName())) {
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
-		this.change(old_val, this.val);
-		this.updateObservers(name);
+		if(!no_change) this.change(old_val, this.val);
+		this.updateObservers(name, no_change);
 		return this;
 	}
 
@@ -534,7 +534,7 @@
 		return this;
 	}
         
-        var stream_compute = function(name, key, val, cellname){
+        var stream_compute = function(name, key, val, cellname, no_change){
             if (name && this.observables[name]) {
                     this.observables[name]--;
                     if (this.observables[name] > 0)
@@ -546,8 +546,8 @@
             if (this.writer && !_.isReservedName(this.getName())) {
                     this.writer.apply(this, [this.val].concat(this.params));
             }
-            this.change(old_val, this.val);
-            this.updateObservers(name);
+            if(!no_change) this.change(old_val, this.val);
+            this.updateObservers(name, no_change);
             return this;
         }
         
@@ -565,14 +565,22 @@
             }
             this.formula = func || _.id;
             this.free = false;
-            for (var i = 0; i < vars.length; i++) {
-                var cell = vars[i];
-                if (!(vars[i] instanceof Cell)) {
-                    cell = this.host.create_cell_or_event(vars[i], {dumb: true});
+            var self = this;
+            if(vars[0] === '*'){
+                // it means all variables
+                this.host.onChange(function(key, __, val){
+                    stream_compute.call(self, key, null, val, key, true);
+                })
+            } else {
+                for (var i = 0; i < vars.length; i++) {
+                    var cell = vars[i];
+                    if (!(vars[i] instanceof Cell)) {
+                        cell = this.host.create_cell_or_event(vars[i], {dumb: true});
+                    }
+                    this.depend(cell, i);
                 }
-                this.depend(cell, i);
+                this.compute = stream_compute;
             }
-            this.compute = stream_compute;
             return this;
         }
 	
@@ -878,7 +886,7 @@
 				fields = ['_all'];
 			}
 			for(var i in fields){
-				if(this.changers[fields[i]]) this.changers[fields[i]] = [];
+				if(!this.changers[fields[i]]) this.changers[fields[i]] = [];
 				this.changers[fields[i]].push(func);
 			}
 		},
@@ -1782,6 +1790,12 @@
 		},
 		customVars: {
 			rootNodeX: ['el', '$rootSelector'],
+			vars: ['streams', function(val, key){
+                                return {
+                                    val: val,
+                                    key: key
+                                }
+                        }, '*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode']
 		},
