@@ -110,6 +110,23 @@ describe('Simple values', function() {
 		assert.deepEqual(app.get('something'), {val: 14, key: "b"});
                 //console.log('ST', app.get('something'));
 	})
+        
+        it('Testing streams via map', function(){
+            var app = new Firera;
+            app('a').set(42);
+            app('b').set(23);
+            app('c').streams({
+                a: function(b){
+                    return b + 10;
+                },
+                b: _.id
+            });
+            assert.equal(app.get('c'), undefined);
+            app('a').set(90);
+            assert.equal(app.get('c'), 100);
+            app('b').set(37);
+            assert.equal(app.get('c'), 37);
+        })
 
 	/*it('Testing visualization package', function() {
 		var data = [

@@ -562,6 +562,22 @@
             } else if(typeof args[0] === 'string'){
                 // it's var name
                 vars = args;
+            } else if(args[0] instanceof Object){
+                // it's mapping object
+                var map = args.shift();
+                func = function(val, key){
+                    if(!map[key]){
+                        // something strange...
+                        error('Unknown cell for streams()');
+                        return;
+                    } else {
+                        return map[key](val);
+                    }
+                }
+                vars = Object.keys(map);
+            } else {
+                error('Wrong parameter for streams()', arguments);
+                return;
             }
             this.formula = func || _.id;
             this.free = false;
