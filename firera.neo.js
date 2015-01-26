@@ -1813,7 +1813,40 @@
                                 }
                         }, '*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
-			templateX: ['html', '$actualRootNode']
+			templateX: ['html', '$actualRootNode'],
+                        actualTemplate: [_.firstExisting, '$template', '$templateX'],
+                        bindings: [function(templ, $el){
+                                $el.html(templ);
+                                var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
+                                var res = {};
+                                for(var i in bindings){
+                                    if(!res[bindings[i].name]) res[bindings[i].name] = [];
+                                    res[bindings[i].name].push(bindings[i].el);
+                                    var c = this.host.getVar(bindings[i].name);
+                                    if(c){
+                                        var type = c.getType();
+                                        switch(type){
+                                            case 'cell':
+                                                bindings[i].el.innerHTML = c.get();
+                                            break;
+                                            case 'list':
+                                            case 'hash':
+                                                c.applyTo(bindings[i].el);
+                                            break;
+                                        }
+                                    }
+                                }
+                                return res;
+                        }, '$actualTemplate', '$actualRootNode'],
+                        HTMLVarsWriter: [
+                            function(bindings, var_obj){
+                                if(!var_obj || !bindings[var_obj.key]) return;
+                                for(var i in bindings[var_obj.key]){
+                                    bindings[var_obj.key][i].innerHTML = var_obj.val;
+                                    //console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
+                                }
+                            }, '$bindings', '$vars'
+                        ]
 		},
 		customListReaders: {
 			length: function() {

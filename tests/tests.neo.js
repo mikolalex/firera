@@ -127,6 +127,27 @@ describe('Simple values', function() {
             app('b').set(37);
             assert.equal(app.get('c'), 37);
         })
+        
+        it('Testing bindings', function(){
+            var app = new Firera;
+            app('a').set(42);
+            app('b').set(23);
+            app('cc').is('-', 'a', 'b');
+            app.applyTo('.bindingstest');
+            app('c').is('$bindings');
+            app('___').is('$HTMLVarsWriter');
+            var bindings = app.get('c');
+            assert.equal(bindings.a[0], $(".bindingstest [data-fr=a]").get()[0]);
+            app('$template').set('<div data-fr="a"><div data-fr="b"></div><h3></h3></div><span data-fr="cc"></span>');
+            bindings = app.get('c');
+            // C should be preset
+            assert.equal(bindings.cc[0], $(".bindingstest [data-fr=cc]").get()[0]);
+            // b should not be present
+            assert.equal(bindings.b, undefined);
+            assert.equal($(".bindingstest [data-fr=cc]").html(), app.get('cc'));
+            app('b').set(300);
+            assert.equal($(".bindingstest [data-fr=cc]").html(), app.get('cc'));
+        })
 
 	/*it('Testing visualization package', function() {
 		var data = [
