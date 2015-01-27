@@ -390,14 +390,12 @@
                 arr = res;
             }
             conf.host = this.host;
-            console.log('host', conf.host);
             var list = new List(arr, conf);
             Cell.prototype.alias.call(list, this.getName());
 	}
         
         Cell.prototype.list = function(){
             this.compute = list_compute;
-            console.log('args', arguments);
             return this.is.apply(this, arguments);
         }
 
@@ -438,7 +436,6 @@
 	}*/
 	
 	Cell.prototype.alias = function(name) {
-            console.log('ALIAS prev:', this.host.aliases[name], this);
 		this.host.aliases[name] = this;
 		this.host.removeVar(name);
 	}
@@ -777,7 +774,6 @@
 					}
 				}
 				var tail = parts.slice(1).join('/');
-                                console.log('host', host);
 				return host.create_cell_or_event(tail);
 			}
 			
