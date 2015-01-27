@@ -51,6 +51,26 @@ describe('Simple values', function() {
 
 
 	})
+        
+	it('Testing .list() generator', function() {
+		var app = new Firera;
+                app('length').set(10);
+		app('items').list(function(len){
+                    var res = [];
+                    for(var i = 0; i < len; i++){
+                        res.push({
+                            name: 'John' + (i + 1)
+                        });
+                    }
+                    return {$data: res};
+                }, 'length');
+		app('itemnum').is('items/$length');
+		assert.equal(app('itemnum').get(), 10);
+		app('length').set(5);
+		assert.equal(app('itemnum').get(), 5);
+
+
+	})
 
 	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
 		var app = new Firera;

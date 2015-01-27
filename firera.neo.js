@@ -369,6 +369,37 @@
 		this.set('');
 		return this;
 	}
+        
+        var list_compute = function(name, key, val, cellname, no_change) {
+            if(!this.formula){// something strange
+                    return;
+            }
+            if (name && this.observables[name]) {
+                    this.observables[name]--;
+                    if (this.observables[name] > 0)
+                            return;
+            }
+            if(key !== undefined){
+                this.argsValues[key] = val;
+            }
+            var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
+            if(res instanceof Array){
+                arr = res[0];
+                conf = res[1];
+            } else {
+                arr = res;
+            }
+            conf.host = this.host;
+            console.log('host', conf.host);
+            var list = new List(arr, conf);
+            Cell.prototype.alias.call(list, this.getName());
+	}
+        
+        Cell.prototype.list = function(){
+            this.compute = list_compute;
+            console.log('args', arguments);
+            return this.is.apply(this, arguments);
+        }
 
 	Cell.prototype.are = function(arr, config) {
 		if(arr instanceof Function){// it's a datasource!
@@ -378,7 +409,6 @@
 		if (!(arr instanceof List)) {
 			var conf = config || {};
 			conf.host = this.host;
-			conf.selector = this.selector;
 			if (arr instanceof Array) {
 				mass = arr;
 				arr = new List({}, conf);
@@ -400,7 +430,6 @@
 	Cell.prototype.projects = function(arr_name, fields, map_func, map_fields) {
 		var conf = {};
 		conf.host = this.host;
-		conf.selector = this.selector;
 		var arr = new List({}, conf);
 		_.$objJoin(this, arr);
 		this.host.setVar(this.getName(), arr);
@@ -409,8 +438,9 @@
 	}*/
 	
 	Cell.prototype.alias = function(name) {
-		this.host.aliases[this.getName()] = this.host(name);
-		this.host.removeVar(this.getName());
+            console.log('ALIAS prev:', this.host.aliases[name], this);
+		this.host.aliases[name] = this;
+		this.host.removeVar(name);
 	}
         
         Cell.prototype.getArgsValues = function(){
@@ -747,6 +777,7 @@
 					}
 				}
 				var tail = parts.slice(1).join('/');
+                                console.log('host', host);
 				return host.create_cell_or_event(tail);
 			}
 			
@@ -1009,7 +1040,7 @@
 		}
 		self.changers = {};
 		self.aliases = {};
-		self.vars = [];
+		self.vars = {};
 
 		for (var i in hash_methods) {
 			self[i] = hash_methods[i];
@@ -1100,9 +1131,6 @@
 		this.shared = new Firera.hash(init_hash, this.shared_config);
 		if(config) {
 			config.host && this.setHost(config.host);
-			if (config.selector) {
-				this.selector = config.selector;
-			}
 			if(config.autoselect !== undefined){
 				this.autoselect = config.autoselect;
 			}
