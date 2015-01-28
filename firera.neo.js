@@ -286,10 +286,14 @@
 	Cell.prototype.getName = function() {
 		return this.name;
 	}
+        
+        Cell.prototype.cell = function(name){
+            return this.host(name);
+        }
 
 	Cell.prototype.remove = function() {
 		for (var i in this.deps) {
-			this.deps[i].removeObserver(this);
+			this.cell(this.deps[i]).removeObserver(this.getName());
 		}
 	}
 
@@ -301,12 +305,12 @@
 		if (this.getName() != name)
 			this.observables[name]++;
 		for (var i in this.observers) {
-			this.observers[i].cell.invalidateObservers(name);
+			this.cell(this.observers[i]).invalidateObservers(name);
 		}
 	}
 
 	Cell.prototype.addObserver = function(cell, index) {
-		this.observers.push({cell: cell, index: index});
+		this.observers.push(cell.getName());
 	}
 
 	Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
@@ -344,7 +348,7 @@
 
 	Cell.prototype.updateObservers = function(name, no_change) {
 		for (var i in this.observers) {
-			this.observers[i].cell.compute(name, this.observers[i].index, this.val, this.name, no_change);
+			this.cell(this.observers[i]).compute(name, this.val, this.name, no_change);
 		}
 	}
 
@@ -370,17 +374,17 @@
 		return this;
 	}
         
-        var list_compute = function(name, key, val, cellname, no_change) {
+        var list_compute = function(originally_changed_var_name, val, cellname, no_change) {
             if(!this.formula){// something strange
                     return;
             }
-            if (name && this.observables[name]) {
-                    this.observables[name]--;
-                    if (this.observables[name] > 0)
+            if (originally_changed_var_name && this.observables[originally_changed_var_name]) {
+                    this.observables[originally_changed_var_name]--;
+                    if (this.observables[originally_changed_var_name] > 0)
                             return;
             }
-            if(key !== undefined){
-                this.argsValues[key] = val;
+            if(cellname !== undefined){
+                this.argsValues[this.argsKeys[cellname]] = val;
             }
             var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
             if(res instanceof Array){
@@ -448,7 +452,7 @@
             return args1;
         }
 
-	Cell.prototype.compute = function(name, key, val, cellname, no_change) {
+	Cell.prototype.compute = function(name, val, cellname, no_change) {
 		if(!this.formula){// something strange
 			return;
 		}
@@ -457,8 +461,10 @@
 			if (this.observables[name] > 0)
 				return;
 		}
-                if(key !== undefined){
-                    this.argsValues[key] = val;
+                if(cellname !== undefined){
+                    if(this.argsKeys !== undefined && this.argsKeys[cellname] !== undefined){
+                        this.argsValues[this.argsKeys[cellname]] = val;
+                    }
                 }
 		var old_val = this.val;
 		var new_val = this.formula.apply(this, this.argsValues);
@@ -472,7 +478,7 @@
 	}
 
 	Cell.prototype.depend = _.canTakeArray(function(cell, index) {
-            this.deps.push(cell);
+            this.deps.push(cell.getName());
             if (!(Object.keys(cell.observables).length)) {
                     this.addObservable(cell.getName());
             } else {
@@ -545,6 +551,7 @@
 			args = args[0];
 		}
                 this.argsValues = [];
+                this.argsKeys = {};
 		for (var i = 0; i < args.length; i++) {
                         var cell = args[i];
 			if (args[i] instanceof Cell) {
@@ -553,6 +560,7 @@
                             cell = this.host.create_cell_or_event(args[i], {dumb: true});
                         }
                         this.depend(cell, i);
+                        this.argsKeys[this.host(args[i]).getName()] = i;
                         this.argsValues.push(this.host(args[i]).get());
 		}
 		this.formula = formula;
@@ -561,7 +569,7 @@
 		return this;
 	}
         
-        var stream_compute = function(name, key, val, cellname, no_change){
+        var stream_compute = function(name, val, cellname, no_change){
             if (name && this.observables[name]) {
                     this.observables[name]--;
                     if (this.observables[name] > 0)
