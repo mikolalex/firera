@@ -127,9 +127,8 @@ describe('Simple values', function() {
                 app('a').set(35);
 		assert.equal(app.get('vals'), 70);
                 app('b').set(14);
-		assert.equal(app.get('vals'), 49);
+		assert.equal(app.get('vals'), 49);            
 		assert.deepEqual(app.get('something'), {val: 14, key: "b"});
-                //console.log('ST', app.get('something'));*/
 	})
         
         it('Testing streams via map', function(){

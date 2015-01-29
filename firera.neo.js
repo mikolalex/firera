@@ -575,6 +575,7 @@
                     if (this.observables[name] > 0)
                             return;
             }
+            console.log('stream compute ' + this.getName(), arguments);
             var old_val = this.val;
             var new_val = this.formula.call(this, val, cellname);
             this.val = new_val;
@@ -620,7 +621,8 @@
             if(vars[0] === '*'){
                 // it means all variables
                 this.host.onChange(function(key, __, val){
-                    stream_compute.call(self, key, null, val, key, true);
+                    console.log('ONCHANGE', arguments);
+                    stream_compute.call(self, key, val, key, true);
                 })
             } else {
                 for (var i = 0; i < vars.length; i++) {
