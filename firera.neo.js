@@ -249,7 +249,7 @@
 	})(debug_level)
 	var error = function() {
 		try {
-                    console.log(arguments[1]);
+                    console.log(arguments);
                     throw new Error('|' + Array.prototype.join.call(arguments, "|") + '|');
 		} catch(e) {
 			var stack = e.stack;
@@ -275,7 +275,7 @@
 		this.host = host;
 		this.deps = [];
 		this.inited = false;
-		this.observables = {};
+		this.observables = 0;
 		this.changers = [];
 		this.observers = [];
 		var name = this.name = selector;
@@ -297,19 +297,14 @@
 		}
 	}
 
-	Cell.prototype.addObservable = function(cellname) {
-		this.observables[cellname] = 0;
-	}
-
-	Cell.prototype.invalidateObservers = function(name) {
-		if (this.getName() != name)
-			this.observables[name]++;
+	Cell.prototype.invalidateObservers = function() {
+		this.observables++;
 		for (var i in this.observers) {
-			this.cell(this.observers[i]).invalidateObservers(name);
+			this.cell(this.observers[i]).invalidateObservers();
 		}
 	}
 
-	Cell.prototype.addObserver = function(cell, index) {
+	Cell.prototype.addObserver = function(cell) {
 		this.observers.push(cell.getName());
 	}
 
@@ -329,7 +324,7 @@
         
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
-		if(Object.keys(this.observables).length && !setanyway && !this.reader){
+		if(!this.free && !setanyway && !this.reader){
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
 		}
@@ -340,7 +335,8 @@
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
 		//////////
-		this.invalidateObservers(this.getName());
+		this.invalidateObservers();
+                this.observables--;
 		this.updateObservers(this.getName());
 		this.change(old_val, new_val);
 		return this;
@@ -348,7 +344,7 @@
 
 	Cell.prototype.updateObservers = function(name, no_change) {
 		for (var i in this.observers) {
-			this.cell(this.observers[i]).compute(name, this.val, this.name, no_change);
+			this.cell(this.observers[i]).compute(this.val, this.name, no_change);
 		}
 	}
 
@@ -374,15 +370,13 @@
 		return this;
 	}
         
-        var list_compute = function(originally_changed_var_name, val, cellname, no_change) {
+        var list_compute = function(val, cellname, no_change) {
             if(!this.formula){// something strange
                     return;
             }
-            if (originally_changed_var_name && this.observables[originally_changed_var_name]) {
-                    this.observables[originally_changed_var_name]--;
-                    if (this.observables[originally_changed_var_name] > 0)
-                            return;
-            }
+            this.observables--;
+            if (this.observables > 0) return;
+            
             if(cellname !== undefined){
                 this.argsValues[this.argsKeys[cellname]] = val;
             }
@@ -452,15 +446,13 @@
             return args1;
         }
 
-	Cell.prototype.compute = function(name, val, cellname, no_change) {
+	Cell.prototype.compute = function(val, cellname, no_change) {
 		if(!this.formula){// something strange
 			return;
 		}
-		if (name && this.observables[name]) {
-			this.observables[name]--;
-			if (this.observables[name] > 0)
-				return;
-		}
+                this.observables--;
+                if (this.observables > 0) return;
+                
                 if(cellname !== undefined){
                     if(this.argsKeys !== undefined && this.argsKeys[cellname] !== undefined){
                         this.argsValues[this.argsKeys[cellname]] = val;
@@ -477,24 +469,30 @@
 		return this;
 	}
 
-	Cell.prototype.depend = _.canTakeArray(function(cell, index) {
+	Cell.prototype.depend = _.canTakeArray(function(cell) {
             this.deps.push(cell.getName());
-            if (!(Object.keys(cell.observables).length)) {
-                    this.addObservable(cell.getName());
-            } else {
-                    for (var x in cell.observables) {
-                            this.addObservable(x);
-                    }
-            }
-            cell.addObserver(this, index);
+            cell.addObserver(this);
 	});
+        
+        var simple_link_compute = function(val, cellname, no_change){
+            var old_val = this.val;
+            var new_val = val;
+            console.log('link compute', val);
+            this.val = new_val;
+            if (this.writer && !_.isReservedName(this.getName())) {
+                    this.writer.apply(this, [this.val].concat(this.params));
+            }
+            if(!no_change) this.change(old_val, new_val);
+            this.updateObservers(name, no_change);
+            return this;
+        }
 
 	Cell.prototype.is = function(f) {
 		if (f instanceof Cell) {
-			// just link this var to that)
-			return this.is.call(this, function(a) {
-				return a
-			}, f);
+                    this.depend(f, 0);
+                    this.free = false;
+                    this.compute = simple_link_compute;
+                    return;
 		}
 		var formula = f;
 		if (this.inited) {
@@ -569,13 +567,9 @@
 		return this;
 	}
         
-        var stream_compute = function(name, val, cellname, no_change){
-            if (name && this.observables[name]) {
-                    this.observables[name]--;
-                    if (this.observables[name] > 0)
-                            return;
-            }
-            console.log('stream compute ' + this.getName(), arguments);
+        var stream_compute = function(val, cellname, no_change){
+            this.observables--;
+            if (this.observables > 0) return;
             var old_val = this.val;
             var new_val = this.formula.call(this, val, cellname);
             this.val = new_val;
@@ -621,8 +615,7 @@
             if(vars[0] === '*'){
                 // it means all variables
                 this.host.onChange(function(key, __, val){
-                    console.log('ONCHANGE', arguments);
-                    stream_compute.call(self, key, val, key, true);
+                    stream_compute.call(self, val, key, true);
                 })
             } else {
                 for (var i = 0; i < vars.length; i++) {
@@ -1649,7 +1642,7 @@
 		customDrivers[name] = {
 			reader: function(){
 				if(!this.host || !this.host.isShared()){
-					error('Cant run list reader ' + name + ' of a non-list!', this.host.host);
+					error('Cant run list reader ' + name + ' of a non-list!', this, this.host, this.host.isShared());
 					return;
 				}
 				return func.apply(this, arguments);

@@ -43,8 +43,9 @@ describe('Simple values', function() {
         
 	/*it('Testing arrays(length, etc)', function() {
 		var app = new Firera;
-		app('items').are([1, 2, 3]);
-		app('itemnum').is('items/$length');
+		app('itemnum').set(0);
+		app('items').are([1, 2, 3], {share: {gives: {'itemnum': '$length'}}});
+                console.log(Firera.dump(app));
 		assert.equal(app('itemnum').get(), 3);
 		app('items').push(4);
 		assert.equal(app('itemnum').get(), 4);
