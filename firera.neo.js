@@ -304,8 +304,8 @@
 		}
 	}
 
-	Cell.prototype.addObserver = function(cell) {
-		this.observers.push(cell.getName());
+	Cell.prototype.addObserver = function(cellname) {
+            this.observers.push(cellname);
 	}
 
 	Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
@@ -405,6 +405,7 @@
 		if (!(arr instanceof List)) {
 			var conf = config || {};
 			conf.host = this.host;
+                        conf.name = this.getName();
 			if (arr instanceof Array) {
 				mass = arr;
 				arr = new List({}, conf);
@@ -469,9 +470,10 @@
 		return this;
 	}
 
-	Cell.prototype.depend = _.canTakeArray(function(cell) {
+	Cell.prototype.depend = _.canTakeArray(function(cell, path) {
             this.deps.push(cell.getName());
-            cell.addObserver(this);
+            path = path ? this.host.getReversePath(path, this.getName()) : this.getName();
+            cell.addObserver(path);
 	});
         
         var simple_link_compute = function(val, cellname, no_change){
@@ -488,83 +490,80 @@
         }
 
 	Cell.prototype.is = function(f) {
-		if (f instanceof Cell) {
-                    this.depend(f, 0);
-                    this.free = false;
-                    this.compute = simple_link_compute;
+            if (f instanceof Cell) {
+                error('Cant depend on cell iself(provide a name)');
+            }
+            var formula = f;
+            if (this.inited) {
+                    error('Cell already inited!');
                     return;
-		}
-		var formula = f;
-		if (this.inited) {
-			error('Cell already inited!');
-			return;
-		} else {
-			this.inited = true;
-		}
+            } else {
+                    this.inited = true;
+            }
 
-		if (formula instanceof Array) {
-                    if(arguments.length === 1){
-                        // creating new Firera List from array
-			this.self = new List(formula, {host: this.host});
-			return this;
-                    } else {
-                        // it's function composition!
-                       formula = _.compose(formula);
-                    }
-		}
-		if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
-			this.self = Firera.hash(formula, {host: this.host});
-			return this;
-		}
-		
-		var args = Array.prototype.slice.call(arguments, 1);
-		if (!args.length) {// is just an another cell
-			args[0] = formula;
-			formula = function(val) {
-				return val;
-			};
-		} else {
-                    // it's function, defned by string, like '+'
-                    if(formula.replace){
-                        switch(formula){
-                            case '+':
-                                formula = function(a, b){ return a + b;};
-                            break;
-                            case '-':
-                                formula = function(a, b){ return a - b;};
-                            break;
-                            case '*':
-                                formula = function(a, b){ return a * b;};
-                            break;
-                            case '/':
-                                formula = function(a, b){ return a / b;};
-                            break;
-                            default:
-                                error('Formula cant be string:', formula);
-                                return;
-                        }
+            if (formula instanceof Array) {
+                if(arguments.length === 1){
+                    // creating new Firera List from array
+                    this.self = new List(formula, {host: this.host});
+                    return this;
+                } else {
+                    // it's function composition!
+                   formula = _.compose(formula);
+                }
+            }
+            if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
+                    this.self = Firera.hash(formula, {host: this.host});
+                    return this;
+            }
+
+            var args = Array.prototype.slice.call(arguments, 1);
+            if (!args.length) {// is just an another cell
+                    args[0] = formula;
+                    formula = function(val) {
+                            return val;
+                    };
+            } else {
+                // it's function, defned by string, like '+'
+                if(formula.replace){
+                    switch(formula){
+                        case '+':
+                            formula = function(a, b){ return a + b;};
+                        break;
+                        case '-':
+                            formula = function(a, b){ return a - b;};
+                        break;
+                        case '*':
+                            formula = function(a, b){ return a * b;};
+                        break;
+                        case '/':
+                            formula = function(a, b){ return a / b;};
+                        break;
+                        default:
+                            error('Formula cant be string:', formula);
+                            return;
                     }
                 }
-		if ((args[0] instanceof Array) && !(args[1])) {
-			args = args[0];
-		}
-                this.argsValues = [];
-                this.argsKeys = {};
-		for (var i = 0; i < args.length; i++) {
-                        var cell = args[i];
-			if (args[i] instanceof Cell) {
-                            args[i] = args[i].getName();
-			} else {
-                            cell = this.host.create_cell_or_event(args[i], {dumb: true});
-                        }
-                        this.depend(cell, i);
-                        this.argsKeys[this.host(args[i]).getName()] = i;
-                        this.argsValues.push(this.host(args[i]).get());
-		}
-		this.formula = formula;
-		this.free = false;
-		if (args.length) this.compute();
-		return this;
+            }
+            if ((args[0] instanceof Array) && !(args[1])) {
+                    args = args[0];
+            }
+            this.argsValues = [];
+            this.argsKeys = {};
+            for (var i = 0; i < args.length; i++) {
+                    var cell = args[i];
+                    if (args[i] instanceof Cell) {
+                        error('Cant depend on cell iself(provide a name)');
+                    } else {
+                        cell = this.host(args[i]);
+                    }
+                    this.depend(cell, args[i]);
+                    this.argsKeys[this.host(args[i]).getName()] = i;
+                    this.argsValues.push(this.host(args[i]).get());
+            }
+            this.formula = formula;
+            this.free = false;
+            if (args.length) this.compute();
+            return this;
 	}
         
         var stream_compute = function(val, cellname, no_change){
@@ -623,7 +622,7 @@
                     if (!(vars[i] instanceof Cell)) {
                         cell = this.host.create_cell_or_event(vars[i], {dumb: true});
                     }
-                    this.depend(cell, i);
+                    this.depend(cell, vars[i]);
                 }
                 this.compute = stream_compute;
             }
@@ -702,7 +701,8 @@
 					//error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
 					//return;
 				}
-				child(varname).is(parent(config.takes[i]));
+                                //console.log('NC', '../' + config.takes[i]);
+				child(varname).is(function(a){ return a;}, '../' + config.takes[i]);
 			}
 		}
 		if (config && config.gives) {
@@ -715,7 +715,8 @@
 					//error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
 					//return;
 				}
-				parent(varname).is(child(config.gives[i]));
+                                var childname = child.isShared() ? child.host.getName() : child.getName();
+				parent(varname).is(function(a){ return a;}, childname + '/' + config.gives[i]);
 			}
 		}
 	}
@@ -728,6 +729,17 @@
 	}
 
 	var hash_methods = {
+                getReversePath: function(path, cellname){
+                    //return path;
+                    if(path.indexOf('/') !== -1){
+                        var parts = path.split("/");
+                        for(var i = 1; i < parts.length; i++){
+                            parts[i - 1] = '..';
+                        }
+                        parts[parts.length - 1] = cellname;
+                        return parts.join('/');
+                    } else return cellname;
+                },
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
 			if(_.isInt(selector) && this.isSharedHash){
 				return this.host.list[selector];
@@ -749,7 +761,7 @@
 							}
 						} else {
 							host = this.host;
-						}
+					f	}
 				} else {
 					if(_.isInt(member)){ // its part of list
 						if(this instanceof List && this.list){
@@ -1129,10 +1141,16 @@
 		}
 		this.shared = new Firera.hash(init_hash, this.shared_config);
 		if(config) {
-			config.host && this.setHost(config.host);
-			if(config.autoselect !== undefined){
-				this.autoselect = config.autoselect;
-			}
+                    if(config.name){
+                        this.name = config.name
+                    }
+                    if(config.host){
+                        config.host.setVar(this.getName(), this);
+                        this.setHost(config.host);
+                    }
+                    if(config.autoselect !== undefined){
+                            this.autoselect = config.autoselect;
+                    }
 		}
 		if (init_hash) {
 			if (init_hash.each) {
@@ -1169,6 +1187,7 @@
 
 	List.prototype.setHost = function(host) {
 		this.host = host;
+                //console.log('!!!name', this.getName());
 		make_window_between_hashes(this.host, this.shared, this.how_to_share_config);
 	}
 
@@ -1332,7 +1351,7 @@
 	
 	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
 		for(var i in this.changers[changetype]){
-			this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
+                    this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
 		}
 	}
 	List.prototype.onChangeItem = function(changetype, func){
@@ -1488,6 +1507,9 @@
 	Firera.list = List;
 	Firera.hash = Firera;
 	Firera.dump = function(hash){
+                if(hash instanceof List){
+                    return Firera.dumpList(hash);
+                }
 		var res = {
 			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
 			self: hash,

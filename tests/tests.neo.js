@@ -41,17 +41,17 @@ describe('Simple values', function() {
 		assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
 	})
         
-	/*it('Testing arrays(length, etc)', function() {
+	it('Testing arrays(length, etc)', function() {
 		var app = new Firera;
 		app('itemnum').set(0);
 		app('items').are([1, 2, 3], {share: {gives: {'itemnum': '$length'}}});
-                console.log(Firera.dump(app));
+                //console.log('APP', Firera.dump(app));
+                //console.log(Firera.dump(app));
 		assert.equal(app('itemnum').get(), 3);
 		app('items').push(4);
 		assert.equal(app('itemnum').get(), 4);
 
-
-	})*/
+	})
         
 	/*it('Testing .list() generator', function() {
 		var app = new Firera;
@@ -101,7 +101,6 @@ describe('Simple values', function() {
 		app(".ololo1|attr(data-name)").is(function(a, b){ return a + ' ' + b;}, 'a', 'b');
 		app("name").is('.inp|value');
 		app('a').set('Mans');
-                console.log('==========================');
 		assert.equal($(".getsettest .ololo1").attr('data-name'), 'Mans Hansson');
 		app.applyTo(".getsettest2");
 		assert.equal($(".getsettest2 .ololo1").attr('data-name'), 'Mans Hansson');
