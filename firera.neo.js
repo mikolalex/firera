@@ -369,29 +369,37 @@
 		this.set('');
 		return this;
 	}
+
+    var some_shitty_suffix = "___!!!___";
+    
+    Cell.prototype.trace = function(){
+        var now_comp = this.compute;
+        this.compute = function(){
+            now_comp.apply(this, arguments);
+            console.log('Cell ', this.getName(), 'changed to', this.val);
+        }
+    }
         
-        var some_shitty_suffix = "___!!!___";
-        
-        var list_compute = function(val, cellname) {
-            if(!this.formula){// something strange
-                    return;
-            }
-            this.observables--;
-            if (this.observables > 0) return;
-            
-            if(cellname !== undefined){
-                this.argsValues[this.argsKeys[cellname]] = val;
-            }
-            var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
-            if(res instanceof Array){
-                arr = res[0];
-                conf = res[1];
-            } else {
-                arr = res;
-            }
-            conf.host = this.host;
-            var list = new List(arr, conf);
-            Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
+    var list_compute = function(val, cellname) {
+        if(!this.formula){// something strange
+                return;
+        }
+        this.observables--;
+        if (this.observables > 0) return;
+
+        if(cellname !== undefined){
+            this.argsValues[this.argsKeys[cellname]] = val;
+        }
+        var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
+        if(res instanceof Array){
+            arr = res[0];
+            conf = res[1];
+        } else {
+            arr = res;
+        }
+        conf.host = this.host;
+        var list = new List(arr, conf);
+        Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
 	}
         
         Cell.prototype.list = function(){
@@ -2035,6 +2043,7 @@
 				reader: function($el) {
 					var self = this;
 					var type = $el.attr('type');
+                    console.log('applying reader value');
 					$el.bind("keyup, input, focus, keypress, blur, change", function() {
 						var val;
 						switch (type) {
@@ -2045,6 +2054,7 @@
 								val = $(this).val();
 								break;
 						}
+                        console.log(val);
 						self.set(val);
 					})
 				}

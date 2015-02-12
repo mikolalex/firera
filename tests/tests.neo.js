@@ -386,14 +386,14 @@ describe('Tests from guide', function() {
 	
 	it('testing basic HTML binding', function() {
 		var validate_string = function(str) {
-			return !str || str.length < 4 ? "It's too short!" : str;
+			return  !str || str.length < 4 ? "It's too short!" : str;
 		}
 
 		var app = new Firera;
 		app('name').is(validate_string, "input[type=text]|value");
 		// very important step
 		app.applyTo('.user');
-		$(".user input[type=text]").val('Li');
+		$(".user input[type=text]").val('Li').change();
 		var msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, "It's too short!");
 
