@@ -390,7 +390,7 @@ describe('Tests from guide', function() {
 		}
 
 		var app = new Firera;
-		app('name').is(validate_string, "input[type=text]|value");
+		app('name').is(validate_string, "input[type=text]|value").trace();
 		// very important step
 		app.applyTo('.user');
 		$(".user input[type=text]").val('Li').change();
@@ -398,7 +398,7 @@ describe('Tests from guide', function() {
 		assert.equal(msg, "It's too short!");
 
 
-		$(".user input[type=text]").val('Mykola').blur();
+		$(".user input[type=text]").val('Mykola').change();
 		msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, 'Mykola');
 	})

@@ -229,6 +229,10 @@
 	var get_cell_type = function(cellname) {
 		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
 	}
+    var ___ = function(){}; // function for comments
+    var __$ = function(){
+        console.log.apply(console, arguments);
+    }; // function for comments
 	// adding some sugar
 	String.prototype.contains = function(s){
 		return this.indexOf(s) !== -1;
@@ -287,9 +291,9 @@
             return this.name;
 	}
         
-        Cell.prototype.cell = function(name){
-            return this.host(name);
-        }
+    Cell.prototype.cell = function(name){
+        return this.host(name);
+    }
 
 	Cell.prototype.remove = function() {
             for (var i in this.deps) {
@@ -376,7 +380,7 @@
         var now_comp = this.compute;
         this.compute = function(){
             now_comp.apply(this, arguments);
-            console.log('Cell ', this.getName(), 'changed to', this.val);
+            ___('Cell ', this.getName(), 'changed to', this.val);
         }
     }
         
@@ -1112,7 +1116,10 @@
 			}
 			self.update(init_hash);
 		}
-
+        for(var i in Firera.autoinitCells){
+            ___('Autoiniting cell:', Firera.autoinitCells[i]);
+            self(Firera.autoinitCells[i]);
+        }
 		return self;
 	}
 
@@ -1496,6 +1503,7 @@
                     }
             }
 	];
+    Firera.autoinitCells = [];
 	
 	Firera.find_cell_driver = function(name){
                 var i = this.cell_drivers.length;
@@ -1723,6 +1731,9 @@
 	Firera.addCellDriver = function(_, driver){
 		Firera.cell_drivers.push(driver);
 	}
+	Firera.addAutoinitCell = function(_, cellname){
+		Firera.autoinitCells.push(cellname);
+	}
 	
 	Firera.addPackage = function(package){
 		var method_names = {
@@ -1735,7 +1746,8 @@
 			HTMLReaders: 'addHTMLReader',
 			HTMLWriters: 'addHTMLWriter',
 			HTMLReadersWriters: 'addHTMLReaderWriter',
-                        cellDrivers: 'addCellDriver',
+            cellDrivers: 'addCellDriver',
+            autoinitCells: 'addAutoinitCell',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for(var field in method_names){
@@ -1767,6 +1779,10 @@
 //////////
 (function(){
 
+    var ___ = function(){}; // function for comments
+    var __$ = function(){
+        console.log.apply(console, arguments);
+    }; // function for comments
 	var gather_form_values = function(selector, scope, clear, cb) {
 		var res = {};
 		$(selector + " input", scope).each(function() {
@@ -1800,49 +1816,49 @@
 	}
 	
 	var core = {
-                cellDrivers: [
-                    {
-			name: 'HTML',
-			regex: new RegExp('(.|\s)*\\|.*'),
-			func: function(name){
-			    var parts = name.split("|");
-			    if (parts[1].contains("(")) {
-				// there are some params
-				var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-				this.params = m[2].split(",");
-				parts[1] = m[1];
-			    }
-			    if (!Firera.HTMLDrivers[parts[1]]) {
-				    error('Unknown driver: ' + parts[1]);
-				    return;
-			    }
-			    var selector = parts[0];
-			    this.driver = Firera.HTMLDrivers[parts[1]];
-			    if (this.driver.def) this.val = this.driver.def;
-			    if (this.driver.reader) {
-				this.depend(this.host('$actualRootNode'));
-				this.reader = true;
-				this.formula = function(){
-					var element = $(selector, this.host('$actualRootNode').get());
-					if(element.length){
-						this.driver.reader.call(this, element);
-					}
-				}
-				this.formula();
-			    }
-			    if (this.driver.writer) {
-				this.depend(this.host('$actualRootNode'));
-				this.writer = function(val/*, params */){
-					var element = $(selector, this.host('$actualRootNode').get());
-					//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
-					var args = Array.prototype.slice.call(arguments);
-					args.splice(1, 0, element);
-					this.driver.writer.apply(this, args);
-				}
-			    }
-			}
-                    },
-                ],
+        cellDrivers: [
+            {
+                name: 'HTML',
+                regex: new RegExp('(.|\s)*\\|.*'),
+                func: function(name){
+                    var parts = name.split("|");
+                    if (parts[1].contains("(")) {
+                    // there are some params
+                    var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+                    this.params = m[2].split(",");
+                    parts[1] = m[1];
+                    }
+                    if (!Firera.HTMLDrivers[parts[1]]) {
+                        error('Unknown driver: ' + parts[1]);
+                        return;
+                    }
+                    var selector = parts[0];
+                    this.driver = Firera.HTMLDrivers[parts[1]];
+                    if (this.driver.def) this.val = this.driver.def;
+                    if (this.driver.reader) {
+                    this.depend(this.host('$actualRootNode'));
+                    this.reader = true;
+                    this.formula = function(){
+                        var element = $(selector, this.host('$actualRootNode').get());
+                        if(element.length){
+                            this.driver.reader.call(this, element);
+                        }
+                    }
+                    this.formula();
+                    }
+                    if (this.driver.writer) {
+                        this.depend(this.host('$actualRootNode'));
+                        this.writer = function(val/*, params */){
+                            var element = $(selector, this.host('$actualRootNode').get());
+                            //console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
+                            var args = Array.prototype.slice.call(arguments);
+                            args.splice(1, 0, element);
+                            this.driver.writer.apply(this, args);
+                        }
+                    }
+                }
+            },
+        ],
 		customReaders: {
 			i: function(){
 				if(!this.host.host.list){
@@ -1872,6 +1888,7 @@
 			templateX: ['html', '$actualRootNode'],
             actualTemplate: [_.firstExisting, '$template', '$templateX'],
             bindings: [function(templ, $el){
+                    ___('Computing bindings', arguments);
                     $el.html(templ);
                     var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
                     var res = {};
@@ -1896,6 +1913,7 @@
             }, '$actualTemplate', '$actualRootNode'],
             HTMLVarsWriter: [
                 function(bindings, var_obj){
+                    ___('Runnning writer', arguments);
                     if(!var_obj || !bindings[var_obj.key]) return;
                     for(var i in bindings[var_obj.key]){
                         bindings[var_obj.key][i].innerHTML = var_obj.val;
@@ -2043,7 +2061,7 @@
 				reader: function($el) {
 					var self = this;
 					var type = $el.attr('type');
-                    console.log('applying reader value');
+                    ___('Applying "value" reader');
 					$el.bind("keyup, input, focus, keypress, blur, change", function() {
 						var val;
 						switch (type) {
@@ -2054,7 +2072,6 @@
 								val = $(this).val();
 								break;
 						}
-                        console.log(val);
 						self.set(val);
 					})
 				}
@@ -2265,7 +2282,8 @@
 					}
 				}
 			}
-		}
+		},
+        autoinitCells: ['$HTMLVarsWriter']
 	}
 	
 	Firera.addPackage(core);
