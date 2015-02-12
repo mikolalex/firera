@@ -1120,6 +1120,9 @@
             ___('Autoiniting cell:', Firera.autoinitCells[i]);
             self(Firera.autoinitCells[i]);
         }
+        if(!self.host) {// it's root instance
+            Firera.instances.push(self);
+        }
 		return self;
 	}
 
@@ -1504,6 +1507,7 @@
             }
 	];
     Firera.autoinitCells = [];
+    Firera.instances = [];
 	
 	Firera.find_cell_driver = function(name){
                 var i = this.cell_drivers.length;
@@ -1521,14 +1525,16 @@
 	/////
 	Firera.list = List;
 	Firera.hash = Firera;
-	Firera.dump = function(hash){
+	Firera.dump = function(hash, include_self){
                 if(hash instanceof List){
                     return Firera.dumpList(hash);
                 }
 		var res = {
 			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
-			self: hash,
 		}
+        if(include_self){
+            res.self = hash;
+        }
 		var vars = hash.getAllVars();
 		for(var i in vars){
 			if(vars[i] instanceof Event){
@@ -1539,7 +1545,9 @@
 				if(i === '$template'){
 					res.template = vars[i].get();
 					res.template_source = hash.template_source;
-					res.template_self = vars[i];
+                    if(include_self){
+                        res.template_self = vars[i];
+                    }
 					continue;
 				}
 				if(!vars[i].free){
@@ -1557,7 +1565,7 @@
 			}
 			if(vars[i] instanceof List){
 				if(!res.lists) res.lists = {};
-				res.lists[i] = Firera.dumpList(vars[i]);
+				res.lists[i] = Firera.dumpList(vars[i], include_self);
 			}
 		}
 		if(hash.mixins){
@@ -1565,23 +1573,26 @@
 			for(var i in hash.mixins){
 				res.mixins[i] = {};
 				for(var j in hash.mixins[i]){
-					res.mixins[i][j] = Firera.dump(hash.mixins[i][j]);
+					res.mixins[i][j] = Firera.dump(hash.mixins[i][j], include_self);
 				}
 			}
 		}
 		return res;
 	}
-	Firera.dumpCell = function(cell){
-		var res = {val: cell.get(), self: cell};
+	Firera.dumpCell = function(cell, include_self){
+		var res = {val: cell.get()};
+        if(include_self){
+            res.self = cell;
+        }
 		return res;
 	}
-	Firera.dumpList = function(list){
+	Firera.dumpList = function(list, include_self){
 		var res = {
-			shared: Firera.dump(list.shared),
+			shared: Firera.dump(list.shared, include_self),
 			list: []
 		};
 		for(var i in list.list){
-			res.list[i] = Firera.dump(list.list[i]);
+			res.list[i] = Firera.dump(list.list[i], include_self);
 		}
 		res.changers = list.changers;
 		return res;

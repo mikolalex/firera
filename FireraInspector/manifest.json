@@ -1,0 +1,8 @@
+{
+  "manifest_version": 2,
+  "name": "Firera Inspector",
+  "version": "0.1",
+
+  "description": "A tool for Firera discovery",
+  "devtools_page": "devtools.html"
+}
