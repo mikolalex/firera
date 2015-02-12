@@ -53,7 +53,7 @@ describe('Simple values', function() {
 
 	})
         
-	/*it('Testing .list() generator', function() {
+	it('Testing .list() generator', function() {
 		var app = new Firera;
                 app('length').set(10);
 		app('items').list(function(len){
@@ -63,15 +63,16 @@ describe('Simple values', function() {
                             name: 'John' + (i + 1)
                         });
                     }
-                    return {$data: res};
+                    return [{$data: res}, {share: {gives: {itemnum: '$length'}}}];
                 }, 'length');
-		app('itemnum').is('items/$length');
+                console.log(Firera.dump(app));
+		//app('itemnum').is('items/$length');
 		assert.equal(app('itemnum').get(), 10);
 		app('length').set(5);
 		assert.equal(app('itemnum').get(), 5);
 
 
-	})*/
+	})
 
 	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
 		var app = new Firera;

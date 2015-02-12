@@ -266,25 +266,25 @@
 	}
 
 
-	var Cell = function(selector, host, params) {
-		if (!host) {
-			error('no host in cell ' + selector);
-		}
-		this.free = true;
-		this.params = [];
-		this.host = host;
-		this.deps = [];
-		this.inited = false;
-		this.observables = 0;
-		this.changers = [];
-		this.observers = [];
-		var name = this.name = selector;
-		var driver = Firera.find_cell_driver(this.getName());
-                driver.call(this, this.getName());
+	var Cell = function(name, host, params) {
+            if (!host) {
+                    error('no host in cell ' + name);
+            }
+            this.free = true;
+            this.params = [];
+            this.host = host;
+            this.deps = [];
+            this.inited = false;
+            this.observables = 0;
+            this.changers = [];
+            this.observers = [];
+            this.name = name;
+            var driver = Firera.find_cell_driver(name);
+            driver.call(this, name);
 	}
 
 	Cell.prototype.getName = function() {
-		return this.name;
+            return this.name;
 	}
         
         Cell.prototype.cell = function(name){
@@ -292,9 +292,9 @@
         }
 
 	Cell.prototype.remove = function() {
-		for (var i in this.deps) {
-			this.cell(this.deps[i]).removeObserver(this.getName());
-		}
+            for (var i in this.deps) {
+                    this.cell(this.deps[i]).removeObserver(this.getName());
+            }
 	}
 
 	Cell.prototype.invalidateObservers = function() {
@@ -370,7 +370,9 @@
 		return this;
 	}
         
-        var list_compute = function(val, cellname, no_change) {
+        var some_shitty_suffix = "___!!!___";
+        
+        var list_compute = function(val, cellname) {
             if(!this.formula){// something strange
                     return;
             }
@@ -389,11 +391,14 @@
             }
             conf.host = this.host;
             var list = new List(arr, conf);
-            Cell.prototype.alias.call(list, this.getName());
+            Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
 	}
         
         Cell.prototype.list = function(){
             this.compute = list_compute;
+            this.name = this.getName() + some_shitty_suffix;
+            this.alias(this.getName());
+            
             return this.is.apply(this, arguments);
         }
 
@@ -476,27 +481,14 @@
             cell.addObserver(path);
 	});
         
-        var simple_link_compute = function(val, cellname, no_change){
-            var old_val = this.val;
-            var new_val = val;
-            console.log('link compute', val);
-            this.val = new_val;
-            if (this.writer && !_.isReservedName(this.getName())) {
-                    this.writer.apply(this, [this.val].concat(this.params));
-            }
-            if(!no_change) this.change(old_val, new_val);
-            this.updateObservers(name, no_change);
-            return this;
-        }
-
 	Cell.prototype.is = function(f) {
             if (f instanceof Cell) {
                 error('Cant depend on cell iself(provide a name)');
             }
             var formula = f;
             if (this.inited) {
-                    error('Cell already inited!');
-                    return;
+                    console.warn('Cell already inited!');
+                    //return;
             } else {
                     this.inited = true;
             }
@@ -843,6 +835,17 @@
 				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
 			}
 		},
+		toString: function() {
+			if (!this.host) {
+				return 'root / ';
+			} else {
+				if (!this.host) {
+					error('Who I am?');
+					return;
+				}
+				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
+			}
+		},
 		///// NEW
 		getOwnVar: function(name) {
 			return this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
@@ -1158,16 +1161,12 @@
 				this.each_hash = check_for_constructor(init_hash.each);
 			}
 			if (init_hash.$data) {
-				for (var i = 0; i < init_hash.$data.length; i++) {
-					this.each_hash.$data = init_hash.$data[i];
-					var hash = new window[lib_var_name].hash(this.each_hash, {host: this});
-					this.list.push(hash);
-				}
+                this.push(init_hash.$data);
 			}
 			// maybe delete .data and .each?
 		}
 	}
-
+        
 	List.prototype.getRoute = function() {
 		if (!this.host) {
 			return 'root / ';
@@ -1863,65 +1862,65 @@
                         }, '*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode'],
-                        actualTemplate: [_.firstExisting, '$template', '$templateX'],
-                        bindings: [function(templ, $el){
-                                $el.html(templ);
-                                var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
-                                var res = {};
-                                for(var i in bindings){
-                                    if(!res[bindings[i].name]) res[bindings[i].name] = [];
-                                    res[bindings[i].name].push(bindings[i].el);
-                                    var c = this.host.getVar(bindings[i].name);
-                                    if(c){
-                                        var type = c.getType();
-                                        switch(type){
-                                            case 'cell':
-                                                bindings[i].el.innerHTML = c.get();
-                                            break;
-                                            case 'list':
-                                            case 'hash':
-                                                c.applyTo(bindings[i].el);
-                                            break;
-                                        }
-                                    }
-                                }
-                                return res;
-                        }, '$actualTemplate', '$actualRootNode'],
-                        HTMLVarsWriter: [
-                            function(bindings, var_obj){
-                                if(!var_obj || !bindings[var_obj.key]) return;
-                                for(var i in bindings[var_obj.key]){
-                                    bindings[var_obj.key][i].innerHTML = var_obj.val;
-                                    //console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
-                                }
-                            }, '$bindings', '$vars'
-                        ]
+            actualTemplate: [_.firstExisting, '$template', '$templateX'],
+            bindings: [function(templ, $el){
+                    $el.html(templ);
+                    var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
+                    var res = {};
+                    for(var i in bindings){
+                        if(!res[bindings[i].name]) res[bindings[i].name] = [];
+                        res[bindings[i].name].push(bindings[i].el);
+                        var c = this.host.getVar(bindings[i].name);
+                        if(c){
+                            var type = c.getType();
+                            switch(type){
+                                case 'cell':
+                                    bindings[i].el.innerHTML = c.get();
+                                break;
+                                case 'list':
+                                case 'hash':
+                                    c.applyTo(bindings[i].el);
+                                break;
+                            }
+                        }
+                    }
+                    return res;
+            }, '$actualTemplate', '$actualRootNode'],
+            HTMLVarsWriter: [
+                function(bindings, var_obj){
+                    if(!var_obj || !bindings[var_obj.key]) return;
+                    for(var i in bindings[var_obj.key]){
+                        bindings[var_obj.key][i].innerHTML = var_obj.val;
+                        //console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
+                    }
+                }, '$bindings', '$vars'
+            ]
 		},
 		customListReaders: {
 			length: function() {
-					var self = this;
-					var list = this.host.host;
-					list.onChangeItem('delete', function(){
-						self.set(self.get() - 1);
-					})
-					list.onChangeItem('create', function(){
-						self.set(self.get() + 1);
-					})
-					this.set(list.list.length);
+                var self = this;
+                var list = this.host.host;
+                list.onChangeItem('delete', function(){
+                    self.set(self.get() - 1);
+                })
+                list.onChangeItem('create', function(){
+                    self.set(self.get() + 1);
+                })
+                this.set(list.list.length);
 			},
 			selectedItem: function() {
-					var self = this;
-					if(!this.host.isShared()){
-						error('cound not count length of non-list!'); return;
-					}
-					var list = this.host.host;
-					list.onChangeItem('delete', function(){
-						self.set(self.get() - 1);
-					})
-					list.onChangeItem('create', function(){
-						self.set(self.get() + 1);
-					})
-					this.set(list.list.length);
+                var self = this;
+                if(!this.host.isShared()){
+                        error('cound not count length of non-list!'); return;
+                }
+                var list = this.host.host;
+                list.onChangeItem('delete', function(){
+                        self.set(self.get() - 1);
+                })
+                list.onChangeItem('create', function(){
+                        self.set(self.get() + 1);
+                })
+                this.set(list.list.length);
 			},
 		},
 		customListWriters: {
@@ -2473,7 +2472,7 @@
 					success: function(result) {
 					    if(result){
 						    list.dontfirechange = true;
-					    	    list.setData(result);
+                            list.setData(result);
 						    list.dontfirechange = false;
 					    }
 					}
