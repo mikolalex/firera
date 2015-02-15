@@ -60,6 +60,31 @@
 			return n % 1 == 0;
 		},
 		
+		getFunc: function(f){
+			if(f instanceof Function) return f;
+			switch(f){
+			    case '+':
+				return function(a, b){ return a + b;};
+			    break;
+			    case '-':
+				return function(a, b){ return a - b;};
+			    break;
+			    case '*':
+				return function(a, b){ return a * b;};
+			    break;
+			    case '/':
+				return function(a, b){ return a / b;};
+			    break;
+			    case '>':
+				return function(a, b){ return a > b;};
+			    break;
+			    case '<':
+				return function(a, b){ return a < b;};
+			    break;
+			}
+			return false;
+		},
+		
 		union: function(a, b){
 			var c = {};
 			for(var i in a){
@@ -291,14 +316,40 @@
             return this.name;
 	}
         
-    Cell.prototype.cell = function(name){
-        return this.host(name);
-    }
+	Cell.prototype.cell = function(name){
+	    return this.host(name);
+	}
 
 	Cell.prototype.remove = function() {
             for (var i in this.deps) {
                     this.cell(this.deps[i]).removeObserver(this.getName());
             }
+	}
+	
+	Cell.prototype.reduce = function(func, start_val, fields){
+		var self = this;
+		if(!this.host.isShared()){
+			error('Could not apply reduce on non-list!');
+			return;
+		}
+		func = _.getFunc(func) || (error('Wrong function provided for reduce!'));
+		var reducer = function(list){
+			var val = start_val;
+			for(var i in list){
+				___('Counting new val for each hash in list', i, list[i].get(), val);
+				val = func(list[i].get(), val);
+			}
+			return val;
+		}
+		var list = this.host.host;
+		if(!fields){
+			list.onChangeItem('create, update, afterDelete', function(){
+				___('Running reduce on each item change');
+				var res = reducer(list.list);
+				self.set(res);
+				___('The result of reduce', res);
+			})
+		}
 	}
 
 	Cell.prototype.invalidateObservers = function() {
@@ -536,25 +587,7 @@
                     };
             } else {
                 // it's function, defned by string, like '+'
-                if(formula.replace){
-                    switch(formula){
-                        case '+':
-                            formula = function(a, b){ return a + b;};
-                        break;
-                        case '-':
-                            formula = function(a, b){ return a - b;};
-                        break;
-                        case '*':
-                            formula = function(a, b){ return a * b;};
-                        break;
-                        case '/':
-                            formula = function(a, b){ return a / b;};
-                        break;
-                        default:
-                            error('Formula cant be string:', formula);
-                            return;
-                    }
-                }
+                formula = _.getFunc(formula);
             }
             if ((args[0] instanceof Array) && !(args[1])) {
                     args = args[0];
@@ -937,10 +970,11 @@
 					this.changers['_all'][j](cellname, prev_val, new_val);
 				}
 			}
-			if(prev_val !== undefined && this.host && this.host instanceof List){
-				this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
-				this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
-			}
+			/*if(prev_val !== undefined && this.host && this.host instanceof List){
+				__$('Changing shared value', this.getName());
+				//this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
+				//this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
+			}*/
 		},
 		onChange: function(func, fields) {
 			if(!fields){
@@ -1012,7 +1046,6 @@
 			return res;
 		},
 		remove: function() {
-			this.getScope().remove();
 			for (var i in this.vars) {
 				// unbind each cell
 				if (this.vars[i] instanceof Cell) {
@@ -1271,11 +1304,13 @@
 	}
 	
 	List.prototype._remove_by_num = function(i){
+		___('Removing list item by num', i, this.list.length);
 		var item_to_delete = this.list[i];
 		this.changeItem('delete', null, i);
 		item_to_delete && item_to_delete.remove();
 		this.list.splice(i, 1);
 		this.changeItem('afterDelete', i);
+		___('The length should --', this.list.length);
 	}
 
 	List.prototype.remove = function(func, end) {
@@ -1319,8 +1354,12 @@
 	}
 
 	List.prototype.get = function(num) {
-		if(num || num === 0){
+		if(_.isInt(num)){
 			return this.list[num];
+		}
+		if(num){
+			___('Num is string, returning the val of cell of shared hash', num);
+			return this.shared.get(num);			
 		}
 		var res = [];
 		for (var i in this.list) {
@@ -1417,7 +1456,7 @@
 		switch (cell_type) {
 			case 'cell':
 				if (row instanceof Array) {
-					if (row[0] instanceof Function) {
+					if (_.getFunc(row[0])) {
 						cell['is'].apply(cell, row);
 					} else {
 						if(row[0] instanceof Array){
@@ -1739,12 +1778,13 @@
 			customWriters: 'addCustomWriter',
 			customListReaders: 'addCustomListReader',
 			customVars: 'addCustomVar',
+			customListFunctions: 'addCustomListFunction',
 			customListWriters: 'addCustomListWriter',
 			HTMLReaders: 'addHTMLReader',
 			HTMLWriters: 'addHTMLWriter',
 			HTMLReadersWriters: 'addHTMLReaderWriter',
-            cellDrivers: 'addCellDriver',
-            autoinitCells: 'addAutoinitCell',
+			cellDrivers: 'addCellDriver',
+			autoinitCells: 'addAutoinitCell',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for(var field in method_names){
@@ -1921,29 +1961,26 @@
 		},
 		customListReaders: {
 			length: function() {
-                var self = this;
-                var list = this.host.host;
-                list.onChangeItem('delete', function(){
-                    self.set(self.get() - 1);
-                })
-                list.onChangeItem('create', function(){
-                    self.set(self.get() + 1);
-                })
-                this.set(list.list.length);
+				var self = this;
+				var list = this.host.host;
+				list.onChangeItem('delete', function(){
+				    self.set(self.get() - 1);
+				})
+				list.onChangeItem('create', function(){
+				    self.set(self.get() + 1);
+				})
+				this.set(list.list.length);
 			},
 			selectedItem: function() {
-                var self = this;
-                if(!this.host.isShared()){
-                        error('cound not count length of non-list!'); return;
-                }
-                var list = this.host.host;
-                list.onChangeItem('delete', function(){
-                        self.set(self.get() - 1);
-                })
-                list.onChangeItem('create', function(){
-                        self.set(self.get() + 1);
-                })
-                this.set(list.list.length);
+				var self = this;
+				var list = this.host.host;
+				list.onChangeItem('delete', function(){
+					self.set(self.get() - 1);
+				})
+				list.onChangeItem('create', function(){
+					self.set(self.get() + 1);
+				})
+				this.set(list.list.length);
 			},
 		},
 		customListWriters: {
@@ -2058,7 +2095,7 @@
 				reader: function($el) {
 					var self = this;
 					var type = $el.attr('type');
-                    ___('Applying "value" reader');
+					___('Applying "value" reader');
 					$el.bind("keyup, input, focus, keypress, blur, change", function() {
 						var val;
 						switch (type) {

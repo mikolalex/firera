@@ -86,9 +86,7 @@ describe('Simple values', function() {
 			takes: ['num'],
 			gives: ['status'],
 			shared: {
-				status: [function(len, num){
-					return len > num;
-				}, '$length', 'num'],
+				status: ['<', '$length', 'num'],
 			},
 			data: [{
 					name: 'Mykyta',
@@ -103,7 +101,7 @@ describe('Simple values', function() {
 			]
 		}, 'a', 'numbers_status');
 		app.applyTo(".gives-takes-as-params");
-		console.log(Firera.dump(app));
+		assert.equal(app.get('numbers_status'), true);
 	})
 
 	it('Testing function composition', function() {
@@ -174,6 +172,27 @@ describe('Simple values', function() {
             app('b').set(37);
             assert.equal(app.get('c'), 37);
         })
+	
+	it('Testing onChangeItem, onChangeItemField, reduce on all fields with __val', function(){
+		var itemnum = 3;
+		var arr = new Firera.list({
+			data: [1, 2, 3],
+			shared: {
+				sum: ['reduce', '+', 0]
+			}
+		});
+		arr.onChangeItem('create', function(){
+			itemnum++;
+		})
+		arr.onChangeItem('delete', function(){
+			itemnum--;
+		})
+		assert.equal(6, arr.get('sum'));
+		arr.push(2);
+		assert.equal(8, arr.get('sum'));
+		arr.remove(0);
+		assert.equal(7, arr.get('sum'));
+	})
         
         it('Testing bindings', function(){
             var app = new Firera;
