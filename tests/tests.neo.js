@@ -50,20 +50,19 @@ describe('Simple values', function() {
 		assert.equal(app('itemnum').get(), 3);
 		app('items').push(4);
 		assert.equal(app('itemnum').get(), 4);
-
 	})
         
-	it('Testing .list() generator', function() {
+	it('Testing .getList() generator', function() {
 		var app = new Firera;
                 app('length').set(10);
-		app('items').list(function(len){
+		app('items').getList(function(len){
                     var res = [];
                     for(var i = 0; i < len; i++){
                         res.push({
                             name: 'John' + (i + 1)
                         });
                     }
-                    return [{$data: res}, {share: {gives: {itemnum: '$length'}}}];
+                    return [{data: res}, {share: {gives: {itemnum: '$length'}}}];
                 }, 'length');
                 console.log(Firera.dump(app));
 		//app('itemnum').is('items/$length');
@@ -78,6 +77,33 @@ describe('Simple values', function() {
 		var app = new Firera;
 		app('$rootSelector').set('.pickleberry');
 		assert.equal(app('$templateX').get(), '<h2>Hey, dude!</h2>');
+	})
+
+	it('Testing $takes and $gives as parameters', function() {
+		var app = new Firera;
+		app('a').set(10);
+		app('numbers').are({
+			takes: ['num'],
+			gives: ['status'],
+			shared: {
+				status: [function(len, num){
+					return len > num;
+				}, '$length', 'num'],
+			},
+			data: [{
+					name: 'Mykyta',
+					age: 20,
+				}, {
+					name: 'Mykola',
+					surname: 19
+				},  {
+					name: 'Daria',
+					surname: 19
+				}, 
+			]
+		}, 'a', 'numbers_status');
+		app.applyTo(".gives-takes-as-params");
+		console.log(Firera.dump(app));
 	})
 
 	it('Testing function composition', function() {
@@ -215,7 +241,7 @@ describe('Simple values', function() {
 			}
 		};
 		var data = {
-			$data: [
+			data: [
 				{
 					name: 'Ivan',
 					surname: 'Petrenko',

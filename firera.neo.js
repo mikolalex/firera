@@ -406,7 +406,7 @@
         Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
 	}
         
-        Cell.prototype.list = function(){
+        Cell.prototype.getList = function(){
             this.compute = list_compute;
             this.name = this.getName() + some_shitty_suffix;
             this.alias(this.getName());
@@ -420,9 +420,17 @@
 		}
 		var mass = [];
 		if (!(arr instanceof List)) {
-			var conf = config || {};
-			conf.host = this.host;
-                        conf.name = this.getName();
+			var conf = {};
+			if(config){
+				if(config instanceof Object){
+					// regular conf
+					conf = config;
+				} else {
+					conf.gives_takes_params = Array.prototype.slice.call(arguments, 1);
+				}
+				conf.host = this.host;
+				conf.name = this.getName();
+			}
 			if (arr instanceof Array) {
 				mass = arr;
 				arr = new List({}, conf);
@@ -720,6 +728,7 @@
 					//return;
 				}
                                 var childname = child.isShared() ? child.host.getName() : child.getName();
+				___('Parent depends on child', varname, childname + '/' + config.gives[i]);
 				parent(varname).is(function(a){ return a;}, childname + '/' + config.gives[i]);
 			}
 		}
@@ -815,14 +824,6 @@
 				var parent_vars = this.host.getAllVars();
 				var ind = parent_vars.indexOf(this);
 				if(ind !== -1) return ind;
-				var parent_mixins = this.host.mixins;
-				for (var i in parent_mixins) {
-					for(var j in parent_mixins[i]){
-						if (parent_mixins[i][j] === this) {
-							return 'MIXIN_' + i;
-						}
-					}
-				}
 				return '?!?';
 			} else {
 				if(this.isShared()) return 'shared';
@@ -847,7 +848,7 @@
 				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
 			}
 		},
-		toString: function() {
+		/*toString: function() {
 			if (!this.host) {
 				return 'root / ';
 			} else {
@@ -857,7 +858,7 @@
 				}
 				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
 			}
-		},
+		},*/
 		///// NEW
 		getOwnVar: function(name) {
 			return this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
@@ -899,18 +900,6 @@
 		getType: function() {
 			return 'hash';
 		},
-		mix: function(mixed_obj, context, share, config) {
-			var config = {host: this, noTemplateRenderingAllowed: true, config: (config ? config : {})};
-			if (!share) {// we should take vars of the host!
-				config.linked_hash = this;
-			}
-			this.mixins = this.mixins || {};
-			context = context || 'root';
-			this.mixins[context] = this.mixins[context] || [];
-			var mixin_hash = new Firera.hash(mixed_obj, config);
-			make_window_between_hashes(this, mixin_hash, share);
-			this.mixins[context].push(mixin_hash);
-		},
 		setData: function(hash){
 			if(!(hash instanceof Object)){
 				hash = {__val: hash};
@@ -927,8 +916,7 @@
 						return;
 					}
 					this(i).setData(hash[i]);
-				}
-				else {
+				} else {
 					if(hash[i] instanceof Object){
 						
 					} else {
@@ -972,7 +960,7 @@
 							hash[i][j] = {item: hash[i][j]};
 						}
 					}
-					var list = new window[lib_var_name].list({$data: hash[i]}, {host: this});
+					var list = new window[lib_var_name].list({data: hash[i]}, {host: this});
 					cell.are(list);
 				} else {
 					if (hash[i] instanceof Object) {
@@ -1044,6 +1032,8 @@
 	///// HASH
 	/////
 	/////
+	
+	var system_keys = ['__setup'];
 
 	var Firera = function(init_hash, params) {
 		//debug('New hash created', init_hash, params);
@@ -1075,29 +1065,15 @@
 		//////////////////////////////////////////
 		var init_with_hash = function(selector, params) {
 			for (var i in selector) {
-				if (i === '__setup' || i === '__mixins' || i === 'vars' || i === '$data'){
+				if(system_keys.indexOf(i) !== -1){
+					// special case - system fields
 					continue;
 				}
 				var cell = self.create_cell_or_event(i, undefined, true);
-				if(i === 'each'){
-					continue;
-				}
 				Firera.apply_dependency_to_cell_from_hash(cell, selector[i]);
-			}
-			if (selector.__mixins) {// special case)
-				if (!(selector.__mixins instanceof Array)) {
-					error('Mixins should be contained in array!');
-				}
-				for (var j = 0; j < selector.__mixins.length; j++) {
-					var mx = selector.__mixins[j];
-					self.mix(mx.hash, mx.context, mx.share, mx.config)
-				}
 			}
 			if (selector.__setup) {// run setup function
 				selector.__setup.call(self, params);
-			}
-			if(selector.$data){
-				self.setData(selector.$data);
 			}
 			if(self.isShared()) return self.host;
 			return true;
@@ -1111,9 +1087,6 @@
 		}
 
 		if (init_hash) {
-			if (init_hash.$data && (!params || !params.skip_data)) {
-				self.init_with_data(init_hash.$data);
-			}
 			self.update(init_hash);
 		}
         for(var i in Firera.autoinitCells){
@@ -1160,14 +1133,36 @@
 		if(config && config.host){
 			this.host = config.host;
 		}
-		this.shared = new Firera.hash(init_hash, this.shared_config);
+		this.shared = new Firera.hash(init_hash.shared || {}, this.shared_config);
 		if(config) {
                     if(config.name){
                         this.name = config.name
                     }
+		    var gt_config = false;
+		    if(config.gives_takes_params && init_hash && (init_hash.takes || init_hash.gives)){
+			    gt_config = {
+				    takes: {
+					    
+				    },
+				    gives: {
+					    
+				    }
+			    }
+			    for(var i = 0; i < init_hash.takes.length; i++){
+				    gt_config.takes[init_hash.takes[i]] = config.gives_takes_params[i];
+			    }
+			    for(var j = 0; j < init_hash.gives.length; j++){
+				    gt_config.gives[config.gives_takes_params[j + i]] = init_hash.gives[j];
+			    }
+			    
+		    }
                     if(config.host){
                         config.host.setVar(this.getName(), this);
                         this.setHost(config.host);
+			if(gt_config){
+				//console.log(gt_config);
+				make_window_between_hashes(config.host, this.shared, gt_config);
+			}
                     }
                     if(config.autoselect !== undefined){
                             this.autoselect = config.autoselect;
@@ -1178,8 +1173,8 @@
 				this.each_is_set = true;
 				this.each_hash = check_for_constructor(init_hash.each);
 			}
-			if (init_hash.$data) {
-                this.push(init_hash.$data);
+			if (init_hash.data) {
+				this.push(init_hash.data);
 			}
 			// maybe delete .data and .each?
 		}
@@ -1568,15 +1563,6 @@
 				res.lists[i] = Firera.dumpList(vars[i], include_self);
 			}
 		}
-		if(hash.mixins){
-			res.mixins = {};
-			for(var i in hash.mixins){
-				res.mixins[i] = {};
-				for(var j in hash.mixins[i]){
-					res.mixins[i][j] = Firera.dump(hash.mixins[i][j], include_self);
-				}
-			}
-		}
 		return res;
 	}
 	Firera.dumpCell = function(cell, include_self){
@@ -1897,8 +1883,8 @@
                         }, '*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode'],
-            actualTemplate: [_.firstExisting, '$template', '$templateX'],
-            bindings: [function(templ, $el){
+			actualTemplate: [_.firstExisting, '$template', '$templateX'],
+			bindings: [function(templ, $el){
                     ___('Computing bindings', arguments);
                     $el.html(templ);
                     var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
