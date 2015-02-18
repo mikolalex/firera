@@ -64,7 +64,7 @@ describe('Simple values', function() {
                     }
                     return [{data: res}, {share: {gives: {itemnum: '$length'}}}];
                 }, 'length');
-                console.log(Firera.dump(app));
+                //console.log(Firera.dump(app));
 		//app('itemnum').is('items/$length');
 		assert.equal(app('itemnum').get(), 10);
 		app('length').set(5);
@@ -193,6 +193,34 @@ describe('Simple values', function() {
 		arr.remove(0);
 		assert.equal(7, arr.get('sum'));
 	})
+    
+    it('Testing reduce on array on some fields', function(){
+        var arr = new Firera.list({
+            data: [
+                {
+                    name: 'Mykola',
+                    surname: 'Oleksienko',
+                    age: 12
+                },
+                {
+                    name: 'Mykola2',
+                    surname: 'Oleksienko2',
+                    age: 23
+                },
+                {
+                    name: 'Mykola3',
+                    surname: 'Oleksienko3',
+                    age: 40
+                },
+            ],
+            shared: {
+                max_age: ['reduce', _.max, 0, 'age']
+            }
+        })
+        assert.equal(arr.get('max_age'), 40);
+        arr.get(1)('age').set(44);
+        assert.equal(arr.get('max_age'), 44);
+    })
         
         it('Testing bindings', function(){
             var app = new Firera;

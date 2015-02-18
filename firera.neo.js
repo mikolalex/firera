@@ -59,6 +59,14 @@
 		isInt: function(n) {
 			return n % 1 == 0;
 		},
+
+		max: function(a, b) {
+			return a > b ? a : b;
+		},
+
+		min: function(a, b) {
+			return a < b ? a : b;
+		},
 		
 		getFunc: function(f){
 			if(f instanceof Function) return f;
@@ -333,11 +341,26 @@
 			return;
 		}
 		func = _.getFunc(func) || (error('Wrong function provided for reduce!'));
-		var reducer = function(list){
+		var reducer = function(list, fields){
 			var val = start_val;
+            var g;
 			for(var i in list){
-				___('Counting new val for each hash in list', i, list[i].get(), val);
-				val = func(list[i].get(), val);
+                if(fields){
+                    if(fields instanceof Array){
+                        var vl = {};
+                        for(var i in fields){
+                            vl[fields[i]] = g[fields[i]];
+                        }
+                        g = vl;
+                    } else {
+                        g = list[i].get(fields);
+                        ___('We take just one key from hash', fields, '=', g);
+                    }
+                } else {
+                    g = list[i].get();
+                }
+				val = func(g, val);
+				___('REDUCE: counting new val', g, val);
 			}
 			return val;
 		}
@@ -349,7 +372,17 @@
 				self.set(res);
 				___('The result of reduce', res);
 			})
-		}
+		} else {
+            var f = fields.split(', ');
+            if(f.length <= 1){
+                f = fields;
+            }
+            list.onChangeItemField(fields, function(){
+				var res = reducer(list.list, f);
+                ___('The result of reduce is', res);
+				self.set(res);
+            })
+        }
 	}
 
 	Cell.prototype.invalidateObservers = function() {
@@ -970,6 +1003,10 @@
 					this.changers['_all'][j](cellname, prev_val, new_val);
 				}
 			}
+            if(this.host instanceof List){
+                //console.log('CIF', cellname, this.getName(), prev_val, new_val);
+                this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
+            }
 			/*if(prev_val !== undefined && this.host && this.host instanceof List){
 				__$('Changing shared value', this.getName());
 				//this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
@@ -1095,6 +1132,10 @@
 			self[i] = hash_methods[i];
 		}
 		
+        if(self.host && self.host instanceof List && !self.isSharedHash){
+            ___('Attaching new hash to list before initialization', self.getRoute());
+            self.host.list.push(self);
+        }
 		//////////////////////////////////////////
 		var init_with_hash = function(selector, params) {
 			for (var i in selector) {
@@ -1118,14 +1159,13 @@
 		if (init_hash instanceof Function) {
 			init_hash = {__setup: init_hash};
 		}
-
-		if (init_hash) {
-			self.update(init_hash);
-		}
         for(var i in Firera.autoinitCells){
             ___('Autoiniting cell:', Firera.autoinitCells[i]);
             self(Firera.autoinitCells[i]);
         }
+		if (init_hash) {
+			self.update(init_hash);
+		}
         if(!self.host) {// it's root instance
             Firera.instances.push(self);
         }
@@ -1259,12 +1299,12 @@
 		if (obj.__val) {
 			confa.isSingleVar = true;
 		}
-		var counter = this.list.push(window[lib_var_name].hash(obj, confa)) - 1;
+		var hash = window[lib_var_name].hash(obj, confa);
 		if (this.each_is_set) {
-			this.list[counter].update(this.each_hash);
+			hash.update(this.each_hash);
 		}
 		if (!nochange) {
-			this.changeItem('create', '*', counter);
+			this.changeItem('create', '*', this.list.length - 1);
 		}
 		return this;
 	}
@@ -1421,6 +1461,7 @@
 		}
 	}
 	List.prototype.changeItemField = function(field, index, prev_val, new_val) {
+        ___('Running handlers on field change', field, this.field_changers[field]);
 		for(var i in this.field_changers[field]){
 			this.field_changers[field][i](index, prev_val, new_val);
 		}
