@@ -221,6 +221,34 @@ describe('Simple values', function() {
         arr.get(1)('age').set(44);
         assert.equal(arr.get('max_age'), 44);
     })
+    
+    it('Testing map(aka projection of list)', function(){
+        var app = new Firera();
+        app('people').are([{
+            name: 'Mykyta',
+            age: 20,
+            gender: 'male'
+        }, {
+            name: 'Mykola',
+            age: 21,
+            gender: 'male'
+        },  {
+            name: 'Daria',
+            age: 19,
+            gender: 'female'
+        }]);
+        app('men').map('people', function(gender){
+            return gender === 'male';
+        }, 'gender');
+        app('people').push({
+            name: 'Ivan',
+            gender: 'female'
+        });
+        app('people/3')('gender').set('male');//*/
+        console.log('____________');
+        console.log(app.get('men'));
+        
+    })
         
         it('Testing bindings', function(){
             var app = new Firera;

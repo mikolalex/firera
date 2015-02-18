@@ -67,6 +67,15 @@
 		min: function(a, b) {
 			return a < b ? a : b;
 		},
+        
+        // pick from hash
+        $pick: function(hash, fields){
+            var res = {};
+            for(var i in fields){
+                res[fields[i]] = hash.get(fields[i]);
+            }
+            return res;
+        },
 		
 		getFunc: function(f){
 			if(f instanceof Function) return f;
@@ -405,10 +414,6 @@
 	Cell.prototype.getType = function() {
 		return 'cell';
 	}
-
-	Cell.prototype.rebind = function() {
-		/* empty for default cell, will be overwritten for self-refreshing cells */
-	}
         
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
@@ -528,20 +533,37 @@
 			var element = mass[i] instanceof Object ? mass[i] : {__val: mass[i]};
 			arr.push(element);
 		}
-		arr.rebind();
 		return arr;
 	}
 
-	/* To be done :)
-	Cell.prototype.projects = function(arr_name, fields, map_func, map_fields) {
-		var conf = {};
+	Cell.prototype.map = function(arr_name, map_func, map_fields) {
+		var conf = {},
+        parent = this.host(arr_name);
 		conf.host = this.host;
 		var arr = new List({}, conf);
 		_.$objJoin(this, arr);
 		this.host.setVar(this.getName(), arr);
-		arr.rebind();
+        var fields = map_fields instanceof Array ? map_fields : map_fields.split(',');
+        
+        var push = arr.push.bind(arr);
+        arr.push = function(){
+            console.log('Cant push to mapped list!');
+        }
+        // on new hash - check and push
+        parent.onChangeItem('create', function(x, index){
+            console.log('parent item created', _.$pick(parent.get(index), fields));
+        })
+        if(map_fields){
+            // watch these fields
+            
+        } else {
+            // watch entire hash
+            
+        }
+        // remove - remove hash
+        
 		return arr;
-	}*/
+	}
 	
 	Cell.prototype.alias = function(name) {
 		this.host.aliases[name] = this;
@@ -1334,14 +1356,6 @@
 	List.prototype.getName = function() {
 		return this.name;
 	}
-
-	List.prototype.map = function(func) {
-
-	}
-
-	List.prototype.reduce = function(func) {
-
-	}
 	
 	List.prototype._remove_by_num = function(i){
 		___('Removing list item by num', i, this.list.length);
@@ -1441,8 +1455,10 @@
 	}
 	
 	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
+        __$('Changing item', arguments);
 		for(var i in this.changers[changetype]){
-                    this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
+            __$('Running handler', this.changers[changetype][i]);
+            this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
 		}
 	}
 	List.prototype.onChangeItem = function(changetype, func){
