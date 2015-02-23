@@ -34,7 +34,7 @@
 			}
 		},
                 
-                id: function(a){ return a},
+        id: function(a){ return a},
 		
 		$getScopedElement: function(selector, $scope){
 			if(selector === '' || selector === 'root'){
@@ -493,15 +493,16 @@
         conf.host = this.host;
         var list = new List(arr, conf);
         Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
+        this.host.fireAddChild(this.getName());
 	}
         
-        Cell.prototype.getList = function(){
-            this.compute = list_compute;
-            this.name = this.getName() + some_shitty_suffix;
-            this.alias(this.getName());
-            
-            return this.is.apply(this, arguments);
-        }
+    Cell.prototype.getList = function(){
+        this.compute = list_compute;
+        this.name = this.getName() + some_shitty_suffix;
+        this.alias(this.getName());
+
+        return this.is.apply(this, arguments);
+    }
 
 	Cell.prototype.are = function(arr, config) {
 		if(arr instanceof Function){// it's a datasource!
@@ -533,6 +534,7 @@
 			var element = mass[i] instanceof Object ? mass[i] : {__val: mass[i]};
 			arr.push(element);
 		}
+        this.host.fireAddChild(this.getName());
 		return arr;
 	}
 
@@ -715,6 +717,10 @@
                 // it means all variables
                 this.host.onChange(function(key, __, val){
                     stream_compute.call(self, val, key, true);
+                })
+            } else if(vars[0] === '*children*'){
+                this.host.onAddChild(function(name){
+                    stream_compute.call(self, name, name, true);
                 })
             } else {
                 for (var i = 0; i < vars.length; i++) {
@@ -1044,6 +1050,15 @@
 				this.changers[fields[i]].push(func);
 			}
 		},
+		onAddChild: function(func) {
+				this.childHandlers.push(func);
+		},
+		fireAddChild: function(name) {
+            ___('AddChild Handlers are', this.childHandlers);
+            for(var i in this.childHandlers){
+                this.childHandlers[i](name);
+            }
+		},
 		init_with_data: function(hash) {
 			for (var i in hash) {
 				var cell = this.create_cell_or_event(i);
@@ -1084,7 +1099,8 @@
 			this.host = host;
 		},
 		applyTo: function(selector_or_element) {
-			this('$rootSelector').set(selector_or_element);
+            ___('Applying to', selector_or_element);
+            this('$rootSelector').set(selector_or_element);
 		},
 		getRebindableVars: function() {
 			var vars = this.getAllVars();
@@ -1147,6 +1163,7 @@
 			}
 		}
 		self.changers = {};
+		self.childHandlers = [];
 		self.aliases = {};
 		self.vars = {};
 
@@ -1451,13 +1468,15 @@
 	}
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
-		
+        __$('Setting RootNode in List', arguments, this.shared);
+        this.shared('$rootSelector').set(selector_or_element);
+        __$('We got bindings', this.shared.get('$bindings'));
 	}
 	
 	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
-        __$('Changing item', arguments);
+        ___('Changing item', arguments);
 		for(var i in this.changers[changetype]){
-            __$('Running handler', this.changers[changetype][i]);
+            ___('Running handler', this.changers[changetype][i]);
             this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
 		}
 	}
@@ -1978,6 +1997,7 @@
                                     key: key
                                 }
                         }, '*'],
+			children: ['streams', _.id, '*children*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode'],
 			actualTemplate: [_.firstExisting, '$template', '$templateX'],
@@ -2014,7 +2034,15 @@
                         //console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
                     }
                 }, '$bindings', '$vars'
-            ]
+            ],
+            childrenRootNodeWriter: [
+                function(bindings, child_name){
+                    if(!child_name || !bindings[child_name]) return;
+                    var child = this.host(child_name);
+                    __$('Attaching child to DOM', child, arguments);
+                    child.applyTo(bindings[child_name]);
+                }, '$bindings', '$children'
+            ],
 		},
 		customListReaders: {
 			length: function() {
@@ -2264,7 +2292,7 @@
 			},
 			el: function(cellname) {
 				return [function(selector) {
-					return $(selector);
+					return (selector instanceof $) ? selector : $(selector);
 				}, cellname];
 			},
 			gets: function() {
@@ -2374,7 +2402,7 @@
 				}
 			}
 		},
-        autoinitCells: ['$HTMLVarsWriter']
+        autoinitCells: ['$HTMLVarsWriter', '$childrenRootNodeWriter']
 	}
 	
 	Firera.addPackage(core);

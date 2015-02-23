@@ -72,6 +72,32 @@ describe('Simple values', function() {
 
 
 	})
+    
+    it('Testing onListChange', function(){
+        var app = new Firera();
+        app.onChange(function(){
+            console.log('I changed', arguments);
+        })
+        app('children').streams('*children*');
+        app('items').are({
+            data: [
+                {
+                    weight: 1200,
+                    size: 10,
+                },
+                {
+                    weight: 1600,
+                    size: 5,
+                },
+                {
+                    weight: 42,
+                    size: 0,
+                }
+            ]
+        });
+        app.applyTo('.testing-nested-list');
+        console.log('CG', app('items').get('$actualRootNode').length);
+    })
 
 	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
 		var app = new Firera;
