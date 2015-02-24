@@ -162,6 +162,16 @@
 				return val;
 			}
 		},
+		
+		'if': function(a){
+			return !!a;
+		},
+        
+        equal: function(val){
+            return function(a){
+                return a === val;
+            }
+        },
 
 		getDefaultTemplate: function(vars) {
 			if (vars.length === 1 && vars[0] === '__val'){
@@ -538,6 +548,36 @@
 		return arr;
 	}
 
+    Cell.prototype.mapfilter = function(a, b, c, d){
+        var arr, map_func, filter_fields, filter_func;
+        if(this.host.isShared() || a instanceof Function){
+            arr = this.host;
+            map_func = a;
+            filter_fields = b;
+            filter_func = c;
+        } else {
+            arr = this.host(a);
+            map_func = b;
+            filter_fields = c;
+            filter_func = d;
+        }
+        filter_func = filter_func || _.if;
+        map_func = map_func || _.id;
+        var f = function(){
+            ___('Running mapfilter callback', filter_func, map_func, filter_fields, arr.get(filter_func, map_func, filter_fields));
+            this.set(arr.get(filter_func, map_func, filter_fields));
+        }.bind(this);
+        if(filter_fields){
+            ___('Assigning callback for changing fields', filter_fields, f);
+            arr.onChangeItemField(filter_fields, f)
+        } else {
+            // just map
+            arr.onChangeItem('*', f);
+        }
+        f();
+    }
+    
+    /* older version of map, unfinished
 	Cell.prototype.map = function(arr_name, map_func, map_fields) {
 		var conf = {},
         parent = this.host(arr_name);
@@ -565,7 +605,7 @@
         // remove - remove hash
         
 		return arr;
-	}
+	}*/
 	
 	Cell.prototype.alias = function(name) {
 		this.host.aliases[name] = this;
@@ -1424,10 +1464,23 @@
 		return total;
 	}
 
-	List.prototype.get = function(num) {
+	List.prototype.get = function(num, map, field) {
 		if(_.isInt(num)){
 			return this.list[num];
 		}
+        if(num instanceof Function){
+            // it's filter func
+            var res = [];
+            var obj;
+            for (var i in this.list) {
+                obj = this.list[i].get();
+                if(field ? num(obj[field]) : num(obj)){
+                    res.push(map ? map(obj) : obj);
+                    ___('Pushing filtered obj to list', res[res.length - 1]);
+                }
+            }
+            return res;
+        }
 		if(num){
 			___('Num is string, returning the val of cell of shared hash', num);
 			return this.shared.get(num);			
@@ -1468,13 +1521,14 @@
 	}
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
-        __$('Setting RootNode in List', arguments, this.shared);
+        ___('Setting RootNode in List', arguments, this.shared);
         this.shared('$rootSelector').set(selector_or_element);
-        __$('We got bindings', this.shared.get('$bindings'));
+        ___('We got bindings', this.shared.get('$bindings'));
 	}
 	
 	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
         ___('Changing item', arguments);
+        var new_val;
 		for(var i in this.changers[changetype]){
             ___('Running handler', this.changers[changetype][i]);
             this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
@@ -2039,7 +2093,7 @@
                 function(bindings, child_name){
                     if(!child_name || !bindings[child_name]) return;
                     var child = this.host(child_name);
-                    __$('Attaching child to DOM', child, arguments);
+                    ___('Attaching child to DOM', child, arguments);
                     child.applyTo(bindings[child_name]);
                 }, '$bindings', '$children'
             ],

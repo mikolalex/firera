@@ -96,7 +96,7 @@ describe('Simple values', function() {
             ]
         });
         app.applyTo('.testing-nested-list');
-        console.log('CG', app('items').get('$actualRootNode').length);
+        //console.log('CG', app('items').get('$actualRootNode').length);
     })
 
 	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
@@ -248,7 +248,7 @@ describe('Simple values', function() {
         assert.equal(arr.get('max_age'), 44);
     })
     
-    it('Testing map(aka projection of list)', function(){
+    it('Testing list get(filter, map), filtermap', function(){
         var app = new Firera();
         app('people').are([{
             name: 'Mykyta',
@@ -263,16 +263,50 @@ describe('Simple values', function() {
             age: 19,
             gender: 'female'
         }]);
-        app('men').map('people', function(gender){
+        var elder_people = app('people').get(function (o) {
+            return o.age >= 20
+        }, function (o) {
+            return {obj: o}
+        })
+        assert.equal(elder_people.length, 2);
+        assert.equal(elder_people[0].obj.age, 20);
+        app('men').mapfilter('people', false, 'gender', _.equal('male'));
+        
+        
+        assert.equal(elder_people.length, 2);
+        assert.equal(app('men').get().length, 2);
+        app('people').push({
+            name: 'Carl',
+            age: 30,
+            gender: 'male'
+        })
+        app('people').push({
+            name: 'Carla',
+            age: 30,
+            gender: 'female'
+        })
+        assert.equal(app('men').get().length, 3);
+        
+        app('people').each({
+            isFemale: ['is', _.equal('female'), 'gender']
+        })
+        
+        app('girls').mapfilter('people', function(o){ return o.name;}, 'isFemale');
+        assert.deepEqual(app.get('girls'), ["Daria", "Carla"]);
+        
+        /*app('men').map('people', function(gender){
+            return gender === 'male';
+        }, 'gender')
+        /*app('men').map('people', function(gender){
             return gender === 'male';
         }, 'gender');
         app('people').push({
             name: 'Ivan',
             gender: 'female'
         });
-        app('people/3')('gender').set('male');//*/
+        app('people/3')('gender').set('male');//
         console.log('____________');
-        console.log(app.get('men'));
+        console.log(app.get('men'));*/
         
     })
         
