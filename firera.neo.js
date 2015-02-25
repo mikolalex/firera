@@ -427,6 +427,7 @@
         
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
+        ___('Setting var', this.getName());
 		if(!this.free && !setanyway && !this.reader){
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
@@ -1011,7 +1012,7 @@
 				&& this.host.shared
 				&& (this.host.shared !== this/* ho-ho ;) */)
 				) {// if this is a part of List, search in it's SHARED vars
-				vr = this.host.shared.getVar(name) || false;
+				//vr = this.host.shared.getVar(name) || false;
 			}
 			// search in shared cells!
 			if (!vr && this.linked_hash && (name !== '$template')/* && name.indexOf("|") == -1  - hmm, maybe it should be?! */) {
@@ -1139,8 +1140,8 @@
 			this.host = host;
 		},
 		applyTo: function(selector_or_element) {
-            ___('Applying to', selector_or_element);
             this('$rootSelector').set(selector_or_element);
+            ___('Applying to', selector_or_element, Firera.dump(this));
 		},
 		getRebindableVars: function() {
 			var vars = this.getAllVars();
@@ -1522,8 +1523,20 @@
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
         ___('Setting RootNode in List', arguments, this.shared);
-        this.shared('$rootSelector').set(selector_or_element);
-        ___('We got bindings', this.shared.get('$bindings'));
+        //this.shared('$rootSelector').set(selector_or_element);
+        var already_template = this.shared('$actualTemplate').get();
+        if(!already_template){
+            var el = $(selector_or_element);
+            already_template = el.html();
+            el.html('');
+            this.shared('$template').set(already_template);
+        }
+        ___('We got template', already_template);
+        for(var i in this.list){
+            var div = $("<div/>").appendTo(el);
+            this.list[i]('$template').set(already_template);
+            this.list[i].applyTo(div);
+        }
 	}
 	
 	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
@@ -1706,13 +1719,12 @@
 				res.events[i] = vars[i];
 			}
 			if(vars[i] instanceof Cell){
-				if(i === '$template'){
-					res.template = vars[i].get();
-					res.template_source = hash.template_source;
-                    if(include_self){
-                        res.template_self = vars[i];
-                    }
-					continue;
+                //console.log('index', i, i.indexOf('$'));
+				if(i.indexOf('$') === 0){
+                    // system vars
+					if(!res.systemVars) res.systemVars = {};
+					res.systemVars[i] = Firera.dumpCell(vars[i]);
+                    continue;
 				}
 				if(!vars[i].free){
 					if(!res.dependentVars) res.dependentVars = {};
@@ -1731,6 +1743,7 @@
 				if(!res.lists) res.lists = {};
 				res.lists[i] = Firera.dumpList(vars[i], include_self);
 			}
+            res.varz = Object.keys(vars);
 		}
 		return res;
 	}

@@ -535,11 +535,12 @@ describe('Tests from guide', function() {
 				radius: 42,
 			},
 		])
-		app('rounds').shared('pi').just(Math.PI);
+		//app('rounds').shared('pi').just(Math.PI);
 		app('rounds').each({
 			square: [function(p, r) {
-					return Math.round(p * r * r)
-				}, 'pi', 'radius'],
+                return Math.round(p * r * r)
+            }, 'pi', 'radius'],
+            pi: ['just', Math.PI]
 		})
 		fequal(app('rounds/2/square'), 5542);
 
@@ -563,6 +564,28 @@ describe('Tests from guide', function() {
 		msg = $(".user [data-fr=name]").html();
 		assert.equal(msg, 'Mykola');
 	})
+    
+    it('Testing list binding', function(){
+		var app = new Firera;
+		app('cities').are([
+			{
+				name: 'Kyiv',
+				population: 4000000,
+			},
+			{
+				name: 'Kharkiv',
+				population: 1500000,
+			},
+			{
+				name: 'Kostyantunivka',
+				population: 60000,
+			}
+		])
+        app.applyTo(".testing-list-binding");
+        //console.log(Firera.dump(app('cities')));
+		assert.equal($(".testing-list-binding [data-fr=cities] > div:nth-child(2) > [data-fr=population]").html(), '1500000');
+        
+    })
 	/*
 	it('Testing $template', function() {
 		var app = new Firera;
