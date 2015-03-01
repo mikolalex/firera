@@ -6,124 +6,124 @@
  * .range(10) - should return [1, 2, ..., 10]
  * $datasource - should be able to update existing items instead of adding new
  */
-(function(){
+(function() {
 	///// 
 	///// 
 	///// UTILITIES
 	///// 
 	///// Dirty functions names should begin with "$"
 	var utils = {
-
-		
-		filterFields: function(data, fields){
+		filterFields: function(data, fields) {
 			var res = {};
-			if(fields === true || fields === '*') fields = false;
-			for(var i in data){
-				if(!fields || fields.indexOf(i) !== -1){
+			if (fields === true || fields === '*')
+				fields = false;
+			for (var i in data) {
+				if (!fields || fields.indexOf(i) !== -1) {
 					res[i] = data[i];
 				}
 			}
 			return res;
 		},
-		
-		$remove: function(obj, val){
-			for(var i in obj){
-				if(obj[i] == val){
+		$remove: function(obj, val) {
+			for (var i in obj) {
+				if (obj[i] == val) {
 					delete obj[i];
 				}
 			}
 		},
-                
-        id: function(a){ return a},
-		
-		$getScopedElement: function(selector, $scope){
-			if(selector === '' || selector === 'root'){
+		id: function(a) {
+			return a
+		},
+		$getScopedElement: function(selector, $scope) {
+			if (selector === '' || selector === 'root') {
 				return $scope;
 			} else {
 				return $(selector, $scope);
 			}
 		},
-		
-		isReservedName: function(name){
+		isReservedName: function(name) {
 			return name[0] === '$';
 		},
-		
-		isHTMLCell: function(name){
+		isHTMLCell: function(name) {
 			return name.indexOf('|') !== -1;
 		},
-
 		existy: function(a) {
 			return (a !== undefined) && (a !== null);
 		},
-
 		isInt: function(n) {
 			return n % 1 == 0;
 		},
-
 		max: function(a, b) {
 			return a > b ? a : b;
 		},
-
 		min: function(a, b) {
 			return a < b ? a : b;
 		},
-        
-        // pick from hash
-        $pick: function(hash, fields){
-            var res = {};
-            for(var i in fields){
-                res[fields[i]] = hash.get(fields[i]);
-            }
-            return res;
-        },
-		
-		getFunc: function(f){
-			if(f instanceof Function) return f;
-			switch(f){
-			    case '+':
-				return function(a, b){ return a + b;};
-			    break;
-			    case '-':
-				return function(a, b){ return a - b;};
-			    break;
-			    case '*':
-				return function(a, b){ return a * b;};
-			    break;
-			    case '/':
-				return function(a, b){ return a / b;};
-			    break;
-			    case '>':
-				return function(a, b){ return a > b;};
-			    break;
-			    case '<':
-				return function(a, b){ return a < b;};
-			    break;
+		// pick from hash
+		$pick: function(hash, fields) {
+			var res = {};
+			for (var i in fields) {
+				res[fields[i]] = hash.get(fields[i]);
+			}
+			return res;
+		},
+		getFunc: function(f) {
+			if (f instanceof Function)
+				return f;
+			switch (f) {
+				case '+':
+					return function(a, b) {
+						return a + b;
+					};
+					break;
+				case '-':
+					return function(a, b) {
+						return a - b;
+					};
+					break;
+				case '*':
+					return function(a, b) {
+						return a * b;
+					};
+					break;
+				case '/':
+					return function(a, b) {
+						return a / b;
+					};
+					break;
+				case '>':
+					return function(a, b) {
+						return a > b;
+					};
+					break;
+				case '<':
+					return function(a, b) {
+						return a < b;
+					};
+					break;
 			}
 			return false;
 		},
-		
-		union: function(a, b){
+		union: function(a, b) {
 			var c = {};
-			for(var i in a){
+			for (var i in a) {
 				c[i] = a[i];
 			}
-			for(var i in b){
+			for (var i in b) {
 				c[i] = b[i];
 			}
 			return c;
 		},
-
 		getTagName: function($el) {
-			if($el instanceof Node){
+			if ($el instanceof Node) {
 				return $el.tagName;
 			}
-			if ($el && $el.get().length && $el.get()[0].tagName){
+			if ($el && $el.get().length && $el.get()[0].tagName) {
 				return $el.get()[0].tagName.toLowerCase()
 			}
 			else
 				return '';
 		},
-
 		$searchAttrNotNested: function(element, attr, skip_root) {
 			var res = [];
 			var searcher = function(el, skip_root) {
@@ -140,103 +140,92 @@
 			searcher(element, skip_root);
 			return res;
 		},
-
 		isValuable: function(tagname) {
 			return ['input', 'select', 'textarea'].indexOf(tagname.toLowerCase()) !== -1;
 		},
-
-		getMergedObject: function(a, b){
+		getMergedObject: function(a, b) {
 			var res = {};
-			for(var i in a){
+			for (var i in a) {
 				res[i] = a[i];
 			}
-			for(var i in b){
+			for (var i in b) {
 				res[i] = b[i];
 			}
 			return res;
 		},
-		
-		chainLog: function(msg){
-			return function(val){
+		chainLog: function(msg) {
+			return function(val) {
 				console.log('chain log val::' + msg + '::', val);
 				return val;
 			}
 		},
-		
-		'if': function(a){
+		'if': function(a) {
 			return !!a;
 		},
-        
-        equal: function(val){
-            return function(a){
-                return a === val;
-            }
-        },
-
+		equal: function(val) {
+			return function(a) {
+				return a === val;
+			}
+		},
 		getDefaultTemplate: function(vars) {
-			if (vars.length === 1 && vars[0] === '__val'){
+			if (vars.length === 1 && vars[0] === '__val') {
 				//return '';
 			}
 			var res = [];
 			for (var i in vars) {
-				if (_.isHTMLCell(vars[i])) continue;
+				if (_.isHTMLCell(vars[i]))
+					continue;
 				res.push('<div data-fr="' + vars[i] + '"></div>');
 			}
 			return res.join('');
 		},
-
-		attrReader: function(obj){
-			return function(key){
+		attrReader: function(obj) {
+			return function(key) {
 				//console.log('got', key, 'return', obj[key], 'form', obj);
 				return obj[key] ? obj[key] : '';
 			}
 		},
-
 		$objJoin: function(a, b, overwrite) {
 			for (var i in a) {
 				if (!b[i] || overwrite)
 					b[i] = a[i];
 			}
 		},
-                
-                firstExisting: function(/* args */){
-                    for(var i = 0; i < arguments.length; ++i){
-                        if(arguments[i] !== undefined && arguments[i] !== null) {
-                            return arguments[i];
-                        }
-                    }
-                },
-                
-                compose: function(funcs){
-                    for(var i = 0; i< funcs.length; ++i){
-                        if(funcs[i] instanceof Array){
-                            // it should be a funcion with arguments, let's bind it
-                            funcs[i] = funcs[i][0].bind(null, funcs[i].slice(1));
-                        }
-                    }
-                    return function(){
-			// pass all the args to the first function,
-			// then pass it's result to the next func
-                        var v = funcs[0].apply(null, arguments);
-                        for(var i = 1; i< funcs.length; ++i){
-                            v = funcs[i](v);
-                        }
-                        return v;
-                    }
-                },
-                
-                canTakeArray: function(func){
-                    return function(val){
-                        if(val instanceof Array){
-                            for(var i in val){
-                                func.apply(this, (val[i] instanceof Array) ? val[i] : [val[i]]);
-                            }
-                        } else {
-                            func.apply(this, arguments);
-                        }
-                    }
-                },
-
+		firstExisting: function(/* args */) {
+			for (var i = 0; i < arguments.length; ++i) {
+				if (arguments[i] !== undefined && arguments[i] !== null) {
+					return arguments[i];
+				}
+			}
+		},
+		compose: function(funcs) {
+			for (var i = 0; i < funcs.length; ++i) {
+				if (funcs[i] instanceof Array) {
+					// it should be a funcion with arguments, let's bind it
+					funcs[i] = funcs[i][0].bind(null, funcs[i].slice(1));
+				}
+			}
+			return function() {
+				// pass all the args to the first function,
+				// then pass it's result to the next func
+				var v = funcs[0].apply(null, arguments);
+				for (var i = 1; i < funcs.length; ++i) {
+					v = funcs[i](v);
+				}
+				return v;
+			}
+		},
+		canTakeArray: function(func) {
+			return function(val) {
+				if (val instanceof Array) {
+					for (var i in val) {
+						func.apply(this, (val[i] instanceof Array) ? val[i] : [val[i]]);
+					}
+				} else {
+					func.apply(this, arguments);
+				}
+			}
+		},
 		getMapFunc: function(func) {
 			var res;
 			if (func && !(func instanceof Function)) {// its object property , like "name" or "!completed"
@@ -259,10 +248,10 @@
 			return res;
 		}
 	}
-	
+
 	_ = window._ || {};
-	for(var i in utils){
-		if(_[i]){
+	for (var i in utils) {
+		if (_[i]) {
 			error('Cant assign util function:', i);
 			return;
 		}
@@ -279,35 +268,37 @@
 	var customEventDrivers = {}
 	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick', 'change'];
 	var get_cell_type = function(cellname) {
-		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1)  ? 'cell' : 'event';
+		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
 	}
-    var ___ = function(){}; // function for comments
-    var __$ = function(){
-        console.log.apply(console, arguments);
-    }; // function for comments
+	var ___ = function() {
+	}; // function for comments
+	var __$ = function() {
+		console.log.apply(console, arguments);
+	}; // function for comments
 	// adding some sugar
-	String.prototype.contains = function(s){
+	String.prototype.contains = function(s) {
 		return this.indexOf(s) !== -1;
 	}
-	String.prototype.notContains = function(s){
+	String.prototype.notContains = function(s) {
 		return this.indexOf(s) === -1;
 	}
-	
+
 	// Useful internal functions
-	var debug = (function(level){
-		if(level === 0){
-			return function(){}
+	var debug = (function(level) {
+		if (level === 0) {
+			return function() {
+			}
 		} else {
-			return function(){
+			return function() {
 				console.log.apply(console, ['--------DEBUG: '].concat(Array.prototype.slice.call(arguments)));
 			}
 		}
 	})(debug_level)
 	var error = function() {
 		try {
-                    console.log(arguments);
-                    throw new Error('|' + Array.prototype.join.call(arguments, "|") + '|');
-		} catch(e) {
+			console.log(arguments);
+			throw new Error('|' + Array.prototype.join.call(arguments, "|") + '|');
+		} catch (e) {
 			var stack = e.stack;
 			console.error(stack);
 		}
@@ -315,7 +306,8 @@
 	var collect_values = function(obj) {
 		var res = {};
 		for (var i in obj) {
-			if(_.isReservedName(i) || _.isHTMLCell(i)) continue;
+			if (_.isReservedName(i) || _.isHTMLCell(i))
+				continue;
 			res[i] = obj[i].get();
 		}
 		return res;
@@ -323,85 +315,85 @@
 
 
 	var Cell = function(name, host, params) {
-            if (!host) {
-                    error('no host in cell ' + name);
-            }
-            this.free = true;
-            this.params = [];
-            this.host = host;
-            this.deps = [];
-            this.inited = false;
-            this.observables = 0;
-            this.changers = [];
-            this.observers = [];
-            this.name = name;
-            var driver = Firera.find_cell_driver(name);
-            driver.call(this, name);
+		if (!host) {
+			error('no host in cell ' + name);
+		}
+		this.free = true;
+		this.params = [];
+		this.host = host;
+		this.deps = [];
+		this.inited = false;
+		this.observables = 0;
+		this.changers = [];
+		this.observers = [];
+		this.name = name;
+		var driver = Firera.find_cell_driver(name);
+		driver.call(this, name);
 	}
 
 	Cell.prototype.getName = function() {
-            return this.name;
+		return this.name;
 	}
-        
-	Cell.prototype.cell = function(name){
-	    return this.host(name);
+
+	Cell.prototype.cell = function(name) {
+		return this.host(name);
 	}
 
 	Cell.prototype.remove = function() {
-            for (var i in this.deps) {
-                    this.cell(this.deps[i]).removeObserver(this.getName());
-            }
+		for (var i in this.deps) {
+			this.cell(this.deps[i]).removeObserver(this.getName());
+		}
 	}
-	
-	Cell.prototype.reduce = function(func, start_val, fields){
+
+	Cell.prototype.reduce = function(func, start_val, fields) {
 		var self = this;
-		if(!this.host.isShared()){
+		if (!this.host.isShared()) {
 			error('Could not apply reduce on non-list!');
 			return;
 		}
 		func = _.getFunc(func) || (error('Wrong function provided for reduce!'));
-		var reducer = function(list, fields){
+		var reducer = function(list, fields) {
 			var val = start_val;
-            var g;
-			for(var i in list){
-                if(fields){
-                    if(fields instanceof Array){
-                        var vl = {};
-                        for(var i in fields){
-                            vl[fields[i]] = g[fields[i]];
-                        }
-                        g = vl;
-                    } else {
-                        g = list[i].get(fields);
-                        ___('We take just one key from hash', fields, '=', g);
-                    }
-                } else {
-                    g = list[i].get();
-                }
+			var g;
+			for (var i in list) {
+				if (fields) {
+					if (fields instanceof Array) {
+						var vl = {};
+						for (var i in fields) {
+							vl[fields[i]] = g[fields[i]];
+						}
+						g = vl;
+					} else {
+						g = list[i].get(fields);
+						___('We take just one key from hash', fields, '=', g);
+					}
+				} else {
+					g = list[i].get();
+				}
 				val = func(g, val);
 				___('REDUCE: counting new val', g, val);
 			}
 			return val;
 		}
 		var list = this.host.host;
-		if(!fields){
-			list.onChangeItem('create, update, afterDelete', function(){
+		if (!fields) {
+			list.onChangeItem('create, update, afterDelete', function() {
 				___('Running reduce on each item change');
 				var res = reducer(list.list);
 				self.set(res);
 				___('The result of reduce', res);
 			})
 		} else {
-            var f = fields.split(', ');
-            if(f.length <= 1){
-                f = fields;
-            }
-            list.onChangeItemField(fields, function(){
+			var f = fields.split(', ');
+			if (f.length <= 1) {
+				f = fields;
+			}
+			list.onChangeItemField(fields, function() {
 				var res = reducer(list.list, f);
-                ___('The result of reduce is', res);
+				___('The result of reduce is', res);
 				self.set(res);
-            })
-        }
+			})
+		}
 	}
 
 	Cell.prototype.invalidateObservers = function() {
@@ -412,7 +404,7 @@
 	}
 
 	Cell.prototype.addObserver = function(cellname) {
-            this.observers.push(cellname);
+		this.observers.push(cellname);
 	}
 
 	Cell.prototype.removeObserver = _.$remove.bind(null, this.observers);
@@ -424,23 +416,23 @@
 	Cell.prototype.getType = function() {
 		return 'cell';
 	}
-        
+
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
-        ___('Setting var', this.getName());
-		if(!this.free && !setanyway && !this.reader){
+		___('Setting var', this.getName());
+		if (!this.free && !setanyway && !this.reader) {
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
 		}
 		var old_val = this.val,
-		    new_val = val;
+			new_val = val;
 		this.val = new_val;
 		if (this.writer) {
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
 		//////////
 		this.invalidateObservers();
-                this.observables--;
+		this.observables--;
 		this.updateObservers(this.getName());
 		this.change(old_val, new_val);
 		return this;
@@ -456,7 +448,7 @@
 		this.set(val);// just a value
 		return this;
 	}
-	
+
 	Cell.prototype.load = function(url) {
 		var self = this;
 		$.get(url, function(data) {
@@ -474,56 +466,57 @@
 		return this;
 	}
 
-    var some_shitty_suffix = "___!!!___";
-    
-    Cell.prototype.trace = function(){
-        var now_comp = this.compute;
-        this.compute = function(){
-            now_comp.apply(this, arguments);
-            ___('Cell ', this.getName(), 'changed to', this.val);
-        }
-    }
-        
-    var list_compute = function(val, cellname) {
-        if(!this.formula){// something strange
-                return;
-        }
-        this.observables--;
-        if (this.observables > 0) return;
+	var some_shitty_suffix = "___!!!___";
 
-        if(cellname !== undefined){
-            this.argsValues[this.argsKeys[cellname]] = val;
-        }
-        var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
-        if(res instanceof Array){
-            arr = res[0];
-            conf = res[1];
-        } else {
-            arr = res;
-        }
-        conf.host = this.host;
-        var list = new List(arr, conf);
-        Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
-        this.host.fireAddChild(this.getName());
+	Cell.prototype.trace = function() {
+		var now_comp = this.compute;
+		this.compute = function() {
+			now_comp.apply(this, arguments);
+			___('Cell ', this.getName(), 'changed to', this.val);
+		}
 	}
-        
-    Cell.prototype.getList = function(){
-        this.compute = list_compute;
-        this.name = this.getName() + some_shitty_suffix;
-        this.alias(this.getName());
 
-        return this.is.apply(this, arguments);
-    }
+	var list_compute = function(val, cellname) {
+		if (!this.formula) {// something strange
+			return;
+		}
+		this.observables--;
+		if (this.observables > 0)
+			return;
+
+		if (cellname !== undefined) {
+			this.argsValues[this.argsKeys[cellname]] = val;
+		}
+		var arr, conf = {}, res = this.formula.apply(this, this.argsValues);
+		if (res instanceof Array) {
+			arr = res[0];
+			conf = res[1];
+		} else {
+			arr = res;
+		}
+		conf.host = this.host;
+		var list = new List(arr, conf);
+		Cell.prototype.alias.call(list, this.getName().replace(some_shitty_suffix, ""));
+		this.host.fireAddChild(this.getName());
+	}
+
+	Cell.prototype.getList = function() {
+		this.compute = list_compute;
+		this.name = this.getName() + some_shitty_suffix;
+		this.alias(this.getName());
+
+		return this.is.apply(this, arguments);
+	}
 
 	Cell.prototype.are = function(arr, config) {
-		if(arr instanceof Function){// it's a datasource!
-			return this.are.call(this, {$datasource: Array.prototype.slice.call(arguments)});			
+		if (arr instanceof Function) {// it's a datasource!
+			return this.are.call(this, {$datasource: Array.prototype.slice.call(arguments)});
 		}
 		var mass = [];
 		if (!(arr instanceof List)) {
 			var conf = {};
-			if(config){
-				if(config instanceof Object){
+			if (config) {
+				if (config instanceof Object) {
 					// regular conf
 					conf = config;
 				} else {
@@ -545,244 +538,249 @@
 			var element = mass[i] instanceof Object ? mass[i] : {__val: mass[i]};
 			arr.push(element);
 		}
-        this.host.fireAddChild(this.getName());
+		this.host.fireAddChild(this.getName());
 		return arr;
 	}
 
-    Cell.prototype.mapfilter = function(a, b, c, d){
-        var arr, map_func, filter_fields, filter_func;
-        if(this.host.isShared() || a instanceof Function){
-            arr = this.host;
-            map_func = a;
-            filter_fields = b;
-            filter_func = c;
-        } else {
-            arr = this.host(a);
-            map_func = b;
-            filter_fields = c;
-            filter_func = d;
-        }
-        filter_func = filter_func || _.if;
-        map_func = map_func || _.id;
-        var f = function(){
-            ___('Running mapfilter callback', filter_func, map_func, filter_fields, arr.get(filter_func, map_func, filter_fields));
-            this.set(arr.get(filter_func, map_func, filter_fields));
-        }.bind(this);
-        if(filter_fields){
-            ___('Assigning callback for changing fields', filter_fields, f);
-            arr.onChangeItemField(filter_fields, f)
-        } else {
-            // just map
-            arr.onChangeItem('*', f);
-        }
-        f();
-    }
-    
-    /* older version of map, unfinished
-	Cell.prototype.map = function(arr_name, map_func, map_fields) {
-		var conf = {},
-        parent = this.host(arr_name);
-		conf.host = this.host;
-		var arr = new List({}, conf);
-		_.$objJoin(this, arr);
-		this.host.setVar(this.getName(), arr);
-        var fields = map_fields instanceof Array ? map_fields : map_fields.split(',');
-        
-        var push = arr.push.bind(arr);
-        arr.push = function(){
-            console.log('Cant push to mapped list!');
-        }
-        // on new hash - check and push
-        parent.onChangeItem('create', function(x, index){
-            console.log('parent item created', _.$pick(parent.get(index), fields));
-        })
-        if(map_fields){
-            // watch these fields
-            
-        } else {
-            // watch entire hash
-            
-        }
-        // remove - remove hash
-        
-		return arr;
-	}*/
-	
+	Cell.prototype.mapfilter = function(a, b, c, d) {
+		var arr, map_func, filter_fields, filter_func;
+		if (this.host.isShared() || a instanceof Function) {
+			arr = this.host;
+			map_func = a;
+			filter_fields = b;
+			filter_func = c;
+		} else {
+			arr = this.host(a);
+			map_func = b;
+			filter_fields = c;
+			filter_func = d;
+		}
+		filter_func = filter_func || _.if;
+		map_func = map_func || _.id;
+		var f = function() {
+			___('Running mapfilter callback', filter_func, map_func, filter_fields, arr.get(filter_func, map_func, filter_fields));
+			this.set(arr.get(filter_func, map_func, filter_fields));
+		}.bind(this);
+		if (filter_fields) {
+			___('Assigning callback for changing fields', filter_fields, f);
+			arr.onChangeItemField(filter_fields, f)
+		} else {
+			// just map
+			arr.onChangeItem('*', f);
+		}
+		f();
+	}
+
+	/* older version of map, unfinished
+	 Cell.prototype.map = function(arr_name, map_func, map_fields) {
+	 var conf = {},
+	 parent = this.host(arr_name);
+	 conf.host = this.host;
+	 var arr = new List({}, conf);
+	 _.$objJoin(this, arr);
+	 this.host.setVar(this.getName(), arr);
+	 var fields = map_fields instanceof Array ? map_fields : map_fields.split(',');
+	 
+	 var push = arr.push.bind(arr);
+	 arr.push = function(){
+	 console.log('Cant push to mapped list!');
+	 }
+	 // on new hash - check and push
+	 parent.onChangeItem('create', function(x, index){
+	 console.log('parent item created', _.$pick(parent.get(index), fields));
+	 })
+	 if(map_fields){
+	 // watch these fields
+	 
+	 } else {
+	 // watch entire hash
+	 
+	 }
+	 // remove - remove hash
+	 
+	 return arr;
+	 }*/
+
 	Cell.prototype.alias = function(name) {
 		this.host.aliases[name] = this;
 		this.host.removeVar(name);
 	}
-        
-        Cell.prototype.getArgsValues = function(){
-            var args1 = [];
-            for (var i in this.argsValues) {
-                    args1.push(this.argsValues[i]);
-            }
-            return args1;
-        }
+
+	Cell.prototype.getArgsValues = function() {
+		var args1 = [];
+		for (var i in this.argsValues) {
+			args1.push(this.argsValues[i]);
+		}
+		return args1;
+	}
 
 	Cell.prototype.compute = function(val, cellname, no_change) {
-		if(!this.formula){// something strange
+		if (!this.formula) {// something strange
 			return;
 		}
-                this.observables--;
-                if (this.observables > 0) return;
-                
-                if(cellname !== undefined){
-                    if(this.argsKeys !== undefined && this.argsKeys[cellname] !== undefined){
-                        this.argsValues[this.argsKeys[cellname]] = val;
-                    }
-                }
+		this.observables--;
+		if (this.observables > 0)
+			return;
+
+		if (cellname !== undefined) {
+			if (this.argsKeys !== undefined && this.argsKeys[cellname] !== undefined) {
+				this.argsValues[this.argsKeys[cellname]] = val;
+			}
+		}
 		var old_val = this.val;
 		var new_val = this.formula.apply(this, this.argsValues);
 		this.val = new_val;
 		if (this.writer && !_.isReservedName(this.getName())) {
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
-		if(!no_change) this.change(old_val, this.val);
+		if (!no_change)
+			this.change(old_val, this.val);
 		this.updateObservers(name, no_change);
 		return this;
 	}
 
 	Cell.prototype.depend = _.canTakeArray(function(cell, path) {
-            this.deps.push(cell.getName());
-            path = path ? this.host.getReversePath(path, this.getName()) : this.getName();
-            cell.addObserver(path);
+		this.deps.push(cell.getName());
+		path = path ? this.host.getReversePath(path, this.getName()) : this.getName();
+		cell.addObserver(path);
 	});
-        
+
 	Cell.prototype.is = function(f) {
-            if (f instanceof Cell) {
-                error('Cant depend on cell iself(provide a name)');
-            }
-            var formula = f;
-            if (this.inited) {
-                    console.warn('Cell already inited!');
-                    //return;
-            } else {
-                    this.inited = true;
-            }
+		if (f instanceof Cell) {
+			error('Cant depend on cell iself(provide a name)');
+		}
+		var formula = f;
+		if (this.inited) {
+			console.warn('Cell already inited!');
+			//return;
+		} else {
+			this.inited = true;
+		}
 
-            if (formula instanceof Array) {
-                if(arguments.length === 1){
-                    // creating new Firera List from array
-                    this.self = new List(formula, {host: this.host});
-                    return this;
-                } else {
-                    // it's function composition!
-                   formula = _.compose(formula);
-                }
-            }
-            if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
-                    this.self = Firera.hash(formula, {host: this.host});
-                    return this;
-            }
+		if (formula instanceof Array) {
+			if (arguments.length === 1) {
+				// creating new Firera List from array
+				this.self = new List(formula, {host: this.host});
+				return this;
+			} else {
+				// it's function composition!
+				formula = _.compose(formula);
+			}
+		}
+		if (formula instanceof Object && !(formula instanceof Function)) {// creating new Firera hash
+			this.self = Firera.hash(formula, {host: this.host});
+			return this;
+		}
 
-            var args = Array.prototype.slice.call(arguments, 1);
-            if (!args.length) {// is just an another cell
-                    args[0] = formula;
-                    formula = function(val) {
-                            return val;
-                    };
-            } else {
-                // it's function, defned by string, like '+'
-                formula = _.getFunc(formula);
-            }
-            if ((args[0] instanceof Array) && !(args[1])) {
-                    args = args[0];
-            }
-            this.argsValues = [];
-            this.argsKeys = {};
-            for (var i = 0; i < args.length; i++) {
-                    var cell = args[i];
-                    if (args[i] instanceof Cell) {
-                        error('Cant depend on cell iself(provide a name)');
-                    } else {
-                        cell = this.host(args[i]);
-                    }
-                    this.depend(cell, args[i]);
-                    this.argsKeys[this.host(args[i]).getName()] = i;
-                    this.argsValues.push(this.host(args[i]).get());
-            }
-            this.formula = formula;
-            this.free = false;
-            if (args.length) this.compute();
-            return this;
+		var args = Array.prototype.slice.call(arguments, 1);
+		if (!args.length) {// is just an another cell
+			args[0] = formula;
+			formula = function(val) {
+				return val;
+			};
+		} else {
+			// it's function, defned by string, like '+'
+			formula = _.getFunc(formula);
+		}
+		if ((args[0] instanceof Array) && !(args[1])) {
+			args = args[0];
+		}
+		this.argsValues = [];
+		this.argsKeys = {};
+		for (var i = 0; i < args.length; i++) {
+			var cell = args[i];
+			if (args[i] instanceof Cell) {
+				error('Cant depend on cell iself(provide a name)');
+			} else {
+				cell = this.host(args[i]);
+			}
+			this.depend(cell, args[i]);
+			this.argsKeys[this.host(args[i]).getName()] = i;
+			this.argsValues.push(this.host(args[i]).get());
+		}
+		this.formula = formula;
+		this.free = false;
+		if (args.length)
+			this.compute();
+		return this;
 	}
-        
-        var stream_compute = function(val, cellname, no_change){
-            this.observables--;
-            if (this.observables > 0) return;
-            var old_val = this.val;
-            var new_val = this.formula.call(this, val, cellname);
-            this.val = new_val;
-            if (this.writer && !_.isReservedName(this.getName())) {
-                    this.writer.apply(this, [this.val].concat(this.params));
-            }
-            if(!no_change) this.change(old_val, this.val);
-            this.updateObservers(name, no_change);
-            return this;
-        }
-        
-        Cell.prototype.streams = function(){
-            var vars = [], func, args = Array.prototype.slice.call(arguments);
-            if(typeof args[0] === 'function'){
-                func = args.shift();
-            }
-            if(args[0] instanceof Array){
-                // it's a list of variables
-                vars = args[0];
-            } else if(typeof args[0] === 'string'){
-                // it's var name
-                vars = args;
-            } else if(args[0] instanceof Object){
-                // it's mapping object
-                var map = args.shift();
-                func = function(val, key){
-                    if(!map[key]){
-                        // something strange...
-                        error('Unknown cell for streams()');
-                        return;
-                    } else {
-                        return map[key](val);
-                    }
-                }
-                vars = Object.keys(map);
-            } else {
-                error('Wrong parameter for streams()', arguments);
-                return;
-            }
-            this.formula = func || _.id;
-            this.free = false;
-            var self = this;
-            if(vars[0] === '*'){
-                // it means all variables
-                this.host.onChange(function(key, __, val){
-                    stream_compute.call(self, val, key, true);
-                })
-            } else if(vars[0] === '*children*'){
-                this.host.onAddChild(function(name){
-                    stream_compute.call(self, name, name, true);
-                })
-            } else {
-                for (var i = 0; i < vars.length; i++) {
-                    var cell = vars[i];
-                    if (!(vars[i] instanceof Cell)) {
-                        cell = this.host.create_cell_or_event(vars[i], {dumb: true});
-                    }
-                    this.depend(cell, vars[i]);
-                }
-                this.compute = stream_compute;
-            }
-            return this;
-        }
-	
+
+	var stream_compute = function(val, cellname, no_change) {
+		this.observables--;
+		if (this.observables > 0)
+			return;
+		var old_val = this.val;
+		var new_val = this.formula.call(this, val, cellname);
+		this.val = new_val;
+		if (this.writer && !_.isReservedName(this.getName())) {
+			this.writer.apply(this, [this.val].concat(this.params));
+		}
+		if (!no_change)
+			this.change(old_val, this.val);
+		this.updateObservers(name, no_change);
+		return this;
+	}
+
+	Cell.prototype.streams = function() {
+		var vars = [], func, args = Array.prototype.slice.call(arguments);
+		if (typeof args[0] === 'function') {
+			func = args.shift();
+		}
+		if (args[0] instanceof Array) {
+			// it's a list of variables
+			vars = args[0];
+		} else if (typeof args[0] === 'string') {
+			// it's var name
+			vars = args;
+		} else if (args[0] instanceof Object) {
+			// it's mapping object
+			var map = args.shift();
+			func = function(val, key) {
+				if (!map[key]) {
+					// something strange...
+					error('Unknown cell for streams()');
+					return;
+				} else {
+					return map[key](val);
+				}
+			}
+			vars = Object.keys(map);
+		} else {
+			error('Wrong parameter for streams()', arguments);
+			return;
+		}
+		this.formula = func || _.id;
+		this.free = false;
+		var self = this;
+		if (vars[0] === '*') {
+			// it means all variables
+			this.host.onChange(function(key, __, val) {
+				stream_compute.call(self, val, key, true);
+			})
+		} else if (vars[0] === '*children*') {
+			this.host.onAddChild(function(name) {
+				stream_compute.call(self, name, name, true);
+			})
+		} else {
+			for (var i = 0; i < vars.length; i++) {
+				var cell = vars[i];
+				if (!(vars[i] instanceof Cell)) {
+					cell = this.host.create_cell_or_event(vars[i], {dumb: true});
+				}
+				this.depend(cell, vars[i]);
+			}
+			this.compute = stream_compute;
+		}
+		return this;
+	}
+
 	Cell.prototype.change = function(prev_val, new_val) {
 		for (var i = 0; i < this.changers.length; i++) {
 			this.changers[i].call(this, prev_val, new_val);
 		}
 		this.host.change(this.getName(), prev_val, new_val);
 	}
-	
+
 	Cell.prototype.onChange = function(func) {
 		this.changers.push(func);
 	}
@@ -837,39 +835,44 @@
 	}
 
 	var make_window_between_hashes = function(parent, child, config) {
-		if(!config) return;
+		if (!config)
+			return;
 		if (config.takes) {
-			if(!(config.takes instanceof Object)){
+			if (!(config.takes instanceof Object)) {
 				config.takes = [config.takes];
 			}
 			for (var i in config.takes) {
 				var varname = _.isInt(i) ? config.takes[i] : i;
-				if(!parent.getVar(config.takes[i])){
+				if (!parent.getVar(config.takes[i])) {
 					//error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
 					//return;
 				}
-                                //console.log('NC', '../' + config.takes[i]);
-				child(varname).is(function(a){ return a;}, '../' + config.takes[i]);
+				//console.log('NC', '../' + config.takes[i]);
+				child(varname).is(function(a) {
+					return a;
+				}, '../' + config.takes[i]);
 			}
 		}
 		if (config && config.gives) {
-			if(!(config.gives instanceof Object)){
+			if (!(config.gives instanceof Object)) {
 				config.gives = [config.gives];
 			}
 			for (var i in config.gives) {
 				var varname = _.isInt(i) ? config.gives[i] : i;
-				if(!child.getVar(config.gives[i])){
+				if (!child.getVar(config.gives[i])) {
 					//error('Linking to dumb vars while mixing(gives): ', config.gives[i]);
 					//return;
 				}
-                                var childname = child.isShared() ? child.host.getName() : child.getName();
+				var childname = child.isShared() ? child.host.getName() : child.getName();
 				___('Parent depends on child', varname, childname + '/' + config.gives[i]);
-				parent(varname).is(function(a){ return a;}, childname + '/' + config.gives[i]);
+				parent(varname).is(function(a) {
+					return a;
+				}, childname + '/' + config.gives[i]);
 			}
 		}
 	}
-	
-	var check_for_constructor = function(hash){
+
+	var check_for_constructor = function(hash) {
 		if (hash instanceof Function) {
 			hash = {__setup: hash};
 		}
@@ -877,61 +880,66 @@
 	}
 
 	var hash_methods = {
-                getReversePath: function(path, cellname){
-                    //return path;
-                    if(path.indexOf('/') !== -1){
-                        var parts = path.split("/");
-                        for(var i = 1; i < parts.length; i++){
-                            parts[i - 1] = '..';
-                        }
-                        parts[parts.length - 1] = cellname;
-                        return parts.join('/');
-                    } else return cellname;
-                },
+		getReversePath: function(path, cellname) {
+			//return path;
+			if (path.indexOf('/') !== -1) {
+				var parts = path.split("/");
+				for (var i = 1; i < parts.length; i++) {
+					parts[i - 1] = '..';
+				}
+				parts[parts.length - 1] = cellname;
+				return parts.join('/');
+			} else
+				return cellname;
+		},
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
-			if(_.isInt(selector) && this.isSharedHash){
+			if (_.isInt(selector) && this.isSharedHash) {
 				return this.host.list[selector];
 			}
-			if(!selector) error('No selector provided', arguments);
-			if(selector.contains('/')){
+			if (!selector)
+				error('No selector provided', arguments);
+			if (selector.contains('/')) {
 				var parts = selector.split('/');
 				var member = parts[0];
 				var host;
-				if(member === '..'){// its parent
-						if(!this.host){
-							error('Could not access parent hash as ', selector); return;
-						}
-						if(this.host instanceof List){
-							if(this.isShared()){
-								host = this.host.host;
-							} else {
-								host = this.host.shared;
-							}
+				if (member === '..') {// its parent
+					if (!this.host) {
+						error('Could not access parent hash as ', selector);
+						return;
+					}
+					if (this.host instanceof List) {
+						if (this.isShared()) {
+							host = this.host.host;
 						} else {
-							host = this.host;
-					f	}
+							host = this.host.shared;
+						}
+					} else {
+						host = this.host;
+						f
+					}
 				} else {
-					if(_.isInt(member)){ // its part of list
-						if(this instanceof List && this.list){
+					if (_.isInt(member)) { // its part of list
+						if (this instanceof List && this.list) {
 							host = this.list[member];
 						} else {
-							if(this.isShared()){
+							if (this.isShared()) {
 								host = this.host.list[member];
 							} else {
-								error('Could not access list member as ', selector, this.isSharedHash); return;
+								error('Could not access list member as ', selector, this.isSharedHash);
+								return;
 							}
 						}
 					} else {
-						if(this instanceof List){
+						if (this instanceof List) {
 							host = this.shared.getVar(member);
 						} else {
 							host = this.getVar(member);
 						}
-						if(host instanceof List){
+						if (host instanceof List) {
 							host = host.shared;
 						}
-						if(!host) {	
-							error('Could not access cell as', selector, this.getRoute(), member); 
+						if (!host) {
+							error('Could not access cell as', selector, this.getRoute(), member);
 							return;
 						}
 					}
@@ -939,13 +947,14 @@
 				var tail = parts.slice(1).join('/');
 				return host.create_cell_or_event(tail);
 			}
-			
-			
-			if (!dont_check_if_already_exists && this.getVar(selector)){
+
+
+			if (!dont_check_if_already_exists && this.getVar(selector)) {
 				return this.getVar(selector);
 			} else {
 				var vr = this.getOwnVar(selector);
-				if(vr) return vr;
+				if (vr)
+					return vr;
 				//console.log('we have own', selector);
 			}
 			var type = get_cell_type(selector);
@@ -954,19 +963,24 @@
 			return new_cell;
 		},
 		getName: function() {
-			if(!this.host){ return 'ROOT';};
+			if (!this.host) {
+				return 'ROOT';
+			}
+			;
 			if (this.host && this.host.getAllVars && !(this.host instanceof List)) {
 				var parent_vars = this.host.getAllVars();
 				var ind = parent_vars.indexOf(this);
-				if(ind !== -1) return ind;
+				if (ind !== -1)
+					return ind;
 				return '?!?';
 			} else {
-				if(this.isShared()) return 'shared';
+				if (this.isShared())
+					return 'shared';
 				return this.getIndex();
 			}
 		},
-		getIndex: function(){
-			if(!this.host || !this.host.list) {
+		getIndex: function() {
+			if (!this.host || !this.host.list) {
 				error('Cant get ondex of non-array member!');
 				return;
 			}
@@ -984,26 +998,26 @@
 			}
 		},
 		/*toString: function() {
-			if (!this.host) {
-				return 'root / ';
-			} else {
-				if (!this.host) {
-					error('Who I am?');
-					return;
-				}
-				return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
-			}
-		},*/
+		 if (!this.host) {
+		 return 'root / ';
+		 } else {
+		 if (!this.host) {
+		 error('Who I am?');
+		 return;
+		 }
+		 return this.host.getRoute() + (this.getName ? this.getName() : '???') + ' / ';
+		 }
+		 },*/
 		///// NEW
 		getOwnVar: function(name) {
 			return this.vars[name] ? this.vars[name] : (this.aliases[name] ? this.vars[this.aliases[name]] : false);
 		},
 		getVar: function(name) {
 			var vr = this.vars[name];
-			if(!vr && this.host && !this.isShared() && (!this.host instanceof List)){// hash attached to hash
+			if (!vr && this.host && !this.isShared() && (!this.host instanceof List)) {// hash attached to hash
 				vr = this.host.getVar(name);
 			}
-			if(!vr && this.aliases[name]){
+			if (!vr && this.aliases[name]) {
 				return this.aliases[name];
 			}
 			if (
@@ -1020,7 +1034,7 @@
 			}
 			return vr;
 		},
-		removeVar: function(name){
+		removeVar: function(name) {
 			delete this.vars[name];// !!! unbind also
 		},
 		setVar: function(name, val) {
@@ -1035,16 +1049,16 @@
 		getType: function() {
 			return 'hash';
 		},
-		setData: function(hash){
-			if(!(hash instanceof Object)){
+		setData: function(hash) {
+			if (!(hash instanceof Object)) {
 				hash = {__val: hash};
 			}
-			for(var i in hash){
-				if(hash[i] instanceof Array){
-					if(!this.getVar(i)){
+			for (var i in hash) {
+				if (hash[i] instanceof Array) {
+					if (!this.getVar(i)) {
 						this(i).are([]);
 					}
-					if(!(this(i) instanceof List)){
+					if (!(this(i) instanceof List)) {
 						this(i).are({});
 						this(i).setData(hash[i]);
 						//error('Could not assign array data to not-array!', this(i), hash[i]);
@@ -1052,8 +1066,8 @@
 					}
 					this(i).setData(hash[i]);
 				} else {
-					if(hash[i] instanceof Object){
-						
+					if (hash[i] instanceof Object) {
+
 					} else {
 						this(i).set(hash[i]);
 					}
@@ -1061,44 +1075,46 @@
 			}
 		},
 		change: function(cellname, prev_val, new_val) {
-			if(this.changers[cellname]){
-				for(var j in this.changers[cellname]){
+			if (this.changers[cellname]) {
+				for (var j in this.changers[cellname]) {
 					this.changers[cellname][j](cellname, prev_val, new_val);
 				}
 			}
-			if(_.isReservedName(cellname)) return;
-			if(this.changers['_all']){
-				for(var j in this.changers['_all']){
+			if (_.isReservedName(cellname))
+				return;
+			if (this.changers['_all']) {
+				for (var j in this.changers['_all']) {
 					this.changers['_all'][j](cellname, prev_val, new_val);
 				}
 			}
-            if(this.host instanceof List){
-                //console.log('CIF', cellname, this.getName(), prev_val, new_val);
-                this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
-            }
+			if (this.host instanceof List) {
+				//console.log('CIF', cellname, this.getName(), prev_val, new_val);
+				this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
+			}
 			/*if(prev_val !== undefined && this.host && this.host instanceof List){
-				__$('Changing shared value', this.getName());
-				//this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
-				//this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
-			}*/
+			 __$('Changing shared value', this.getName());
+			 //this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
+			 //this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
+			 }*/
 		},
 		onChange: function(func, fields) {
-			if(!fields){
+			if (!fields) {
 				fields = ['_all'];
 			}
-			for(var i in fields){
-				if(!this.changers[fields[i]]) this.changers[fields[i]] = [];
+			for (var i in fields) {
+				if (!this.changers[fields[i]])
+					this.changers[fields[i]] = [];
 				this.changers[fields[i]].push(func);
 			}
 		},
 		onAddChild: function(func) {
-				this.childHandlers.push(func);
+			this.childHandlers.push(func);
 		},
 		fireAddChild: function(name) {
-            ___('AddChild Handlers are', this.childHandlers);
-            for(var i in this.childHandlers){
-                this.childHandlers[i](name);
-            }
+			___('AddChild Handlers are', this.childHandlers);
+			for (var i in this.childHandlers) {
+				this.childHandlers[i](name);
+			}
 		},
 		init_with_data: function(hash) {
 			for (var i in hash) {
@@ -1122,15 +1138,17 @@
 			}
 			return true;
 		},
-		get: function(arr){
-			if(!arr) {
+		get: function(arr) {
+			if (!arr) {
 				var vars = this.getAllVars();
-				if(vars.__val) return vars.__val.get();
+				if (vars.__val)
+					return vars.__val.get();
 				return collect_values(vars);
 			}
-			if(!(arr instanceof Array)) return this(arr).get();
+			if (!(arr instanceof Array))
+				return this(arr).get();
 			var res = {};
-			for(var i in arr){
+			for (var i in arr) {
 				var field = arr[i];
 				res[field] = this(field).get();
 			}
@@ -1140,8 +1158,8 @@
 			this.host = host;
 		},
 		applyTo: function(selector_or_element) {
-            this('$rootSelector').set(selector_or_element);
-            ___('Applying to', selector_or_element, Firera.dump(this));
+			this('$rootSelector').set(selector_or_element);
+			___('Applying to', selector_or_element, Firera.dump(this));
 		},
 		getRebindableVars: function() {
 			var vars = this.getAllVars();
@@ -1154,9 +1172,9 @@
 					}
 				}
 			}
-			for(var i in vars){
-				if(!_.isReservedName(i)){
-					res[i]  = vars[i];
+			for (var i in vars) {
+				if (!_.isReservedName(i)) {
+					res[i] = vars[i];
 				}
 			}
 			return res;
@@ -1170,18 +1188,19 @@
 			}
 			return true;
 		},
-		isShared: function(a){
-			if(a) console.log('checkig if shared', this.host.shared === this);
+		isShared: function(a) {
+			if (a)
+				console.log('checkig if shared', this.host.shared === this);
 			return !!this.isSharedHash;//host && this.host.shared === this;
 		}
 	}
-	
+
 	/////
 	/////
 	///// HASH
 	/////
 	/////
-	
+
 	var system_keys = ['__setup'];
 
 	var Firera = function(init_hash, params) {
@@ -1211,15 +1230,15 @@
 		for (var i in hash_methods) {
 			self[i] = hash_methods[i];
 		}
-		
-        if(self.host && self.host instanceof List && !self.isSharedHash){
-            ___('Attaching new hash to list before initialization', self.getRoute());
-            self.host.list.push(self);
-        }
+
+		if (self.host && self.host instanceof List && !self.isSharedHash) {
+			___('Attaching new hash to list before initialization', self.getRoute());
+			self.host.list.push(self);
+		}
 		//////////////////////////////////////////
 		var init_with_hash = function(selector, params) {
 			for (var i in selector) {
-				if(system_keys.indexOf(i) !== -1){
+				if (system_keys.indexOf(i) !== -1) {
 					// special case - system fields
 					continue;
 				}
@@ -1229,7 +1248,8 @@
 			if (selector.__setup) {// run setup function
 				selector.__setup.call(self, params);
 			}
-			if(self.isShared()) return self.host;
+			if (self.isShared())
+				return self.host;
 			return true;
 		}
 		self.update = function(hash) {
@@ -1239,16 +1259,16 @@
 		if (init_hash instanceof Function) {
 			init_hash = {__setup: init_hash};
 		}
-        for(var i in Firera.autoinitCells){
-            ___('Autoiniting cell:', Firera.autoinitCells[i]);
-            self(Firera.autoinitCells[i]);
-        }
+		for (var i in Firera.autoinitCells) {
+			___('Autoiniting cell:', Firera.autoinitCells[i]);
+			self(Firera.autoinitCells[i]);
+		}
 		if (init_hash) {
 			self.update(init_hash);
 		}
-        if(!self.host) {// it's root instance
-            Firera.instances.push(self);
-        }
+		if (!self.host) {// it's root instance
+			Firera.instances.push(self);
+		}
 		return self;
 	}
 
@@ -1274,52 +1294,50 @@
 		this.count_funcs = [];
 		this.shared_config = {host: this, skip_data: true, isSharedHash: true};
 		this.how_to_share_config = {takes: [], gives: []};
-		if(config && config.share) {
-			if(config.share === true){
+		if (config && config.share) {
+			if (config.share === true) {
 				this.shared_config.linked_hash = config.host;
 			} else {
-				if(config.share instanceof Object){
+				if (config.share instanceof Object) {
 					this.how_to_share_config = config.share;
 				}
 			}
 		}
-		if(config && config.host){
+		if (config && config.host) {
 			this.host = config.host;
 		}
 		this.shared = new Firera.hash(init_hash.shared || {}, this.shared_config);
-		if(config) {
-                    if(config.name){
-                        this.name = config.name
-                    }
-		    var gt_config = false;
-		    if(config.gives_takes_params && init_hash && (init_hash.takes || init_hash.gives)){
-			    gt_config = {
-				    takes: {
-					    
-				    },
-				    gives: {
-					    
-				    }
-			    }
-			    for(var i = 0; i < init_hash.takes.length; i++){
-				    gt_config.takes[init_hash.takes[i]] = config.gives_takes_params[i];
-			    }
-			    for(var j = 0; j < init_hash.gives.length; j++){
-				    gt_config.gives[config.gives_takes_params[j + i]] = init_hash.gives[j];
-			    }
-			    
-		    }
-                    if(config.host){
-                        config.host.setVar(this.getName(), this);
-                        this.setHost(config.host);
-			if(gt_config){
-				//console.log(gt_config);
-				make_window_between_hashes(config.host, this.shared, gt_config);
+		if (config) {
+			if (config.name) {
+				this.name = config.name
 			}
-                    }
-                    if(config.autoselect !== undefined){
-                            this.autoselect = config.autoselect;
-                    }
+			var gt_config = false;
+			if (config.gives_takes_params && init_hash && (init_hash.takes || init_hash.gives)) {
+				gt_config = {
+					takes: {
+					},
+					gives: {
+					}
+				}
+				for (var i = 0; i < init_hash.takes.length; i++) {
+					gt_config.takes[init_hash.takes[i]] = config.gives_takes_params[i];
+				}
+				for (var j = 0; j < init_hash.gives.length; j++) {
+					gt_config.gives[config.gives_takes_params[j + i]] = init_hash.gives[j];
+				}
+
+			}
+			if (config.host) {
+				config.host.setVar(this.getName(), this);
+				this.setHost(config.host);
+				if (gt_config) {
+					//console.log(gt_config);
+					make_window_between_hashes(config.host, this.shared, gt_config);
+				}
+			}
+			if (config.autoselect !== undefined) {
+				this.autoselect = config.autoselect;
+			}
 		}
 		if (init_hash) {
 			if (init_hash.each) {
@@ -1332,7 +1350,7 @@
 			// maybe delete .data and .each?
 		}
 	}
-        
+
 	List.prototype.getRoute = function() {
 		if (!this.host) {
 			return 'root / ';
@@ -1352,14 +1370,14 @@
 
 	List.prototype.setHost = function(host) {
 		this.host = host;
-                //console.log('!!!name', this.getName());
+		//console.log('!!!name', this.getName());
 		make_window_between_hashes(this.host, this.shared, this.how_to_share_config);
 	}
 
 	List.prototype.getType = function() {
 		return 'list';
 	}
-	
+
 	List.prototype.item = function(num) {
 		return this.list[num];
 	}
@@ -1391,12 +1409,12 @@
 
 	List.prototype.setData = function(arr) {
 		this.clear();
-		for(var i in arr){
+		for (var i in arr) {
 			this.addOne();
 			var last = this.list.length - 1;
 			this.get(last).setData(arr[i]);
 		}
-		if(this.autoselect !== undefined){
+		if (this.autoselect !== undefined) {
 			this.select(this.autoselect);
 		}
 		return this;
@@ -1414,8 +1432,8 @@
 	List.prototype.getName = function() {
 		return this.name;
 	}
-	
-	List.prototype._remove_by_num = function(i){
+
+	List.prototype._remove_by_num = function(i) {
 		___('Removing list item by num', i, this.list.length);
 		var item_to_delete = this.list[i];
 		this.changeItem('delete', null, i);
@@ -1430,17 +1448,17 @@
 			// Hm... remove all or nothing?
 			return;
 		}
-		
+
 		if (_.isInt(func)) {
-			if(end && _.isInt(end) && Number(end) > Number(func)){
-				for(var i = Number(func); i <= Number(end); i++){
+			if (end && _.isInt(end) && Number(end) > Number(func)) {
+				for (var i = Number(func); i <= Number(end); i++) {
 					this.remove(i);
 				}
 			}
 			this._remove_by_num(func);
 			return;
 		}
-		if(func instanceof Object){// it's hash!
+		if (func instanceof Object) {// it's hash!
 			var i = this.list.indexOf(func);
 			this._remove_by_num(i);
 		}
@@ -1466,25 +1484,25 @@
 	}
 
 	List.prototype.get = function(num, map, field) {
-		if(_.isInt(num)){
+		if (_.isInt(num)) {
 			return this.list[num];
 		}
-        if(num instanceof Function){
-            // it's filter func
-            var res = [];
-            var obj;
-            for (var i in this.list) {
-                obj = this.list[i].get();
-                if(field ? num(obj[field]) : num(obj)){
-                    res.push(map ? map(obj) : obj);
-                    ___('Pushing filtered obj to list', res[res.length - 1]);
-                }
-            }
-            return res;
-        }
-		if(num){
+		if (num instanceof Function) {
+			// it's filter func
+			var res = [];
+			var obj;
+			for (var i in this.list) {
+				obj = this.list[i].get();
+				if (field ? num(obj[field]) : num(obj)) {
+					res.push(map ? map(obj) : obj);
+					___('Pushing filtered obj to list', res[res.length - 1]);
+				}
+			}
+			return res;
+		}
+		if (num) {
 			___('Num is string, returning the val of cell of shared hash', num);
-			return this.shared.get(num);			
+			return this.shared.get(num);
 		}
 		var res = [];
 		for (var i in this.list) {
@@ -1522,77 +1540,79 @@
 	}
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
-        ___('Setting RootNode in List', arguments, this.shared);
-        //this.shared('$rootSelector').set(selector_or_element);
-        var already_template = this.shared('$actualTemplate').get();
-        if(!already_template){
-            var el = $(selector_or_element);
-            already_template = el.html();
-            el.html('');
-            this.shared('$template').set(already_template);
-        }
-        ___('We got template', already_template);
-        for(var i in this.list){
-            var div = $("<div/>").appendTo(el);
-            this.list[i]('$template').set(already_template);
-            this.list[i].applyTo(div);
-        }
-	}
-	
-	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
-        ___('Changing item', arguments);
-        var new_val;
-		for(var i in this.changers[changetype]){
-            ___('Running handler', this.changers[changetype][i]);
-            this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
+		___('Setting RootNode in List', arguments, this.shared);
+		//this.shared('$rootSelector').set(selector_or_element);
+		var already_template = this.shared('$actualTemplate').get();
+		if (!already_template) {
+			var el = $(selector_or_element);
+			already_template = el.html();
+			el.html('');
+			this.shared('$template').set(already_template);
+		}
+		___('We got template', already_template);
+		for (var i in this.list) {
+			var div = $("<div/>").appendTo(el);
+			this.list[i]('$template').set(already_template);
+			this.list[i].applyTo(div);
 		}
 	}
-	List.prototype.onChangeItem = function(changetype, func){
+
+	List.prototype.changeItem = function(changetype, fields, itemnum, cellname, prev_val, new_val) {
+		___('Changing item', arguments);
+		var new_val;
+		for (var i in this.changers[changetype]) {
+			___('Running handler', this.changers[changetype][i]);
+			this.changers[changetype][i](changetype, itemnum, cellname, prev_val, new_val);
+		}
+	}
+	List.prototype.onChangeItem = function(changetype, func) {
 		var types = [];
-		if(changetype === '*'){
+		if (changetype === '*') {
 			changetype = 'create, update, delete';
 		}
-		if(changetype.contains(',')){// multiple events
+		if (changetype.contains(',')) {// multiple events
 			types = changetype.split(", ");
 		} else {
 			types = [changetype];
 		}
-		for(var i in types){
-			if(!this.changers[types[i]]) this.changers[types[i]] = [];
+		for (var i in types) {
+			if (!this.changers[types[i]])
+				this.changers[types[i]] = [];
 			this.changers[types[i]].push(func);
 		}
 	}
 	List.prototype.changeItemField = function(field, index, prev_val, new_val) {
-        ___('Running handlers on field change', field, this.field_changers[field]);
-		for(var i in this.field_changers[field]){
+		___('Running handlers on field change', field, this.field_changers[field]);
+		for (var i in this.field_changers[field]) {
 			this.field_changers[field][i](index, prev_val, new_val);
 		}
 	}
-	List.prototype.onChangeItemField = function(fields, func){
+	List.prototype.onChangeItemField = function(fields, func) {
 		fields = fields.split(", ");
-		for(var i in fields){
+		for (var i in fields) {
 			var field = fields[i];
-			if(!this.field_changers[field]) this.field_changers[field] = [];
+			if (!this.field_changers[field])
+				this.field_changers[field] = [];
 			this.field_changers[field].push(func);
 		}
 	}
-	
-	List.prototype.pick = function(fields){
+
+	List.prototype.pick = function(fields) {
 		var res = [];
-		for(var i in this.list){
+		for (var i in this.list) {
 			res.push(this.list[i].get(fields))
 		}
 		return res;
 	}
-	
-	Firera.get_params = function(str){
+
+	Firera.get_params = function(str) {
 		var m = str.match(/([a-z]*)\((.*)\)/i);
 		return m[2].split(",");
 	}
-	
-	Firera.apply_dependency_to_cell_from_hash = function(cell, row){
+
+	Firera.apply_dependency_to_cell_from_hash = function(cell, row) {
 		var cell_type = cell.getType();
-		if(row instanceof Object && !(row instanceof Array) && !(row instanceof Function)){
+		if (row instanceof Object && !(row instanceof Array) && !(row instanceof Function)) {
 			self(i).are(row);
 			return;
 		}
@@ -1602,7 +1622,7 @@
 					if (_.getFunc(row[0])) {
 						cell['is'].apply(cell, row);
 					} else {
-						if(row[0] instanceof Array){
+						if (row[0] instanceof Array) {
 							cell['is'].apply(cell, row);
 						} else {
 							if (!cell[row[0]]) {
@@ -1623,7 +1643,7 @@
 						if (!(row[0] instanceof Array) && !(row[0] instanceof Function)) {
 							//row[0] = [row[0]];
 							// its some event method
-							if(!Event.prototype[row[0]]){
+							if (!Event.prototype[row[0]]) {
 								error('Unknown method for event: ', row);
 							} else {
 								Event.prototype[row[0]].apply(cell, row.slice(1));
@@ -1650,51 +1670,52 @@
 				break;
 		}
 	}
-	
+
 	Firera.cell_drivers = [
-            {
-                    name: 'common',
-                    regex: new RegExp('.*'),
-                    func: function(){
-                            this.dumb = true;
-                    }
-            },
-            {
-                    name: 'system',
-                    regex: new RegExp('^\\$.*'),
-                    func: function(name){
-                            var params;
-                            var driver_name = name.slice(1);
-                            if (driver_name.contains("(")) {
-                                    params = Firera.get_params(driver_name);
-                            }
-                            if (!customDrivers[driver_name]) {
-                                    // it's a free, but system variable
-                                    //error('Unknown custom driver: ' + driver_name);
-                                    return;
-                            }
-                            var driver = this.driver = customDrivers[driver_name];
-                            if (driver.def) this.val = driver.def;
-                            driver.reader && driver.reader.call(this);
-                            if(driver.depends){
-                                    //console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
-                                    Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
-                            }
-                    }
-            }
+		{
+			name: 'common',
+			regex: new RegExp('.*'),
+			func: function() {
+				this.dumb = true;
+			}
+		},
+		{
+			name: 'system',
+			regex: new RegExp('^\\$.*'),
+			func: function(name) {
+				var params;
+				var driver_name = name.slice(1);
+				if (driver_name.contains("(")) {
+					params = Firera.get_params(driver_name);
+				}
+				if (!customDrivers[driver_name]) {
+					// it's a free, but system variable
+					//error('Unknown custom driver: ' + driver_name);
+					return;
+				}
+				var driver = this.driver = customDrivers[driver_name];
+				if (driver.def)
+					this.val = driver.def;
+				driver.reader && driver.reader.call(this);
+				if (driver.depends) {
+					//console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
+					Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
+				}
+			}
+		}
 	];
-    Firera.autoinitCells = [];
-    Firera.instances = [];
-	
-	Firera.find_cell_driver = function(name){
-                var i = this.cell_drivers.length;
-		while(i--){
-			if(this.cell_drivers[i].regex.test(name)){
+	Firera.autoinitCells = [];
+	Firera.instances = [];
+
+	Firera.find_cell_driver = function(name) {
+		var i = this.cell_drivers.length;
+		while (i--) {
+			if (this.cell_drivers[i].regex.test(name)) {
 				return this.cell_drivers[i].func;
 			}
 		}
 	}
-	
+
 	/////
 	/////
 	///// OTHER LIB METHODS FOR Firera OBJECT
@@ -1702,221 +1723,230 @@
 	/////
 	Firera.list = List;
 	Firera.hash = Firera;
-	Firera.dump = function(hash, include_self){
-                if(hash instanceof List){
-                    return Firera.dumpList(hash);
-                }
+	Firera.dump = function(hash, include_self) {
+		if (hash instanceof List) {
+			return Firera.dumpList(hash);
+		}
 		var res = {
 			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
 		}
-        if(include_self){
-            res.self = hash;
-        }
+		if (include_self) {
+			res.self = hash;
+		}
 		var vars = hash.getAllVars();
-		for(var i in vars){
-			if(vars[i] instanceof Event){
-				if(!res.events) res.events = {};
+		for (var i in vars) {
+			if (vars[i] instanceof Event) {
+				if (!res.events)
+					res.events = {};
 				res.events[i] = vars[i];
 			}
-			if(vars[i] instanceof Cell){
-                //console.log('index', i, i.indexOf('$'));
-				if(i.indexOf('$') === 0){
-                    // system vars
-					if(!res.systemVars) res.systemVars = {};
+			if (vars[i] instanceof Cell) {
+				//console.log('index', i, i.indexOf('$'));
+				if (i.indexOf('$') === 0) {
+					// system vars
+					if (!res.systemVars)
+						res.systemVars = {};
 					res.systemVars[i] = Firera.dumpCell(vars[i]);
-                    continue;
+					continue;
 				}
-				if(!vars[i].free){
-					if(!res.dependentVars) res.dependentVars = {};
+				if (!vars[i].free) {
+					if (!res.dependentVars)
+						res.dependentVars = {};
 					res.dependentVars[i] = Firera.dumpCell(vars[i]);
 				} else {
-					if(vars[i].dumb){
-						if(!res.dumbVars) res.dumbVars = {};
+					if (vars[i].dumb) {
+						if (!res.dumbVars)
+							res.dumbVars = {};
 						res.dumbVars[i] = Firera.dumpCell(vars[i]);
 					} else {
-						if(!res.freeVars) res.freeVars = {};
+						if (!res.freeVars)
+							res.freeVars = {};
 						res.freeVars[i] = Firera.dumpCell(vars[i]);
 					}
 				}
 			}
-			if(vars[i] instanceof List){
-				if(!res.lists) res.lists = {};
+			if (vars[i] instanceof List) {
+				if (!res.lists)
+					res.lists = {};
 				res.lists[i] = Firera.dumpList(vars[i], include_self);
 			}
-            res.varz = Object.keys(vars);
+			res.varz = Object.keys(vars);
 		}
 		return res;
 	}
-	Firera.dumpCell = function(cell, include_self){
+	Firera.dumpCell = function(cell, include_self) {
 		var res = {val: cell.get()};
-        if(include_self){
-            res.self = cell;
-        }
+		if (include_self) {
+			res.self = cell;
+		}
 		return res;
 	}
-	Firera.dumpList = function(list, include_self){
+	Firera.dumpList = function(list, include_self) {
 		var res = {
 			shared: Firera.dump(list.shared, include_self),
 			list: []
 		};
-		for(var i in list.list){
+		for (var i in list.list) {
 			res.list[i] = Firera.dump(list.list[i], include_self);
 		}
 		res.changers = list.changers;
 		return res;
 	}
-	
+
 	/////
 	/////
 	///// METHODS FOR EXTENDING FIRERA ABILITIES
 	/////
 	/////
-	
-	Firera.addEventAction = function(name, func){
-		if(Event.prototype[name]) {
+
+	Firera.addEventAction = function(name, func) {
+		if (Event.prototype[name]) {
 			error('Cant add event action', name, ', already taken!');
 			return;
 		}
-		Event.prototype[name] = function(){
+		Event.prototype[name] = function() {
 			this.handlers.push(func);
 		}
 	}
-	
-	Firera.addEventPreparedAction = function(name, func){
-		if(Event.prototype[name]) {
+
+	Firera.addEventPreparedAction = function(name, func) {
+		if (Event.prototype[name]) {
 			error('Cant add event action', name, ', already taken!');
 			return;
 		}
-		Event.prototype[name] = function(){
+		Event.prototype[name] = function() {
 			this.handlers.push(func(arguments));
 		}
 	}
-	
+
 	// Methos for adding some special cellnames. For example, app(".name|visibility") - here visibility is a custom HTML driver
-	Firera.addHTMLReader = function(name, func, def){
-		if(HTMLDrivers[name]) {
+	Firera.addHTMLReader = function(name, func, def) {
+		if (HTMLDrivers[name]) {
 			error('Cant add HTML reader - name already taken!', name);
 			return;
 		}
 		HTMLDrivers[name] = {reader: func, def: def};
 	}
-	Firera.addHTMLWriter = function(name, func, def){
-		if(HTMLDrivers[name]) {
+	Firera.addHTMLWriter = function(name, func, def) {
+		if (HTMLDrivers[name]) {
 			error('Cant add HTML writer - name already taken!', name);
 			return;
 		}
 		HTMLDrivers[name] = {writer: func, def: def};
 	}
-	Firera.addHTMLReaderWriter = function(name, func, def){
-		if(HTMLDrivers[name]) {
+	Firera.addHTMLReaderWriter = function(name, func, def) {
+		if (HTMLDrivers[name]) {
 			error('Cant add HTML writer - name already taken!', name);
 			return;
 		}
 		HTMLDrivers[name] = {writer: func.writer, reader: func.reader, def: def};
 	}
-	
-	Firera.addCustomWriter = function(name, func, def){
-		if(customDrivers[name]) {
+
+	Firera.addCustomWriter = function(name, func, def) {
+		if (customDrivers[name]) {
 			error('Cant add custom writer - name already taken!', name);
 			return;
 		}
 		customDrivers[name] = {writer: func, def: def};
 	}
-	Firera.addCustomReader = function(name, func, def){
-		if(customDrivers[name]) {
+	Firera.addCustomReader = function(name, func, def) {
+		if (customDrivers[name]) {
 			error('Cant add custom reader - name already taken!', name);
 			return;
 		}
 		customDrivers[name] = {reader: func, def: def};
 	}
-	Firera.addCustomVar = function(name, args){
-		if(customDrivers[name]) {
+	Firera.addCustomVar = function(name, args) {
+		if (customDrivers[name]) {
 			error('Cant add custom var - name already taken!', name);
 			return;
 		}
 		customDrivers[name] = {depends: args};
 	}
-	
-	Firera.addCustomListWriter = function(name, func, def){
-		if(customDrivers[name]) {
+
+	Firera.addCustomListWriter = function(name, func, def) {
+		if (customDrivers[name]) {
 			error('Cant add custom list writer - name already taken!', name);
 			return;
 		}
-		customDrivers[name] = {writer: function(){
-				if(!this.host.isShared()){
+		customDrivers[name] = {writer: function() {
+				if (!this.host.isShared()) {
 					error('Cant run list writer of a non-list!', this);
 					return;
 				}
 				return func.apply(this, arguments);
-		}, def: def};
+			}, def: def};
 	};
-	Firera.addCustomListReader = function(name, func, def){
-		if(customDrivers[name]) {
+	Firera.addCustomListReader = function(name, func, def) {
+		if (customDrivers[name]) {
 			error('Cant add custom list reader - name already taken!', name);
 			return;
 		}
 		customDrivers[name] = {
-			reader: function(){
-				if(!this.host || !this.host.isShared()){
+			reader: function() {
+				if (!this.host || !this.host.isShared()) {
 					error('Cant run list reader ' + name + ' of a non-list!', this, this.host, this.host.isShared());
 					return;
 				}
 				return func.apply(this, arguments);
-			}, 
+			},
 			def: def
 		};
 	};
-	
-	
-	Firera.addCellFunction = function(name, func){
-		if(Cell.prototype[name]){
-			error('Cell function already assigned!'); 
+
+
+	Firera.addCellFunction = function(name, func) {
+		if (Cell.prototype[name]) {
+			error('Cell function already assigned!');
 			return;
 		}
-		Cell.prototype[name] = function(){
+		Cell.prototype[name] = function() {
 			var args = Array.prototype.slice.call(arguments);
 			args.unshift(func);
 			this.is.apply(this, args);
 		}
 	}
-	Firera.addCellMacros = function(name, func){
-		if(Cell.prototype[name]){
-			error('Cell macros already assigned!'); return;
+	Firera.addCellMacros = function(name, func) {
+		if (Cell.prototype[name]) {
+			error('Cell macros already assigned!');
+			return;
 		}
-		Cell.prototype[name] = function(){
+		Cell.prototype[name] = function() {
 			return this.is.apply(this, func.apply(this, arguments));
 		}
 	}
-	Firera.addHashMethod = function(name, func){
+	Firera.addHashMethod = function(name, func) {
 		hash_methods[name] = func;
 	}
-	Firera.addListMethod = function(name, func){
-		if(List.prototype[name]){
-			error('List method already exists:', name); return;
+	Firera.addListMethod = function(name, func) {
+		if (List.prototype[name]) {
+			error('List method already exists:', name);
+			return;
 		}
-		List.prototype[name] = function(){
+		List.prototype[name] = function() {
 			func.apply(this, arguments);
 			return this;
 		}
 	}
-	
-	Firera.addCustomEventDriver = function(name, func){
-		if(customEventDrivers[name]){
-			error('Custom driver already assigned: ', name); return;
+
+	Firera.addCustomEventDriver = function(name, func) {
+		if (customEventDrivers[name]) {
+			error('Custom driver already assigned: ', name);
+			return;
 		}
 		customEventDrivers[name] = func;
 	}
-	
-	Firera.addCellDriver = function(_, driver){
+
+	Firera.addCellDriver = function(_, driver) {
 		Firera.cell_drivers.push(driver);
 	}
-	Firera.addAutoinitCell = function(_, cellname){
+	Firera.addAutoinitCell = function(_, cellname) {
 		Firera.autoinitCells.push(cellname);
 	}
-	
-	Firera.addPackage = function(package){
+
+	Firera.addPackage = function(package) {
 		var method_names = {
-			customEventDrivers: 'addCustomEventDriver',	
+			customEventDrivers: 'addCustomEventDriver',
 			customReaders: 'addCustomReader',
 			customWriters: 'addCustomWriter',
 			customListReaders: 'addCustomListReader',
@@ -1930,19 +1960,19 @@
 			autoinitCells: 'addAutoinitCell',
 			cellMacrosMethods: 'addCellMacros'
 		}
-		for(var field in method_names){
-			if(package[field]){
+		for (var field in method_names) {
+			if (package[field]) {
 				var method = method_names[field];
-				for(var name in package[field]){
+				for (var name in package[field]) {
 					Firera[method](name, package[field][name]);
 				}
 			}
 		}
 	}
-        Firera.HTMLDrivers = HTMLDrivers;
-	
+	Firera.HTMLDrivers = HTMLDrivers;
+
 	Firera.error = error;
-	
+
 	var lib_var_name = 'Firera';
 	if (window[lib_var_name] !== undefined) {
 		throw new Exception('Cant assign Firera library, varname already taken: ' + lib_var_name);
@@ -1957,12 +1987,13 @@
 ////////// ADDING CORE CUSTOM AND HTML DRIVERS
 //////////
 //////////
-(function(){
+(function() {
 
-    var ___ = function(){}; // function for comments
-    var __$ = function(){
-        console.log.apply(console, arguments);
-    }; // function for comments
+	var ___ = function() {
+	}; // function for comments
+	var __$ = function() {
+		console.log.apply(console, arguments);
+	}; // function for comments
 	var gather_form_values = function(selector, scope, clear, cb) {
 		var res = {};
 		$(selector + " input", scope).each(function() {
@@ -1970,22 +2001,22 @@
 			switch ($(this).attr('type')) {
 				case 'checkbox':
 					val = !!$(this).attr('checked');
-				break;
+					break;
 				case 'submit':
-					
-				break;
+
+					break;
 				case 'file':
-					
-				break;
+
+					break;
 				case 'text':
 					val = $(this).val();
 					if (clear) {
 						$(this).val('');
 					}
-				break;
+					break;
 				case 'hidden':
 					val = $(this).val();
-				break;
+					break;
 			}
 			res[name] = val;
 		})
@@ -1994,142 +2025,148 @@
 		})
 		return res;
 	}
-	
+
 	var core = {
-        cellDrivers: [
-            {
-                name: 'HTML',
-                regex: new RegExp('(.|\s)*\\|.*'),
-                func: function(name){
-                    var parts = name.split("|");
-                    if (parts[1].contains("(")) {
-                    // there are some params
-                    var m = parts[1].match(/([a-z]*)\((.*)\)/i);
-                    this.params = m[2].split(",");
-                    parts[1] = m[1];
-                    }
-                    if (!Firera.HTMLDrivers[parts[1]]) {
-                        error('Unknown driver: ' + parts[1]);
-                        return;
-                    }
-                    var selector = parts[0];
-                    this.driver = Firera.HTMLDrivers[parts[1]];
-                    if (this.driver.def) this.val = this.driver.def;
-                    if (this.driver.reader) {
-                    this.depend(this.host('$actualRootNode'));
-                    this.reader = true;
-                    this.formula = function(){
-                        var element = $(selector, this.host('$actualRootNode').get());
-                        if(element.length){
-                            this.driver.reader.call(this, element);
-                        }
-                    }
-                    this.formula();
-                    }
-                    if (this.driver.writer) {
-                        this.depend(this.host('$actualRootNode'));
-                        this.writer = function(val/*, params */){
-                            var element = $(selector, this.host('$actualRootNode').get());
-                            //console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
-                            var args = Array.prototype.slice.call(arguments);
-                            args.splice(1, 0, element);
-                            this.driver.writer.apply(this, args);
-                        }
-                    }
-                }
-            },
-        ],
+		cellDrivers: [
+			{
+				name: 'HTML',
+				regex: new RegExp('(.|\s)*\\|.*'),
+				func: function(name) {
+					var parts = name.split("|");
+					if (parts[1].contains("(")) {
+						// there are some params
+						var m = parts[1].match(/([a-z]*)\((.*)\)/i);
+						this.params = m[2].split(",");
+						parts[1] = m[1];
+					}
+					if (!Firera.HTMLDrivers[parts[1]]) {
+						error('Unknown driver: ' + parts[1]);
+						return;
+					}
+					var selector = parts[0];
+					this.driver = Firera.HTMLDrivers[parts[1]];
+					if (this.driver.def)
+						this.val = this.driver.def;
+					if (this.driver.reader) {
+						this.depend(this.host('$actualRootNode'));
+						this.reader = true;
+						this.formula = function() {
+							var element = $(selector, this.host('$actualRootNode').get());
+							if (element.length) {
+								this.driver.reader.call(this, element);
+							}
+						}
+						this.formula();
+					}
+					if (this.driver.writer) {
+						this.depend(this.host('$actualRootNode'));
+						this.writer = function(val/*, params */) {
+							var element = $(selector, this.host('$actualRootNode').get());
+							//console.log('getting element', selector, this.host('$actualRootNode').get(), element.length);
+							var args = Array.prototype.slice.call(arguments);
+							args.splice(1, 0, element);
+							this.driver.writer.apply(this, args);
+						}
+					}
+				}
+			},
+		],
 		customReaders: {
-			i: function(){
-				if(!this.host.host.list){
-					error('Cant get index of not array element in reader!'); return;
+			i: function() {
+				if (!this.host.host.list) {
+					error('Cant get index of not array element in reader!');
+					return;
 				}
 				this.set(this.host.getIndex());
-				this.host.host.onChangeItem('afterDelete', function(){
-					if(!this.host) return;// its deleted node
+				this.host.host.onChangeItem('afterDelete', function() {
+					if (!this.host)
+						return;// its deleted node
 					this.set(this.host.getIndex());
 				}.bind(this))
 			}
 		},
 		customWriters: {
-			template: function(){
+			template: function() {
 				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
 			}
 		},
 		customVars: {
 			rootNodeX: ['el', '$rootSelector'],
-			vars: ['streams', function(val, key){
-                                return {
-                                    val: val,
-                                    key: key
-                                }
-                        }, '*'],
+			vars: ['streams', function(val, key) {
+					return {
+						val: val,
+						key: key
+					}
+				}, '*'],
 			children: ['streams', _.id, '*children*'],
 			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode'],
 			actualTemplate: [_.firstExisting, '$template', '$templateX'],
-			bindings: [function(templ, $el){
-                    ___('Computing bindings', arguments);
-                    $el.html(templ);
-                    var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
-                    var res = {};
-                    for(var i in bindings){
-                        if(!res[bindings[i].name]) res[bindings[i].name] = [];
-                        res[bindings[i].name].push(bindings[i].el);
-                        var c = this.host.getVar(bindings[i].name);
-                        if(c){
-                            var type = c.getType();
-                            switch(type){
-                                case 'cell':
-                                    bindings[i].el.innerHTML = c.get();
-                                break;
-                                case 'list':
-                                case 'hash':
-                                    c.applyTo(bindings[i].el);
-                                break;
-                            }
-                        }
-                    }
-                    return res;
-            }, '$actualTemplate', '$actualRootNode'],
-            HTMLVarsWriter: [
-                function(bindings, var_obj){
-                    ___('Runnning writer', arguments);
-                    if(!var_obj || !bindings[var_obj.key]) return;
-                    for(var i in bindings[var_obj.key]){
-                        bindings[var_obj.key][i].innerHTML = var_obj.val;
-                        //console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
-                    }
-                }, '$bindings', '$vars'
-            ],
-            childrenRootNodeWriter: [
-                function(bindings, child_name){
-                    if(!child_name || !bindings[child_name]) return;
-                    var child = this.host(child_name);
-                    ___('Attaching child to DOM', child, arguments);
-                    child.applyTo(bindings[child_name]);
-                }, '$bindings', '$children'
-            ],
+			bindings: [function(templ, $el) {
+					___('Computing bindings', arguments);
+					$el.html(templ);
+					var bindings = _.$searchAttrNotNested($el.get()[0], 'data-fr', true);
+					var res = {};
+					for (var i in bindings) {
+						if (!res[bindings[i].name])
+							res[bindings[i].name] = [];
+						res[bindings[i].name].push(bindings[i].el);
+						var c = this.host.getVar(bindings[i].name);
+						if (c) {
+							var type = c.getType();
+							switch (type) {
+								case 'cell':
+									bindings[i].el.innerHTML = c.get();
+									break;
+								case 'list':
+								case 'hash':
+									c.applyTo(bindings[i].el);
+									break;
+							}
+						}
+					}
+					return res;
+				}, '$actualTemplate', '$actualRootNode'],
+			HTMLVarsWriter: [
+				function(bindings, var_obj) {
+					___('Runnning writer', arguments);
+					if (!var_obj || !bindings[var_obj.key])
+						return;
+					for (var i in bindings[var_obj.key]) {
+						bindings[var_obj.key][i].innerHTML = var_obj.val;
+						//console.log('writing var', var_obj.key, bindings[var_obj.key], var_obj.val);
+					}
+				}, '$bindings', '$vars'
+			],
+			childrenRootNodeWriter: [
+				function(bindings, child_name) {
+					if (!child_name || !bindings[child_name])
+						return;
+					var child = this.host(child_name);
+					___('Attaching child to DOM', child, arguments);
+					child.applyTo(bindings[child_name]);
+				}, '$bindings', '$children'
+			],
 		},
 		customListReaders: {
 			length: function() {
 				var self = this;
 				var list = this.host.host;
-				list.onChangeItem('delete', function(){
-				    self.set(self.get() - 1);
+				list.onChangeItem('delete', function() {
+					self.set(self.get() - 1);
 				})
-				list.onChangeItem('create', function(){
-				    self.set(self.get() + 1);
+				list.onChangeItem('create', function() {
+					self.set(self.get() + 1);
 				})
 				this.set(list.list.length);
 			},
 			selectedItem: function() {
 				var self = this;
 				var list = this.host.host;
-				list.onChangeItem('delete', function(){
+				list.onChangeItem('delete', function() {
 					self.set(self.get() - 1);
 				})
-				list.onChangeItem('create', function(){
+				list.onChangeItem('create', function() {
 					self.set(self.get() + 1);
 				})
 				this.set(list.list.length);
@@ -2146,13 +2183,14 @@
 			shownItems: {
 				writer: function(val) {
 					var scope = this.host.host.getScope();
-					if(scope){
+					if (scope) {
 						var items = scope.children();
 						var start = val, end = parseInt(val) + 1;
-						if(val === '*' || val === true){
-							items.show(); return;
+						if (val === '*' || val === true) {
+							items.show();
+							return;
 						}
-						if(val instanceof Array){
+						if (val instanceof Array) {
 							// range
 							start = val[0];
 							end = val[1];
@@ -2171,13 +2209,13 @@
 					self.set(false);
 				})
 			},
-			files: function($input_element){
+			files: function($input_element) {
 				var self = this;
-				var get_files_info = function(input){
+				var get_files_info = function(input) {
 					var files = input.files;
-					if(files.length){
+					if (files.length) {
 						var res = [];
-						for(var i = 0; i < files.length; i++){
+						for (var i = 0; i < files.length; i++) {
 							res.push({
 								name: files[i].name,
 								size: files[i].size,
@@ -2187,7 +2225,7 @@
 						return res;
 					}
 				}
-				$input_element.change(function(){
+				$input_element.change(function() {
 					self.set(get_files_info($(this).get()[0]));
 				})
 				this.set(get_files_info($input_element.get()[0]));
@@ -2215,8 +2253,8 @@
 					$el.removeClass(classname);
 				}
 			},
-			css:  function(val, $el, property, speed) {
-				if(!speed){
+			css: function(val, $el, property, speed) {
+				if (!speed) {
 					$el.css(property, val);
 				} else {
 					var time = {
@@ -2262,9 +2300,8 @@
 					})
 				}
 			},
-			
 			selectedItem: {
-				reader: function($el){
+				reader: function($el) {
 					if (!$el.length) {
 						error("No element found by selector ");
 					}
@@ -2291,11 +2328,11 @@
 						})
 					}
 				},
-				writer: function(val, $el){
-					if(this._selectedItem_writer_is_in_process){
+				writer: function(val, $el) {
+					if (this._selectedItem_writer_is_in_process) {
 						this._selectedItem_writer_is_in_process = false;
 					} else {
-						if(_.isInt(val)){
+						if (_.isInt(val)) {
 							this._selectedItem_writer_is_in_process = true;
 							$($el.children().get()[val]).click();
 						}
@@ -2316,18 +2353,18 @@
 				});
 				return args;
 			},
-			picks: function(arr_or_obj_cell, fields){
+			picks: function(arr_or_obj_cell, fields) {
 				fields = fields instanceof Array ? fields : [fields];
-				var pick = function(arr_or_obj){
-					if(arr_or_obj instanceof Array){
+				var pick = function(arr_or_obj) {
+					if (arr_or_obj instanceof Array) {
 						var res = [];
-						for(var i in arr_or_obj){
+						for (var i in arr_or_obj) {
 							res.push(pick(arr_or_obj[i]))
 						}
 						return res;
 					} else {// it should be object
 						var obj = {};
-						for(var i in fields){
+						for (var i in fields) {
 							obj[fields[i]] = arr_or_obj[fields[i]];
 						}
 						return obj;
@@ -2349,29 +2386,29 @@
 			},
 			'if': function(cond, then, otherwise) {
 				return [function(flag) {
-					return flag ? (_.existy(then) ? then : true) : (_.existy(otherwise) ? otherwise : false);
-				}, cond];
+						return flag ? (_.existy(then) ? then : true) : (_.existy(otherwise) ? otherwise : false);
+					}, cond];
 			},
 			html: function(cellname) {
 				return [function(el) {
-					return $(el).html();
-				}, cellname];
+						return $(el).html();
+					}, cellname];
 			},
 			el: function(cellname) {
 				return [function(selector) {
-					return (selector instanceof $) ? selector : $(selector);
-				}, cellname];
+						return (selector instanceof $) ? selector : $(selector);
+					}, cellname];
 			},
 			gets: function() {
 				var self = this;
 				var args = Array.prototype.slice.call(arguments);
 				var url = args.shift();
-				var req = 
-				{
-					type: 'GET',
-					dataType: 'json',
-				}
-				if(url instanceof Object){// it's params
+				var req =
+					{
+						type: 'GET',
+						dataType: 'json',
+					}
+				if (url instanceof Object) {// it's params
 					req = _.getMergedObject(req, url);
 				} else {
 					if (url.notContains('/')) {// its varname !!!! may be /parent!
@@ -2421,8 +2458,8 @@
 			ifEqual: function(c1, c2) {
 				return [function(a, b) {
 						return a == b;
-					}, 
-					c1, 
+					},
+					c1,
 					c2
 				];
 			},
@@ -2432,8 +2469,8 @@
 						if (b === '*')
 							return true;
 						return a == b;
-					}, 
-					c1, 
+					},
+					c1,
 					c2
 				];
 				return args;
@@ -2442,7 +2479,7 @@
 				var args = [
 					function(flag) {
 						return !flag;
-					}, 
+					},
 					cell
 				];
 				return args;
@@ -2469,29 +2506,29 @@
 				}
 			}
 		},
-        autoinitCells: ['$HTMLVarsWriter', '$childrenRootNodeWriter']
+		autoinitCells: ['$HTMLVarsWriter', '$childrenRootNodeWriter']
 	}
-	
+
 	Firera.addPackage(core);
-	
+
 	//////////
 	//////////
 	////////// ADDING CORE LIST METHODS: syncing with server etc
 	//////////
 	//////////
-	
-	Firera.addListMethod('sync', function(params){
+
+	Firera.addListMethod('sync', function(params) {
 		var list = this;
 		var name = list.getName();
 		var defaults = {
-			getUrl: function(){
+			getUrl: function() {
 				return list.getName();
 			}
 		}
-		var getContext = function(){
-			
+		var getContext = function() {
+
 		};
-		var getRequest = function(data){
+		var getRequest = function(data) {
 			return _.getMergedObject(data, getContext());
 		};
 		var needed_params = {
@@ -2500,22 +2537,23 @@
 			fields: true,
 			idFields: ['id'],
 			dataType: 'json',
-			
-			create: 'onCreate',// (default), 'manual', 60(interval in seconds)
-			createURL: '/' + name,// default: "/hashName"
+			create: 'onCreate', // (default), 'manual', 60(interval in seconds)
+			createURL: '/' + name, // default: "/hashName"
 			createRequest: getRequest,
 			createMethod: 'PUT', // HTTP method, default is PUT
-			
-			read: 'once',// 'once'(default), 'manual', 60(interval in seconds)
-			readURL: '/' + name,// default: "/hashName"
-			readRequest: function(a){ return a },
+
+			read: 'once', // 'once'(default), 'manual', 60(interval in seconds)
+			readURL: '/' + name, // default: "/hashName"
+			readRequest: function(a) {
+				return a
+			},
 			readMethod: 'GET', // HTTP method, default is GET
-			
-			update: 'onChange',// 'manual', 60(interval in seconds)
+
+			update: 'onChange', // 'manual', 60(interval in seconds)
 			updateURL: '/' + name,
-			getUpdateRequestData: function(changeset, fields, id_fields){
-				if(!id_fields){
-					for(var i in fields){
+			getUpdateRequestData: function(changeset, fields, id_fields) {
+				if (!id_fields) {
+					for (var i in fields) {
 						changeset['where_' + i] = fields[i];
 					}
 				}
@@ -2523,15 +2561,14 @@
 			},
 			updateMethod: 'POST',
 			updateDelay: 0,
-			
-			delete: 'once',//(default),// 'manual', 60(interval in seconds)
+			delete: 'once', //(default),// 'manual', 60(interval in seconds)
 			deleteURL: '/' + name,
-			deleteRequest: function(data){
+			deleteRequest: function(data) {
 				return data;
 			},
-			getDeleteRequestData: function(changeset, fields, id_fields){
-				if(!id_fields){
-					for(var i in fields){
+			getDeleteRequestData: function(changeset, fields, id_fields) {
+				if (!id_fields) {
+					for (var i in fields) {
 						changeset['where_' + i] = fields[i];
 					}
 				}
@@ -2540,25 +2577,26 @@
 			deleteMethod: 'DELETE'// HTTP method, default is DELETE
 		};
 		needed_params = _.getMergedObject(needed_params, params);
-		
-		var getData = function(key){
-			if(needed_params[key] instanceof Function){
+
+		var getData = function(key) {
+			if (needed_params[key] instanceof Function) {
 				return needed_params[key].apply(null, Array.prototype.slice.call(arguments, 1));
 			} else {
 				return needed_params[key];
 			}
 		}
-		
-		var getFunc = function(key){
+
+		var getFunc = function(key) {
 			return needed_params[key];
 		}
-		
-		
+
+
 		// forming params done! Now, attaching handlers...
-		
-		
-		this.onChangeItem('create', function(x, itemnum){
-			if(list.dontfirechange) return;
+
+
+		this.onChangeItem('create', function(x, itemnum) {
+			if (list.dontfirechange)
+				return;
 			var fields = getData('fields');
 			var data = _.filterFields(list.list[itemnum].get(), fields);
 			data = getFunc('createRequest')(data, name);
@@ -2568,19 +2606,20 @@
 				data: data,
 				dataType: getData('datatype'),
 				success: function(result) {
-				    // Do something with the result
+					// Do something with the result
 				}
 			}
 			console.log(params);
 			$.ajax(params);
 		})
-		
+
 		var changer;
-		switch(getData('update')){
+		switch (getData('update')) {
 			case 'onChange':
-				changer = function(x, itemnum, field, old_val, new_val){
-					if(list.dontfirechange) return;
-					
+				changer = function(x, itemnum, field, old_val, new_val) {
+					if (list.dontfirechange)
+						return;
+
 					console.log(arguments);
 					var where_fields = _.filterFields(list.list[itemnum].get(), getData('idFields'));
 					var req = {};
@@ -2592,21 +2631,22 @@
 						data: data,
 						dataType: getData('datatype'),
 						success: function(result) {
-						    // Do something with the result
+							// Do something with the result
 						}
 					});
 				}
-			break;
+				break;
 			case 'manual':
 				var change_flags_hash = {};
 				var change_values_hash = {};
 				var fields = getData('fields');
-				changer = function(x, itemnum, fieldname, old_val, new_val){
-					if(list.dontfirechange) return;
-					if(!(fields instanceof Array) || fields.indexOf(fieldname) !== -1){// we are changing, remember old values
+				changer = function(x, itemnum, fieldname, old_val, new_val) {
+					if (list.dontfirechange)
+						return;
+					if (!(fields instanceof Array) || fields.indexOf(fieldname) !== -1) {// we are changing, remember old values
 						change_flags_hash[itemnum] || (change_flags_hash[itemnum] = {});
 						change_flags_hash[itemnum][fieldname] || (change_flags_hash[itemnum][fieldname] = false);
-						if(change_flags_hash[itemnum][fieldname] === false){
+						if (change_flags_hash[itemnum][fieldname] === false) {
 							change_values_hash[itemnum] || (change_values_hash[itemnum] = {});
 							change_values_hash[itemnum][fieldname] = old_val;
 							change_flags_hash[itemnum][fieldname] = true;
@@ -2614,11 +2654,11 @@
 					}
 				}
 				list._sync = {
-					update: function(number){
+					update: function(number) {
 						var h = list.list[number], c = change_values_hash[number];
 						var where_fields = _.filterFields(h.get(), getData('idFields'));
 						var data = {};
-						for(var i in c){
+						for (var i in c) {
 							data[i] = h(i).get();
 						}
 						data = getData('getUpdateRequestData', data, where_fields, name);
@@ -2630,30 +2670,30 @@
 							success: function() {
 							}
 						});
-						for(var i in c){
+						for (var i in c) {
 							change_flags_hash[number][i] = false;
 						}
 					},
-					restore: function(number){
+					restore: function(number) {
 						var h = list.list[number], c = change_values_hash[number];
-						for(var i in c){
+						for (var i in c) {
 							h(i).set(c[i]);
 							change_flags_hash[number][i] = false;
 						}
 					},
 				}
-				Firera.addEventAction('update', function(x, number, list){
+				Firera.addEventAction('update', function(x, number, list) {
 					list._sync.update(number);
 				})
-				Firera.addEventAction('restore', function(x, number, list){
+				Firera.addEventAction('restore', function(x, number, list) {
 					list._sync.restore(number);
 				})
-			break;
+				break;
 		}
-	
+
 		this.onChangeItem('update', changer);
-		
-		this.onChangeItem('delete', function(x, itemnum){			
+
+		this.onChangeItem('delete', function(x, itemnum) {
 			var fields = getData('fields');
 			var data = _.filterFields(_.filterFields(list.list[itemnum].get(), fields), getData('idFields'));
 			data = getFunc('deleteRequest')(data);
@@ -2662,17 +2702,17 @@
 				type: getData('deleteMethod'),
 				data: data,
 				success: function(result) {
-				    // Do something with the result
+					// Do something with the result
 				}
 			});
 		})
 		/// READ!
 		var contextvars = getData('contextvars');
-		switch(getData('read')){
+		switch (getData('read')) {
 			case 'once':
 				var dt = {};
-				for(var i in contextvars){
-					if(_.isInt(i)){// its array
+				for (var i in contextvars) {
+					if (_.isInt(i)) {// its array
 						dt[contextvars[i]] = list.shared(contextvars[i]).get();
 					} else {
 						dt[i] = list.shared(contextvars[i]).get();
@@ -2684,18 +2724,18 @@
 					data: getData('readRequest', dt),
 					dataType: getData('datatype'),
 					success: function(result) {
-					    if(result){
-						    list.dontfirechange = true;
-                            list.setData(result);
-						    list.dontfirechange = false;
-					    }
+						if (result) {
+							list.dontfirechange = true;
+							list.setData(result);
+							list.dontfirechange = false;
+						}
 					}
 				};
 				$.ajax(req_config);
-			break;
+				break;
 			case false:
 				// do nothing!
-			break;
+				break;
 			case 'onContextChange':
 				contextvars.unshift({
 					url: getData('readURL', name, getData('host')),
@@ -2704,98 +2744,98 @@
 					getRequestHash: getFunc('readRequest')
 				});
 				list.shared('$datasource').gets.apply(list.shared('$datasource'), contextvars);
-			break;
+				break;
 		}
 	})
-	
-	Firera.addListMethod('simplePHPSync', function(params){
+
+	Firera.addListMethod('simplePHPSync', function(params) {
 		var default_params = {
-			readURL: function(name){
+			readURL: function(name) {
 				return '/get_' + name + '.php';
 			},
-			updateURL: function(name){
+			updateURL: function(name) {
 				return '/edit_' + name + '.php';
 			},
-			createURL: function(name){
+			createURL: function(name) {
 				return '/add_' + name + '.php';
 			},
-			deleteURL: function(name){
+			deleteURL: function(name) {
 				return '/remove_' + name + '.php';
 			},
 			deleteMethod: 'GET',
 			createMethod: 'POST',
 		}
-		for(var i in params){
+		for (var i in params) {
 			default_params[i] = params[i];
 		}
 		return this.sync.call(this, default_params);
 	});
-	
-	Firera.addListMethod('DChSync', function(params){
+
+	Firera.addListMethod('DChSync', function(params) {
 		var default_params = {
-			createRequest: function(data, name){
+			createRequest: function(data, name) {
 				var res = {};
-				for(var i in data){
+				for (var i in data) {
 					res[name + '_' + i] = data[i];
 				}
 				return res;
 			},
-			readURL: function(name, host){
+			readURL: function(name, host) {
 				return host + '/get_' + name;
 			},
-			updateURL: function(name, host){
+			updateURL: function(name, host) {
 				return host + '/edit_' + name;
 			},
-			createURL: function(name, data, host){
+			createURL: function(name, data, host) {
 				return host + '/add_' + name;
 			},
-			deleteURL: function(name, host){
+			deleteURL: function(name, host) {
 				return host + '/remove_' + name;
 			},
-			getUpdateRequestData: function(changeset, id_fields, name){
+			getUpdateRequestData: function(changeset, id_fields, name) {
 				/*if(!id_fields){
-					for(var i in fields){
-						changeset['where_' + i] = fields[i];
-					}
-				}*/
+				 for(var i in fields){
+				 changeset['where_' + i] = fields[i];
+				 }
+				 }*/
 				var res = {};
-				
+
 				return changeset;
 			},
 			deleteMethod: 'GET',
 			createMethod: 'GET',
 			updateMethod: 'GET',
 		}
-		for(var i in params){
+		for (var i in params) {
 			default_params[i] = params[i];
 		}
 		return this.sync.call(this, default_params);
 	});
-	
+
 	/////
 	/////
 	///// Plugins
 	/////
 	/////
-	
+
 	Firera.plugins = {
 		// ;)
 	}
-	
+
 })();
 
 ////// Firera.History
-(function(){
+(function() {
 
-	Firera.startHistory = function(config, main_app_hash){
+	Firera.startHistory = function(config, main_app_hash) {
 		var possible_handlers = {
-			'val': function(key, val){
+			'val': function(key, val) {
 				return val;
 			},
-			'key/val': function(key, val){
+			'key/val': function(key, val) {
 				return key + '/' + val;
 			},
-			'param': function(key, val){
+			'param': function(key, val) {
 				return key + '=' + val;
 			}
 		}
@@ -2804,11 +2844,11 @@
 		var field_cells = {};
 		var cell_fields = {};
 		var parse_url_func;
-		var set_url = function(x, config){
+		var set_url = function(x, config) {
 			var args = [];
 			var handlers = [];
 			var types = [];
-			for(var i in config.fields){
+			for (var i in config.fields) {
 				var f = config.fields[i], fieldname;
 				f.key = fieldname = f['key'] || f['cell'];
 				var cellname = f['cell'];
@@ -2819,31 +2859,31 @@
 				types.push(f['type']);
 				handlers.push(possible_handlers[f['type']].bind(null, fieldname));
 			}
-			args.unshift(function(){
+			args.unshift(function() {
 				var path_url = [], context;
 				var param_url = [];
-				for(var i in handlers){
+				for (var i in handlers) {
 					context = types[i] === 'param' ? param_url : path_url;
 					context.push(handlers[i](arguments[i] || ''));
 				}
 				return (path_url ? '' + path_url.join("/") : '') + (param_url ? '?' + param_url.join("&") : '');
 			})
 			self("url").is.apply(self("url"), args);
-		
-			var parse_url = function(){
+
+			var parse_url = function() {
 				var tail = location.pathname.replace(prefix, "");
 				var parts = tail.split('/');
 				var data = {};
 				var p = 0;
 				var c = 0;
-				while(parts[p]){
-					if(types[c] === 'val'){
+				while (parts[p]) {
+					if (types[c] === 'val') {
 						data[config.fields[c].cell] = parts[p];
 						p++;
 						c++;
 						continue;
 					}
-					if(types[c] === 'key/val'){
+					if (types[c] === 'key/val') {
 						data[config.fields[c].cell] = parts[p + 1];
 						p += 2;
 						c++;
@@ -2851,7 +2891,7 @@
 					}
 				}
 				var req = location.search.slice(1).split('&');
-				for(var i in req){
+				for (var i in req) {
 					var prt = req[i].split("=");
 					data[field_cells[prt[0]]] = prt[1];
 				}
@@ -2859,47 +2899,47 @@
 			}
 			parse_url_func = parse_url;
 		}
-		
+
 		self('config').onChange(set_url);
 		var prefix;
-		switch(config.prefix){
+		switch (config.prefix) {
 			case '%filename%':
 				var path = location.pathname.split('/');
 				path.pop();
 				prefix = path.join('/');
-			break;
+				break;
 			case false:
 				prefix = location.pathname;
-			break;
+				break;
 			default:
 				prefix = config.prefix;
 		}
 		var skip = true;
-		self('url').onChange(function(old_url, new_url){
-			if(skip){
+		self('url').onChange(function(old_url, new_url) {
+			if (skip) {
 				skip = false;
 				return;
 			}
 			var url = prefix + new_url;
 			var state = main_app_hash.get(fields_to_pick);
 			var st = {};
-			for(var i in state){
+			for (var i in state) {
 				st[cell_fields[i]] = state[i];
 			}
 			history.pushState(st, null, url);
 		})
 		set_url(null, config);
 		var data = parse_url_func();
-		for(var i in data){
+		for (var i in data) {
 			main_app_hash(i).set(data[i]);
 		}
-		window.onpopstate = function(e){
+		window.onpopstate = function(e) {
 			var state = e.state;
-			for(var field in state){
+			for (var field in state) {
 				main_app_hash(field_cells[field]).set(state[field]);
 			}
 		}
 	}
-	
+
 }());
 
