@@ -1459,8 +1459,26 @@
 			return;
 		}
 		if (func instanceof Object) {// it's hash!
-			var i = this.list.indexOf(func);
-			this._remove_by_num(i);
+			if(func.getType && func.getType() === 'hash'){
+				var i = this.list.indexOf(func);
+				__$('Removing hash from list', i);
+				this._remove_by_num(i);
+			} else {
+				// it's pojo, remove as WHERE
+				for(var i in this.list){
+					var remove = true;
+					for(var field in func){
+						if(this.list[i].get(field) !== func[field]){
+							remove = false;
+							break;
+						}
+					}
+					if(remove){
+						this._remove_by_num(i);
+					}
+				}
+			}
+			return;
 		}
 		var f = _.getMapFunc(func);
 		for (var i in this.list) {
@@ -1540,20 +1558,36 @@
 	}
 
 	List.prototype.applyTo = function(selector_or_element, start_index, end_index) {
-		___('Setting RootNode in List', arguments, this.shared);
-		//this.shared('$rootSelector').set(selector_or_element);
+		___('Setting RootNode in List', arguments);
 		var already_template = this.shared('$actualTemplate').get();
+		var el = $(selector_or_element);
+		this._selector = el;
+		___('Template already exists', already_template);
 		if (!already_template) {
-			var el = $(selector_or_element);
 			already_template = el.html();
-			el.html('');
+			___('Removing template aftr read');
 			this.shared('$template').set(already_template);
 		}
+		el.html('');
+		var bind_child = function(i){
+			___('Binding child to DOM', this.list[i].get());
+			var div = $("<div/>").appendTo(this._selector);
+			this.list[i]('$template').set(this.shared('$actualTemplate').get());
+			this.list[i].applyTo(div);
+		}.bind(this);
 		___('We got template', already_template);
 		for (var i in this.list) {
-			var div = $("<div/>").appendTo(el);
-			this.list[i]('$template').set(already_template);
-			this.list[i].applyTo(div);
+			bind_child(i);
+		}
+		if(!this._writers_inited){
+			this.onChangeItem('create', function(__, index){
+				bind_child(index);
+			})
+			this.onChangeItem('delete', function(__, index){
+				___("Remove child node", index);
+				this._selector.children()[index].remove();
+			}.bind(this))
+			this._writers_inited = true;
 		}
 	}
 
@@ -2138,15 +2172,15 @@
 					}
 				}, '$bindings', '$vars'
 			],
-			childrenRootNodeWriter: [
+			/*childrenRootNodeWriter: [
 				function(bindings, child_name) {
 					if (!child_name || !bindings[child_name])
 						return;
 					var child = this.host(child_name);
-					___('Attaching child to DOM', child, arguments);
-					child.applyTo(bindings[child_name]);
+					__$('Attaching child to DOM', child, arguments);
+					//child.applyTo(bindings[child_name]);
 				}, '$bindings', '$children'
-			],
+			],*/
 		},
 		customListReaders: {
 			length: function() {
