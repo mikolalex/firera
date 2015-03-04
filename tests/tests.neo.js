@@ -583,24 +583,35 @@ describe('Tests from guide', function() {
 		])
         app.applyTo(".testing-list-binding");
         //console.log(Firera.dump(app('cities')));
-	assert.equal($(".testing-list-binding [data-fr=cities] > div:nth-child(2) > [data-fr=population]").html(), '1500000');
-	app('cities').push({
-		name: 'Dnipro',
-		population: 900000
-	})
-	//app('cities').remove(1);
-	app('cities').remove({name: 'Kharkiv'});
-	app('cities/1')('name').set('Kramatorsk');
-	app('cities').push({
-		name: 'Odesa',
-		population: 1100000
-	})
-	var ct = $(".testing-list-binding .cities");
+        assert.equal($(".testing-list-binding [data-fr=cities] > div:nth-child(2) > [data-fr=population]").html(), '1500000');
+        app('cities').push({
+            name: 'Dnipro',
+            population: 900000
+        })
+        //app('cities').remove(1);
+        app('cities').remove({name: 'Kharkiv'});
+        app('cities/1')('name').set('Kramatorsk');
+        app('cities').push({
+            name: 'Odesa',
+            population: 1100000
+        })
+        var ct = $(".testing-list-binding .cities");
         assert.equal(ct.children().length, 4);
         assert.equal(ct.children(":nth-child(1)").find("[data-fr=name]").html(), 'Kyiv');
         assert.equal(ct.children(":nth-child(2)").find("[data-fr=name]").html(), 'Kramatorsk');
         assert.equal(ct.children(":nth-child(3)").find("[data-fr=name]").html(), 'Dnipro');
         assert.equal(ct.children(":nth-child(4)").find("[data-fr=name]").html(), 'Odesa');
+    })
+    
+    it('Testing formula with previous val', function(){
+		var app = new Firera;
+        app('a').set(42);
+        app('logger').is(_.arrAdd, '^', 'a');
+        app('ll').is(_.len, 'logger');
+        app('a').set(21);
+        app('a').set(17);
+        assert.deepEqual(app('logger').get(), [42, 21, 17]);
+        fequal(app('ll'), 3);
     })
 	/*
 	it('Testing $template', function() {

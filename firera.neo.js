@@ -215,6 +215,15 @@
 				return v;
 			}
 		},
+        // immutably add a value to array(returns new array)
+        arrAdd: function(arr, val){
+            var arr1 = arr instanceof Array ? arr.slice() : [];
+            arr1.push(val);
+            return arr1;
+        },
+        len:  function(a){
+            return a.length;
+        },
 		canTakeArray: function(func) {
 			return function(val) {
 				if (val instanceof Array) {
@@ -433,12 +442,12 @@
 		//////////
 		this.invalidateObservers();
 		this.observables--;
-		this.updateObservers(this.getName());
+		this.updateObservers();
 		this.change(old_val, new_val);
 		return this;
 	}
 
-	Cell.prototype.updateObservers = function(name, no_change) {
+	Cell.prototype.updateObservers = function(no_change) {
 		for (var i in this.observers) {
 			this.cell(this.observers[i]).compute(this.val, this.name, no_change);
 		}
@@ -628,6 +637,10 @@
 			}
 		}
 		var old_val = this.val;
+        if(this.fillWithPrev !== undefined){
+            this.argsValues[this.fillWithPrev] = old_val;
+            ___('Filling prev val argument with actuval value', old_val, this.argsValues);
+        }
 		var new_val = this.formula.apply(this, this.argsValues);
 		this.val = new_val;
 		if (this.writer && !_.isReservedName(this.getName())) {
@@ -635,7 +648,7 @@
 		}
 		if (!no_change)
 			this.change(old_val, this.val);
-		this.updateObservers(name, no_change);
+		this.updateObservers(no_change);
 		return this;
 	}
 
@@ -689,14 +702,19 @@
 		this.argsKeys = {};
 		for (var i = 0; i < args.length; i++) {
 			var cell = args[i];
-			if (args[i] instanceof Cell) {
-				error('Cant depend on cell iself(provide a name)');
-			} else {
-				cell = this.host(args[i]);
-			}
-			this.depend(cell, args[i]);
-			this.argsKeys[this.host(args[i]).getName()] = i;
-			this.argsValues.push(this.host(args[i]).get());
+            if(cell !== '^'){
+                if (args[i] instanceof Cell) {
+                    error('Cant depend on cell iself(provide a name)');
+                } else {
+                    cell = this.host(args[i]);
+                }
+                this.depend(cell, args[i]);
+                this.argsKeys[this.host(args[i]).getName()] = i;
+                this.argsValues[i] = this.host(args[i]).get();
+            } else {
+                // previous val of this cell itself
+                this.fillWithPrev = i;
+            }
 		}
 		this.formula = formula;
 		this.free = false;
@@ -717,7 +735,7 @@
 		}
 		if (!no_change)
 			this.change(old_val, this.val);
-		this.updateObservers(name, no_change);
+		this.updateObservers(no_change);
 		return this;
 	}
 
