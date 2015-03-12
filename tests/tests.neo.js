@@ -460,12 +460,19 @@ describe('CHE', function() {
     })
 	it('Testing token parser', function() {
         var str = 'ololo->(bla,bl,(a->b))';
-        console.log('string', str);
-        Firera.che(str);
+        //console.log('string', str);
+        var c = 0;
+        Firera.che(str, function(){
+            c++;
+        });
+        Firera.che.feed('ololo')
+        ('bl')('ololo')('bla')('bl')('ololo')('ololo')
+        ('a')('b');
+        assert.equal(c, 3);
     })
-	it('', function() {
+	/*it('', function() {
         
-    })
+    })*/
 })
 
 describe('Tests from guide', function() {

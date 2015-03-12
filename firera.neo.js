@@ -323,7 +323,7 @@
 	}
     
     // event machine parser
-    var che = function(str){
+    var che = function(str, cb){
         var tokens = {
             '(': {
                 direction: 'down',
@@ -341,12 +341,12 @@
         var res = {tokens: []};
         var last_parsed = 0;
         var parser = function(pos, str, last_parsed, stack){
-            if(str[pos] === undefined) return;
+            if(str[pos] === undefined) return stack;
             var next_pos = false;
             for(var token in tokens){
                 next_pos = che.parse_token(pos, str, token);
                 if(next_pos){
-                    __$('Found token', token, 'in', pos, str[pos], next_pos);
+                    ___('Found token', token, 'in', pos, str[pos], next_pos);
                     var next_stack, direction = tokens[token].direction;
                     if(last_parsed !== pos){
                         stack.tokens.push(str.slice(last_parsed, pos));
@@ -364,14 +364,104 @@
                         stack.tokens.push(next_stack);
                         next_stack.tokens.push(token);
                     }
-                    __$('Moviing then from', next_pos, str[next_pos]);
+                    ___('Moving then from', next_pos, str[next_pos]);
                     return parser(next_pos, str, next_pos, next_stack);
                 }
             }
             return parser(pos + 1, str, last_parsed, stack);
         }
         parser(0, str, 0, res);
-        console.log("RES is", res);
+        // three kinds of jumpers: matcher, chainer, chooser
+        
+        var get_jumper = function(type, children){
+            if(type === 'matcher'){
+                return function(e1, e2){
+                    ___('Matcher is run');
+                    return children(e1, e2);
+                }
+            }
+            if(type === 'chainer'){
+                return (function(){
+                   var pointer = 0;
+                   return function(e1, e2){
+                       ___('Chainer is run', e1, pointer);
+                       var done = children[pointer](e1, e2);
+                       ___('THe result of check is', done)
+                       if(done){
+                           if(pointer === children.length - 1){
+                               pointer = 0;
+                               return true;
+                           } else {
+                               pointer++;
+                           }
+                       }
+                       return false;
+                   }
+                }())
+            }
+            if(type === 'chooser'){
+                return function(e1, e2){
+                    for(var i in children){
+                        if(children[i](e1, e2)) return true;
+                    }
+                    return false;
+                }
+            }
+        }
+        
+        var semantic_parser = function(set){
+            if(set[0] === '('){
+                if(set[set.length - 1] === ')'){
+                    // it's just brackets, lets remove them
+                    set.pop();
+                    set.shift();
+                }
+            }
+            var main_token = '', token_type;
+            if(set.indexOf(',') !== -1){
+                // it's a set of elements
+                main_token = ',';
+                token_type = 'chooser';
+            }
+            if(set.indexOf('->') !== -1){
+                // it's a set of elements
+                main_token = '->';
+                token_type = 'chainer';
+            }
+            //console.log('Set', set, 'main token', main_token);
+            var tokens = [], actual_token;
+            for(var i in set){
+                var tk = set[i];
+                //console.log('tk', tk, main_token);
+                if(tk === main_token){
+                    // skip
+                    continue;
+                }
+                if(tk instanceof Object){
+                    // its submissed set of tokens
+                    actual_token = semantic_parser(tk.tokens);
+                } else {
+                    var event_name = tk;
+                    var f = (function(evn){ 
+                        return function(e1, e2){
+                            ___('Checking cell', e1, evn);
+                            return e1 === evn;
+                        }
+                    })(event_name)
+                    actual_token = get_jumper('matcher', f);
+                }
+                tokens.push(actual_token);
+            }
+            ___('Now tokens set is', token_type, set, tokens);
+            return get_jumper(token_type, tokens);
+        }
+        // next stage - semantic check of a token tree
+        //console.log(res);
+        var root = semantic_parser(res.tokens);
+        //console.log('___________________');
+        //console.log(root);
+        che.revolvers.push([root, cb]);
+        
     }
     che.parse_token = function(pos, str, token){
         for(var i = 0; i < token.length; i++){
@@ -379,6 +469,15 @@
         }
         return pos + i;
     }
+    
+    che.feed = function(cell, val){
+        for(var i in this.revolvers){
+            if(this.revolvers[i][0](cell, val)) this.revolvers[i][1](); 
+        }
+        return this.feed.bind(this);
+    }
+    
+    che.revolvers = [];
 
 
 	var Cell = function(name, host, params) {
@@ -1168,7 +1267,7 @@
 				this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
 			}
 			/*if(prev_val !== undefined && this.host && this.host instanceof List){
-			 __$('Changing shared value', this.getName());
+			 ___('Changing shared value', this.getName());
 			 //this.host.changeItem('update', this.getName(), cellname, prev_val, new_val);
 			 //this.host.changeItemField(cellname, this.getName(), prev_val, new_val);
 			 }*/
@@ -1537,7 +1636,7 @@
 		if (func instanceof Object) {// it's hash!
 			if(func.getType && func.getType() === 'hash'){
 				var i = this.list.indexOf(func);
-				__$('Removing hash from list', i);
+				___('Removing hash from list', i);
 				this._remove_by_num(i);
 			} else {
 				// it's pojo, remove as WHERE
@@ -2102,7 +2201,7 @@
 
 	var ___ = function() {
 	}; // function for comments
-	var __$ = function() {
+	var ___ = function() {
 		console.log.apply(console, arguments);
 	}; // function for comments
 	var gather_form_values = function(selector, scope, clear, cb) {
@@ -2254,7 +2353,7 @@
 					if (!child_name || !bindings[child_name])
 						return;
 					var child = this.host(child_name);
-					__$('Attaching child to DOM', child, arguments);
+					___('Attaching child to DOM', child, arguments);
 					//child.applyTo(bindings[child_name]);
 				}, '$bindings', '$children'
 			],*/
