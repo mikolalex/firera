@@ -321,6 +321,64 @@
 		}
 		return res;
 	}
+    
+    // event machine parser
+    var che = function(str){
+        var tokens = {
+            '(': {
+                direction: 'down',
+            },
+            ')': {
+                direction: 'up',
+            },
+            '->': {
+                direction: 'same',
+            },
+            ',': {
+                direction: 'same',
+            },
+        }
+        var res = {tokens: []};
+        var last_parsed = 0;
+        var parser = function(pos, str, last_parsed, stack){
+            if(str[pos] === undefined) return;
+            var next_pos = false;
+            for(var token in tokens){
+                next_pos = che.parse_token(pos, str, token);
+                if(next_pos){
+                    __$('Found token', token, 'in', pos, str[pos], next_pos);
+                    var next_stack, direction = tokens[token].direction;
+                    if(last_parsed !== pos){
+                        stack.tokens.push(str.slice(last_parsed, pos));
+                    }
+                    if(direction === 'same'){
+                        next_stack = stack;
+                        stack.tokens.push(token);
+                    }
+                    if(direction === 'up'){
+                        stack.tokens.push(token);
+                        next_stack = stack.parent;
+                    }
+                    if(direction === 'down'){
+                        next_stack = {tokens: [], parent: stack};
+                        stack.tokens.push(next_stack);
+                        next_stack.tokens.push(token);
+                    }
+                    __$('Moviing then from', next_pos, str[next_pos]);
+                    return parser(next_pos, str, next_pos, next_stack);
+                }
+            }
+            return parser(pos + 1, str, last_parsed, stack);
+        }
+        parser(0, str, 0, res);
+        console.log("RES is", res);
+    }
+    che.parse_token = function(pos, str, token){
+        for(var i = 0; i < token.length; i++){
+            if(str[pos + i] !== token[i]) return false;
+        }
+        return pos + i;
+    }
 
 
 	var Cell = function(name, host, params) {
@@ -1775,6 +1833,7 @@
 	/////
 	Firera.list = List;
 	Firera.hash = Firera;
+	Firera.che = che;
 	Firera.dump = function(hash, include_self) {
 		if (hash instanceof List) {
 			return Firera.dumpList(hash);

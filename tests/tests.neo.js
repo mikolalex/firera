@@ -452,6 +452,22 @@ describe('Simple values', function() {
 
 })
 
+describe('CHE', function() {
+	it('Testing parse tokens', function() {
+        var str = 'Ololo->alala';
+        assert.equal(Firera.che.parse_token(5, str, '->a'), 8);
+        assert.equal(Firera.che.parse_token(6, str, '>az'), false);
+    })
+	it('Testing token parser', function() {
+        var str = 'ololo->(bla,bl,(a->b))';
+        console.log('string', str);
+        Firera.che(str);
+    })
+	it('', function() {
+        
+    })
+})
+
 describe('Tests from guide', function() {
 
 	it('Cells with dependancy', function() {
