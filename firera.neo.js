@@ -345,7 +345,13 @@
         var res = {tokens: []};
         var self = this;
         var parser = function(pos, str, last_parsed, stack){
-            if(str[pos] === undefined) return stack;
+            if(str[pos] === undefined) {
+                if(last_parsed !== pos){
+                    var stream = str.slice(last_parsed, pos);
+                    stack.tokens.push(stream);
+                }
+                return stack;
+            }
             var next_pos = false;
             for(var token in tokens){
                 next_pos = self.parse_token(pos, str, token);
@@ -496,7 +502,7 @@
             for(var i in this.dep_tree[cell]){
                 if(this.dep_tree[cell][i](cell, val)){
                     ___('Event happened!', this.dep_tree[cell][i].contexts);
-                    this.onEvent(this.dep_tree[cell][i].cname, this.dep_tree[cell][i].contexts);
+                    this.onEvent(this.dep_tree[cell][i].cname, this.dep_tree[cell][i].contexts.slice());
                     this.dep_tree[cell][i].contexts.length = 0;
                     this.feed(this.dep_tree[cell][i].cname);
                 }
@@ -830,8 +836,10 @@
 		if (this.writer && !_.isReservedName(this.getName())) {
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
-		if (!no_change)
+		if (!no_change){
+            ___('Compute change', 1, old_val);
 			this.change(old_val, this.val);
+        }
 		this.updateObservers(no_change);
 		return this;
 	}
@@ -1860,14 +1868,14 @@
 	Firera.cell_drivers = [
 		{
 			name: 'common',
-			regex: new RegExp('.*'),
+			match: new RegExp('.*'),
 			func: function() {
 				this.dumb = true;
 			}
 		},
 		{
 			name: 'system',
-			regex: new RegExp('^\\$.*'),
+			match: new RegExp('^\\$.*'),
 			func: function(name) {
 				var params;
 				var driver_name = name.slice(1);
@@ -1891,9 +1899,25 @@
 		},
         {
             name:  'cheEvent',
-            regex: /->/,
+            match: /->/,
             func: function(name){
-                __$('Che event assigned', name);
+                ___('Che event assigned', name);
+                var hash = this.host;
+                if(!hash.che){
+                    hash.che = new Che(function(name){
+                        ___("We need to subscribe che to var", name);
+                        hash(name).onChange(function(prev, curr){
+                            if(curr !== undefined){
+                                // if its not for the first time
+                                hash.che.feed(name);
+                            }
+                        });
+                    }, null, function(name, val){
+                        __$('Che event happened!', name, val);
+                        hash(name).set(val);
+                    });
+                }
+                hash.che.create(name);
             }
         }
 	];
@@ -1903,9 +1927,16 @@
 	Firera.find_cell_driver = function(name) {
 		var i = this.cell_drivers.length;
 		while (i--) {
-			if (this.cell_drivers[i].regex.test(name)) {
-				return this.cell_drivers[i].func;
-			}
+            var a = this.cell_drivers[i].match;
+            if(a instanceof RegExp){
+                if (a.test(name)) {
+                    return this.cell_drivers[i].func;
+                }
+            } else {
+                if (a(name)) {
+                    return this.cell_drivers[i].func;
+                }
+            }
 		}
 	}
 
@@ -2224,7 +2255,9 @@
 		cellDrivers: [
 			{
 				name: 'HTML',
-				regex: new RegExp('(.|\s)*\\|.*'),
+				match: function(str){
+                    return str.indexOf('|') !== -1 && str.indexOf('->') === -1;
+                },
 				func: function(name) {
 					var parts = name.split("|");
 					if (parts[1].contains("(")) {

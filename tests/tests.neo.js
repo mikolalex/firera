@@ -3,7 +3,7 @@ var fequal = function(fvar, val) {
 }
 
 describe('Simple values', function() {
-	it('Testing simple values', function() {
+	it('simple values', function() {
 		var a = new Firera;
 		a("foo").just('bar');
 		a("loo").is("foo");
@@ -41,7 +41,7 @@ describe('Simple values', function() {
 		assert.deepEqual([{"name": "Ivan"}, {"name": "Ivan"}, {"name": "Petro"}], a('names').get());
 	})
         
-	it('Testing arrays(length, etc)', function() {
+	it('arrays(length, etc)', function() {
 		var app = new Firera;
 		app('itemnum').set(0);
 		app('items').are([1, 2, 3], {share: {gives: {'itemnum': '$length'}}});
@@ -52,7 +52,7 @@ describe('Simple values', function() {
 		assert.equal(app('itemnum').get(), 4);
 	})
         
-	it('Testing .getList() generator', function() {
+	it('.getList() generator', function() {
 		var app = new Firera;
                 app('length').set(10);
 		app('items').getList(function(len){
@@ -73,7 +73,7 @@ describe('Simple values', function() {
 
 	})
     
-    it('Testing onListChange', function(){
+    it('onListChange', function(){
         var app = new Firera();
         app.onChange(function(){
             console.log('I changed', arguments);
@@ -99,13 +99,13 @@ describe('Simple values', function() {
         //console.log('CG', app('items').get('$actualRootNode').length);
     })
 
-	it('Testing templateX, rootNode, rootNodeX, rootSelector', function() {
+	it('templateX, rootNode, rootNodeX, rootSelector', function() {
 		var app = new Firera;
 		app('$rootSelector').set('.pickleberry');
 		assert.equal(app('$templateX').get(), '<h2>Hey, dude!</h2>');
 	})
 
-	it('Testing $takes and $gives as parameters', function() {
+	it('$takes and $gives as parameters', function() {
 		var app = new Firera;
 		app('a').set(10);
 		app('numbers').are({
@@ -130,7 +130,7 @@ describe('Simple values', function() {
 		assert.equal(app.get('numbers_status'), true);
 	})
 
-	it('Testing function composition', function() {
+	it('function composition', function() {
                 var add_10 = function(a){ return a + 10;};
                 var multiply = function(a, b){
                     return a*b;
@@ -143,7 +143,7 @@ describe('Simple values', function() {
 		assert.equal(app('b').get(), 100);
 	})
 
-	it('Testing HTML getters and setters', function() {
+	it('HTML getters and setters', function() {
                
 		var app = new Firera;
 		app.applyTo(".getsettest");
@@ -160,7 +160,7 @@ describe('Simple values', function() {
 		assert.equal($(".getsettest2 .outp").html(), '42');
 	})
 
-	it('Testing "+" formulas and stream', function() {
+	it('"+" formulas and stream', function() {
 		var app = new Firera;
 		app('a').set(42);
 		app('b').set(23);
@@ -182,7 +182,7 @@ describe('Simple values', function() {
 		assert.deepEqual(app.get('something'), {val: 14, key: "b"});
 	})
         
-        it('Testing streams via map', function(){
+        it('streams via map', function(){
             var app = new Firera;
             app('a').set(42);
             app('b').set(23);
@@ -199,7 +199,7 @@ describe('Simple values', function() {
             assert.equal(app.get('c'), 37);
         })
 	
-	it('Testing onChangeItem, onChangeItemField, reduce on all fields with __val', function(){
+	it('onChangeItem, onChangeItemField, reduce on all fields with __val', function(){
 		var itemnum = 3;
 		var arr = new Firera.list({
 			data: [1, 2, 3],
@@ -220,7 +220,7 @@ describe('Simple values', function() {
 		assert.equal(7, arr.get('sum'));
 	})
     
-    it('Testing reduce on array on some fields', function(){
+    it('reduce on array on some fields', function(){
         var arr = new Firera.list({
             data: [
                 {
@@ -248,7 +248,7 @@ describe('Simple values', function() {
         assert.equal(arr.get('max_age'), 44);
     })
     
-    it('Testing list get(filter, map), filtermap', function(){
+    it('list get(filter, map), filtermap', function(){
         var app = new Firera();
         app('people').are([{
             name: 'Mykyta',
@@ -310,7 +310,7 @@ describe('Simple values', function() {
         
     })
         
-        it('Testing bindings', function(){
+        it('bindings', function(){
             var app = new Firera;
             app('a').set(42);
             app('b').set(23);
@@ -331,7 +331,7 @@ describe('Simple values', function() {
             assert.equal($(".bindingstest [data-fr=cc]").html(), app.get('cc'));
         })
 
-	/*it('Testing visualization package', function() {
+	/*it('visualization package', function() {
 		var data = [
 			{
 				name: 'Africa',
@@ -367,7 +367,7 @@ describe('Simple values', function() {
 			);
 	})*/
 
-	it('Testing join', function() {
+	it('join', function() {
 		var app = {
 			each: {
 				fullname: ['is', function(a, b) {
@@ -391,7 +391,7 @@ describe('Simple values', function() {
 		assert.equal(obj.get(1)('fullname').get(), 'Andryi Biletskyi');
 	})
 
-	it('Testing adding custom methods', function() {
+	it('adding custom methods', function() {
 		var app = new Firera;
 		Firera.addCellFunction('abs', function(num) {
 			var n = Number(num);
@@ -411,7 +411,7 @@ describe('Simple values', function() {
 		assert.equal(app('c').get(), false);
 	})
 /*
-	it('Testing templates and input bindings', function() {
+	it('templates and input bindings', function() {
 		var app = new Firera;
 		app('people').are([
 			{
@@ -441,7 +441,7 @@ describe('Simple values', function() {
 
 	})
 */
-	it('Testing sync', function() {
+	it('sync', function() {
 		var app = new Firera;
 		app('items').are([1, 2, 3]);
 		var first = app('items').get(0);
@@ -453,12 +453,12 @@ describe('Simple values', function() {
 })
 
 describe('CHE', function() {
-	it('Testing parse tokens', function() {
+	it('parse tokens', function() {
         var str = 'Ololo->alala';
         assert.equal(Firera.Che.prototype.parse_token(5, str, '->a'), 8);
         assert.equal(Firera.Che.prototype.parse_token(6, str, '>az'), false);
     })
-	it('Testing token parser', function() {
+	it('token parser', function() {
         var str = 'ololo->(bla,bl,(a->b))';
         //console.log('string', str);
         var c = 0;
@@ -472,16 +472,25 @@ describe('CHE', function() {
         ('a')('b');
         assert.equal(c, 3);
     })
-	it('Testing simple CLICK event in firera', function() {
+	it('simple CLICK event in firera', function() {
         var app = new Firera();
         app.applyTo('.testing-che-events');
         app('a').is('h2|click');
         $(".testing-che-events h2").click();
         assert.equal(app.get('a').target, $(".testing-che-events h2").get()[0]);
     })
-	/*it('', function() {
+	it('che chain event', function() {
+        var a = new Firera();
+        a('two_clicks').is('.a|click->.b|click');
+        a.applyTo('.testing-che-chain');
+        $(".testing-che-chain .a").click();
+        $(".testing-che-chain .b").click();
+        var context = a('two_clicks').get();
+        assert.equal(context.length, 2);
+    })
+	it('', function() {
         
-    })*/
+    })
 })
 
 describe('Tests from guide', function() {
@@ -553,7 +562,7 @@ describe('Tests from guide', function() {
 		assert.deepEqual(app('cities/1').get(), {name: "Kharkiv", population: 1500000, country: "Ukraine", isbig: true});
 	})
 	
-	it('Testing shared for lists', function() {
+	it('shared for lists', function() {
 		var app = new Firera;
 
 		app('rounds').are([
@@ -597,7 +606,7 @@ describe('Tests from guide', function() {
 		assert.equal(msg, 'Mykola');
 	})
     
-    it('Testing list binding', function(){
+    it('list binding', function(){
 		var app = new Firera;
 		app('cities').are([
 			{
@@ -635,7 +644,7 @@ describe('Tests from guide', function() {
         assert.equal(ct.children(":nth-child(4)").find("[data-fr=name]").html(), 'Odesa');
     })
     
-    it('Testing formula with previous val', function(){
+    it('formula with previous val', function(){
 		var app = new Firera;
         app('a').set(42);
         app('logger').is(_.arrAdd, '^', 'a');
@@ -646,7 +655,7 @@ describe('Tests from guide', function() {
         fequal(app('ll'), 3);
     })
 	/*
-	it('Testing $template', function() {
+	it('$template', function() {
 		var app = new Firera;
 		var get_user_template_by_gender = function(gender) {
 			return gender === 'female'
@@ -671,7 +680,7 @@ describe('Tests from guide', function() {
 
 	})
 
-	it('Testing array template - from HTML', function() {
+	it('array template - from HTML', function() {
 		var app = new Firera;
 		app('models').are([
 			{
@@ -709,7 +718,7 @@ describe('Tests from guide', function() {
 
 	})
 	
-	it('Testing HTMl template - from shared', function(){
+	it('HTMl template - from shared', function(){
 		var app = new Firera;
 		app('models').are([
 			{
@@ -736,7 +745,7 @@ describe('Tests from guide', function() {
 		assert.equal(app('models/0/$template').get(), 'ololo');
 	})
 
-	/*(it('Testing array projections', function() {
+	/*(it('array projections', function() {
 		var app = new Firera;
 		app('employees').are([
 			{
