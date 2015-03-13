@@ -324,13 +324,14 @@
     
     // event machine parser
     var Che = function(subscribe_cb, getState_cb, onEvent_cb){
-        this.subscribe = subscribe_cb;
-        this.getState = getState_cb;
-        this.onEvent = onEvent_cb;
+        this.subscribe = subscribe_cb || function(){};
+        this.getState = getState_cb || function(){};
+        this.onEvent = onEvent_cb || function(){};
         this.revolvers = [];
+        this.dep_tree = {};
     }
     
-    Che.prototype.create = function(str, cb){
+    Che.prototype.create = function(str, name){
         var tokens = {
             '(': {
                 direction: 'down',
@@ -346,7 +347,6 @@
             },
         }
         var res = {tokens: []};
-        var last_parsed = 0;
         var self = this;
         var parser = function(pos, str, last_parsed, stack){
             if(str[pos] === undefined) return stack;
@@ -357,7 +357,8 @@
                     ___('Found token', token, 'in', pos, str[pos], next_pos);
                     var next_stack, direction = tokens[token].direction;
                     if(last_parsed !== pos){
-                        stack.tokens.push(str.slice(last_parsed, pos));
+                        var stream = str.slice(last_parsed, pos);
+                        stack.tokens.push(stream);
                     }
                     if(direction === 'same'){
                         next_stack = stack;
@@ -381,11 +382,15 @@
         parser(0, str, 0, res);
         // three kinds of jumpers: matcher, chainer, chooser
         
-        var get_jumper = function(type, children){
+        var get_jumper = function(type, children, contexts){
             if(type === 'matcher'){
                 return function(e1, e2){
                     ___('Matcher is run');
-                    return children(e1, e2);
+                    if(children(e1, e2)){
+                        ___('Matcher done, adding to context');
+                        contexts.push([e1, e2]);
+                        return true;
+                    }
                 }
             }
             if(type === 'chainer'){
@@ -410,13 +415,16 @@
             if(type === 'chooser'){
                 return function(e1, e2){
                     for(var i in children){
-                        if(children[i](e1, e2)) return true;
+                        if(children[i](e1, e2)) {
+                            return true;
+                        }
                     }
                     return false;
                 }
             }
         }
-        
+        var subscriptions = [];
+        var contexts = [];
         var semantic_parser = function(set){
             if(set[0] === '('){
                 if(set[set.length - 1] === ')'){
@@ -449,26 +457,34 @@
                     // its submissed set of tokens
                     actual_token = semantic_parser(tk.tokens);
                 } else {
-                    var event_name = tk;
                     var f = (function(evn){ 
                         return function(e1, e2){
                             ___('Checking cell', e1, evn);
                             return e1 === evn;
                         }
-                    })(event_name)
-                    actual_token = get_jumper('matcher', f);
+                    })(tk)
+                    ___('Found stream to subscribe', tk);
+                    self.subscribe(tk, self);
+                    subscriptions.push(tk);
+                    actual_token = get_jumper('matcher', f, contexts);
                 }
                 tokens.push(actual_token);
             }
             ___('Now tokens set is', token_type, set, tokens);
-            return get_jumper(token_type, tokens);
+            return get_jumper(token_type, tokens, contexts);
         }
         // next stage - semantic check of a token tree
         //console.log(res);
-        var root = semantic_parser(res.tokens);
-        //console.log('___________________');
+        var revolver = semantic_parser(res.tokens);
+        revolver.cname = name || str;
+        revolver.contexts = contexts;
         //console.log(root);
-        this.revolvers.push([root, cb]);
+        this.revolvers.push(revolver);
+        for(var i in subscriptions){
+            var sub = subscriptions[i];
+            this.dep_tree[sub] || (this.dep_tree[sub] = []);
+            this.dep_tree[sub].push(revolver);
+        }
         
     }
     Che.prototype.parse_token = function(pos, str, token){
@@ -479,9 +495,20 @@
     }
     
     Che.prototype.feed = function(cell, val){
-        for(var i in this.revolvers){
-            if(this.revolvers[i][0](cell, val)) this.revolvers[i][1](); 
+        ___('Feeding to', this.dep_tree);
+        if(this.dep_tree[cell]){
+            for(var i in this.dep_tree[cell]){
+                if(this.dep_tree[cell][i](cell, val)){
+                    ___('Event happened!', this.dep_tree[cell][i].contexts);
+                    this.onEvent(this.dep_tree[cell][i].cname, this.dep_tree[cell][i].contexts);
+                    this.dep_tree[cell][i].contexts.length = 0;
+                    this.feed(this.dep_tree[cell][i].cname);
+                }
+            }
         }
+        /*for(var i in this.revolvers){
+            if(this.revolvers[i][0](cell, val)) this.revolvers[i][1](); 
+        }*/
         return this.feed.bind(this);
     }
     

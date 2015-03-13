@@ -461,11 +461,12 @@ describe('CHE', function() {
 	it('Testing token parser', function() {
         var str = 'ololo->(bla,bl,(a->b))';
         //console.log('string', str);
-        var bus = new Firera.Che();
         var c = 0;
-        bus.create(str, function(){
+        var bus = new Firera.Che(null, null, function(){
+            console.log('Event fired!', arguments);
             c++;
         });
+        bus.create(str, 'cool');
         bus.feed('ololo')
         ('bl')('ololo')('bla')('bl')('ololo')('ololo')
         ('a')('b');
