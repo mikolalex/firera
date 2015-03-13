@@ -323,7 +323,14 @@
 	}
     
     // event machine parser
-    var che = function(str, cb){
+    var Che = function(subscribe_cb, getState_cb, onEvent_cb){
+        this.subscribe = subscribe_cb;
+        this.getState = getState_cb;
+        this.onEvent = onEvent_cb;
+        this.revolvers = [];
+    }
+    
+    Che.prototype.create = function(str, cb){
         var tokens = {
             '(': {
                 direction: 'down',
@@ -340,11 +347,12 @@
         }
         var res = {tokens: []};
         var last_parsed = 0;
+        var self = this;
         var parser = function(pos, str, last_parsed, stack){
             if(str[pos] === undefined) return stack;
             var next_pos = false;
             for(var token in tokens){
-                next_pos = che.parse_token(pos, str, token);
+                next_pos = self.parse_token(pos, str, token);
                 if(next_pos){
                     ___('Found token', token, 'in', pos, str[pos], next_pos);
                     var next_stack, direction = tokens[token].direction;
@@ -460,24 +468,23 @@
         var root = semantic_parser(res.tokens);
         //console.log('___________________');
         //console.log(root);
-        che.revolvers.push([root, cb]);
+        this.revolvers.push([root, cb]);
         
     }
-    che.parse_token = function(pos, str, token){
+    Che.prototype.parse_token = function(pos, str, token){
         for(var i = 0; i < token.length; i++){
             if(str[pos + i] !== token[i]) return false;
         }
         return pos + i;
     }
     
-    che.feed = function(cell, val){
+    Che.prototype.feed = function(cell, val){
         for(var i in this.revolvers){
             if(this.revolvers[i][0](cell, val)) this.revolvers[i][1](); 
         }
         return this.feed.bind(this);
     }
     
-    che.revolvers = [];
 
 
 	var Cell = function(name, host, params) {
@@ -1932,7 +1939,7 @@
 	/////
 	Firera.list = List;
 	Firera.hash = Firera;
-	Firera.che = che;
+	Firera.Che = Che;
 	Firera.dump = function(hash, include_self) {
 		if (hash instanceof List) {
 			return Firera.dumpList(hash);

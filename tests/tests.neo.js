@@ -455,17 +455,18 @@ describe('Simple values', function() {
 describe('CHE', function() {
 	it('Testing parse tokens', function() {
         var str = 'Ololo->alala';
-        assert.equal(Firera.che.parse_token(5, str, '->a'), 8);
-        assert.equal(Firera.che.parse_token(6, str, '>az'), false);
+        assert.equal(Firera.Che.prototype.parse_token(5, str, '->a'), 8);
+        assert.equal(Firera.Che.prototype.parse_token(6, str, '>az'), false);
     })
 	it('Testing token parser', function() {
         var str = 'ololo->(bla,bl,(a->b))';
         //console.log('string', str);
+        var bus = new Firera.Che();
         var c = 0;
-        Firera.che(str, function(){
+        bus.create(str, function(){
             c++;
         });
-        Firera.che.feed('ololo')
+        bus.feed('ololo')
         ('bl')('ololo')('bla')('bl')('ololo')('ololo')
         ('a')('b');
         assert.equal(c, 3);
