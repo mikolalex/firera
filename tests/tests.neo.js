@@ -463,7 +463,7 @@ describe('CHE', function() {
         //console.log('string', str);
         var c = 0;
         var bus = new Firera.Che(null, null, function(){
-            console.log('Event fired!', arguments);
+            //console.log('Event fired!', arguments);
             c++;
         });
         bus.create(str, 'cool');
@@ -471,6 +471,13 @@ describe('CHE', function() {
         ('bl')('ololo')('bla')('bl')('ololo')('ololo')
         ('a')('b');
         assert.equal(c, 3);
+    })
+	it('Testing simple CLICK event in firera', function() {
+        var app = new Firera();
+        app.applyTo('.testing-che-events');
+        app('a').is('h2|click');
+        $(".testing-che-events h2").click();
+        assert.equal(app.get('a').target, $(".testing-che-events h2").get()[0]);
     })
 	/*it('', function() {
         

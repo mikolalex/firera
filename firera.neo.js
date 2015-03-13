@@ -275,10 +275,6 @@
 	var HTMLDrivers = {};
 	var customDrivers = {};
 	var customEventDrivers = {}
-	var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick', 'change'];
-	var get_cell_type = function(cellname) {
-		return (!_.isHTMLCell(cellname) || events.indexOf(cellname.split("|")[1]) === -1) ? 'cell' : 'event';
-	}
 	var ___ = function() {
 	}; // function for comments
 	var __$ = function() {
@@ -506,9 +502,6 @@
                 }
             }
         }
-        /*for(var i in this.revolvers){
-            if(this.revolvers[i][0](cell, val)) this.revolvers[i][1](); 
-        }*/
         return this.feed.bind(this);
     }
     
@@ -994,55 +987,6 @@
 		this.changers.push(func);
 	}
 
-	var Event = function(selector, host) {
-		this.host = host;
-		this.selector = selector.split("|")[0];
-		this.event = selector.split("|")[1];
-		this.handlers = [];
-	}
-
-	Event.prototype.process = function(e, initial_val, $el) {
-		e.preventDefault();
-		var val = initial_val || null;
-		for (var i = 0; i < this.handlers.length; i++) {
-			var sup = this.host.host || false;
-			val = this.handlers[i](this.host, this.host.getName(), sup, val, $el, e);
-			if (val === false) {
-				break;
-			}
-		}
-	}
-
-	Event.prototype.getType = function() {
-		return 'event';
-	}
-
-	Event.prototype.then = function(func) {
-		this.handlers.push(func);
-		return this;
-	}
-
-	Event.prototype.filter = function(func) {
-		if (!(func instanceof Function)) {
-			var field = func.replace("!", "");
-			if (func.indexOf("!") === 0) {
-				this.handlers.push(function(obj) {
-					return obj(field).get() ? false : true;
-				})
-			} else {
-				this.handlers.push(function(obj) {
-					return obj(field).get() ? true : false;
-				})
-			}
-		} else {
-			error(func + 'not implemented yet');
-		}
-	}
-	var types = {
-		cell: Cell,
-		event: Event
-	}
-
 	var make_window_between_hashes = function(parent, child, config) {
 		if (!config)
 			return;
@@ -1166,8 +1110,7 @@
 					return vr;
 				//console.log('we have own', selector);
 			}
-			var type = get_cell_type(selector);
-			var new_cell = new types[type](selector, this, params);
+			var new_cell = new Cell(selector, this, params);
 			this.setVar(selector, new_cell);
 			return new_cell;
 		},
@@ -1945,7 +1888,14 @@
 					Firera.apply_dependency_to_cell_from_hash(this, driver.depends);
 				}
 			}
-		}
+		},
+        {
+            name:  'cheEvent',
+            regex: /->/,
+            func: function(name){
+                __$('Che event assigned', name);
+            }
+        }
 	];
 	Firera.autoinitCells = [];
 	Firera.instances = [];
@@ -2235,7 +2185,7 @@
 
 	var ___ = function() {
 	}; // function for comments
-	var ___ = function() {
+	var __$ = function() {
 		console.log.apply(console, arguments);
 	}; // function for comments
 	var gather_form_values = function(selector, scope, clear, cb) {
@@ -2284,7 +2234,7 @@
 						parts[1] = m[1];
 					}
 					if (!Firera.HTMLDrivers[parts[1]]) {
-						error('Unknown driver: ' + parts[1]);
+						Firera.error('Unknown driver: ' + parts[1]);
 						return;
 					}
 					var selector = parts[0];
@@ -2332,7 +2282,7 @@
 		customWriters: {
 			template: function() {
 				this.host && this.host.refreshTemplate && this.host.refreshTemplate();
-			}
+            }
 		},
 		customVars: {
 			rootNodeX: ['el', '$rootSelector'],
@@ -2752,7 +2702,18 @@
 		},
 		autoinitCells: ['$HTMLVarsWriter', '$childrenRootNodeWriter']
 	}
-
+    
+    var events = ['click', 'submit', 'keyup', 'keydown', 'mouseover', 'focus', 'blur', 'mouseon', 'mouseenter', 'mouseleave', 'keypress', 'dblclick', 'change'];
+	for(var i in events){
+        core.HTMLReaders[events[i]] = (function(ev){
+            return function($el){
+                var self = this;
+                $el.bind(ev, function(e){
+                    self.set(e);
+                })
+            }
+        })(events[i])
+    }
 	Firera.addPackage(core);
 
 	//////////
