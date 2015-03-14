@@ -499,6 +499,24 @@ describe('CHE', function() {
         var context = a('two_clicks').get();
         assert.equal(context.length, 2);
     })
+	it('anti-events in che', function() {
+        var a = new Firera();
+        a('a').is('.a|click');
+        a('b').is('.b|click');
+        a('c').is('.c|click');
+        a('move').is('a->!(b)->c');
+        a('moves').logs('move');
+        a.applyTo('.testing-che-chain');
+        $(".testing-che-chain .a").click();
+        $(".testing-che-chain .b").click();
+        $(".testing-che-chain .c").click();
+        console.log('___________________');
+        $(".testing-che-chain .a").click();
+        $(".testing-che-chain .c").click();
+        var context = a('moves').get();
+        //console.log(context);
+        assert.equal(context.length, 2);
+    })
 	it('', function() {
         
     })

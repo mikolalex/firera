@@ -341,6 +341,9 @@
             ',': {
                 direction: 'same',
             },
+            '!': {
+                direction: 'same'
+            },
         }
         var res = {tokens: []};
         var self = this;
@@ -393,35 +396,66 @@
                         contexts.push([e1, e2]);
                         return true;
                     }
+                    return undefined;
                 }
             }
             if(type === 'chainer'){
                 return (function(){
                    var pointer = 0;
-                   return function(e1, e2){
+                   var f = function(e1, e2){
                        ___('Chainer is run', e1, pointer);
                        var done = children[pointer](e1, e2);
-                       ___('THe result of check is', done)
+                       ___('The result of check is', done)
                        if(done){
                            if(pointer === children.length - 1){
                                pointer = 0;
                                return true;
                            } else {
                                pointer++;
+                               if(children[pointer - 1].keep_running){
+                                   return f(e1, e2);
+                               }
+                               return undefined;
                            }
+                       } else if(done === false){
+                           ___('negation caught, reset pointer');
+                           pointer = 0;
                        }
-                       return false;
+                       return done;
                    }
+                   return f;
                 }())
+            }
+            if(type === 'negator'){
+                var f = function(e1, e2){
+                    var done = children(e1, e2);
+                    ___('Negator is run', done, e1, e2);
+                    if(done){
+                        // and also reset previous revolvers
+                        return false;
+                    } else {
+                        contexts.push([e1, e2]);
+                        return true;
+                    }
+                }
+                f.keep_running = true;
+                return f;
             }
             if(type === 'chooser'){
                 return function(e1, e2){
                     for(var i in children){
-                        if(children[i](e1, e2)) {
-                            return true;
+                        var done = children[i](e1, e2);
+                        if(done) {
+                            if(children[i].keep_running){
+                                continue;
+                            } else {
+                                return true;
+                            }
+                        } else if(done === false){
+                            return false;
                         }
                     }
-                    return false;
+                    return undefined;
                 }
             }
         }
@@ -436,7 +470,7 @@
                 }
             }
             var main_token = '', token_type;
-            if(set.indexOf(',') !== -1){
+            if(set.indexOf(',') !== -1 || set.length < 2){
                 // it's a set of elements
                 main_token = ',';
                 token_type = 'chooser';
@@ -448,6 +482,7 @@
             }
             //console.log('Set', set, 'main token', main_token);
             var tokens = [], actual_token;
+            var negation = false;
             for(var i in set){
                 var tk = set[i];
                 //console.log('tk', tk, main_token);
@@ -459,6 +494,11 @@
                     // its submissed set of tokens
                     actual_token = semantic_parser(tk.tokens);
                 } else {
+                    if(tk === '!'){
+                        // negation
+                        negation = true;
+                        continue;
+                    }
                     var f = (function(evn){ 
                         return function(e1, e2){
                             ___('Checking cell', e1, evn);
@@ -469,6 +509,12 @@
                     self.subscribe(tk, self);
                     subscriptions.push(tk);
                     actual_token = get_jumper('matcher', f, contexts);
+                }
+                ___('Token', actual_token, tk);
+                if(negation){
+                    ___('We should negate', actual_token, tk);
+                    negation = false;
+                    actual_token = get_jumper('negator', actual_token, contexts);
                 }
                 tokens.push(actual_token);
             }
@@ -2611,6 +2657,9 @@
 				});
 				return args;
 			},
+            logs: function(cellname){
+                return [_.arrAdd, '^', cellname];
+            },
 			picks: function(arr_or_obj_cell, fields) {
 				fields = fields instanceof Array ? fields : [fields];
 				var pick = function(arr_or_obj) {
