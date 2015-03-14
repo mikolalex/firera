@@ -310,6 +310,17 @@ describe('Simple values', function() {
         
     })
         
+    it('Functions as cell values', function(){
+        var app = new Firera;
+        app('mn').set(10);
+        app('mult10').binds('*', 'mn');
+        //console.log('asasas', app.get('mult10')(3));
+        app('just100').binds('mult10', 'mn');
+        //console.log('asasas', app.get('just100'));
+        app('res').applies('just100');
+        assert.equal(app.get('res'), 100);
+    })    
+        
         it('bindings', function(){
             var app = new Firera;
             app('a').set(42);

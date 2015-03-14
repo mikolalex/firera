@@ -994,6 +994,37 @@
 	Cell.prototype.onChange = function(func) {
 		this.changers.push(func);
 	}
+    
+    Cell.prototype.applies = function(funccell){
+        var args = Array.prototype.slice.call(arguments, 1);
+        var a = [function(f){ 
+                ___("We receive a function", f);
+                return f.apply(null, args); 
+            }, funccell];
+        ___('We subscribe as', a);
+        return this.is.apply(this, a);
+    }
+    
+    Cell.prototype.binds = function(func){
+        var f = function(func){
+            var args = Array.prototype.slice.call(arguments, 1);
+            args.unshift(null);
+            return func.bind.apply(func, args);
+        }
+        var args = Array.prototype.slice.call(arguments, 1);
+        var real_func = _.getFunc(func);
+        var func_from_cell = false;
+        if(!real_func){
+            // it's cell
+            func_from_cell = true;
+            args.unshift(func);
+            args.unshift(f);
+        } else {
+            args.unshift(f.bind(null, real_func));
+        }
+        return this.is.apply(this, args);
+        
+    }
 
 	var make_window_between_hashes = function(parent, child, config) {
 		if (!config)
