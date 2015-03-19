@@ -199,6 +199,10 @@
 			}
 		},
 		compose: function(funcs) {
+            if(arguments.length > 1){
+                //console.log("it's a list of funcs", arguments);
+                funcs = Array.prototype.slice.call(arguments);
+            }
 			for (var i = 0; i < funcs.length; ++i) {
 				if (funcs[i] instanceof Array) {
 					// it should be a funcion with arguments, let's bind it
@@ -208,6 +212,7 @@
 			return function() {
 				// pass all the args to the first function,
 				// then pass it's result to the next func
+                //console.log('Funcs are', funcs);
 				var v = funcs[0].apply(null, arguments);
 				for (var i = 1; i < funcs.length; ++i) {
 					v = funcs[i](v);
@@ -866,6 +871,15 @@
 	 return arr;
 	 }*/
 
+	Cell.prototype.then = function(func) {
+        ___("Adding another handler function as pipe to current", func, this.formula);
+        if(!this.formula){
+            error('Formula should be provided for then method!');
+            return;
+        }
+        this.formula = _.compose(this.formula, func); 
+    }
+
 	Cell.prototype.alias = function(name) {
 		this.host.aliases[name] = this;
 		this.host.removeVar(name);
@@ -899,7 +913,7 @@
         }
 		var new_val = this.formula.apply(this, this.argsValues);
 		this.val = new_val;
-		if (this.writer && !_.isReservedName(this.getName())) {
+		if (this.writer) {
 			this.writer.apply(this, [this.val].concat(this.params));
 		}
 		if (!no_change){
@@ -1298,8 +1312,10 @@
 			if (!(hash instanceof Object)) {
 				hash = {__val: hash};
 			}
+            ___("Setting data as items for list", hash);
 			for (var i in hash) {
 				if (hash[i] instanceof Array) {
+                    ___('Setting array', hash[i]);
 					if (!this.getVar(i)) {
 						this(i).are([]);
 					}
@@ -1312,8 +1328,10 @@
 					this(i).setData(hash[i]);
 				} else {
 					if (hash[i] instanceof Object) {
-
+                        // still the same as val :)
+						this(i).set(hash[i]);
 					} else {
+                        ___('Setting just a val', hash[i], 'for cell', i);
 						this(i).set(hash[i]);
 					}
 				}
@@ -1951,8 +1969,13 @@
 					return;
 				}
 				var driver = this.driver = customDrivers[driver_name];
+                ___('The driver for system cell', name, 'is', driver);
 				if (driver.def)
 					this.val = driver.def;
+                if(driver.writer){
+                    ___("Cell ", name, 'has writer', driver.writer);
+                    this.writer = driver.writer;
+                }
 				driver.reader && driver.reader.call(this);
 				if (driver.depends) {
 					//console.log('apply_dependency_to_cell_from_hash', this, driver.depends);
@@ -2444,6 +2467,7 @@
 		},
 		customListWriters: {
 			datasource: function(val) {
+                ___("Setting received data as items for current list", val);
 				if (this.host && this.host.host) {// should be a list
 					if (!val)
 						val = [];
