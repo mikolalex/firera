@@ -579,6 +579,26 @@
 	Cell.prototype.getName = function() {
 		return this.name;
 	}
+    
+    Cell.prototype.revertPath = function(cell, path){
+        if(path.indexOf('/') == -1) return this.getName();
+        // imagine ../tasks {tasks}
+        var steps = path.split("/");
+        var curr = this.host.isShared() ? this.host.host : this.host;
+        var rev = [];
+        for(var i=0;i<steps.length-1;i++){
+            var str = steps[i];
+            if(str === '..'){
+                rev.unshift(curr.getName());
+                curr = curr.host.isShared() ? curr.host.host : curr.host;
+            } else {
+                rev.unshift('..');
+            }
+            rev.push(this.getName());
+        }
+        ___("Return path for", path, 'is', rev.join("/"));
+        return rev.join('/');
+    }
 
 	Cell.prototype.cell = function(name) {
 		return this.host(name);
@@ -890,10 +910,10 @@
 		return this;
 	}
 
-	Cell.prototype.depend = _.canTakeArray(function(cell, path) {
-		this.deps.push(cell.getName());
-		path = path ? this.host.getReversePath(path, this.getName()) : this.getName();
-		cell.addObserver(path);
+	Cell.prototype.depend = _.canTakeArray(function(cell, path, rev_path) {
+        ___("Depending cell:", path, rev_path);
+		this.deps.push(path ? path : cell.getName());
+		cell.addObserver(rev_path ? rev_path : this.getName());
 	});
 
 	Cell.prototype.is = function(f) {
@@ -946,7 +966,7 @@
                 } else {
                     cell = this.host(args[i]);
                 }
-                this.depend(cell, args[i]);
+                this.depend(cell, args[i], this.revertPath(cell, args[i]));
                 this.argsKeys[this.host(args[i]).getName()] = i;
                 this.argsValues[i] = this.host(args[i]).get();
             } else {
@@ -1023,7 +1043,7 @@
 				if (!(vars[i] instanceof Cell)) {
 					cell = this.host.create_cell_or_event(vars[i], {dumb: true});
 				}
-				this.depend(cell, vars[i]);
+				this.depend(cell, vars[i], this.revertPath(cell, vars[i]));
 			}
 			this.compute = stream_compute;
 		}
@@ -1085,7 +1105,7 @@
 					//error('Linking to dumb vars while mixing(takes): ', config.takes[i]);
 					//return;
 				}
-				//console.log('NC', '../' + config.takes[i]);
+				___('NC', '../' + config.takes[i]);
 				child(varname).is(function(a) {
 					return a;
 				}, '../' + config.takes[i]);
@@ -1118,18 +1138,6 @@
 	}
 
 	var hash_methods = {
-		getReversePath: function(path, cellname) {
-			//return path;
-			if (path.indexOf('/') !== -1) {
-				var parts = path.split("/");
-				for (var i = 1; i < parts.length; i++) {
-					parts[i - 1] = '..';
-				}
-				parts[parts.length - 1] = cellname;
-				return parts.join('/');
-			} else
-				return cellname;
-		},
 		create_cell_or_event: function(selector, params, dont_check_if_already_exists) {
 			if (_.isInt(selector) && this.isSharedHash) {
 				return this.host.list[selector];
@@ -1543,6 +1551,10 @@
 		if (config && config.host) {
 			this.host = config.host;
 		}
+        if(init_hash.datasource){
+            init_hash.shared = init_hash.shared || {};
+            init_hash.shared.$datasource = init_hash.datasource;
+        }
 		this.shared = new Firera.hash(init_hash.shared || {}, this.shared_config);
 		if (config) {
 			if (config.name) {
@@ -1556,12 +1568,16 @@
 					gives: {
 					}
 				}
-				for (var i = 0; i < init_hash.takes.length; i++) {
-					gt_config.takes[init_hash.takes[i]] = config.gives_takes_params[i];
-				}
-				for (var j = 0; j < init_hash.gives.length; j++) {
-					gt_config.gives[config.gives_takes_params[j + i]] = init_hash.gives[j];
-				}
+                if(init_hash.takes){
+                    for (var i = 0; i < init_hash.takes.length; i++) {
+                        gt_config.takes[init_hash.takes[i]] = config.gives_takes_params[i];
+                    }
+                }
+                if(init_hash.gives){
+                    for (var j = 0; j < init_hash.gives.length; j++) {
+                        gt_config.gives[config.gives_takes_params[j + i]] = init_hash.gives[j];
+                    }
+                }
 
 			}
 			if (config.host) {
@@ -1897,43 +1913,13 @@
 							cell['is'].apply(cell, row);
 						} else {
 							if (!cell[row[0]]) {
-								error('Using unknown function:', arguments);
+								error('Using unknown function:', row[0], arguments);
 							}
 							cell[row[0]].apply(cell, row.slice(1));
 						}
 					}
 				} else {
 					cell.just(row);
-				}
-				break;
-			case 'event':
-				if (row instanceof Function) {
-					cell.then(row);
-				} else {
-					if (row instanceof Array) {
-						if (!(row[0] instanceof Array) && !(row[0] instanceof Function)) {
-							//row[0] = [row[0]];
-							// its some event method
-							if (!Event.prototype[row[0]]) {
-								error('Unknown method for event: ', row);
-							} else {
-								Event.prototype[row[0]].apply(cell, row.slice(1));
-							}
-						} else {
-							for (var j = 0; j < row.length; j++) {
-								if (row[j] instanceof Function) {
-									cell.then(row[j]);
-								} else {
-									if (row[j] instanceof Array) {
-										var func = row[j][0];
-										cell[func].apply(cell, row[j].slice(1));
-									} else {
-										error('wrong parameter type for cell creation!');
-									}
-								}
-							}
-						}
-					}
 				}
 				break;
 			case 'list':
@@ -2100,26 +2086,6 @@
 	///// METHODS FOR EXTENDING FIRERA ABILITIES
 	/////
 	/////
-
-	Firera.addEventAction = function(name, func) {
-		if (Event.prototype[name]) {
-			error('Cant add event action', name, ', already taken!');
-			return;
-		}
-		Event.prototype[name] = function() {
-			this.handlers.push(func);
-		}
-	}
-
-	Firera.addEventPreparedAction = function(name, func) {
-		if (Event.prototype[name]) {
-			error('Cant add event action', name, ', already taken!');
-			return;
-		}
-		Event.prototype[name] = function() {
-			this.handlers.push(func(arguments));
-		}
-	}
 
 	// Methos for adding some special cellnames. For example, app(".name|visibility") - here visibility is a custom HTML driver
 	Firera.addHTMLReader = function(name, func, def) {
@@ -2706,6 +2672,13 @@
 						return (selector instanceof $) ? selector : $(selector);
 					}, cellname];
 			},
+			$: function(selector) {
+				return [function(root) {
+                        if(root && root.length){
+                            return $(selector, root).get();
+                        }
+					}, '$actualRootNode'];
+			},
 			gets: function() {
 				var self = this;
 				var args = Array.prototype.slice.call(arguments);
@@ -3000,12 +2973,6 @@
 						}
 					},
 				}
-				Firera.addEventAction('update', function(x, number, list) {
-					list._sync.update(number);
-				})
-				Firera.addEventAction('restore', function(x, number, list) {
-					list._sync.restore(number);
-				})
 				break;
 		}
 
