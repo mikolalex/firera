@@ -59,6 +59,9 @@
 		min: function(a, b) {
 			return a < b ? a : b;
 		},
+        $nodeInContext: function(selector, context){
+            return selector ? $(selector, context): context;
+        },
 		// pick from hash
 		$pick: function(hash, fields) {
 			var res = {};
@@ -695,7 +698,7 @@
 
 	Cell.prototype.set = function(val, setanyway) {
 		// @todo: refactor this comdition to checking simple boolean var(to increase speed)
-		___('Setting var', this.getName());
+        ___('Setting var', this.getName(), val);
 		if (!this.free && !setanyway && !this.reader) {
 			error('Cant set dependent value manually: ', this.getName(), this, val);
 			return;
@@ -2373,12 +2376,13 @@
 					if (this.driver.def)
 						this.val = this.driver.def;
 					if (this.driver.reader) {
+                        ___('Running reader');
 						this.depend(this.host('$actualRootNode'));
 						this.reader = true;
-						this.formula = function() {
-							var element = $(selector, this.host('$actualRootNode').get());
+						this.formula = function() {;
+							var element = _.$nodeInContext(selector, this.host('$actualRootNode').get());
 							if (element.length) {
-								this.driver.reader.call(this, element);
+								this.driver.reader.call(this, element, this.params);
 							}
 						}
 						this.formula();
@@ -2592,11 +2596,17 @@
 					$el.animate(anim, time);
 				}
 			},
-			attr: function(val, $el, atrname) {
-				$el.attr(atrname, val);
-			}
 		},
 		HTMLReadersWriters: {
+			attr: {
+                reader: function($el, params){
+                    console.log('reading', $el.attr(params[0]));
+					this.set($el.attr(params[0]));
+                },
+                writer: function(val, $el, atrname) {
+                    $el.attr(atrname, val);
+                }
+            },
 			value: {
 				writer: function(val, $el) {
 					switch ($el.attr('type')) {
