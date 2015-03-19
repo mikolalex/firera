@@ -705,6 +705,7 @@
 		}
 		var old_val = this.val,
 			new_val = val;
+        ___('Setting val in set()', new_val, 'for', this.getName());
 		this.val = new_val;
 		if (this.writer) {
 			this.writer.apply(this, [this.val].concat(this.params));
@@ -2377,12 +2378,14 @@
 						this.val = this.driver.def;
 					if (this.driver.reader) {
                         ___('Running reader');
-						this.depend(this.host('$actualRootNode'));
+                        if(!this.driver.writer){ // prevend double-add
+                            this.depend(this.host('$actualRootNode'));
+                        }
 						this.reader = true;
-						this.formula = function() {;
+						this.formula = function() {
 							var element = _.$nodeInContext(selector, this.host('$actualRootNode').get());
 							if (element.length) {
-								this.driver.reader.call(this, element, this.params);
+								return this.driver.reader.call(this, element, this.params);
 							}
 						}
 						this.formula();
@@ -2600,8 +2603,7 @@
 		HTMLReadersWriters: {
 			attr: {
                 reader: function($el, params){
-                    console.log('reading', $el.attr(params[0]));
-					this.set($el.attr(params[0]));
+					return $el.attr(params[0]);
                 },
                 writer: function(val, $el, atrname) {
                     $el.attr(atrname, val);
