@@ -1922,7 +1922,7 @@
     
     Firera.asFunc = function(a){
         if(typeof a === 'string' && Firera.cellFuncs[a]){
-            __$('Proper cell func exists:', a, Firera.cellFuncs[a]);
+            ___('Proper cell func exists:', a, Firera.cellFuncs[a]);
                 return Firera.cellFuncs[a]
         }
         return _.getFunc(a);
