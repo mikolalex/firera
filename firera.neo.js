@@ -70,6 +70,12 @@
 		getFunc: function(f) {
 			if (f instanceof Function)
 				return f;
+			if (f instanceof Array){
+                
+                var fs = f.slice(1);
+                fs.unshift(null);
+				return _.getFunc(f[0]).bind.apply(_.getFunc(f[0]), fs);
+            }
 			switch (f) {
 				case '+':
 					return function(a, b) {
@@ -206,7 +212,7 @@
 			for (var i = 0; i < funcs.length; ++i) {
 				if (funcs[i] instanceof Array) {
 					// it should be a funcion with arguments, let's bind it
-					funcs[i] = funcs[i][0].bind(null, funcs[i].slice(1));
+					funcs[i] = _.getFunc(funcs[i][0]).bind(null, funcs[i].slice(1));
 				}
 			}
 			return function() {
@@ -949,6 +955,10 @@
 				return this;
 			} else {
 				// it's function composition!
+                for(var i in formula){
+                    formula[i] = Firera.asFunc(formula[i]);
+                    ___('Now its', formula[i]);
+                }
 				formula = _.compose(formula);
 			}
 		}
@@ -1909,6 +1919,14 @@
 		}
 		return res;
 	}
+    
+    Firera.asFunc = function(a){
+        if(typeof a === 'string' && Firera.cellFuncs[a]){
+            __$('Proper cell func exists:', a, Firera.cellFuncs[a]);
+                return Firera.cellFuncs[a]
+        }
+        return _.getFunc(a);
+    }
 
 	Firera.get_params = function(str) {
 		var m = str.match(/([a-z]*)\((.*)\)/i);
@@ -2039,7 +2057,7 @@
 			return Firera.dumpList(hash);
 		}
 		var res = {
-			rootElement: hash.rootElement ? hash.rootElement.get() : undefined,
+			rootElement: hash('$actualRootNode').get(),
 		}
 		if (include_self) {
 			res.self = hash;
@@ -2206,6 +2224,19 @@
 			return this.is.apply(this, func.apply(this, arguments));
 		}
 	}
+	Firera.addCellFuncs = function(name, func) {
+		if (Cell.prototype[name]) {
+			error('Cell func name already assigned!');
+			return;
+		}
+        Firera.cellFuncs = Firera.cellFuncs || {};
+        Firera.cellFuncs[name] = func;
+		Cell.prototype[name] = function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift(func);
+			return this.is.apply(this, args);
+		}
+	}
 	Firera.addHashMethod = function(name, func) {
 		hash_methods[name] = func;
 	}
@@ -2249,6 +2280,7 @@
 			HTMLReadersWriters: 'addHTMLReaderWriter',
 			cellDrivers: 'addCellDriver',
 			autoinitCells: 'addAutoinitCell',
+			cellFuncs: 'addCellFuncs',
 			cellMacrosMethods: 'addCellMacros'
 		}
 		for (var field in method_names) {
@@ -2392,7 +2424,7 @@
 					}
 				}, '*'],
 			children: ['streams', _.id, '*children*'],
-			actualRootNode: [_.firstExisting, '$rootNode', '$rootNodeX'],
+			actualRootNode: [[_.firstExisting, 'el'], '$rootNode', '$rootNodeX'],
 			templateX: ['html', '$actualRootNode'],
 			actualTemplate: [_.firstExisting, '$template', '$templateX'],
 			bindings: [function(templ, $el) {
@@ -2634,6 +2666,14 @@
 				}
 			}
 		},
+		cellFuncs: {
+			html: function(el) {
+                return $(el).html();
+            },
+			el: function(selector) {
+                return (selector instanceof $) ? selector : $(selector);
+            }
+        },
 		cellMacrosMethods: {
 			ifAny: function() {
 				var args = Array.prototype.slice.call(arguments);
@@ -2685,16 +2725,6 @@
 				return [function(flag) {
 						return flag ? (_.existy(then) ? then : true) : (_.existy(otherwise) ? otherwise : false);
 					}, cond];
-			},
-			html: function(cellname) {
-				return [function(el) {
-						return $(el).html();
-					}, cellname];
-			},
-			el: function(cellname) {
-				return [function(selector) {
-						return (selector instanceof $) ? selector : $(selector);
-					}, cellname];
 			},
 			$: function(selector) {
 				return [function(root) {
