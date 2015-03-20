@@ -2542,6 +2542,9 @@
 					self.set(false);
 				})
 			},
+			arr: function($el){
+                return $el.get();
+            },
 			files: function($input_element) {
 				var self = this;
 				var get_files_info = function(input) {
