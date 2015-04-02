@@ -822,6 +822,21 @@
 		return arr;
 	}
 
+	Cell.prototype.are2 = function(datasource, each) {
+        // unified interface for creating lists
+        var raw_data = [], datasource;
+		if(typeof datasource === 'string'){
+            // it's a name of cell, used as $datasource
+        } else if(datasource instanceof Array){
+            // it's just raw data, as array
+            raw_data = datasource;
+        } else if(datasource instanceof Function){
+            // it creates a data and each params from initial data
+        } else {
+            error('Something strange provided for .are method', datasource);
+        }
+	}
+
 	Cell.prototype.mapfilter = function(a, b, c, d) {
 		var arr, map_func, filter_fields, filter_func;
 		if (this.host.isShared() || a instanceof Function) {
