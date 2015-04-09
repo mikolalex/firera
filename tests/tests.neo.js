@@ -320,6 +320,29 @@ describe('Simple values', function() {
         app('res').applies('just100');
         assert.equal(app.get('res'), 100);
     })    
+    it('Getting an object from a set of cells', function(){
+        var app = new Firera;
+        app('a').set(20);
+        app('b').set(30);
+        app('h1').obj('a', 'b');
+        /*app('h2').obj({
+            a: _.id,
+            b: function(a){ return a + 10}
+        });
+        app('h3').obj(function(o){
+            o.c = 42;
+            return o;
+        }, {
+            a: _.id,
+            b: function(a){ return a + 10}
+        });*/
+        app('h4').obj(function(o){
+            o.c = 13;
+            return o;
+        }, ['a', 'b']);
+        assert.deepEqual({a: 20, b: 30}, app.get('h1'))
+        assert.deepEqual({a: 20, b: 30, c: 13}, app.get('h4'))
+    })    
         
         it('bindings', function(){
             var app = new Firera;

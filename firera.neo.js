@@ -2720,6 +2720,36 @@
             logs: function(cellname){
                 return [_.arrAdd, '^', cellname];
             },
+            // return an object from a set of cells, possibly with handling and modifying them
+            obj: function(a, b){
+                var cellnames = [];
+                var func = _.id;
+                if(a instanceof Array){
+                    cellnames = a;
+                } else if(a instanceof Function){
+                    func = a;
+                    if(b instanceof Array){
+                        cellnames = b;
+                    } else {
+                        cellnames = Array.prototype.slice.call(arguments, 1);
+                    }
+                } else if(typeof a === 'string'){
+                    cellnames = Array.prototype.slice.call(arguments);
+                }
+                cellnames.unshift(function(){
+                    var res = {};
+                    ___("We've got vals", arguments);
+                    for(var i in arguments){
+                        res[cellnames[1 + Number(i)]] = arguments[i];
+                    }
+                    if(func !== _.id){
+                        res = func(res);
+                    }
+                    return res;
+                });
+                ___('Obj setter as', cellnames);
+                return cellnames;
+            },
 			picks: function(arr_or_obj_cell, fields) {
 				fields = fields instanceof Array ? fields : [fields];
 				var pick = function(arr_or_obj) {
