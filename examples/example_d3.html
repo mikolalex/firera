@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>-->
+	<script src="../jquery.js">
+	</script>
+        <script src="../firera.js"></script>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<style>
+	    body {
+		font-size: 16px;
+		font-family: sans-serif;
+	    }
+	    
+	    .selected {
+		background-color: whitesmoke;
+		border-radius: 10px;
+	    }
+	</style>
+    </head>
+    <body>
+	    
+<script>
+	var dataset = [ 5, 10, 15, 20, 25 ];
+	d3.select("body").selectAll("p")
+	.data(dataset)
+	.enter()
+	.append("p")
+	.text("New paragraph!");
+	
+</script>
+    </body>
+</html>
