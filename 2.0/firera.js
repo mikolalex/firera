@@ -8,6 +8,15 @@
 
     }
 
+    var system_predicates = new Set(['is']);
+
+    var predefined_functions = {
+        '+': {
+            type: 'func', 
+            func: function(a, b){ return a+b;}
+        }
+    }
+
     var get_app = function(){
         var app = new App;
         apps.push(app);
@@ -34,9 +43,26 @@
 
     var parse_fexpr = function(a){
         if(a instanceof Object){
-            return a;
+            if(a instanceof Array){
+                var funcname = a[0];
+                if(funcname instanceof Function || system_predicates.has(funcname)){
+                    return a; // it's "is" or something similar
+                } else {
+                    if(predefined_functions[funcname]){
+                        var fnc = predefined_functions[funcname];
+                        switch(fnc.type){
+                            case 'func':
+                                return [fnc.func].concat(a.slice(1))
+                            break;
+
+                        }
+                    } else {
+                        throw new Excaption('Cannot find predicate: ' + funcname);
+                    }
+                }
+            }
         } else {
-            return ['just', a];
+            throw new Excaption('Cannot parse primitive value as fexpr: ' + a);
         }
     }
 
@@ -45,7 +71,7 @@
         for(var key in pb) {
             if(pb[key] instanceof Object) {
                 // Array or Object
-                res[key] = pb[key];
+                res[key] = parse_fexpr(pb[key]);
             } else {
                 // primitive value
                 init_if_empty(res, '$free', {});
