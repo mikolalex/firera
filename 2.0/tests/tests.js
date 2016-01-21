@@ -7,8 +7,10 @@ describe('Plain base', function() {
 		}
 		var parsed_pb = Firera.func_test_export.parse_pb(pb);
 		assert.deepEqual(parsed_pb, {
-			"a":["just",10],
-			"b":["just",32],
+			"$free": {
+				a: 10,
+				b: 32,
+			},
 			"c":["+","a","b"]
 		});
 	});

@@ -1,11 +1,23 @@
 (function(){
     'use strict';
     var apps = [];
+    var App = function(){
+        this.pb_pool = {};
+    }
+    App.prototype.get = function(cell){
+
+    }
+
     var get_app = function(){
-        var pb_pool = {};
-        var app = {pb_pool};
+        var app = new App;
         apps.push(app);
         return app;
+    }
+
+    var init_if_empty = function(obj, key, val) {
+        if(obj[key] === undefined){
+            obj[key] = val;
+        }
     }
 
     Object.defineProperty(Object.prototype, 'map', {
@@ -29,7 +41,18 @@
     }
 
     var parse_pb = function(pb){
-        return pb.map(parse_fexpr);
+        var res = {};
+        for(var key in pb) {
+            if(pb[key] instanceof Object) {
+                // Array or Object
+                res[key] = pb[key];
+            } else {
+                // primitive value
+                init_if_empty(res, '$free', {});
+                res.$free[key] = pb[key];
+            }
+        }
+        return res;
     }
     
     var Firera = {
@@ -37,6 +60,7 @@
             var app = get_app();
             var parsed_pbs = config.map(parse_pb);
             console.log(parsed_pbs);
+            return app;
         }
     }
 
