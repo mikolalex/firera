@@ -1,11 +1,13 @@
 (function(){
     'use strict';
     var apps = [];
-    var App = function(){
-        this.pb_pool = {};
-    }
+    var App = function(){}
     App.prototype.get = function(cell){
 
+    }
+
+    var Hash = function(parsed_pb){
+        console.log('CREATING HASH');
     }
 
     var system_predicates = new Set(['is']);
@@ -57,13 +59,49 @@
 
                         }
                     } else {
-                        throw new Excaption('Cannot find predicate: ' + funcname);
+                        throw new Exception('Cannot find predicate: ' + funcname);
                     }
                 }
             }
         } else {
-            throw new Excaption('Cannot parse primitive value as fexpr: ' + a);
+            throw new Exception('Cannot parse primitive value as fexpr: ' + a);
         }
+    }
+
+    var get_cell_type = function(type, func, parents){
+        return {type, func, parents: parents || [], children: []}
+    }
+
+    var parse_cell_types = function(pbs){
+        var res = {};
+        var children = {};
+        for(var i in pbs){
+            let type = 'free';
+            if(i === '$free'){
+                for(var j in pbs[i]){
+                    res[j] = get_cell_type(type);
+                }
+                continue;
+            }
+            var func = pbs[i][0];
+            var parents = pbs[i].slice(1);
+            if(func instanceof Function){
+                // regular sync cell
+                type = 'val';
+            } else {
+                // may be 'async', 'changes' or something else
+            }
+            res[i] = get_cell_type('val', func, parents);
+            for(var j in parents){
+                init_if_empty(children, parents[j], {});
+                children[parents[j]][i] = true;
+            }
+        }
+        for(var i in children){
+            res[i].children = children[i];
+        }
+        console.log('res', res);
+        return res;
     }
 
     var parse_pb = function(pb){
@@ -84,8 +122,19 @@
     var Firera = {
         run: function(config){
             var app = get_app();
-            var parsed_pbs = config.map(parse_pb);
-            console.log(parsed_pbs);
+            // getting real pbs
+            app.cbs = config.map(function(pb){
+                var pbs = parse_pb(pb);
+                var cell_types = parse_cell_types(pbs);
+                return {pbs, cell_types};
+            });
+            // now we should instantiate each pb
+            if(!app.cbs.__root){
+                // no root hash
+                throw new Error('Cant find root app!', app);
+            }
+            console.log(app);
+            app.root = new Hash(app.cbs.__root);
             return app;
         }
     }
