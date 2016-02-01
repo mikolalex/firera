@@ -16,7 +16,7 @@ and open the template in the editor.
     </body>
     <script>
 
-    	Firera.run({
+    	var app = Firera.run({
     		__root: {
     			'a': 10,
     			'b': 32,
@@ -24,6 +24,9 @@ and open the template in the editor.
     		},
     		'todo': {},
     	});
+
+        app.set('a', 20);
+        console.log('Now "c" is', app.get('c'));
 
     </script>
 </html>
