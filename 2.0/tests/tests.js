@@ -31,12 +31,28 @@ describe('Plain base', function() {
     			'$free': {
     				'$el': $(".async-ex input[type=text]")
     			},
-    			'inp': ['async', function(done, $old, $new){
+    			'inp': ['async', function(done, $el){
     				console.log('Got', arguments);
-    			}, ':$el']
+    			}, '$el']
     		},
     		'todo': {},
     	});
     	console.log(app.root);
+	});
+	it('Testing passive listening', function() {
+    	var app = Firera.run({
+    		__root: {
+    			'a': 10,
+    			'b': 32,
+    			'c': ['+', 'a', '-b']
+    		}
+    	});
+		assert.equal(app.get('c'), 42);
+        app.set('a', 20);
+		assert.equal(app.get('c'), 52);
+        app.set('b', 42);
+		assert.equal(app.get('c'), 52);
+        app.set('a', 30);
+		assert.equal(app.get('c'), 72);
 	});
 })

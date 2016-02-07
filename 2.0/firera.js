@@ -161,10 +161,18 @@
 
     var cell_listening_type = function(str){
         var m = str.match(/^(\:|\-)/);
-        return [{':': 'change', '-': 'passive', 'val': 'normal'}[m ? m[1] : 'val'], str.replace(/^(\:|\-)/, '')];
+        return [{
+            //':': 'change', 
+            '-': 'passive', 
+            'val': 'normal'
+        }[m ? m[1] : 'val'], str.replace(/^(\:|\-)/, '')];
     }
     var set_listening_type = function(cell, type){
-        return {'change': ':', 'passive': '-', 'normal': ''}[type] + cell;
+        return {
+            //'change': ':', 
+            'passive': '-', 
+            'normal': ''
+        }[type] + cell;
     }
 
     var parse_fexpr = function(a){
@@ -226,8 +234,12 @@
             for(var j in parents){
                 var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
                 //console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
-                init_if_empty(children, parent_cell_name, {});
-                children[parent_cell_name][set_listening_type(i, listening_type)] = true;
+                if(listening_type !== 'passive'){
+                    init_if_empty(children, parent_cell_name, {});
+                    children[parent_cell_name][set_listening_type(i, listening_type)] = true;
+                } else {
+                    console.log('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
+                }
             }
         }
         for(let i in children){
