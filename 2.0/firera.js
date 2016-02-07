@@ -26,12 +26,25 @@
         enumerable: false,
         value: function(func){
             for(var key in this){
-                if(func(key, this[key]) === false){
+                if(func(key) === false){
                     break;
                 }
             }
         }
     });
+
+    function copy(from, to){
+        for(var i of from){
+            to.push(i);
+        }
+    }
+    function kcopy(from, to){
+        for(let i in from){
+            to[i] = from[i];
+        }
+    }
+
+    var cellMatchers = [];
 
 
     var apps = [];
@@ -50,23 +63,28 @@
         console.log('CREATING HASH', parsed_pb);
         // creating cell values obj
         this.cell_types = parsed_pb.cell_types;
+        // for "closure" cell type
+        this.cell_funcs = {};
         this.dirtyCounter = {};
         this.cell_values = Object.create(parsed_pb.pbs.$free || {});
-        this.prev_cell_values = {};
         this.set(parsed_pb.pbs.$free);
         //console.log('result', this.cell_values);
     }
 
-    Hash.prototype.doRecursive = function(func, cell){
+    Hash.prototype.doRecursive = function(func, cell, skip){
         var cb = this.doRecursive.bind(this, func);
         //console.log('children', cell, this.cell_children(cell));
-        func(cell);
+        if(!skip) {
+            func(cell);
+        } else {
+            //throw new Error('Skipping!', arguments);
+        }
         this.cell_children(cell).eachKey(cb);
     }
 
     Hash.prototype.compute = function(cell){
         var [listening_type, real_cell_name] = cell_listening_type(cell);
-        //  console.log('Computing', real_cell_name);
+        //console.log('Computing', real_cell_name);
         switch(this.cell_type(real_cell_name)){
             case 'free':
                 // really do nothing
@@ -80,9 +98,25 @@
             break;
             case 'async':
                 var args = this.cell_parents(real_cell_name).map((key) => this.cell_value(cell_listening_type(key)[1]));
-                args.unshift(this.set.bind(this, real_cell_name));
+                args.unshift((val) => {
+                    console.log('ASYNC callback called!',val); 
+                    this.set_cell_value(real_cell_name, val);
+                    this.doRecursive(this.compute.bind(this), real_cell_name, true);
+                });
                 //console.log('Computing ASYNC args', args);
                 var val = this.cell_func(real_cell_name).apply(null, args);
+                //console.log('computing', cell, args, val);
+                this.set_cell_value(real_cell_name, val);
+            break;
+            case 'closure':
+                var args = this.cell_parents(real_cell_name).map((key) => this.cell_value(cell_listening_type(key)[1]));
+                //console.log('Checking whether closure func already exists', this.cell_funcs[real_cell_name], real_cell_name);
+                if(!this.cell_funcs[real_cell_name]){
+                    var new_func = this.cell_func(real_cell_name)();
+                    //console.log('Setting closure function', new_func);
+                    this.cell_funcs[real_cell_name] = new_func;
+                }
+                var val = this.cell_funcs[real_cell_name].apply(null, args);
                 //console.log('computing', cell, args, val);
                 this.set_cell_value(real_cell_name, val);
             break;
@@ -124,7 +158,12 @@
         return this.cell_types[cell] ? this.cell_types[cell].children : [];
     }
     Hash.prototype.cell_func = function(cell){
-        return this.cell_types[cell] ? this.cell_types[cell].func : noop;
+        var a;
+        if(a = this.cell_types[cell].func) {
+            return a;
+        } else {
+            throw new Error('Cannot find cell func for cell '+cell);
+        }
     }
     Hash.prototype.cell_type = function(cell){
         return this.cell_types[cell] ? this.cell_types[cell].type : [];
@@ -134,11 +173,10 @@
         return this.cell_values[cell];
     }
     Hash.prototype.set_cell_value = function(cell, val){
-        this.prev_cell_values[cell] = this.cell_values[cell];
         this.cell_values[cell] = val;
     }
 
-    var system_predicates = new Set(['is', 'async']);
+    var system_predicates = new Set(['is', 'async', 'closure']);
 
     var predefined_functions = {
         '+': {
@@ -175,22 +213,34 @@
         }[type] + cell;
     }
 
-    var parse_fexpr = function(a){
+    var parse_cellname = function(cellname, pool){
+        for(var m of cellMatchers){
+            var matches = cellname.match(m.regexp);
+            if(matches){
+                m.func(matches, pool);
+                return;
+            }
+        }
+    }
+
+    var parse_fexpr = function(a, pool, key){
+        var funcstring;
         if(a instanceof Object){
             if(a instanceof Array){
                 var funcname = a[0];
                 if(funcname instanceof Function || system_predicates.has(funcname)){
-                    return a; // it's "is" or something similar
+                    funcstring = a; // it's "is" or something similar
                 } else {
                     if(predefined_functions[funcname]){
                         var fnc = predefined_functions[funcname];
                         switch(fnc.type){
                             case 'func':
-                                return [fnc.func].concat(a.slice(1))
+                                funcstring = [fnc.func].concat(a.slice(1))
                             break;
 
                         }
                     } else {
+                        console.log('Error', arguments);
                         throw new Error('Cannot find predicate: ' + funcname);
                     }
                 }
@@ -198,6 +248,13 @@
         } else {
             throw new Error('Cannot parse primitive value as fexpr: ' + a);
         }
+        //console.log('Funcstring', funcstring);
+        for(var k in funcstring){
+            var cellname = funcstring[k];
+            if(k == 0 || typeof(cellname) !== 'string') continue;
+            parse_cellname(cellname, pool);
+        }
+        pool[key] = funcstring;
     }
 
     var get_cell_type = function(type, func, parents){
@@ -261,7 +318,7 @@
             }
             if(pb[key] instanceof Object) {
                 // Array or Object
-                res[key] = parse_fexpr(pb[key]);
+                parse_fexpr(pb[key], res, key);
             } else {
                 // primitive value
                 //console.log('hereby', res);
@@ -290,9 +347,37 @@
             //console.log(app);
             app.root = new Hash(app.cbs.__root);
             return app;
+        },
+        loadPackage: function(pack) {
+            copy(pack.cellMatchers, cellMatchers);
         }
     }
 
     window.Firera = Firera;
+
+    var core = {
+        cellMatchers: [
+            {
+                // ^foo -> previous values of 'foo'
+                regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
+                func: function(matches, pool){
+                    var cellname = matches[2];
+                    parse_fexpr(['closure', function(){
+                            var val;
+                            //console.log('Returning closure func!');
+                            return function(a){
+                                //console.log('getting prev val');
+                                var old_val = val;
+                                val = a;
+                                return [old_val, a];
+                            }
+                    }, cellname], pool, '^' + cellname);
+                }
+            }
+        ]
+    }
+
+
+    Firera.loadPackage(core);
     Firera.func_test_export = {parse_pb, parse_fexpr};
 })()
