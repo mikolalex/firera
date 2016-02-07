@@ -25,4 +25,18 @@ describe('Plain base', function() {
         app.set('a', 20);
 		assert.equal(app.get('c'), 52);
 	});
+	it('Testing async', function() {
+    	var app = Firera.run({
+    		__root: {
+    			'$free': {
+    				'$el': $(".async-ex input[type=text]")
+    			},
+    			'inp': ['async', function(done, $old, $new){
+    				console.log('Got', arguments);
+    			}, ':$el']
+    		},
+    		'todo': {},
+    	});
+    	console.log(app.root);
+	});
 })

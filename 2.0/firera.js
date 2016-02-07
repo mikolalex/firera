@@ -52,6 +52,7 @@
         this.cell_types = parsed_pb.cell_types;
         this.dirtyCounter = {};
         this.cell_values = Object.create(parsed_pb.pbs.$free || {});
+        this.prev_cell_values = {};
         this.set(parsed_pb.pbs.$free);
         //console.log('result', this.cell_values);
     }
@@ -64,15 +65,29 @@
     }
 
     Hash.prototype.compute = function(cell){
-        switch(this.cell_type(cell)){
+        var [listening_type, real_cell_name] = cell_listening_type(cell);
+        //  console.log('Computing', real_cell_name);
+        switch(this.cell_type(real_cell_name)){
             case 'free':
                 // really do nothing
             break;
             case 'val':
-                var args = this.cell_parents(cell).map((key) => this.cell_value(key));
-                var val = this.cell_func(cell).apply(null, args);
+                var args = this.cell_parents(real_cell_name).map((key) => this.cell_value(cell_listening_type(key)[1]));
+                //console.log('Computing args', args);
+                var val = this.cell_func(real_cell_name).apply(null, args);
                 //console.log('computing', cell, args, val);
-                this.set_cell_value(cell, val);
+                this.set_cell_value(real_cell_name, val);
+            break;
+            case 'async':
+                var args = this.cell_parents(real_cell_name).map((key) => this.cell_value(cell_listening_type(key)[1]));
+                args.unshift(this.set.bind(this, real_cell_name));
+                //console.log('Computing ASYNC args', args);
+                var val = this.cell_func(real_cell_name).apply(null, args);
+                //console.log('computing', cell, args, val);
+                this.set_cell_value(real_cell_name, val);
+            break;
+            default:
+                throw new Error('Unknown cell type:', this.cell_type(real_cell_name));
             break;
         }
     }
@@ -119,10 +134,11 @@
         return this.cell_values[cell];
     }
     Hash.prototype.set_cell_value = function(cell, val){
+        this.prev_cell_values[cell] = this.cell_values[cell];
         this.cell_values[cell] = val;
     }
 
-    var system_predicates = new Set(['is']);
+    var system_predicates = new Set(['is', 'async']);
 
     var predefined_functions = {
         '+': {
@@ -143,6 +159,14 @@
         }
     }
 
+    var cell_listening_type = function(str){
+        var m = str.match(/^(\:|\-)/);
+        return [{':': 'change', '-': 'passive', 'val': 'normal'}[m ? m[1] : 'val'], str.replace(/^(\:|\-)/, '')];
+    }
+    var set_listening_type = function(cell, type){
+        return {'change': ':', 'passive': '-', 'normal': ''}[type] + cell;
+    }
+
     var parse_fexpr = function(a){
         if(a instanceof Object){
             if(a instanceof Array){
@@ -159,30 +183,35 @@
 
                         }
                     } else {
-                        throw new Exception('Cannot find predicate: ' + funcname);
+                        throw new Error('Cannot find predicate: ' + funcname);
                     }
                 }
             }
         } else {
-            throw new Exception('Cannot parse primitive value as fexpr: ' + a);
+            throw new Error('Cannot parse primitive value as fexpr: ' + a);
         }
     }
 
     var get_cell_type = function(type, func, parents){
+        //console.log('getting cell type', arguments);
         return {type, func, parents: parents || [], children: []}
     }
 
     var parse_cell_types = function(pbs){
         var res = {};
         var children = {};
-        for(var i in pbs){
+        //console.log('PBS', pbs);
+        for(let i in pbs){
             let type = 'free';
             if(i === '$free'){
+                //console.log('parsing free variables', pbs[i]);
                 for(var j in pbs[i]){
                     res[j] = get_cell_type(type);
                 }
+                //console.log('now res j looks like', res);
                 continue;
             }
+            //console.log('pbsi', pbs[i]);
             var func = pbs[i][0];
             var parents = pbs[i].slice(1);
             if(func instanceof Function){
@@ -190,32 +219,45 @@
                 type = 'val';
             } else {
                 // may be 'async', 'changes' or something else
+                type = func;
+                func = parents.shift();
             }
-            res[i] = get_cell_type('val', func, parents);
+            res[i] = get_cell_type(type, func, parents);
             for(var j in parents){
-                init_if_empty(children, parents[j], {});
-                children[parents[j]][i] = true;
+                var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
+                //console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
+                init_if_empty(children, parent_cell_name, {});
+                children[parent_cell_name][set_listening_type(i, listening_type)] = true;
             }
         }
-        for(var i in children){
+        for(let i in children){
+            //console.log('resi', res, children, i);
             res[i].children = children[i];
         }
-        //console.log('res', res);
+        //console.log('Parsed cell types', res);
         return res;
     }
 
     var parse_pb = function(pb){
         var res = {};
+        //console.log('--- PARSING PB', pb);
         for(var key in pb) {
+            if(key === '$free'){
+                init_if_empty(res, '$free', {});
+                pb[key].each((val, key) => { res['$free'][key] = val; });
+                continue;
+            }
             if(pb[key] instanceof Object) {
                 // Array or Object
                 res[key] = parse_fexpr(pb[key]);
             } else {
                 // primitive value
+                //console.log('hereby', res);
                 init_if_empty(res, '$free', {});
                 res.$free[key] = pb[key];
             }
         }
+        //console.log('--- PARSED PB', res);
         return res;
     }
     
