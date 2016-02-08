@@ -10,7 +10,7 @@ describe('Plain base', function () {
             a: 10,
             b: 32,
         });
-        assert.equal(parsed_pb.c[0](1, 2), 3);
+        assert.equal(parsed_pb.c[1](1, 2), 3);
     });
     it('Testing simple grid', function () {
         var app = Firera.run({
@@ -65,5 +65,21 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), 52);
         app.set('a', 30);
         assert.equal(app.get('c'), 72);
+    });
+    it('Testing map dependency', function () {
+        var app = Firera.run({
+            __root: {
+                'a': 10,
+                'b': 32,
+                'c': {
+                    a: function(z){ return z + 1;}, 
+                    b: function(z){ return z*(-1);
+                }}
+            }
+        });
+        app.set('a', 20);
+        assert.equal(app.get('c'), 21);
+        app.set('b', 42);
+        assert.equal(app.get('c'), -42);
     });
 })
