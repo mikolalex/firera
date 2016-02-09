@@ -144,6 +144,14 @@
                 }
                 this.set_cell_value(real_cell_name, func[parent_cell_name](this.cell_value(get_real_cell_name(parent_cell_name))));
             break;
+            case 'funnel':
+                if(!parent_cell_name){
+                    throw new Error('Cannot calculate map cell value - no parent cell name provided!');
+                }
+                var func = this.cell_func(real_cell_name);
+                parent_cell_name = get_real_cell_name(parent_cell_name);
+                this.set_cell_value(real_cell_name, func(parent_cell_name, this.cell_value(parent_cell_name)));
+            break;
             default:
                 throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
             break;
@@ -202,7 +210,7 @@
         this.cell_values[cell] = val;
     }
 
-    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map']);
+    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel']);
 
     var predefined_functions = {
         '+': {

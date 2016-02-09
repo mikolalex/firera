@@ -82,4 +82,20 @@ describe('Plain base', function () {
         app.set('b', 42);
         assert.equal(app.get('c'), -42);
     });
+    it('Testing FUNNEL dependency', function () {
+        var app = Firera.run({
+            __root: {
+                'a': 10,
+                'b': 32,
+                'c': ['funnel', function(cellname, val){
+                    //console.log('got FUNNEL', arguments); 
+                    return cellname + '_' + val;
+                }, 'a', 'b']
+            }
+        });
+        app.set('a', 20);
+        assert.equal(app.get('c'), 'a_20');
+        app.set('b', 42);
+        assert.equal(app.get('c'), 'b_42');
+    });
 })
