@@ -329,11 +329,15 @@
                 }
             }
         }
+        //console.log('Got following children after parsing', children, res);
         for(let i in children){
-            //console.log('resi', res, children, i);
+            //console.log('resi', res, i);
+            if(!res[i]){
+                res[i] = get_cell_type('free');
+            }
             res[i].children = children[i];
         }
-        //console.log('Parsed cell types', res);
+        console.log('Parsed cell types', res);
         return res;
     }
 
@@ -377,6 +381,7 @@
             }
             //console.log(app);
             app.root = new Hash(app.cbs.__root);
+            console.info('App run', app.root);
             return app;
         },
         loadPackage: function(pack) {
@@ -390,6 +395,7 @@
         cellMatchers: [
             {
                 // ^foo -> previous values of 'foo'
+                name: 'PrevValue',
                 regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
                 func: function(matches, pool){
                     var cellname = matches[2];
@@ -403,6 +409,39 @@
                                 return [old_val, a];
                             }
                     }, cellname], pool, '^' + cellname);
+                }
+            },
+            {
+                // ^foo -> previous values of 'foo'
+                name: 'HTMLAspects',
+                regexp: new RegExp('^(\-|\:)?([^\|]*)\\|(.*)', 'i'),
+                func: function(matches, pool){
+                    var cellname = matches[0];
+                    var aspect = matches[3];
+                    var selector = matches[2];
+                    var func;
+                    switch(aspect){
+                        case 'val':
+                            func = function(cb, vals){
+                                var onChange = function(){
+                                    //console.log('Updating value of', cellname);
+                                    cb($(this).val());
+                                };
+                                var [$prev_el, $now_el] = vals;
+                                //console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
+                                if($prev_el){
+                                    $prev_el.off('keyup', selector);
+                                    $prev_el.off('change', selector);
+                                }
+                                $now_el.on({keyup: onChange, change: onChange}, selector);
+                            }
+                        break;
+                        default:
+                            throw new Error('unknown HTML aspect: ' + aspect);
+                        break;
+                    }
+                    
+                    parse_fexpr(['async', func, '^$el'], pool, cellname);
                 }
             }
         ]

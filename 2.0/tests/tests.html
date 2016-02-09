@@ -4,6 +4,14 @@
 		<meta charset="utf-8">
 		<title>Mocha Tests</title>
 		<link rel="stylesheet" href="mocha.css" />
+                <style>
+                    .tcases > * {
+                        padding: 20px;
+                        margin: 20px;
+                        border-radius: 10px;
+                        background-color: whitesmoke;
+                    }
+                </style>
 	</head>
 	<body>
 		<div id="mocha"></div>
@@ -18,11 +26,16 @@
 			mocha.globals(['jQuery']);
 			mocha.run();
 		</script>
-		<div class="dummy">
-			<input type="text">
-		</div>
-		<div class="async-ex">
-			<input type="text">
-		</div>
+                <div class="tcases">
+                    <div class="dummy">
+                            <input type="text">
+                    </div>
+                    <div class="async-ex">
+                            <input type="text">
+                    </div>
+                    <div class="test-html">
+                            <input type="text">
+                    </div>
+                </div>
 	</body>
 </html>

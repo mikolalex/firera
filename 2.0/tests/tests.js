@@ -1,3 +1,5 @@
+var id = a => a;
+
 describe('Plain base', function () {
     it('Testing simple values conversion', function () {
         var pb = {
@@ -97,5 +99,17 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), 'a_20');
         app.set('b', 42);
         assert.equal(app.get('c'), 'b_42');
+    });
+    it('Testing basic html functionality', function () {
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    $el: $(".test-html")
+                },
+                someval: ['is', id, 'input|val']
+            }
+        });
+        $('.test-html input').val('ololo').keyup();
+        assert.equal(app.get('someval'), 'ololo');
     });
 })
