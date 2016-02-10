@@ -216,7 +216,30 @@
         '+': {
             type: 'func', 
             func: function(a, b){ return a+b;}
-        }
+        },
+        '-': {
+            type: 'func', 
+            func: function(a, b){ return a-b;}
+        },
+        '*': {
+            type: 'func', 
+            func: function(a, b){ return a*b;}
+        },
+        '/': {
+            type: 'func', 
+            func: function(a, b){ return a/b;}
+        },
+        '%': {
+            type: 'func', 
+            func: function(a, b){ return a%b;}
+        },
+        '$': {
+            type: 'func', 
+            func: function(a, b){ 
+                console.log('Searching selector', b, 'in', a);
+                return a.find(b); 
+            }
+        },
     }
 
     var get_app = function(){
@@ -238,22 +261,33 @@
         }[type] + cell;
     }
 
-    var parse_cellname = function(cellname, pool){
+    var parse_cellname = function(cellname, pool, context){
         for(var m of cellMatchers){
             var matches = cellname.match(m.regexp);
             if(matches){
-                m.func(matches, pool);
+                m.func(matches, pool, context);
                 return;
             }
         }
     }
+
+    var get_random_name = (function(){
+        // temp solution for Symbol
+        var c = 1;
+        return function(){
+            return 'ololo123321@@@_' + (++c);
+        }
+    })()
 
     var parse_fexpr = function(a, pool, key){
         var funcstring;
         if(a instanceof Object){
             if(a instanceof Array){
                 var funcname = a[0];
-                if(funcname instanceof Function || system_predicates.has(funcname)){
+                if(funcname instanceof Function){
+                    // it's "is" be default
+                    funcstring = ['is'].concat(a);
+                } else if(system_predicates.has(funcname)){
                     funcstring = a; // it's "is" or something similar
                 } else {
                     if(predefined_functions[funcname]){
@@ -278,11 +312,26 @@
             throw new Error('Cannot parse primitive value as fexpr: ' + a);
         }
         //console.log('Funcstring', funcstring);
-        for(var k in funcstring){
+        for(let k = 2; k < funcstring.length; k++){
             var cellname = funcstring[k];
-            if(k < 2 || typeof(cellname) !== 'string') continue;
-            parse_cellname(cellname, pool);
+            switch(typeof(cellname)){
+                case 'string':
+                    parse_cellname(cellname, pool);
+                break;
+                case 'object':
+                    if(cellname instanceof Array){
+                        var some_key = get_random_name();
+                        //console.log('Random name is', some_key);
+                        parse_fexpr(cellname, pool, some_key);
+                        funcstring[k] = some_key;
+                    }
+                break;
+                default: 
+                    throw new Error('Not know how to handle this ' + typeof(cellname));
+                break;
+            }
         }
+        parse_cellname(key, pool, 'setter');
         //console.log('Got funcstring', funcstring);
         pool[key] = funcstring;
     }
@@ -311,13 +360,14 @@
             var parents = pbs[i].slice(1);
             if(func instanceof Function){
                 // regular sync cell
-                type = 'val';
+                type = 'is';
             } else {
                 // may be 'async', 'changes' or something else
                 type = func;
                 func = parents.shift();
             }
             res[i] = get_cell_type(type, func, parents);
+            //console.log('Cell', i, 'parent', parents);
             for(var j in parents){
                 var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
                 //console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
@@ -337,7 +387,7 @@
             }
             res[i].children = children[i];
         }
-        console.log('Parsed cell types', res);
+        //console.log('Parsed cell types', res);
         return res;
     }
 
@@ -397,7 +447,8 @@
                 // ^foo -> previous values of 'foo'
                 name: 'PrevValue',
                 regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
-                func: function(matches, pool){
+                func: function(matches, pool, context){
+                    if(context == 'setter') return;
                     var cellname = matches[2];
                     parse_fexpr(['closure', function(){
                             var val;
@@ -415,11 +466,23 @@
                 // ^foo -> previous values of 'foo'
                 name: 'HTMLAspects',
                 regexp: new RegExp('^(\-|\:)?([^\|]*)\\|(.*)', 'i'),
-                func: function(matches, pool){
+                func: function(matches, pool, context){
                     var cellname = matches[0];
                     var aspect = matches[3];
                     var selector = matches[2];
                     var func;
+                    var setters = ['visibility'];
+                    setters.has = function(str){
+                        return this.indexOf(str) !== -1;
+                    }
+                    //console.info('Aspect:', aspect, setters.has(aspect), context);
+                    if(
+                        (context === 'setter' && !setters.has(aspect))
+                        ||
+                        (context !== 'setter' && setters.has(aspect))
+                    ){
+                        return;
+                    }
                     switch(aspect){
                         case 'val':
                             func = function(cb, vals){
@@ -436,12 +499,34 @@
                                 $now_el.on({keyup: onChange, change: onChange}, selector);
                             }
                         break;
+                        case 'click':
+                            func = function(cb, vals){
+                                var [$prev_el, $now_el] = vals;
+                                //console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
+                                if($prev_el){
+                                    $prev_el.off('click', selector);
+                                }
+                                $now_el.on('click', selector, cb);
+                            }
+                        break;
+                        case 'visibility':
+                            func = function($el, val){
+                                if(val){
+                                    $el.show();
+                                } else {
+                                    $el.hide();
+                                }
+                            }
+                        break;
                         default:
                             throw new Error('unknown HTML aspect: ' + aspect);
                         break;
                     }
-                    
-                    parse_fexpr(['async', func, '^$el'], pool, cellname);
+                    if(context === 'setter'){
+                        parse_fexpr(['is', func, [(a) => a.find(selector), '$el'], cellname], pool, get_random_name());
+                    } else {
+                        parse_fexpr(['async', func, '^$el'], pool, cellname);
+                    }
                 }
             }
         ]

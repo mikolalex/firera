@@ -27,6 +27,20 @@ describe('Plain base', function () {
         app.set('a', 20);
         assert.equal(app.get('c'), 52);
     });
+    it('Testing nested fexpr', function () {
+        var app = Firera.run({
+            __root: {
+                'a': 10,
+                'b': 20,
+                'c': 12,
+                'd': ['+', ['-', 'b', 'c'], 'a']
+            },
+            'todo': {},
+        });
+        assert.equal(app.get('d'), 18);
+        app.set('a', 20);
+        assert.equal(app.get('d'), 28);
+    });
     it('Testing async', function () {
         var handler = function(e, cb){
             cb($(this).val());
@@ -106,10 +120,29 @@ describe('Plain base', function () {
                 $free: {
                     $el: $(".test-html")
                 },
-                someval: ['is', id, 'input|val']
+                'someval': [id, 'input|val'],
+                '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
             }
         });
         $('.test-html input').val('ololo').keyup();
         assert.equal(app.get('someval'), 'ololo');
+    });
+    it('Testing nested hashes', function () {
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    $el: $(".test-html")
+                },
+                someval: ['is', id, 'input|val']
+            },
+            'todo': {
+            	completed: {
+            		'__def': false,
+            		'.done|click': true,
+            	}
+            }
+        });
+        //$('.test-html input').val('ololo').keyup();
+        //assert.equal(app.get('someval'), 'ololo');
     });
 })
