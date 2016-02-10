@@ -75,6 +75,7 @@
         console.log('CREATING HASH', parsed_pb);
         // creating cell values obj
         this.cell_types = parsed_pb.cell_types;
+        this.cell_links = parsed_pb.cell_links;
         // for "closure" cell type
         this.cell_funcs = {};
         this.dirtyCounter = {};
@@ -262,6 +263,13 @@
     }
 
     var parse_cellname = function(cellname, pool, context){
+        if(cellname.indexOf('/') !== -1){
+            // it's a path - link to other hashes
+            var path = cellname.split('/');
+            init_if_empty(pool.cell_links, path[0], {});
+            pool.cell_links[path[0]][path.slice(1).join('/')] = true;
+            return;
+        }
         for(var m of cellMatchers){
             var matches = cellname.match(m.regexp);
             if(matches){
@@ -312,7 +320,7 @@
             throw new Error('Cannot parse primitive value as fexpr: ' + a);
         }
         //console.log('Funcstring', funcstring);
-        for(let k = 2; k < funcstring.length; k++){
+        for(let k = 2; k < funcstring.length; ++k){
             var cellname = funcstring[k];
             switch(typeof(cellname)){
                 case 'string':
@@ -333,7 +341,7 @@
         }
         parse_cellname(key, pool, 'setter');
         //console.log('Got funcstring', funcstring);
-        pool[key] = funcstring;
+        pool.plain_base[key] = funcstring;
     }
 
     var get_cell_type = function(type, func, parents){
@@ -342,7 +350,7 @@
     }
 
     var parse_cell_types = function(pbs){
-        var res = {};
+        var cell_types = {};
         var children = {};
         //console.log('PBS', pbs);
         for(let i in pbs){
@@ -350,9 +358,9 @@
             if(i === '$free'){
                 //console.log('parsing free variables', pbs[i]);
                 for(var j in pbs[i]){
-                    res[j] = get_cell_type(type);
+                    cell_types[j] = get_cell_type(type);
                 }
-                //console.log('now res j looks like', res);
+                //console.log('now cell_types j looks like', cell_types);
                 continue;
             }
             //console.log('pbsi', pbs, i);
@@ -366,7 +374,7 @@
                 type = func;
                 func = parents.shift();
             }
-            res[i] = get_cell_type(type, func, parents);
+            cell_types[i] = get_cell_type(type, func, parents);
             //console.log('Cell', i, 'parent', parents);
             for(var j in parents){
                 var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
@@ -379,25 +387,27 @@
                 }
             }
         }
-        //console.log('Got following children after parsing', children, res);
+        //console.log('Got following children after parsing', children, cell_types);
         for(let i in children){
             //console.log('resi', res, i);
-            if(!res[i]){
-                res[i] = get_cell_type('free');
+            if(!cell_types[i]){
+                cell_types[i] = get_cell_type('free');
             }
-            res[i].children = children[i];
+            cell_types[i].children = children[i];
         }
-        //console.log('Parsed cell types', res);
-        return res;
+        //console.log('Parsed cell types', cell_types);
+        return cell_types;
     }
 
     var parse_pb = function(pb){
-        var res = {};
+        var plain_base = {};
+        var cell_links = {};
+        var res = {plain_base, cell_links};
         //console.log('--- PARSING PB', pb);
         for(var key in pb) {
             if(key === '$free'){
-                init_if_empty(res, '$free', {});
-                pb[key].each((val, key) => { res['$free'][key] = val; });
+                init_if_empty(res.plain_base, '$free', {});
+                pb[key].each((val, key) => { res.plain_base['$free'][key] = val; });
                 continue;
             }
             if(pb[key] instanceof Object) {
@@ -406,23 +416,34 @@
             } else {
                 // primitive value
                 //console.log('hereby', res);
-                init_if_empty(res, '$free', {});
-                res.$free[key] = pb[key];
+                init_if_empty(res.plain_base, '$free', {});
+                res.plain_base.$free[key] = pb[key];
             }
         }
         //console.log('--- PARSED PB', res);
         return res;
     }
+
+    var to_seconds = (date) => {
+        var a = Number(((date.getHours()*60 + date.getMinutes())*60 + date.getSeconds()) + '.' + date.getMilliseconds());
+        //console.log('MS', a);
+        return a;
+    }
+
+    var time_between = (a, b) => {
+        return (to_seconds(b) - to_seconds(a))*1000000;
+    }
     
     var Firera = {
         run: function(config){
+            var start = new Date();
             var app = get_app();
             // getting real pbs
             app.cbs = config.map(function(pb){
-                var pbs = parse_pb(pb);
-                //console.log('GOT pbs', pbs);
-                var cell_types = parse_cell_types(pbs);
-                return {pbs, cell_types};
+                var {plain_base, cell_links} = parse_pb(pb);
+                //console.log('GOT cell_links', cell_links);
+                var cell_types = parse_cell_types(plain_base);
+                return {pbs: plain_base, cell_types, cell_links};
             });
             // now we should instantiate each pb
             if(!app.cbs.__root){
@@ -430,8 +451,12 @@
                 throw new Error('Cant find root app!', app);
             }
             //console.log(app);
+            var compilation_finished = new Date();
             app.root = new Hash(app.cbs.__root);
-            console.info('App run', app.root);
+            var init_finished = new Date();
+            console.info('App run', app.root
+                //, time_between(start, compilation_finished), time_between(compilation_finished, init_finished)
+            );
             return app;
         },
         loadPackage: function(pack) {

@@ -7,12 +7,12 @@ describe('Plain base', function () {
             'b': 32,
             'c': ['+', 'a', 'b']
         }
-        var parsed_pb = Firera.func_test_export.parse_pb(pb);
-        assert.deepEqual(parsed_pb.$free, {
+        var pbs = Firera.func_test_export.parse_pb(pb).plain_base;
+        assert.deepEqual(pbs.$free, {
             a: 10,
             b: 32,
         });
-        assert.equal(parsed_pb.c[1](1, 2), 3);
+        assert.equal(pbs.c[1](1, 2), 3);
     });
     it('Testing simple grid', function () {
         var app = Firera.run({
@@ -131,9 +131,9 @@ describe('Plain base', function () {
         var app = Firera.run({
             __root: {
                 $free: {
-                    $el: $(".test-html")
+                    $el: $(".test-nested")
                 },
-                someval: ['is', id, 'input|val']
+                someval: [id, 'todo/competed'],
             },
             'todo': {
             	completed: {
