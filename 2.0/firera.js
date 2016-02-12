@@ -70,18 +70,53 @@
         this.root.set(cell, val);
     }
 
-    var Hash = function(parsed_pb){
+    var Hash = function(app, parsed_pb_name){
+        this.app = app;
+        var parsed_pb = app.cbs[parsed_pb_name];
         console.log('________________________________________________________');
-        console.log('CREATING HASH', parsed_pb);
+        console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
         // creating cell values obj
         this.cell_types = parsed_pb.cell_types;
         this.cell_links = parsed_pb.cell_links;
+        this.hashes_to_link = parsed_pb.hashes_to_link;
+        this.linked_hashes = {};
         // for "closure" cell type
         this.cell_funcs = {};
         this.dirtyCounter = {};
-        this.cell_values = Object.create(parsed_pb.pbs.$free || {});
-        this.set(parsed_pb.pbs.$free);
+        this.dynamic_cell_links = {};
+        this.cell_values = Object.create(parsed_pb.plain_base.$free || {});
+        this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
+        // @todo: refactor, make this set in one step
+        if(parsed_pb.plain_base.$free){
+            this.set(parsed_pb.plain_base.$free);
+        }
+        if(parsed_pb.default_values){
+            //console.log('Setting DEFAULT values', parsed_pb.default_values);
+            parsed_pb.default_values.each((val, cell) => this.force_set(cell, val));
+        }
         //console.log('result', this.cell_values);
+    }
+
+    Hash.prototype.linkChild = function(type, link_as){
+        var child = new Hash(this.app, type);
+        this.linked_hashes[link_as] = child;
+        child.linked_hashes['..'] = this;
+        this.linkCells(link_as, '..');
+        child.linkCells('..', link_as);
+        //console.info('Successfully linked ', type, 'as', link_as);
+    }
+
+    Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
+        var links;
+        if(links = this.cell_links[hash_name]){
+            links.each((parent_cell, child_cell) => {
+                init_if_empty(this.linked_hashes[hash_name].dynamic_cell_links, parent_cell, []);
+                var pool = this.linked_hashes[hash_name].dynamic_cell_links;
+                init_if_empty(pool, my_name_for_that_hash, []);
+                pool[my_name_for_that_hash].push(child_cell);
+                this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
+            })
+        }
     }
 
     Hash.prototype.doRecursive = function(func, cell, skip, parent_cell){
@@ -169,22 +204,29 @@
                     : (this.dirtyCounter[cell] = 1);
             }));
             //console.log('dirty counter', this.dirtyCounter);
-            cell.eachKey(this.doRecursive.bind(this, (cell, parent_cell_name) => {
-                if(--this.dirtyCounter[cell] === 0){
-                    //console.log('Computing after batch change', cell);
-                    this.compute(cell, parent_cell_name);
+            cell.eachKey(this.doRecursive.bind(this, (cell2, parent_cell_name) => {
+                if(--this.dirtyCounter[cell2] === 0 && cell[cell2] === undefined){
+                    //console.log('Computing after batch change', cell2, cell);
+                    this.compute(cell2, parent_cell_name);
                 } else {
                     //console.log('Cell ', cell, 'is not ready', this.dirtyCounter);
                 }
             }));
         } else {
+            //console.log('Setting cell value', cell, val);
             if(!this.cell_type(cell) === 'free'){
                 throw Exception('Cannot set dependent cell!');
             }
-            this.set_cell_value(cell, val);
-            this.doRecursive(this.compute.bind(this), cell);
+            this.force_set(cell, val);
+            //this.doRecursive(this.compute.bind(this), cell);
             //console.log('Cell values after set', this.cell_values);
         }
+    }
+    Hash.prototype.force_set = function(cell, val){
+        this.set_cell_value(cell, val);
+        this.cell_children(cell).eachKey((child_cell_name) => {
+            this.doRecursive(this.compute.bind(this), child_cell_name, false, cell);
+        });
     }
     Hash.prototype.cell_parents = function(cell){
         return this.cell_types[cell] ? this.cell_types[cell].parents : [];
@@ -211,7 +253,7 @@
         this.cell_values[cell] = val;
     }
 
-    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel']);
+    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel', 'hash']);
 
     var predefined_functions = {
         '+': {
@@ -267,7 +309,7 @@
             // it's a path - link to other hashes
             var path = cellname.split('/');
             init_if_empty(pool.cell_links, path[0], {});
-            pool.cell_links[path[0]][path.slice(1).join('/')] = true;
+            pool.cell_links[path[0]][cellname] = path.slice(1).join('/');
             return;
         }
         for(var m of cellMatchers){
@@ -297,6 +339,11 @@
                     funcstring = ['is'].concat(a);
                 } else if(system_predicates.has(funcname)){
                     funcstring = a; // it's "is" or something similar
+                    if(funcname === 'hash'){
+                        init_if_empty(pool, 'hashes_to_link', {});
+                        pool.hashes_to_link[key] = a[1];
+                        return;
+                    }
                 } else {
                     if(predefined_functions[funcname]){
                         var fnc = predefined_functions[funcname];
@@ -313,6 +360,13 @@
                 }
             } else {
                 // it's object
+                if(a.__def !== undefined){
+                    //console.info('Found default value for', key, ':', a.__def);
+                    // default value for MAP cell
+                    init_if_empty(pool, 'default_values', {});
+                    pool.default_values[key] = a.__def;
+                    delete a.__def;
+                }
                 funcstring = ['map', a].concat(Object.keys(a));
                 //console.log('Parsing MAP fexpr', a, ' -> ', funcstring);
             }
@@ -402,7 +456,8 @@
     var parse_pb = function(pb){
         var plain_base = {};
         var cell_links = {};
-        var res = {plain_base, cell_links};
+        var hashes_to_link = {};
+        var res = {plain_base, cell_links, hashes_to_link};
         //console.log('--- PARSING PB', pb);
         for(var key in pb) {
             if(key === '$free'){
@@ -440,10 +495,10 @@
             var app = get_app();
             // getting real pbs
             app.cbs = config.map(function(pb){
-                var {plain_base, cell_links} = parse_pb(pb);
+                var res = parse_pb(pb);
                 //console.log('GOT cell_links', cell_links);
-                var cell_types = parse_cell_types(plain_base);
-                return {pbs: plain_base, cell_types, cell_links};
+                res.cell_types = parse_cell_types(res.plain_base);
+                return res;
             });
             // now we should instantiate each pb
             if(!app.cbs.__root){
@@ -452,7 +507,7 @@
             }
             //console.log(app);
             var compilation_finished = new Date();
-            app.root = new Hash(app.cbs.__root);
+            app.root = new Hash(app, '__root');
             var init_finished = new Date();
             console.info('App run', app.root
                 //, time_between(start, compilation_finished), time_between(compilation_finished, init_finished)

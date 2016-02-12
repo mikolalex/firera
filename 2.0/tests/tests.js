@@ -133,9 +133,10 @@ describe('Plain base', function () {
                 $free: {
                     $el: $(".test-nested")
                 },
-                someval: [id, 'todo/competed'],
+                someval: [id, 'todo/completed'],
+                todo: ['hash', 'item'],
             },
-            'todo': {
+            'item': {
             	completed: {
             		'__def': false,
             		'.done|click': true,

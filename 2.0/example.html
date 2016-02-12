@@ -9,14 +9,15 @@ and open the template in the editor.
         <title>TODO supply a title</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="./jquery.js"></script>
         <script src="./firera.js"></script>
     </head>
     <body>
         <div>Firera 2.0</div>
     </body>
     <script>
-
-    	var app = Firera.run({
+        var id = a => a;
+    	/*var app = Firera.run({
     		__root: {
     			'a': 10,
     			'b': 32,
@@ -26,7 +27,23 @@ and open the template in the editor.
     	});
 
         app.set('a', 20);
-        console.log('Now "c" is', app.get('c'));
+        console.log('Now "c" is', app.get('c'));*/
+
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    $el: $(".test-nested")
+                },
+                someval: [id, 'todo/completed'],
+                todo: ['hash', 'item'],
+            },
+            'item': {
+                completed: {
+                    '__def': false,
+                    '.done|click': true,
+                }
+            }
+        });
 
     </script>
 </html>
