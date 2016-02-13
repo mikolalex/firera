@@ -1,5 +1,7 @@
 (function(){
     'use strict';
+    
+    var log = console.log.bind(console);
 
     Object.defineProperty(Object.prototype, 'map', {
         enumerable: false,
@@ -66,12 +68,25 @@
     App.prototype.get = function(cell){
         return this.root.cell_value(cell);
     }
-    App.prototype.set = function(cell, val){
-        this.root.set(cell, val);
+    App.prototype.set = function(cell, val, child){
+        this.root.set(cell, val, child);
+    }
+    
+    var show_performance = function(){
+        var res = [];
+        for(var i = 1; i < arguments.length; ++i){
+            res.push(i + ': ' + (arguments[i] - arguments[i - 1]).toFixed(3));
+        }
+        res.push('Total: ' + (arguments[i - 1] - arguments[0]).toFixed(3));
+        return res.join(', ');
     }
 
-    var Hash = function(app, parsed_pb_name){
+    var Hash = function(app, parsed_pb_name, name){
+        ////////////////////////////////////////////////////////////////////////
+        var t0 = performance.now();
+        ////////////////////////////////////////////////////////////////////////
         this.app = app;
+        this.name = name || 'root';
         var parsed_pb = app.cbs[parsed_pb_name];
         console.log('________________________________________________________');
         console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
@@ -86,19 +101,28 @@
         this.dynamic_cell_links = {};
         this.cell_values = Object.create(parsed_pb.plain_base.$free || {});
         this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
+        ////////////////////////////////////////////////////////////////////////
+        var t1 = performance.now();
+        ////////////////////////////////////////////////////////////////////////
         // @todo: refactor, make this set in one step
         if(parsed_pb.plain_base.$free){
             this.set(parsed_pb.plain_base.$free);
         }
+        ////////////////////////////////////////////////////////////////////////
+        var t2 = performance.now();
+        ////////////////////////////////////////////////////////////////////////
         if(parsed_pb.default_values){
             //console.log('Setting DEFAULT values', parsed_pb.default_values);
             parsed_pb.default_values.each((val, cell) => this.force_set(cell, val));
         }
-        //console.log('result', this.cell_values);
+        ////////////////////////////////////////////////////////////////////////
+        var t3 = performance.now();
+        ////////////////////////////////////////////////////////////////////////
+        console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
     }
 
     Hash.prototype.linkChild = function(type, link_as){
-        var child = new Hash(this.app, type);
+        var child = new Hash(this.app, type, link_as);
         this.linked_hashes[link_as] = child;
         child.linked_hashes['..'] = this;
         this.linkCells(link_as, '..');
@@ -106,16 +130,29 @@
         //console.info('Successfully linked ', type, 'as', link_as);
     }
 
+    Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash, type = 'val'){
+        var other_hash = this.linked_hashes[hash_name];
+        var pool = other_hash.dynamic_cell_links;
+        init_if_empty(pool, parent_cell, {});
+        init_if_empty(pool[parent_cell], my_name_for_that_hash, []);
+        pool[parent_cell][my_name_for_that_hash].push({
+            cell_name: child_cell,
+            type: type
+        });
+        this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
+    }
+
     Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
         var links;
         if(links = this.cell_links[hash_name]){
-            links.each((parent_cell, child_cell) => {
-                init_if_empty(this.linked_hashes[hash_name].dynamic_cell_links, parent_cell, []);
-                var pool = this.linked_hashes[hash_name].dynamic_cell_links;
-                init_if_empty(pool, my_name_for_that_hash, []);
-                pool[my_name_for_that_hash].push(child_cell);
-                this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
-            })
+            links.each((parent_cell, child_cell) => { 
+                this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
+            });
+        }
+        if(links = this.cell_links['*']){
+            links.each((parent_cell, child_cell) => { 
+                this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash, 'val_and_hashname'); 
+            });
         }
     }
 
@@ -194,7 +231,21 @@
         }
     }
 
-    Hash.prototype.set = function(cell, val){
+    Hash.prototype.set = function(cell, val, child){
+        if(child){
+            // setting value for some linked child hash
+            //log('Trying to set', child, cell, val);
+            var path = child.split('/');
+            var childname = path[0];
+            var child = this.linked_hashes[childname];
+            if(!child){
+                console.warn('Cannot set - no such path', path);
+                return;
+            }
+            var child_path = path[1] ? path.slice(1).join('/') : undefined;
+            child.set(cell, val, child_path);
+            return;
+        }
         if(cell instanceof Object){
             // batch update
             //console.log('Computing batch update', cell);
@@ -251,6 +302,20 @@
     }
     Hash.prototype.set_cell_value = function(cell, val){
         this.cell_values[cell] = val;
+        //log('Setting', cell, val, this.dynamic_cell_links[cell]);
+        if(this.dynamic_cell_links[cell]){
+            this.dynamic_cell_links[cell].each((links, hash_name) => {
+                if(this.linked_hashes[hash_name]){
+                    for(var link of links){
+                        if(link.cell_name === 'val'){
+                            this.linked_hashes[hash_name].set(link.cell_name, val);
+                        } else {
+                            this.linked_hashes[hash_name].set(link.cell_name, [this.name, val]);
+                        }
+                    }
+                }
+            })
+        }
     }
 
     var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel', 'hash']);
@@ -331,6 +396,10 @@
 
     var parse_fexpr = function(a, pool, key){
         var funcstring;
+        if(typeof a === 'string'){
+            // just link to other cell
+            a = [id, a];
+        }
         if(a instanceof Object){
             if(a instanceof Array){
                 var funcname = a[0];
@@ -460,44 +529,32 @@
         var res = {plain_base, cell_links, hashes_to_link};
         //console.log('--- PARSING PB', pb);
         for(var key in pb) {
+            var value = pb[key];
             if(key === '$free'){
                 init_if_empty(res.plain_base, '$free', {});
-                pb[key].each((val, key) => { res.plain_base['$free'][key] = val; });
+                value.each((val, key) => { res.plain_base['$free'][key] = val; });
                 continue;
             }
             if(key === '$children'){
-                pb[key].each((hash_type, link_as) => {
-                     res.hashes_to_link[link_as] = hash_type;
-                })
+                if(value instanceof Array){
+                    // its dynamic children
+                    
+                } else {
+                    value.each((hash_type, link_as) => {
+                         res.hashes_to_link[link_as] = hash_type;
+                    })
+                }
                 continue;
             }
-            if(pb[key] instanceof Object) {
-                // Array or Object
-                parse_fexpr(pb[key], res, key);
-            } else {
-                // primitive value
-                //console.log('hereby', res);
-                init_if_empty(res.plain_base, '$free', {});
-                res.plain_base.$free[key] = pb[key];
-            }
+            parse_fexpr(value, res, key);
         }
         //console.log('--- PARSED PB', res);
         return res;
     }
-
-    var to_seconds = (date) => {
-        var a = Number(((date.getHours()*60 + date.getMinutes())*60 + date.getSeconds()) + '.' + date.getMilliseconds());
-        //console.log('MS', a);
-        return a;
-    }
-
-    var time_between = (a, b) => {
-        return (to_seconds(b) - to_seconds(a))*1000000;
-    }
     
     var Firera = {
         run: function(config){
-            var start = new Date();
+            var start = performance.now();
             var app = get_app();
             // getting real pbs
             app.cbs = config.map(function(pb){
@@ -512,11 +569,11 @@
                 throw new Error('Cant find root app!', app);
             }
             //console.log(app);
-            var compilation_finished = new Date();
+            var compilation_finished = performance.now();
             app.root = new Hash(app, '__root');
-            var init_finished = new Date();
+            var init_finished = performance.now();
             console.info('App run', app.root
-                //, time_between(start, compilation_finished), time_between(compilation_finished, init_finished)
+                , 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
             );
             return app;
         },

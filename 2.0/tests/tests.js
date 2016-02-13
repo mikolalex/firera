@@ -128,7 +128,7 @@ describe('Plain base', function () {
         assert.equal(app.get('someval'), 'ololo');
     });
     it('Testing nested hashes', function () {
-        var str = 'ololo';
+        var str = false;
         var app = Firera.run({
             __root: {
                 $free: {
@@ -148,5 +148,51 @@ describe('Plain base', function () {
         });
         //$('.test-html input').val('ololo').keyup();
         assert.equal(app.get('someval'), str);
+        app.set('completed', true, 'todo');
+        assert.equal(app.get('someval'), true);
+    });
+    it('Testing multiple children', function () {
+        var str = false;
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    $el: $(".test-nested")
+                },
+                completed_counter: ['closure', function(){
+                        var c = 0;
+                        return function(arr){
+                            var key = arr[0];
+                            var prev_val = arr[1][0];
+                            var val = arr[1][1];
+                            if(prev_val === undefined) return c;
+                            if(val) {
+                                c++;
+                            } else { 
+                                c--; 
+                            }
+                            return c;
+                        }
+                }, '*/changes'],
+                $children: {
+                    1: 'item',
+                    2: 'item',
+                    3: 'item',
+                },
+            },
+            'item': {
+            	completed: {
+            		'__def': str,
+            		'.done|click': true,
+            	},
+                'changes': '^completed',
+            }
+        });
+        app.set('completed', true, '2');
+        assert.equal(app.get('completed_counter'), 1);
+        app.set('completed', true, '1');
+        app.set('completed', true, '3');
+        app.set('completed', false, '2');
+        assert.equal(app.get('completed_counter'), 2);
+        //console.log('Now completed', app.get('completed_counter'));
     });
 })
