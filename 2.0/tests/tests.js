@@ -1,7 +1,7 @@
 var id = a => a;
 
 describe('Plain base', function () {
-    it('Testing simple values conversion', function () {
+    /*it('Testing simple values conversion', function () {
         var pb = {
             'a': 10,
             'b': 32,
@@ -13,12 +13,14 @@ describe('Plain base', function () {
             b: 32,
         });
         assert.equal(pbs.c[1](1, 2), 3);
-    });
+    });*/
     it('Testing simple grid', function () {
         var app = Firera.run({
             __root: {
-                'a': 10,
-                'b': 32,
+                $free: {
+                    a: 10,
+                    b: 32
+                },
                 'c': ['+', 'a', 'b']
             },
             'todo': {},
@@ -30,9 +32,11 @@ describe('Plain base', function () {
     it('Testing nested fexpr', function () {
         var app = Firera.run({
             __root: {
-                'a': 10,
-                'b': 20,
-                'c': 12,
+                $free: {
+                    'a': 10,
+                    'b': 20,
+                    'c': 12,
+                },
                 'd': ['+', ['-', 'b', 'c'], 'a']
             },
             'todo': {},
@@ -69,8 +73,10 @@ describe('Plain base', function () {
     it('Testing passive listening', function () {
         var app = Firera.run({
             __root: {
-                'a': 10,
-                'b': 32,
+                $free: {
+                    'a': 10,
+                    'b': 32,
+                },
                 'c': ['+', 'a', '-b']
             }
         });
@@ -85,8 +91,10 @@ describe('Plain base', function () {
     it('Testing map dependency', function () {
         var app = Firera.run({
             __root: {
-                'a': 10,
-                'b': 32,
+                $free: {
+                    'a': 10,
+                    'b': 32,
+                },
                 'c': {
                     a: function(z){ return z + 1;}, 
                     b: function(z){ return z*(-1);
@@ -101,8 +109,10 @@ describe('Plain base', function () {
     it('Testing FUNNEL dependency', function () {
         var app = Firera.run({
             __root: {
-                'a': 10,
-                'b': 32,
+                $free: {
+                    'a': 10,
+                    'b': 32,
+                },
                 'c': ['funnel', function(cellname, val){
                     //console.log('got FUNNEL', arguments); 
                     return cellname + '_' + val;

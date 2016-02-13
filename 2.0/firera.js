@@ -307,7 +307,8 @@
             this.dynamic_cell_links[cell].each((links, hash_name) => {
                 if(this.linked_hashes[hash_name]){
                     for(var link of links){
-                        if(link.cell_name === 'val'){
+                        //log('Updating links', link, val);
+                        if(link.type === 'val'){
                             this.linked_hashes[hash_name].set(link.cell_name, val);
                         } else {
                             this.linked_hashes[hash_name].set(link.cell_name, [this.name, val]);
@@ -478,6 +479,9 @@
         //console.log('PBS', pbs);
         for(let i in pbs){
             let type = 'free';
+            if(i === '$children'){
+                continue;
+            }
             if(i === '$free'){
                 //console.log('parsing free variables', pbs[i]);
                 for(var j in pbs[i]){
@@ -486,7 +490,9 @@
                 //console.log('now cell_types j looks like', cell_types);
                 continue;
             }
-            //console.log('pbsi', pbs, i);
+            if(!(pbs[i] instanceof Array)){
+                console.log('pbsi', pbs, i, pbs[i]);
+            }
             var func = pbs[i][0];
             var parents = pbs[i].slice(1);
             if(func instanceof Function){
@@ -522,28 +528,15 @@
         return cell_types;
     }
 
-    var parse_pb = function(pb){
-        var plain_base = {};
+    var parse_pb = function(res){
+        /*var plain_base = {};
         var cell_links = {};
         var hashes_to_link = {};
-        var res = {plain_base, cell_links, hashes_to_link};
+        var res = {plain_base, cell_links, hashes_to_link};*/
         //console.log('--- PARSING PB', pb);
-        for(var key in pb) {
-            var value = pb[key];
-            if(key === '$free'){
-                init_if_empty(res.plain_base, '$free', {});
-                value.each((val, key) => { res.plain_base['$free'][key] = val; });
-                continue;
-            }
-            if(key === '$children'){
-                if(value instanceof Array){
-                    // its dynamic children
-                    
-                } else {
-                    value.each((hash_type, link_as) => {
-                         res.hashes_to_link[link_as] = hash_type;
-                    })
-                }
+        for(var key in res.plain_base) {
+            var value = res.plain_base[key];
+            if(key === '$free' || key === '$children'){
                 continue;
             }
             parse_fexpr(value, res, key);
@@ -552,13 +545,38 @@
         return res;
     }
     
+    var parse_external_links_and_$free = function(pool, key){
+        
+    }
+    
     var Firera = {
         run: function(config){
             var start = performance.now();
             var app = get_app();
             // getting real pbs
-            app.cbs = config.map(function(pb){
-                var res = parse_pb(pb);
+            var cbs = config.map(a => {
+                return {
+                    plain_base: a, 
+                    cell_links: {},
+                    hashes_to_link: {}
+                }
+            });
+            //console.log('RESS', cbs);
+            cbs.each((res, key) => {
+                if(res.plain_base.$children){
+                    var value = res.plain_base.$children;
+                    if(value instanceof Array){
+                        // its dynamic children
+
+                    } else {
+                        value.each((hash_type, link_as) => {
+                             res.hashes_to_link[link_as] = hash_type;
+                        })
+                    }
+                }
+            })
+            app.cbs = cbs.map(function(res){
+                var res = parse_pb(res);
                 //console.log('GOT cell_links', cell_links);
                 res.cell_types = parse_cell_types(res.plain_base);
                 return res;
