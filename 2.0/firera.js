@@ -529,19 +529,12 @@
     }
 
     var parse_pb = function(res){
-        /*var plain_base = {};
-        var cell_links = {};
-        var hashes_to_link = {};
-        var res = {plain_base, cell_links, hashes_to_link};*/
-        //console.log('--- PARSING PB', pb);
         for(var key in res.plain_base) {
-            var value = res.plain_base[key];
             if(key === '$free' || key === '$children'){
                 continue;
             }
-            parse_fexpr(value, res, key);
+            parse_fexpr(res.plain_base[key], res, key);
         }
-        //console.log('--- PARSED PB', res);
         return res;
     }
     
@@ -562,7 +555,7 @@
                 }
             });
             //console.log('RESS', cbs);
-            cbs.each((res, key) => {
+            cbs.each((res) => {
                 if(res.plain_base.$children){
                     var value = res.plain_base.$children;
                     if(value instanceof Array){
@@ -574,13 +567,10 @@
                         })
                     }
                 }
-            })
-            app.cbs = cbs.map(function(res){
-                var res = parse_pb(res);
-                //console.log('GOT cell_links', cell_links);
+                parse_pb(res);
                 res.cell_types = parse_cell_types(res.plain_base);
-                return res;
             });
+            app.cbs = cbs;
             // now we should instantiate each pb
             if(!app.cbs.__root){
                 // no root hash
