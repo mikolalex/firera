@@ -128,22 +128,25 @@ describe('Plain base', function () {
         assert.equal(app.get('someval'), 'ololo');
     });
     it('Testing nested hashes', function () {
+        var str = 'ololo';
         var app = Firera.run({
             __root: {
                 $free: {
                     $el: $(".test-nested")
                 },
                 someval: [id, 'todo/completed'],
-                todo: ['hash', 'item'],
+                $children: {
+                    todo: 'item',
+                },
             },
             'item': {
             	completed: {
-            		'__def': false,
+            		'__def': str,
             		'.done|click': true,
             	}
             }
         });
         //$('.test-html input').val('ololo').keyup();
-        //assert.equal(app.get('someval'), 'ololo');
+        assert.equal(app.get('someval'), str);
     });
 })

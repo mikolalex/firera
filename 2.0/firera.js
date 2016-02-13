@@ -339,11 +339,11 @@
                     funcstring = ['is'].concat(a);
                 } else if(system_predicates.has(funcname)){
                     funcstring = a; // it's "is" or something similar
-                    if(funcname === 'hash'){
+                    /*if(funcname === 'hash'){
                         init_if_empty(pool, 'hashes_to_link', {});
                         pool.hashes_to_link[key] = a[1];
                         return;
-                    }
+                    }*/
                 } else {
                     if(predefined_functions[funcname]){
                         var fnc = predefined_functions[funcname];
@@ -463,6 +463,12 @@
             if(key === '$free'){
                 init_if_empty(res.plain_base, '$free', {});
                 pb[key].each((val, key) => { res.plain_base['$free'][key] = val; });
+                continue;
+            }
+            if(key === '$children'){
+                pb[key].each((hash_type, link_as) => {
+                     res.hashes_to_link[link_as] = hash_type;
+                })
                 continue;
             }
             if(pb[key] instanceof Object) {
