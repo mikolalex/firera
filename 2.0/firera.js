@@ -195,6 +195,19 @@
                 //console.log('computing', cell, args, val);
                 this.set_cell_value(real_cell_name, val);
             break;
+            case 'nested':
+                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
+                args.unshift((cell, val) => {
+                    //console.log('NESTED callback called!', cell, val, real_cell_name); 
+                    var cell_to_update = real_cell_name + '.' + cell;
+                    this.set_cell_value(cell_to_update, val);
+                    this.doRecursive(this.compute.bind(this), cell_to_update, true);
+                });
+                //console.log('Computing ASYNC args', args);
+                var val = this.cell_func(real_cell_name).apply(null, args);
+                //console.log('computing', cell, args, val);
+                this.set_cell_value(real_cell_name, val);
+            break;
             case 'closure':
                 var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
                 //console.log('Checking whether closure func already exists', this.cell_funcs[real_cell_name], real_cell_name);
@@ -319,7 +332,7 @@
         }
     }
 
-    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel', 'hash']);
+    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel', 'hash', 'nested']);
 
     var predefined_functions = {
         '+': {
@@ -408,12 +421,18 @@
                     // it's "is" be default
                     funcstring = ['is'].concat(a);
                 } else if(system_predicates.has(funcname)){
-                    funcstring = a; // it's "is" or something similar
-                    /*if(funcname === 'hash'){
-                        init_if_empty(pool, 'hashes_to_link', {});
-                        pool.hashes_to_link[key] = a[1];
-                        return;
-                    }*/
+                    switch(funcname){
+                        case 'nested':
+                            var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
+                            init_if_empty(pool.plain_base, '$free', {});
+                            dependent_cells.each((name) => {
+                                pool.plain_base.$free[name] = null;
+                            })
+                            a.splice(2, 1);
+                        default:
+                            funcstring = a; 
+                        break;
+                    }
                 } else {
                     if(predefined_functions[funcname]){
                         var fnc = predefined_functions[funcname];

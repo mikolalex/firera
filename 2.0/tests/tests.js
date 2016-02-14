@@ -205,4 +205,26 @@ describe('Plain base', function () {
         assert.equal(app.get('completed_counter'), 2);
         //console.log('Now completed', app.get('completed_counter'));
     });
+    it('Testing nested cells', function () {
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    a: 42
+                },
+                'foo': ['nested', function(cb, a){
+                        if(a % 2){
+                            cb('odd', a);
+                        } else {
+                            cb('even', a);
+                        }
+                }, ['odd', 'even'], 'a'],
+            }
+        });
+        assert.equal(app.get('foo.even'), 42);
+        assert.equal(app.get('foo.odd'), null);
+        
+        app.set('a', 13);
+        assert.equal(app.get('foo.even'), 42);
+        assert.equal(app.get('foo.odd'), 13);
+    });
 })
