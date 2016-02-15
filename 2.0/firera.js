@@ -65,8 +65,8 @@
     var noop = function(){
         console.log('Noop is called!');
     };
-    App.prototype.get = function(cell){
-        return this.root.cell_value(cell);
+    App.prototype.get = function(cell, path){
+        return this.root.get(cell, path);
     }
     App.prototype.set = function(cell, val, child){
         this.root.set(cell, val, child);
@@ -123,6 +123,7 @@
 
     Hash.prototype.linkChild = function(type, link_as){
         var child = new Hash(this.app, type, link_as);
+        child.force_set('$name', link_as);
         this.linked_hashes[link_as] = child;
         child.linked_hashes['..'] = this;
         this.linkCells(link_as, '..');
@@ -247,6 +248,24 @@
             default:
                 throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
             break;
+        }
+    }
+
+    Hash.prototype.get = function(cell, child){
+        if(child){
+            // setting value for some linked child hash
+            //log('Trying to set', child, cell, val);
+            var path = child.split('/');
+            var childname = path[0];
+            var child = this.linked_hashes[childname];
+            if(!child){
+                console.warn('Cannot set - no such path', path);
+                return;
+            }
+            var child_path = path[1] ? path.slice(1).join('/') : undefined;
+            return child.get(cell, child_path);
+        } else {
+            return this.cell_values[cell];
         }
     }
 
@@ -376,9 +395,16 @@
         return app;
     }
 
-    var init_if_empty = function(obj, key, val) {
-        if(obj[key] === undefined){
-            obj[key] = val;
+    var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
+        for(let i  = 1; ;i = i + 2){
+            var key = arguments[i];
+            var val = arguments[i + 1];
+            if(!key) break;
+            
+            if(obj[key] === undefined){
+                obj[key] = val;
+            }
+            obj = obj[key];
         }
     }
     var set_listening_type = function(cell, type){
@@ -568,13 +594,15 @@
     }
     
     var Firera = {
+        eachHashMixin: {},
         run: function(config){
             var start = performance.now();
             var app = get_app();
             // getting real pbs
             var cbs = config.map(a => {
+                var eachMixin = Object.assign({}, this.eachHashMixin);
                 return {
-                    plain_base: a, 
+                    plain_base: Object.assign(eachMixin, a), 
                     cell_links: {},
                     hashes_to_link: {}
                 }
@@ -593,6 +621,8 @@
                     }
                 }
                 parse_pb(res);
+                init_if_empty(res.plain_base, '$free', {}, '$name', null);
+                //res.plain_base.$free['$name'] = null;
                 res.cell_types = parse_cell_types(res.plain_base);
             });
             app.cbs = cbs;
@@ -612,6 +642,10 @@
         },
         loadPackage: function(pack) {
             copy(pack.cellMatchers, cellMatchers);
+            if(pack.eachHashMixin){
+                // update the mixin for each hash created
+                Object.assign(this.eachHashMixin, pack.eachHashMixin);
+            }
         }
     }
 
@@ -637,7 +671,24 @@
                             }
                     }, cellname], pool, '^' + cellname);
                 }
-            },
+            }
+        ]
+    }
+    
+    
+    var get_by_selector = function(name, $el){
+        ///console.info("GBS", arguments);
+        if(name === null) return $('body');
+        return  $el 
+                ? $el.find('[data-fr=' + name + ']')
+                : null;
+    }
+    
+    var html = {
+        eachHashMixin: {
+            '$el': [get_by_selector, '$name', '../$el'],
+        },
+        cellMatchers: [
             {
                 // ^foo -> previous values of 'foo'
                 name: 'HTMLAspects',
@@ -710,5 +761,6 @@
 
 
     Firera.loadPackage(core);
+    Firera.loadPackage(html);
     Firera.func_test_export = {parse_pb, parse_fexpr};
 })()

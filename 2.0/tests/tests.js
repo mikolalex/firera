@@ -240,4 +240,36 @@ describe('Plain base', function () {
             }
         });
     });
+    
+    var get_by_selector = function(name, $el){
+        console.info("GBS", arguments);
+        return $el ? $el.find('[data-fr=' + name + ']') : null;
+    }
+    
+    it('Testing HTML package', function () {
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    a: 42,
+                },
+                b: [add.bind(null, 20), 'a'],
+                $children: {
+                    item: 'person'
+                }
+            },
+            person: {
+                $free: {
+                    name: 'John',
+                    surname: 'Kovalenko',
+                },
+                '$el': [get_by_selector, '$name', '../$el'],
+            }
+        });
+        // if $el in root is empty, it's <body> by default
+        assert.equal(app.get('$el').get()[0], $('body').get()[0]);
+        assert.equal(
+            app.get('$el', 'item').get()[0], 
+            $('div[data-fr=item]').get()[0]
+        );
+    });
 })
