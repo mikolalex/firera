@@ -227,4 +227,17 @@ describe('Plain base', function () {
         assert.equal(app.get('foo.even'), 42);
         assert.equal(app.get('foo.odd'), 13);
     });
+    var add = (a, b) => a + b;
+    it('Testing curcular dependency', function () {
+        var app = Firera.run({
+            __root: {
+                $free: {
+                    d: 42,
+                },
+                a: [add.bind(null, 10), 'b'],
+                b: [add.bind(null, 20), 'c'],
+                c: ['+', 'a', 'd'],
+            }
+        });
+    });
 })

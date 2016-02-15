@@ -156,16 +156,22 @@
         }
     }
 
-    Hash.prototype.doRecursive = function(func, cell, skip, parent_cell){
+    Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}){
         var cb = this.doRecursive.bind(this, func);
         //console.log('children', cell, this.cell_children(cell));
         if(!skip) {
             func(cell, parent_cell);
+            already_counted_cells[cell] = true;
         } else {
             //throw new Error('Skipping!', arguments);
         }
         this.cell_children(cell).eachKey((child_cell_name) => {
-            this.doRecursive(func, child_cell_name, false, cell);
+            if(!already_counted_cells[child_cell_name]){
+                already_counted_cells[child_cell_name] = true,
+                this.doRecursive(func, child_cell_name, false, cell, Object.create(already_counted_cells));
+            } else {
+                console.error('Circular dependency found!', child_cell_name, already_counted_cells, this);
+            }
         });
     }
 
@@ -337,11 +343,11 @@
     var predefined_functions = {
         '+': {
             type: 'func', 
-            func: function(a, b){ return a+b;}
+            func: function(a, b){ return (a ? Number(a) : 0) + (b ? Number(b) : 0);}
         },
         '-': {
             type: 'func', 
-            func: function(a, b){ return a-b;}
+            func: function(a, b){ return Number(a) - Number(b);}
         },
         '*': {
             type: 'func', 
