@@ -263,6 +263,9 @@ describe('Plain base', function () {
                     surname: 'Kovalenko',
                 },
                 '$el': [get_by_selector, '$name', '../$el'],
+                'dummy': [id, '$writer'],
+                'dummy2': [id, '$writer'],
+                'dummy3': [id, 'dummy']
             }
         });
         // if $el in root is empty, it's <body> by default
@@ -271,5 +274,7 @@ describe('Plain base', function () {
             app.get('$el', 'item').get()[0], 
             $('div[data-fr=item]').get()[0]
         );
+
+        app.set('name', 'Mykola', 'item');
     });
 })

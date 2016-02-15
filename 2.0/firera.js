@@ -99,6 +99,19 @@
         this.cell_funcs = {};
         this.dirtyCounter = {};
         this.dynamic_cell_links = {};
+        if(parsed_pb.cell_types['*']){
+            var omit_list = this.all_cell_children('*');
+            for(let cell in this.cell_types){
+                if(omit_list.indexOf(cell) === -1 && cell !== '*'){
+                    init_if_empty(this.dynamic_cell_links, cell, {}, '__self', []);
+                    this.dynamic_cell_links[cell].__self.push({
+                        cell_name: '*',
+                        type: ''
+                    });
+                }
+            }
+            console.log('Now dymanic links look like', this.dynamic_cell_links);
+        }
         this.cell_values = Object.create(parsed_pb.plain_base.$free || {});
         this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
         ////////////////////////////////////////////////////////////////////////
@@ -323,6 +336,17 @@
     Hash.prototype.cell_children = function(cell){
         return this.cell_types[cell] ? this.cell_types[cell].children : [];
     }
+    Hash.prototype.all_cell_children = function(cell, arr){
+        if(!this.cell_types[cell]){
+            return [];
+        }
+        arr = arr || [];
+        this.cell_types[cell].children.eachKey((cl) => {
+            arr.push(cl);
+            this.all_cell_children(cl, arr);
+        });
+        return arr;
+    }
     Hash.prototype.cell_func = function(cell){
         var a;
         if(a = this.cell_types[cell].func) {
@@ -343,13 +367,15 @@
         //log('Setting', cell, val, this.dynamic_cell_links[cell]);
         if(this.dynamic_cell_links[cell]){
             this.dynamic_cell_links[cell].each((links, hash_name) => {
-                if(this.linked_hashes[hash_name]){
+                var hsh = hash_name === '__self' ? this : this.linked_hashes[hash_name];
+                if(hsh){
                     for(var link of links){
+                        //console.log('Writing dynamic cell link ' + link.cell_name, link.type === 'val', this.name);
                         //log('Updating links', link, val);
                         if(link.type === 'val'){
-                            this.linked_hashes[hash_name].set(link.cell_name, val);
+                            hsh.set(link.cell_name, val);
                         } else {
-                            this.linked_hashes[hash_name].set(link.cell_name, [this.name, val]);
+                            hsh.set(link.cell_name, [hash_name !== '__self' ? this.name : cell, val]);
                         }
                     }
                 }
@@ -683,10 +709,28 @@
                 ? $el.find('[data-fr=' + name + ']')
                 : null;
     }
+    var search_fr_bindings = function($el){
+        var res = {};
+        if(!$el) return res;
+        $el.find('[data-fr]').each(function(){
+            var name = $(this).attr('data-fr');
+            res[name] = $(this);
+        })
+        return res;
+    }
+    
+    var write_changes = function(bindings_table, changed){
+        //console.log('Writing cell values to HTML', bindings_table, changed);
+        if(changed && changed[0] && bindings_table && bindings_table[changed[0]]){
+            bindings_table[changed[0]].html(changed[1]);
+        }
+    }
     
     var html = {
         eachHashMixin: {
             '$el': [get_by_selector, '$name', '../$el'],
+            '$htmlbindings': [search_fr_bindings, '$el'],
+            '$writer': [write_changes, '$htmlbindings', '*']
         },
         cellMatchers: [
             {
