@@ -242,7 +242,7 @@ describe('Plain base', function () {
     });
     
     var get_by_selector = function(name, $el){
-        console.info("GBS", arguments);
+        //console.info("GBS", arguments);
         return $el ? $el.find('[data-fr=' + name + ']') : null;
     }
     
@@ -277,4 +277,36 @@ describe('Plain base', function () {
 
         app.set('name', 'Mykola', 'item');
     });
+
+    /*it('Testing dynamic $children members', function () {
+        var app = Firera.run({
+        	__root: {
+        		$free: {
+        			registered: false,
+        		},
+	        	$children: {
+	        		block: [function(){
+
+	        		}],
+	        	}
+        	},
+        })
+    });
+    /*it('Testing arrays', function () {
+        var app = Firera.run({
+        	__root: {
+        		$free: {
+	        		show: 'all',
+	        		numbers: [1, 2, 3]
+	        	},
+	        	$children: ['arr', 'item', 'numbers']
+        	},
+        	'item': {
+        		competed: {
+        			__def: false,
+        			'.done|click': true
+        		}
+        	}
+        })
+    });*/
 })

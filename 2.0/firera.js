@@ -110,7 +110,7 @@
                     });
                 }
             }
-            console.log('Now dymanic links look like', this.dynamic_cell_links);
+            //console.log('Now dynamic links look like', this.dynamic_cell_links);
         }
         this.cell_values = Object.create(parsed_pb.plain_base.$free || {});
         this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
@@ -170,14 +170,19 @@
         }
     }
 
-    Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}){
+    Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
         var cb = this.doRecursive.bind(this, func);
         //console.log('children', cell, this.cell_children(cell));
         if(!skip) {
+            //console.log('--Computing cell', this.cell_type(cell));
             func(cell, parent_cell);
             already_counted_cells[cell] = true;
         } else {
             //throw new Error('Skipping!', arguments);
+        }
+        if(this.cell_type(cell) === 'async' && !run_async) {
+            //console.log('Skipping counting children of async');
+            return;
         }
         this.cell_children(cell).eachKey((child_cell_name) => {
             if(!already_counted_cells[child_cell_name]){
@@ -208,7 +213,7 @@
                 args.unshift((val) => {
                     //console.log('ASYNC callback called!',val); 
                     this.set_cell_value(real_cell_name, val);
-                    this.doRecursive(this.compute.bind(this), real_cell_name, true);
+                    this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
                 });
                 //console.log('Computing ASYNC args', args);
                 var val = this.cell_func(real_cell_name).apply(null, args);
@@ -246,9 +251,13 @@
                 }
                 var func = this.cell_func(real_cell_name);
                 if(!func[parent_cell_name]){
-                    throw new Error('Cannot compute MAP cell: parent cell func undefined!');
+                    throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
                 }
-                this.set_cell_value(real_cell_name, func[parent_cell_name](this.cell_value(get_real_cell_name(parent_cell_name))));
+                //debugger;
+                var new_val = func[parent_cell_name] instanceof Function 
+                              ? func[parent_cell_name](this.cell_value(get_real_cell_name(parent_cell_name)))
+                              : func[parent_cell_name];
+                this.set_cell_value(real_cell_name, new_val);
             break;
             case 'funnel':
                 if(!parent_cell_name){
@@ -589,7 +598,7 @@
                     init_if_empty(children, parent_cell_name, {});
                     children[parent_cell_name][set_listening_type(i, listening_type)] = true;
                 } else {
-                    console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
+                    //console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
                 }
             }
         }
@@ -773,7 +782,8 @@
                         case 'click':
                             func = function(cb, vals){
                                 var [$prev_el, $now_el] = vals;
-                                //console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
+                                if(!$now_el) return;
+                                //console.log('Assigning handlers for ', cellname, arguments, $now_el);
                                 if($prev_el){
                                     $prev_el.off('click', selector);
                                 }
@@ -808,3 +818,14 @@
     Firera.loadPackage(html);
     Firera.func_test_export = {parse_pb, parse_fexpr};
 })()
+
+/*
+
+Hashes crud interface
+
+create: name, type(or pb)[, init_values(for $free)]
+remove: name,
+rename: name, new_name
+
+
+*/
