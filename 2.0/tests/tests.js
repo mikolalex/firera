@@ -278,19 +278,26 @@ describe('Plain base', function () {
         app.set('name', 'Mykola', 'item');
     });
 
-    /*it('Testing dynamic $children members', function () {
+    it('Testing dynamic $children members', function () {
         var app = Firera.run({
         	__root: {
         		$free: {
         			registered: false,
         		},
+	        	val: [id, 'block/foo'],
 	        	$children: {
-	        		block: [function(){
-
-	        		}],
+	        		block: [function(a){
+	        			console.log('returning plain base for child');
+	        			return {
+	        				$free: {
+	        					foo: 'bar'
+	        				}
+	        			}
+	        		}, 'registered'],
 	        	}
         	},
         })
+        assert.equal(app.get('val'), 'bar');
     });
     /*it('Testing arrays', function () {
         var app = Firera.run({

@@ -1,6 +1,9 @@
 (function(){
     'use strict';
-    
+    /* @todo
+     створювати інстанси Firera.app, додавати домішки до них, запускати і стопати їх.
+     Firera() просто запускає передане їй як апп.
+    */
     var log = console.log.bind(console);
 
     Object.defineProperty(Object.prototype, 'map', {
@@ -71,6 +74,20 @@
     App.prototype.set = function(cell, val, child){
         this.root.set(cell, val, child);
     }
+    App.prototype.parse_cbs = (a) => {
+        var mxn = Firera.eachHashMixin;
+        var eachMixin = Object.assign({}, mxn);
+        var res = {
+            plain_base: Object.assign(eachMixin, a), 
+            cell_links: {},
+            hashes_to_link: {}
+        }
+        parse_pb(res);
+        init_if_empty(res.plain_base, '$free', {}, '$name', null);
+        //res.plain_base.$free['$name'] = null;
+        res.cell_types = parse_cell_types(res.plain_base);
+        return res;
+    }
     
     var show_performance = function(){
         var res = [];
@@ -87,7 +104,9 @@
         ////////////////////////////////////////////////////////////////////////
         this.app = app;
         this.name = name || 'root';
-        var parsed_pb = app.cbs[parsed_pb_name];
+        var parsed_pb = typeof parsed_pb_name === 'string' 
+                        ? app.cbs[parsed_pb_name]
+                        : app.parse_cbs(parsed_pb_name);
         console.log('________________________________________________________');
         console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
         // creating cell values obj
@@ -267,6 +286,13 @@
                 parent_cell_name = get_real_cell_name(parent_cell_name);
                 this.set_cell_value(real_cell_name, func(parent_cell_name, this.cell_value(parent_cell_name)));
             break;
+            case 'child':
+                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
+                //console.log('Computing args', args);
+                var val = this.cell_func(real_cell_name).apply(null, args);
+                this.linkChild(val, real_cell_name.replace("$child_", ""))
+                //console.log('Child', real_cell_name, 'val is', val);
+            break;
             default:
                 throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
             break;
@@ -392,7 +418,18 @@
         }
     }
 
-    var system_predicates = new Set(['is', 'async', 'closure', 'funnel', 'map', 'funnel', 'hash', 'nested']);
+    var system_predicates = new Set([
+        'is',
+        'async',
+        'closure',
+        'funnel',
+        'map',
+        'funnel',
+        'hash',
+        'child',
+        'children',
+        'nested'
+    ]);
 
     var predefined_functions = {
         '+': {
@@ -616,7 +653,24 @@
 
     var parse_pb = function(res){
         for(var key in res.plain_base) {
-            if(key === '$free' || key === '$children'){
+            if(key === '$free'){
+                continue;
+            }
+            if(key === '$children'){
+                var value = res.plain_base.$children;
+                if(value instanceof Array){
+                    // its dynamic children
+
+                } else {
+                    value.each((hash_type, link_as) => {
+                        if(hash_type instanceof Array){
+                            key = '$child_' + link_as;
+                            parse_fexpr(['child', ...hash_type], res, key);
+                        } else {
+                            res.hashes_to_link[link_as] = hash_type;
+                        }
+                    })
+                }
                 continue;
             }
             parse_fexpr(res.plain_base[key], res, key);
@@ -627,6 +681,7 @@
     var parse_external_links_and_$free = function(pool, key){
         
     }
+
     
     var Firera = {
         eachHashMixin: {},
@@ -634,32 +689,8 @@
             var start = performance.now();
             var app = get_app();
             // getting real pbs
-            var cbs = config.map(a => {
-                var eachMixin = Object.assign({}, this.eachHashMixin);
-                return {
-                    plain_base: Object.assign(eachMixin, a), 
-                    cell_links: {},
-                    hashes_to_link: {}
-                }
-            });
+            var cbs = config.map(app.parse_cbs);
             //console.log('RESS', cbs);
-            cbs.each((res) => {
-                if(res.plain_base.$children){
-                    var value = res.plain_base.$children;
-                    if(value instanceof Array){
-                        // its dynamic children
-
-                    } else {
-                        value.each((hash_type, link_as) => {
-                             res.hashes_to_link[link_as] = hash_type;
-                        })
-                    }
-                }
-                parse_pb(res);
-                init_if_empty(res.plain_base, '$free', {}, '$name', null);
-                //res.plain_base.$free['$name'] = null;
-                res.cell_types = parse_cell_types(res.plain_base);
-            });
             app.cbs = cbs;
             // now we should instantiate each pb
             if(!app.cbs.__root){
