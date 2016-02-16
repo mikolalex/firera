@@ -298,6 +298,7 @@ describe('Plain base', function () {
         	},
         })
         assert.equal(app.get('val'), 'bar');
+        app.set('registered', true);
     });
     /*it('Testing arrays', function () {
         var app = Firera.run({

@@ -154,12 +154,22 @@
     }
 
     Hash.prototype.linkChild = function(type, link_as){
+        if(this.linked_hashes[link_as]){
+            this.unlinkChild(link_as);
+        }
         var child = new Hash(this.app, type, link_as);
         child.force_set('$name', link_as);
         this.linked_hashes[link_as] = child;
         child.linked_hashes['..'] = this;
         this.linkCells(link_as, '..');
         child.linkCells('..', link_as);
+        //console.info('Successfully linked ', type, 'as', link_as);
+    }
+    Hash.prototype.unlinkChild = function(link_as){
+        var child = this.linked_hashes[link_as];
+        this.unlinkCells(link_as, '..');
+        child.unlinkCells('..', link_as);
+        delete this.linked_hashes[link_as];
         //console.info('Successfully linked ', type, 'as', link_as);
     }
 
@@ -174,6 +184,18 @@
         });
         this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
     }
+    Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash){
+        var other_hash = this.linked_hashes[hash_name];
+        var pool = other_hash.dynamic_cell_links;
+        pool[parent_cell][my_name_for_that_hash].forEach((lnk, key) => {
+            console.log('Searching links...', lnk, child_cell);
+            if(lnk.cell_name === child_cell){
+                delete pool[parent_cell][my_name_for_that_hash][key];
+                console.log('Deleting', child_cell);
+            }
+        });
+        // ? maybe this.set(child_cell, undefined);
+    }
 
     Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
         var links;
@@ -185,6 +207,14 @@
         if(links = this.cell_links['*']){
             links.each((parent_cell, child_cell) => { 
                 this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash, 'val_and_hashname'); 
+            });
+        }
+    }
+    Hash.prototype.unlinkCells = function(hash_name, my_name_for_that_hash){
+        var links;
+        if(links = this.cell_links[hash_name]){
+            links.each((parent_cell, child_cell) => { 
+                this.unlinkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
             });
         }
     }
