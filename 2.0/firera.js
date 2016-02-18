@@ -108,8 +108,8 @@
         var parsed_pb = typeof parsed_pb_name === 'string' 
                         ? app.cbs[parsed_pb_name]
                         : app.parse_cbs(parsed_pb_name);
-        console.log('________________________________________________________');
-        console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
+        //console.log('________________________________________________________');
+        //console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
         // creating cell values obj
         this.cell_types = parsed_pb.cell_types;
         this.cell_links = parsed_pb.cell_links;
@@ -152,7 +152,7 @@
         ////////////////////////////////////////////////////////////////////////
         var t3 = performance.now();
         ////////////////////////////////////////////////////////////////////////
-        console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
+        //console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
     }
 
     Hash.prototype.linkChild = function(type, link_as){
@@ -237,7 +237,7 @@
                 already_counted_cells[child_cell_name] = true,
                 this.doRecursive(func, child_cell_name, false, cell, Object.create(already_counted_cells));
             } else {
-                console.error('Circular dependency found!', child_cell_name, already_counted_cells, this);
+                //console.error('Circular dependency found!', child_cell_name, already_counted_cells, this);
             }
         });
     }
@@ -466,18 +466,29 @@
     var side_effects = {
         'child': {
             func: function(cellname, val){
-                console.log('RUNNING SIDE EFFECT', this, val);         
-                var hash, link;
+                //console.log('RUNNING SIDE EFFECT', this, val);         
+                var hash, link1, link2;
+                cellname = cellname.replace("$child_", "");
                 if(val instanceof Array){
                     // it's hash and link
                     hash = val[0];
-                    link = val[1];
+                    link1 = val[1];
+                    link2 = val[2];
                 } else {
                     hash = val;
                 }
-                this.linkChild(hash, cellname.replace("$child_", ""));
-                if(link){
-                    
+                this.linkChild(hash, cellname);
+                if(link1){
+                    //console.info('Linking by link1 hash', link1);
+                    link1.each((his_cell, my_cell) => {
+                        this.linkTwoCells(his_cell, my_cell, cellname, '..', 'val');
+                    })
+                }
+                if(link2){
+                    //console.info('Linking by link2 hash', link2);
+                    link2.each((his_cell, my_cell) => {
+                        this.linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
+                    })
                 }
             },
             regexp: /^\$child\_/,
@@ -763,9 +774,9 @@
             var compilation_finished = performance.now();
             app.root = new Hash(app, '__root');
             var init_finished = performance.now();
-            console.info('App run', app.root
-                , 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-            );
+            //console.info('App run', app.root
+            //    , 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
+            //);
             return app;
         },
         loadPackage: function(pack) {

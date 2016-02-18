@@ -71,7 +71,7 @@ describe('Plain base', function () {
         });
         //console.log('SETTING VALUES FROM DOM');
         app.set('$el', $(".async-ex input"));
-        console.log(app.root);
+        //console.log(app.root);
     });
     it('Testing passive listening', function () {
         var app = Firera.run({
@@ -315,17 +315,23 @@ describe('Plain base', function () {
 	        		block: [always(
 	        			[{
 	        				$free: {
-	        					foo: 'bar'
+	        					foo: 'bar',
+	        					boo: null
 	        				}
 	        			}, {
 	        				'val': 'foo'
+	        			},
+	        			{
+	        				'boo': 'registered'
 	        			}]
 	        		), 'registered'],
 	        	}
         	},
         })
         assert.equal(app.get('val'), 'bar');
+        assert.equal(app.get('boo', 'block'), false);
         app.set('registered', true);
+        assert.equal(app.get('boo', 'block'), true);
     });
     /*it('Testing arrays', function () {
         var app = Firera.run({
