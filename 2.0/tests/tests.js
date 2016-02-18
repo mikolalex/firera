@@ -1,4 +1,7 @@
 var id = a => a;
+var always = (a) => {
+	return () => a;
+}
 
 describe('Plain base', function () {
     /*it('Testing simple values conversion', function () {
@@ -286,14 +289,38 @@ describe('Plain base', function () {
         		},
 	        	val: [id, 'block/foo'],
 	        	$children: {
-	        		block: [function(a){
-	        			console.log('returning plain base for child');
-	        			return {
+	        		block: [always(
+	        			[{
 	        				$free: {
 	        					foo: 'bar'
 	        				}
-	        			}
-	        		}, 'registered'],
+	        			}, {
+	        				
+	        			}]
+	        		), 'registered'],
+	        	}
+        	},
+        })
+        assert.equal(app.get('val'), 'bar');
+        app.set('registered', true);
+    });
+    it('Testing hash linking', function () {
+        var app = Firera.run({
+        	__root: {
+        		$free: {
+        			registered: false,
+        			val: null,
+        		},
+	        	$children: {
+	        		block: [always(
+	        			[{
+	        				$free: {
+	        					foo: 'bar'
+	        				}
+	        			}, {
+	        				'val': 'foo'
+	        			}]
+	        		), 'registered'],
 	        	}
         	},
         })

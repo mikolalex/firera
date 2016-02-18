@@ -80,6 +80,7 @@
         var res = {
             plain_base: Object.assign(eachMixin, a), 
             cell_links: {},
+            side_effects: {},
             hashes_to_link: {}
         }
         parse_pb(res);
@@ -112,6 +113,7 @@
         // creating cell values obj
         this.cell_types = parsed_pb.cell_types;
         this.cell_links = parsed_pb.cell_links;
+        this.side_effects = parsed_pb.side_effects;
         this.hashes_to_link = parsed_pb.hashes_to_link;
         this.linked_hashes = {};
         // for "closure" cell type
@@ -167,8 +169,8 @@
     }
     Hash.prototype.unlinkChild = function(link_as){
         var child = this.linked_hashes[link_as];
-        this.unlinkCells(link_as, '..');
-        child.unlinkCells('..', link_as);
+        this.unlinkCells(link_as);
+        child.unlinkCells('..');
         delete this.linked_hashes[link_as];
         //console.info('Successfully linked ', type, 'as', link_as);
     }
@@ -188,10 +190,10 @@
         var other_hash = this.linked_hashes[hash_name];
         var pool = other_hash.dynamic_cell_links;
         pool[parent_cell][my_name_for_that_hash].forEach((lnk, key) => {
-            console.log('Searching links...', lnk, child_cell);
+            //console.log('Searching links...', lnk, child_cell);
             if(lnk.cell_name === child_cell){
                 delete pool[parent_cell][my_name_for_that_hash][key];
-                console.log('Deleting', child_cell);
+                //console.log('Deleting', child_cell);
             }
         });
         // ? maybe this.set(child_cell, undefined);
@@ -210,13 +212,10 @@
             });
         }
     }
-    Hash.prototype.unlinkCells = function(hash_name, my_name_for_that_hash){
-        var links;
-        if(links = this.cell_links[hash_name]){
-            links.each((parent_cell, child_cell) => { 
-                this.unlinkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
-            });
-        }
+    Hash.prototype.unlinkCells = function(hash_name){
+        this.dynamic_cell_links.each((hashes) => {
+            delete hashes[hash_name];
+        })
     }
 
     Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
@@ -316,13 +315,13 @@
                 parent_cell_name = get_real_cell_name(parent_cell_name);
                 this.set_cell_value(real_cell_name, func(parent_cell_name, this.cell_value(parent_cell_name)));
             break;
-            case 'child':
+            /*case 'child':
                 var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
                 //console.log('Computing args', args);
                 var val = this.cell_func(real_cell_name).apply(null, args);
                 this.linkChild(val, real_cell_name.replace("$child_", ""))
                 //console.log('Child', real_cell_name, 'val is', val);
-            break;
+            break;*/
             default:
                 throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
             break;
@@ -430,6 +429,11 @@
     Hash.prototype.set_cell_value = function(cell, val){
         this.cell_values[cell] = val;
         //log('Setting', cell, val, this.dynamic_cell_links[cell]);
+        if(this.side_effects[cell]){
+            //console.info('I SHOULD SET side-effect', val);
+            side_effects[this.side_effects[cell]].func.call(this, cell, val);
+            //console.log('Child', real_cell_name, 'val is', val);
+        }
         if(this.dynamic_cell_links[cell]){
             this.dynamic_cell_links[cell].each((links, hash_name) => {
                 var hsh = hash_name === '__self' ? this : this.linked_hashes[hash_name];
@@ -456,10 +460,29 @@
         'map',
         'funnel',
         'hash',
-        'child',
         'children',
         'nested'
     ]);
+    var side_effects = {
+        'child': {
+            func: function(cellname, val){
+                console.log('RUNNING SIDE EFFECT', this, val);         
+                var hash, link;
+                if(val instanceof Array){
+                    // it's hash and link
+                    hash = val[0];
+                    link = val[1];
+                } else {
+                    hash = val;
+                }
+                this.linkChild(hash, cellname.replace("$child_", ""));
+                if(link){
+                    
+                }
+            },
+            regexp: /^\$child\_/,
+        }
+    };
 
     var predefined_functions = {
         '+': {
@@ -525,6 +548,15 @@
             pool.cell_links[path[0]][cellname] = path.slice(1).join('/');
             return;
         }
+        for(var n in side_effects){
+            var m = side_effects[n];
+            var matches = cellname.match(m.regexp);
+            if(matches){
+                //console.info('Cell', cellname, 'matches regexp', m.regexp, pool);
+                init_if_empty(pool, 'side_effects', {}, cellname, []);
+                pool.side_effects[cellname].push(n);
+            }
+        }
         for(var m of cellMatchers){
             var matches = cellname.match(m.regexp);
             if(matches){
@@ -577,7 +609,7 @@
 
                         }
                     } else {
-                        console.log('Error', arguments);
+                        console.log('Error', arguments, funcname instanceof Function);
                         throw new Error('Cannot find predicate: ' + funcname);
                     }
                 }
@@ -695,7 +727,7 @@
                     value.each((hash_type, link_as) => {
                         if(hash_type instanceof Array){
                             key = '$child_' + link_as;
-                            parse_fexpr(['child', ...hash_type], res, key);
+                            parse_fexpr(hash_type, res, key);
                         } else {
                             res.hashes_to_link[link_as] = hash_type;
                         }
