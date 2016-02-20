@@ -37,10 +37,23 @@
             }
         }
     });
+    Object.defineProperty(Array.prototype, 'mapFilter', {
+        enumerable: false,
+        value: function(func){
+            var res = [];
+            for(var key in this){
+                var a;
+                if((a = func(this[key], key)) !== undefined){
+                    res.push(a);
+                }
+            }
+            return res;
+        }
+    });
 
     function copy(from, to){
-        for(var i of from){
-            to.push(i);
+        for(var i in from){
+            to.push(from[i]);
         }
     }
     function kcopy(from, to){
@@ -61,6 +74,7 @@
     }
 
     var cellMatchers = [];
+    var predicates = [];
 
 
     var apps = [];
@@ -81,7 +95,8 @@
             plain_base: Object.assign(eachMixin, a), 
             cell_links: {},
             side_effects: {},
-            hashes_to_link: {}
+            hashes_to_link: {},
+            no_args_cells: {},
         }
         parse_pb(res);
         init_if_empty(res.plain_base, '$free', {}, '$name', null);
@@ -139,8 +154,16 @@
         var t1 = performance.now();
         ////////////////////////////////////////////////////////////////////////
         // @todo: refactor, make this set in one step
+        //console.log('Setting $free values', parsed_pb.plain_base.$free);
         if(parsed_pb.plain_base.$free){
             this.set(parsed_pb.plain_base.$free);
+        }
+        if(parsed_pb.no_args_cells){
+            parsed_pb.no_args_cells.eachKey((cellname) => {
+                this.doRecursive((cell, parent_cell_name) => {
+                    this.compute(cell, parent_cell_name);
+                }, cellname)
+            })
         }
         ////////////////////////////////////////////////////////////////////////
         var t2 = performance.now();
@@ -153,6 +176,33 @@
         var t3 = performance.now();
         ////////////////////////////////////////////////////////////////////////
         //console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
+    }
+
+    Hash.prototype.linkHash = function(cellname, val){
+        //console.log('RUNNING SIDE EFFECT', this, val);         
+        var hash, link1, link2;
+        cellname = cellname.replace("$child_", "");
+        if(val instanceof Array){
+            // it's hash and link
+            hash = val[0];
+            link1 = val[1];
+            link2 = val[2];
+        } else {
+            hash = val;
+        }
+        this.linkChild(hash, cellname);
+        if(link1){
+            //console.info('Linking by link1 hash', link1);
+            link1.each((his_cell, my_cell) => {
+                this.linkTwoCells(his_cell, my_cell, cellname, '..', 'val');
+            })
+        }
+        if(link2){
+            //console.info('Linking by link2 hash', link2);
+            link2.each((his_cell, my_cell) => {
+                this.linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
+            })
+        }
     }
 
     Hash.prototype.linkChild = function(type, link_as){
@@ -364,11 +414,16 @@
         if(cell instanceof Object){
             // batch update
             //console.log('Computing batch update', cell);
-            cell.eachKey(this.doRecursive.bind(this, (cell) => {
-                this.dirtyCounter[cell] 
-                    ? this.dirtyCounter[cell]++ 
-                    : (this.dirtyCounter[cell] = 1);
-            }));
+            cell.eachKey(
+                (key) => {
+                    this.force_set(key, cell[key], true);
+                    this.doRecursive((cell) => {
+                        this.dirtyCounter[cell] 
+                            ? this.dirtyCounter[cell]++ 
+                            : (this.dirtyCounter[cell] = 1);
+                    }, key)
+                }
+            );
             //console.log('dirty counter', this.dirtyCounter);
             cell.eachKey(this.doRecursive.bind(this, (cell2, parent_cell_name) => {
                 if(--this.dirtyCounter[cell2] === 0 && cell[cell2] === undefined){
@@ -388,8 +443,9 @@
             //console.log('Cell values after set', this.cell_values);
         }
     }
-    Hash.prototype.force_set = function(cell, val){
+    Hash.prototype.force_set = function(cell, val, omit_updating_children){
         this.set_cell_value(cell, val);
+        if(omit_updating_children) return;
         this.cell_children(cell).eachKey((child_cell_name) => {
             this.doRecursive(this.compute.bind(this), child_cell_name, false, cell);
         });
@@ -466,32 +522,30 @@
     var side_effects = {
         'child': {
             func: function(cellname, val){
-                //console.log('RUNNING SIDE EFFECT', this, val);         
-                var hash, link1, link2;
-                cellname = cellname.replace("$child_", "");
-                if(val instanceof Array){
-                    // it's hash and link
-                    hash = val[0];
-                    link1 = val[1];
-                    link2 = val[2];
-                } else {
-                    hash = val;
-                }
-                this.linkChild(hash, cellname);
-                if(link1){
-                    //console.info('Linking by link1 hash', link1);
-                    link1.each((his_cell, my_cell) => {
-                        this.linkTwoCells(his_cell, my_cell, cellname, '..', 'val');
-                    })
-                }
-                if(link2){
-                    //console.info('Linking by link2 hash', link2);
-                    link2.each((his_cell, my_cell) => {
-                        this.linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
-                    })
-                }
+                this.linkHash(cellname, val);
             },
             regexp: /^\$child\_/,
+        },
+        children: {
+            regexp: /^\$all\_children$/,
+            func: function(__, deltas){
+                //console.log('Deltas', deltas);
+                deltas.eachKey((k) => {
+                    if(!deltas[k]) return;
+                    var [type, key, hashname] = deltas[k];
+                    switch(type){
+                        case 'remove':
+                            //console.log('Removing hash', key);
+                            this.unlinkChild(key);
+                        break;
+                        case 'add':
+                        case 'change':
+                            //console.log('Adding hash', deltas[k]);
+                            this.linkHash(key, [hashname]);
+                        break;
+                    }
+                })
+            }
         }
     };
 
@@ -620,8 +674,15 @@
 
                         }
                     } else {
-                        console.log('Error', arguments, funcname instanceof Function);
-                        throw new Error('Cannot find predicate: ' + funcname);
+                        //console.log('Having predicates', predicates);
+                        if(predicates[funcname]){
+                            funcstring = predicates[funcname](a.slice(1));
+                            //console.log('Using package predicate', funcstring, key);
+                            return parse_fexpr(funcstring, pool, key);
+                        } else {
+                            //console.log('Error', arguments, funcname instanceof Function);
+                            throw new Error('Cannot find predicate: ' + funcname);
+                        }
                     }
                 }
             } else {
@@ -639,7 +700,10 @@
         } else {
             throw new Error('Cannot parse primitive value as fexpr: ' + a);
         }
-        //console.log('Funcstring', funcstring);
+        if(!funcstring[2]){
+            // function with no dependancy
+            init_if_empty(pool, 'no_args_cells', {}, key, true);
+        }
         for(let k = 2; k < funcstring.length; ++k){
             var cellname = funcstring[k];
             switch(typeof(cellname)){
@@ -733,11 +797,12 @@
                 var value = res.plain_base.$children;
                 if(value instanceof Array){
                     // its dynamic children
-
+                    parse_fexpr(value, res, '$all_children');
                 } else {
                     value.each((hash_type, link_as) => {
                         if(hash_type instanceof Array){
                             key = '$child_' + link_as;
+                            //console.log('Child', link_as, hash_type);
                             parse_fexpr(hash_type, res, key);
                         } else {
                             res.hashes_to_link[link_as] = hash_type;
@@ -762,9 +827,7 @@
             var start = performance.now();
             var app = get_app();
             // getting real pbs
-            var cbs = config.map(app.parse_cbs);
-            //console.log('RESS', cbs);
-            app.cbs = cbs;
+            app.cbs = config.map(app.parse_cbs);
             // now we should instantiate each pb
             if(!app.cbs.__root){
                 // no root hash
@@ -774,13 +837,14 @@
             var compilation_finished = performance.now();
             app.root = new Hash(app, '__root');
             var init_finished = performance.now();
-            //console.info('App run', app.root
-            //    , 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-            //);
+            console.info('App run', app.root
+                //, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
+            );
             return app;
         },
         loadPackage: function(pack) {
             copy(pack.cellMatchers, cellMatchers);
+            kcopy(pack.predicates, predicates);
             if(pack.eachHashMixin){
                 // update the mixin for each hash created
                 Object.assign(this.eachHashMixin, pack.eachHashMixin);
@@ -789,6 +853,24 @@
     }
 
     window.Firera = Firera;
+
+    var arr_diff = function(a, b){
+        var diff = [];
+        for(var i in a){
+            if(!b[i]) diff.push(i);
+        }
+        return diff;
+    }
+    
+    var arr_changes_to_child_changes = function(item_hash, arr_change){
+        return arr_change.map((val, key) => {
+            var new_val = val.slice();
+            if(val[2] !== undefined){
+                new_val[2] = item_hash;
+            }
+            return new_val;
+        });
+    }
 
     var core = {
         cellMatchers: [
@@ -811,7 +893,41 @@
                     }, cellname], pool, '^' + cellname);
                 }
             }
-        ]
+        ],
+        predicates: {
+            arr: function(funcstring){
+                var item_type = funcstring.shift();
+                //console.log('Item type', item_type);
+                return [always([{
+                        $deltas: '../' + funcstring,
+                        $children: [arr_changes_to_child_changes.bind(null, item_type), '$deltas']
+                }])];
+            },
+            arr_deltas: function(funcstring){
+                var cell = funcstring[0];
+                return ['closure', function(){
+                       var val = [];
+                       return function(new_arr){
+                           var new_ones = arr_diff(new_arr, val);
+                           var remove_ones = arr_diff(val, new_arr);
+                           var changed_ones = new_arr.mapFilter((v, k) => {
+                               if(val[k] !== v && val[k] !== undefined){
+                                    return k;
+                               }
+                           })
+                           //console.log('CHANGED ONES', changed_ones);
+                           val = new_arr;
+                           var deltas = [].concat(
+                                new_ones.map((key) => ['add', key, new_arr[key]]),
+                                remove_ones.map((key) => ['remove', key]),
+                                changed_ones.map((key) => ['change', key, new_arr[key]])
+                           )
+                           //console.info('deltas are', deltas);
+                           return deltas;
+                       }
+                }, cell]
+            }
+        }
     }
     
     

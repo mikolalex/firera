@@ -333,21 +333,33 @@ describe('Plain base', function () {
         app.set('registered', true);
         assert.equal(app.get('boo', 'block'), true);
     });
-    /*it('Testing arrays', function () {
+    it('Testing deltas, arrays', function () {
         var app = Firera.run({
         	__root: {
         		$free: {
 	        		show: 'all',
 	        		numbers: [1, 2, 3]
 	        	},
-	        	$children: ['arr', 'item', 'numbers']
+                        arr_changes: ['arr_deltas', 'numbers'],
+	        	$children: {
+                            items: ['arr', 'item', 'arr_changes'],
+                        }
         	},
         	'item': {
-        		competed: {
+        		completed: {
         			__def: false,
         			'.done|click': true
         		}
         	}
         })
-    });*/
+        app.set('numbers', [1, 2, 5, 5]);
+        
+        var deltas = app.get('arr_changes');
+        assert.deepEqual(deltas, [["add","3",5],["change","2",5]]);
+        app.set('numbers', []);
+        
+        deltas = app.get('arr_changes');
+        assert.deepEqual(deltas, [["remove","0"],["remove","1"],["remove","2"],["remove","3"]]);
+        app.set('numbers', [1, 2, 5, 5]);
+    });
 })
