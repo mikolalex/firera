@@ -1,8 +1,8 @@
 (function(){
     'use strict';
     /* @todo
-     створювати інстанси Firera.app, додавати домішки до них, запускати і стопати їх.
-     Firera() просто запускає передане їй як апп.
+     СЃС‚РІРѕСЂСЋРІР°С‚Рё С–РЅСЃС‚Р°РЅСЃРё Firera.app, РґРѕРґР°РІР°С‚Рё РґРѕРјС–С€РєРё РґРѕ РЅРёС…, Р·Р°РїСѓСЃРєР°С‚Рё С– СЃС‚РѕРїР°С‚Рё С—С….
+     Firera() РїСЂРѕСЃС‚Рѕ Р·Р°РїСѓСЃРєР°С” РїРµСЂРµРґР°РЅРµ С—Р№ СЏРє Р°РїРї.
     */
     var log = console.log.bind(console);
 
@@ -529,7 +529,9 @@
         children: {
             regexp: /^\$all\_children$/,
             func: function(__, deltas){
-                //console.log('Deltas', deltas);
+                if(!deltas || !deltas.eachKey){
+                    return;
+                }
                 deltas.eachKey((k) => {
                     if(!deltas[k]) return;
                     var [type, key, hashname] = deltas[k];
@@ -542,6 +544,9 @@
                         case 'change':
                             //console.log('Adding hash', deltas[k]);
                             this.linkHash(key, [hashname]);
+                        break;
+                        default:
+                            throw new Error('Unknown action: ' + type);
                         break;
                     }
                 })
@@ -613,9 +618,10 @@
             pool.cell_links[path[0]][cellname] = path.slice(1).join('/');
             return;
         }
+        var real_cellname = get_real_cell_name(cellname);
         for(var n in side_effects){
             var m = side_effects[n];
-            var matches = cellname.match(m.regexp);
+            var matches = real_cellname.match(m.regexp);
             if(matches){
                 //console.info('Cell', cellname, 'matches regexp', m.regexp, pool);
                 init_if_empty(pool, 'side_effects', {}, cellname, []);
@@ -623,7 +629,7 @@
             }
         }
         for(var m of cellMatchers){
-            var matches = cellname.match(m.regexp);
+            var matches = real_cellname.match(m.regexp);
             if(matches){
                 m.func(matches, pool, context);
                 return;
@@ -821,34 +827,33 @@
     }
 
     
-    var Firera = {
-        eachHashMixin: {},
-        run: function(config){
-            var start = performance.now();
-            var app = get_app();
-            // getting real pbs
-            app.cbs = config.map(app.parse_cbs);
-            // now we should instantiate each pb
-            if(!app.cbs.__root){
-                // no root hash
-                throw new Error('Cant find root app!', app);
-            }
-            //console.log(app);
-            var compilation_finished = performance.now();
-            app.root = new Hash(app, '__root');
-            var init_finished = performance.now();
-            console.info('App run', app.root
-                //, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-            );
-            return app;
-        },
-        loadPackage: function(pack) {
-            copy(pack.cellMatchers, cellMatchers);
-            kcopy(pack.predicates, predicates);
-            if(pack.eachHashMixin){
-                // update the mixin for each hash created
-                Object.assign(this.eachHashMixin, pack.eachHashMixin);
-            }
+    var Firera = function(config){
+        var start = performance.now();
+        var app = get_app();
+        // getting real pbs
+        app.cbs = config.map(app.parse_cbs);
+        // now we should instantiate each pb
+        if(!app.cbs.__root){
+            // no root hash
+            throw new Error('Cant find root app!', app);
+        }
+        //console.log(app);
+        var compilation_finished = performance.now();
+        app.root = new Hash(app, '__root');
+        var init_finished = performance.now();
+        console.info('App run', app.root
+            //, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
+        );
+        return app;
+    };
+    Firera.eachHashMixin = {};
+    Firera.run = Firera,
+    Firera.loadPackage = function(pack) {
+        copy(pack.cellMatchers, cellMatchers);
+        kcopy(pack.predicates, predicates);
+        if(pack.eachHashMixin){
+            // update the mixin for each hash created
+            Object.assign(Firera.eachHashMixin, pack.eachHashMixin);
         }
     }
 
@@ -863,6 +868,10 @@
     }
     
     var arr_changes_to_child_changes = function(item_hash, arr_change){
+        //console.log('beyond the reals of death', item_hash, arr_change);
+        if(!arr_change){
+            return;
+        }
         return arr_change.map((val, key) => {
             var new_val = val.slice();
             if(val[2] !== undefined){
@@ -895,12 +904,33 @@
             }
         ],
         predicates: {
-            arr: function(funcstring){
+            list: function(funcstring){
                 var item_type = funcstring.shift();
-                //console.log('Item type', item_type);
                 return [always([{
-                        $deltas: '../' + funcstring,
-                        $children: [arr_changes_to_child_changes.bind(null, item_type), '$deltas']
+                    $deltas: funcstring[0],
+                    $children: [
+                        'closure',
+                        () => {
+                            var length = 0;
+                            return (changes) => {
+                                if(!changes || !changes.length) return;
+                                var chngs = arr_changes_to_child_changes(item_type, changes);
+                                chngs.forEach((one) => {
+                                    switch(one[0]){
+                                        case 'add':
+                                            one[1] = String(length);
+                                            ++length;
+                                        break;
+                                        case 'remove': 
+                                            --length;
+                                        break;
+                                    }
+                                })
+                                return chngs;
+                            };
+                        },
+                        '$deltas'
+                    ]
                 }])];
             },
             arr_deltas: function(funcstring){
@@ -971,10 +1001,16 @@
                     var aspect = matches[3];
                     var selector = matches[2];
                     var func;
-                    var setters = ['visibility'];
+                    var setters = ['visibility', 'setval'];
                     setters.has = function(str){
                         return this.indexOf(str) !== -1;
                     }
+                    
+                    var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
+                    if(params && params[1]){
+                        aspect = params[1];
+                        params = params[2].split(',');
+                    }                    
                     //console.info('Aspect:', aspect, setters.has(aspect), context);
                     if(
                         (context === 'setter' && !setters.has(aspect))
@@ -984,7 +1020,7 @@
                         return;
                     }
                     switch(aspect){
-                        case 'val':
+                        case 'getval':
                             func = function(cb, vals){
                                 var onChange = function(){
                                     //console.log('Updating value of', cellname);
@@ -1010,6 +1046,25 @@
                                 $now_el.on('click', selector, cb);
                             }
                         break;
+                        case 'press':
+                            func = function(cb, vals){
+                                var [$prev_el, $now_el] = vals;
+                                if(!$now_el) return;
+                                //console.log('Assigning handlers for ', cellname, arguments, $now_el);
+                                if($prev_el){
+                                    $prev_el.off('keyup', selector);
+                                }
+                                $now_el.on('keyup', selector, function(e){
+                                    var btn_map = {
+                                        '13': 'Enter',
+                                        '27': 'Esc',
+                                    }
+                                    if(params.indexOf(btn_map[e.keyCode]) !== -1){
+                                        cb(e);
+                                    }
+                                });
+                            }
+                        break;
                         case 'visibility':
                             func = function($el, val){
                                 if(val){
@@ -1017,6 +1072,11 @@
                                 } else {
                                     $el.hide();
                                 }
+                            }
+                        break;
+                        case 'setval':
+                            func = function($el, val){
+                                $el.val(val);
                             }
                         break;
                         default:

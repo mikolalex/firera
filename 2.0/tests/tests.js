@@ -18,7 +18,7 @@ describe('Plain base', function () {
         assert.equal(pbs.c[1](1, 2), 3);
     });*/
     it('Testing simple grid', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     a: 10,
@@ -33,7 +33,7 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), 52);
     });
     it('Testing nested fexpr', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     'a': 10,
@@ -52,7 +52,7 @@ describe('Plain base', function () {
         var handler = function(e, cb){
             cb($(this).val());
         }
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 '$free': {
                     '$el': $(".dummy")
@@ -74,7 +74,7 @@ describe('Plain base', function () {
         //console.log(app.root);
     });
     it('Testing passive listening', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     'a': 10,
@@ -92,7 +92,7 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), 72);
     });
     it('Testing map dependency', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     'a': 10,
@@ -110,7 +110,7 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), -42);
     });
     it('Testing FUNNEL dependency', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     'a': 10,
@@ -128,12 +128,12 @@ describe('Plain base', function () {
         assert.equal(app.get('c'), 'b_42');
     });
     it('Testing basic html functionality', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     $el: $(".test-html")
                 },
-                'someval': [id, 'input|val'],
+                'someval': [id, 'input|getval'],
                 '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
             }
         });
@@ -142,7 +142,7 @@ describe('Plain base', function () {
     });
     it('Testing nested hashes', function () {
         var str = false;
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     $el: $(".test-nested")
@@ -166,7 +166,7 @@ describe('Plain base', function () {
     });
     it('Testing multiple children', function () {
         var str = false;
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     $el: $(".test-nested")
@@ -209,7 +209,7 @@ describe('Plain base', function () {
         //console.log('Now completed', app.get('completed_counter'));
     });
     it('Testing nested cells', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     a: 42
@@ -232,7 +232,7 @@ describe('Plain base', function () {
     });
     var add = (a, b) => a + b;
     it('Testing curcular dependency', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     d: 42,
@@ -250,7 +250,7 @@ describe('Plain base', function () {
     }
     
     it('Testing HTML package', function () {
-        var app = Firera.run({
+        var app = Firera({
             __root: {
                 $free: {
                     a: 42,
@@ -282,7 +282,7 @@ describe('Plain base', function () {
     });
 
     it('Testing dynamic $children members', function () {
-        var app = Firera.run({
+        var app = Firera({
         	__root: {
         		$free: {
         			registered: false,
@@ -305,7 +305,7 @@ describe('Plain base', function () {
         app.set('registered', true);
     });
     it('Testing hash linking', function () {
-        var app = Firera.run({
+        var app = Firera({
         	__root: {
         		$free: {
         			registered: false,
@@ -334,7 +334,7 @@ describe('Plain base', function () {
         assert.equal(app.get('boo', 'block'), true);
     });
     it('Testing deltas, arrays', function () {
-        var app = Firera.run({
+        var app = Firera({
         	__root: {
         		$free: {
 	        		show: 'all',
@@ -342,7 +342,7 @@ describe('Plain base', function () {
 	        	},
                         arr_changes: ['arr_deltas', 'numbers'],
 	        	$children: {
-                            items: ['arr', 'item', 'arr_changes'],
+                            items: ['list', 'item', '../arr_changes'],
                         }
         	},
         	'item': {
@@ -361,5 +361,49 @@ describe('Plain base', function () {
         deltas = app.get('arr_changes');
         assert.deepEqual(deltas, [["remove","0"],["remove","1"],["remove","2"],["remove","3"]]);
         app.set('numbers', [1, 2, 5, 5]);
+    });
+    
+    var as = function(key){
+        return (a) => {
+            var b = {};
+            b[key] = a;
+            return b;
+        }
+    }
+    
+    var add = function(vals){
+        if(vals){
+            return [['add', null, vals]];
+        }
+    }
+    
+    var second = (__, a) => a;
+    
+    it('Testing html val set & get', function(){
+        
+        var app = Firera({
+            __root: {
+                $free: {
+                    $el: $(".test-input-setget")
+                },
+                $children: {
+                    todos: ['list', 'item', {
+                            'new_todo': add
+                    }]
+                },
+                "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
+                "input|setval": [always(''), 'new_todo']
+            },
+            'item': {
+                $free: {
+                    text: '',
+                },
+                completed: {
+                    __def: false,
+                    '.done|click': true
+                }
+            }
+        })
+        
     });
 })
