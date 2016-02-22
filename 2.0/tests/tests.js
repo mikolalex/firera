@@ -388,8 +388,8 @@ describe('Plain base', function () {
                 },
                 $children: {
                     todos: ['list', 'item', {
-                            'new_todo': add
-                    }]
+                            '../new_todo': add
+                    }],
                 },
                 "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
                 "input|setval": [always(''), 'new_todo']
@@ -397,6 +397,7 @@ describe('Plain base', function () {
             'item': {
                 $free: {
                     text: '',
+					$template: 'ololo1',
                 },
                 completed: {
                     __def: false,

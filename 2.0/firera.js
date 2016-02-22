@@ -155,8 +155,12 @@
         ////////////////////////////////////////////////////////////////////////
         // @todo: refactor, make this set in one step
         //console.log('Setting $free values', parsed_pb.plain_base.$free);
+		var free = Object.assign({}, parsed_pb.plain_base.$free);
+        if(parsed_pb_name === '__root'){
+			free.$name = '__root';
+		}
         if(parsed_pb.plain_base.$free){
-            this.set(parsed_pb.plain_base.$free);
+            this.set(free);
         }
         if(parsed_pb.no_args_cells){
             parsed_pb.no_args_cells.eachKey((cellname) => {
@@ -529,6 +533,7 @@
         children: {
             regexp: /^\$all\_children$/,
             func: function(__, deltas){
+                //console.info('Runnning CHILDREN side-effect');
                 if(!deltas || !deltas.eachKey){
                     return;
                 }
@@ -801,7 +806,7 @@
             }
             if(key === '$children'){
                 var value = res.plain_base.$children;
-                if(value instanceof Array){
+                if(value instanceof Array || typeof value === 'string'){
                     // its dynamic children
                     parse_fexpr(value, res, '$all_children');
                 } else {
@@ -908,7 +913,10 @@
                 var item_type = funcstring.shift();
                 return [always([{
                     $deltas: funcstring[0],
-                    $children: [
+                    $free: {
+						$template: "<div>Ololo</div>"
+					},
+                    '$changes': [
                         'closure',
                         () => {
                             var length = 0;
@@ -930,7 +938,24 @@
                             };
                         },
                         '$deltas'
-                    ]
+                    ],
+					$list_template_writer: [function(deltas, $el){
+							//console.log('Delta come', deltas, $el);
+							for(var i in deltas){
+								var type = deltas[i][0];
+								var key = deltas[i][1];
+								switch(type){
+									case 'add':
+										$el.prepend('<div data-fr="' + key + '"></div>');
+										// I domt know...
+									break
+									case 'remove':
+										$el.children('[data-fr=' + key + ']').remove();
+									break
+								}
+							}
+					}, '$changes', '-$el'],
+					$children: '$changes'
                 }])];
             },
             arr_deltas: function(funcstring){
@@ -962,8 +987,9 @@
     
     
     var get_by_selector = function(name, $el){
-        ///console.info("GBS", arguments);
-        if(name === null) return $('body');
+        //console.info("GBS", arguments);
+        if(name === null) return null;
+        if(name === '__root') return $('body');
         return  $el 
                 ? $el.find('[data-fr=' + name + ']')
                 : null;
@@ -988,6 +1014,20 @@
     var html = {
         eachHashMixin: {
             '$el': [get_by_selector, '$name', '../$el'],
+            'html_template': [function($el){
+					var str = '';
+					if($el){
+						str = $el.html();
+						if(str) str = str.trim();
+					}
+                    return str;
+            }, '$el'],
+            '$template_writer': [function(templ, $el){
+				//console.log('Writing template', templ, $el);
+				if(templ && $el){
+					$el.html(templ);
+				}	
+            }, '$template', '$el'],
             '$htmlbindings': [search_fr_bindings, '$el'],
             '$writer': [write_changes, '$htmlbindings', '*']
         },
