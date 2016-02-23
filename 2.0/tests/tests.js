@@ -373,7 +373,7 @@ describe('Plain base', function () {
     
     var add = function(vals){
         if(vals){
-            return [['add', null, vals]];
+            return [['add', null, as('text')(vals)]];
         }
     }
     
@@ -385,7 +385,7 @@ describe('Plain base', function () {
             __root: {
                 $children: {
                     todos: ['list', 'item', {
-                            '../new_todo': add
+                        '../new_todo': add
                     }],
                 },
                 $el: ['just', $(".test-input-setget")],
@@ -395,7 +395,6 @@ describe('Plain base', function () {
             'item': {
                 $free: {
                     text: '',
-					$template: 'ololo1',
                 },
                 completed: {
                     __def: false,
