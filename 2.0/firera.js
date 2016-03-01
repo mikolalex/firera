@@ -5,6 +5,8 @@
      Firera() РїСЂРѕСЃС‚Рѕ Р·Р°РїСѓСЃРєР°С” РїРµСЂРµРґР°РЅРµ С—Р№ СЏРє Р°РїРї.
     */
     var log = console.log.bind(console);
+	
+	var frozen = (a) => JSON.parse(JSON.stringify(a));
 
     Object.defineProperty(Object.prototype, 'map', {
         enumerable: false,
@@ -114,7 +116,7 @@
         return res.join(', ');
     }
 
-    var Hash = function(app, parsed_pb_name, name){
+    var Hash = function(app, parsed_pb_name, name, free_vals){
         ////////////////////////////////////////////////////////////////////////
         var t0 = performance.now();
         ////////////////////////////////////////////////////////////////////////
@@ -138,7 +140,7 @@
         if(parsed_pb.cell_types['*']){
             var omit_list = this.all_cell_children('*');
             for(let cell in this.cell_types){
-                if(omit_list.indexOf(cell) === -1 && cell !== '*'){
+                if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell)){
                     init_if_empty(this.dynamic_cell_links, cell, {}, '__self', []);
                     this.dynamic_cell_links[cell].__self.push({
                         cell_name: '*',
@@ -154,8 +156,8 @@
         var t1 = performance.now();
         ////////////////////////////////////////////////////////////////////////
         // @todo: refactor, make this set in one step
-        //console.log('Setting $free values', parsed_pb.plain_base.$free);
-		var free = Object.assign({}, parsed_pb.plain_base.$free);
+		var free = Object.assign({}, parsed_pb.plain_base.$free, free_vals || {});
+        //console.log('Setting $free values', free);
         if(parsed_pb_name === '__root'){
 			free.$name = '__root';
 		}
@@ -184,17 +186,18 @@
 
     Hash.prototype.linkHash = function(cellname, val){
         //console.log('RUNNING SIDE EFFECT', this, val);         
-        var hash, link1, link2;
+        var hash, link1, link2, free_vals;
         cellname = cellname.replace("$child_", "");
         if(val instanceof Array){
             // it's hash and link
             hash = val[0];
             link1 = val[1];
             link2 = val[2];
+			free_vals = val[3] || {};
         } else {
             hash = val;
         }
-        this.linkChild(hash, cellname);
+        this.linkChild(hash, cellname, free_vals);
         if(link1){
             //console.info('Linking by link1 hash', link1);
             link1.each((his_cell, my_cell) => {
@@ -209,12 +212,13 @@
         }
     }
 
-    Hash.prototype.linkChild = function(type, link_as){
+    Hash.prototype.linkChild = function(type, link_as, free_vals){
         if(this.linked_hashes[link_as]){
             this.unlinkChild(link_as);
         }
-        var child = new Hash(this.app, type, link_as);
-        child.force_set('$name', link_as);
+        var child = new Hash(this.app, type, link_as, Object.assign({}, free_vals, {
+			$name: link_as
+		}));
         this.linked_hashes[link_as] = child;
         child.linked_hashes['..'] = this;
         this.linkCells(link_as, '..');
@@ -533,13 +537,13 @@
         children: {
             regexp: /^\$all\_children$/,
             func: function(__, deltas){
-                //console.info('Runnning CHILDREN side-effect');
+                //console.info('Runnning CHILDREN side-effect', deltas);
                 if(!deltas || !deltas.eachKey){
                     return;
                 }
                 deltas.eachKey((k) => {
                     if(!deltas[k]) return;
-                    var [type, key, hashname] = deltas[k];
+                    var [type, key, hashname, free_vals] = deltas[k];
                     switch(type){
                         case 'remove':
                             //console.log('Removing hash', key);
@@ -548,7 +552,7 @@
                         case 'add':
                         case 'change':
                             //console.log('Adding hash', deltas[k]);
-                            this.linkHash(key, [hashname]);
+                            this.linkHash(key, [hashname, null, null, free_vals]);
                         break;
                         default:
                             throw new Error('Unknown action: ' + type);
@@ -614,6 +618,21 @@
             'normal': ''
         }[type] + cell;
     }
+	
+	var can_be_set_to_html = (cellname) => {
+		return cellname !== '*' 
+			&& (cellname.indexOf('/') === -1)
+			&& !findMatcher(cellname);
+	}
+	
+	var findMatcher = (cellname) => {
+        for(var m of cellMatchers){
+            var matches = cellname.match(m.regexp);
+            if(matches){
+				return [m, matches];
+            }
+        }
+	} 
 
     var parse_cellname = function(cellname, pool, context){
         if(cellname.indexOf('/') !== -1){
@@ -633,13 +652,10 @@
                 pool.side_effects[cellname].push(n);
             }
         }
-        for(var m of cellMatchers){
-            var matches = real_cellname.match(m.regexp);
-            if(matches){
-                m.func(matches, pool, context);
-                return;
-            }
-        }
+		var matched = findMatcher(real_cellname);
+		if(matched){
+			matched[0].func(matched[1], pool, context);
+		}
     }
 
     var get_random_name = (function(){
@@ -884,9 +900,8 @@
         }
         return arr_change.map((val, key) => {
             var new_val = val.slice();
-            if(val[2] !== undefined){
-                new_val[2] = item_hash;
-            }
+			new_val[3] = new_val[2];
+			new_val[2] = item_hash;
             return new_val;
         });
     }
@@ -928,6 +943,7 @@
                             return (changes) => {
                                 if(!changes || !changes.length) return;
                                 var chngs = arr_changes_to_child_changes(item_type, changes);
+								//console.log('Got changes:', frozen(chngs), 'from', changes);
                                 chngs.forEach((one) => {
                                     switch(one[0]){
                                         case 'add':
@@ -1006,10 +1022,12 @@
             var name = $(this).attr('data-fr');
             res[name] = $(this);
         })
+		//console.log('Found HTML bindings', res);
         return res;
     }
     
     var write_changes = function(bindings_table, changed){
+		if(changed[0][0] === '$') return;
         //console.log('Writing cell values to HTML', bindings_table, changed);
         if(changed && changed[0] && bindings_table && bindings_table[changed[0]]){
             bindings_table[changed[0]].html(changed[1]);

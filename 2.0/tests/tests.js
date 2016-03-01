@@ -380,7 +380,6 @@ describe('Plain base', function () {
     var second = (__, a) => a;
     
     it('Testing html val set & get', function(){
-        
         var app = Firera({
             __root: {
                 $children: {
@@ -403,6 +402,40 @@ describe('Plain base', function () {
                 }
             }
         })
+        
+    });
+    it('Testing removing from list', function(){
+		var $root = $(".test-list-remove");
+        var app = Firera({
+            __root: {
+                $children: {
+                    todos: ['list', 'item', {
+                            '../new_todo': function(a){
+								if(a){
+									return [['add', null, {
+										text: a
+									}]]
+								}
+							}
+                    }],
+                },
+                $el: ['just', $root],
+                "new_todo": [second, 'button.add-todo|click', '-input|getval'],
+                "input|setval": [always(''), 'new_todo']
+            },
+            'item': {
+                $free: {
+                    text: '',
+					$template: '<div class="td-item"><div data-fr="text"></div></div>',
+                },
+                completed: {
+                    __def: false,
+                    '.done|click': true
+                }
+            }
+        })
+		$root.find('input').val('ololo').change();
+		$root.find('button').click();
         
     });
 })
