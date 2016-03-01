@@ -365,9 +365,11 @@ describe('Plain base', function () {
     
     var as = function(key){
         return (a) => {
-            var b = {};
-            b[key] = a;
-            return b;
+			if(a){
+				var b = {};
+				b[key] = a;
+				return b;
+			}
         }
     }
     
@@ -384,7 +386,7 @@ describe('Plain base', function () {
             __root: {
                 $children: {
                     todos: ['list', 'item', {
-                            '../new_todo': add
+                            add: '../new_todo',
                     }],
                 },
                 $el: ['just', $(".test-input-setget")],
@@ -406,18 +408,20 @@ describe('Plain base', function () {
     });
     it('Testing removing from list', function(){
 		var $root = $(".test-list-remove");
+		var list_sources = {
+			add: {
+				'../new_todo': as('text'),
+			},
+			remove: {
+				'*/remove': function(a){
+					if(a && a[0] !== undefined) return a[0];
+				}
+			},
+		}
         var app = Firera({
             __root: {
                 $children: {
-                    todos: ['list', 'item', {
-                            '../new_todo': function(a){
-								if(a){
-									return [['add', null, {
-										text: a
-									}]]
-								}
-							}
-                    }],
+                    todos: ['list', 'item', list_sources],
                 },
                 $el: ['just', $root],
                 "new_todo": [second, 'button.add-todo|click', '-input|getval'],
@@ -426,8 +430,18 @@ describe('Plain base', function () {
             'item': {
                 $free: {
                     text: '',
-					$template: '<div class="td-item"><div data-fr="text"></div></div>',
+					$template: `
+							<div class="td-item">
+								<div data-fr="text">
+								</div>
+								<div class="to-right">
+									<a href="#" class="remove">Remove</a>
+								</div>
+								<div class="clearfix"></div>
+							</div>
+							`,
                 },
+				remove: '.remove|click',
                 completed: {
                     __def: false,
                     '.done|click': true

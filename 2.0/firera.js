@@ -872,6 +872,7 @@
         );
         return app;
     };
+	Firera.apps = apps;
     Firera.eachHashMixin = {};
     Firera.run = Firera,
     Firera.loadPackage = function(pack) {
@@ -905,6 +906,40 @@
             return new_val;
         });
     }
+	
+	var restruct_list_sources = (obj) => {
+		if(!(obj instanceof Object)){
+			return obj;
+		}
+		var res = {};
+		var runner = (a, b, val) => {
+			return a(b(val));
+		}
+		var type_funcs = {
+			add: (val) => {
+				if(val){
+					return [['add', null, val]];
+				}
+			},
+			remove: (key) => {
+				if(key !== undefined){
+					return [['remove', key]];
+				}
+			}
+		}
+		for(var type in obj){
+			if(obj[type] instanceof Object){
+				for(var cellname in obj[type]){
+					var func = obj[type][cellname];
+					res[cellname] = (runner).bind(null, type_funcs[type], func);
+				}
+			} else {
+				// just cellname
+				res[obj[type]] = (runner).bind(null, type_funcs[type], (a) => a);
+			}
+		}
+		return res;
+	}
 
     var core = {
         cellMatchers: [
@@ -931,8 +966,10 @@
         predicates: {
             list: function(funcstring){
                 var item_type = funcstring.shift();
+				var deltas = restruct_list_sources(funcstring[0]);
+				//console.log('Deltas', deltas);
                 return [always([{
-                    $deltas: funcstring[0],
+                    $deltas: deltas,
                     $free: {
 						$template: "<div>Ololo</div>"
 					},
