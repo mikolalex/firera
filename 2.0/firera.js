@@ -676,25 +676,30 @@
                         break;
                     }
                 } else {
-                    if(predefined_functions[funcname]){
-                        var fnc = predefined_functions[funcname];
-                        switch(fnc.type){
-                            case 'func':
-                                funcstring = ['is', fnc.func].concat(a.slice(1))
-                            break;
+					if(funcname === 'just'){
+                        init_if_empty(pool.plain_base, '$free', {});
+						pool.plain_base.$free[key] = a[1];
+						return;
+					} 
+					if(predefined_functions[funcname]){
+						var fnc = predefined_functions[funcname];
+						switch(fnc.type){
+							case 'func':
+								funcstring = ['is', fnc.func].concat(a.slice(1))
+							break;
 
-                        }
-                    } else {
-                        //console.log('Having predicates', predicates);
-                        if(predicates[funcname]){
-                            funcstring = predicates[funcname](a.slice(1));
-                            //console.log('Using package predicate', funcstring, key);
-                            return parse_fexpr(funcstring, pool, key);
-                        } else {
-                            //console.log('Error', arguments, funcname instanceof Function);
-                            throw new Error('Cannot find predicate: ' + funcname);
-                        }
-                    }
+						}
+					} else {
+						//console.log('Having predicates', predicates);
+						if(predicates[funcname]){
+							funcstring = predicates[funcname](a.slice(1));
+							//console.log('Using package predicate', funcstring, key);
+							return parse_fexpr(funcstring, pool, key);
+						} else {
+							//console.log('Error', arguments, funcname instanceof Function);
+							throw new Error('Cannot find predicate: ' + funcname);
+						}
+					}
                 }
             } else {
                 // it's object

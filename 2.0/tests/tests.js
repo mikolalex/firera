@@ -338,18 +338,18 @@ describe('Plain base', function () {
         	__root: {
         		$free: {
 	        		show: 'all',
-	        		numbers: [1, 2, 3]
+					numbers: [1, 2, 3]
 	        	},
-                        arr_changes: ['arr_deltas', 'numbers'],
+                arr_changes: ['arr_deltas', 'numbers'],
 	        	$children: {
-                            items: ['list', 'item', '../arr_changes'],
-                        }
+					items: ['list', 'item', '../arr_changes'],
+				}
         	},
         	'item': {
-        		completed: {
-        			__def: false,
-        			'.done|click': true
-        		}
+				completed: {
+					__def: false,
+					'.done|click': true
+				}
         	}
         })
         app.set('numbers', [1, 2, 5, 5]);
@@ -383,14 +383,12 @@ describe('Plain base', function () {
         
         var app = Firera({
             __root: {
-                $free: {
-                    $el: $(".test-input-setget")
-                },
                 $children: {
                     todos: ['list', 'item', {
                             '../new_todo': add
                     }],
                 },
+                $el: ['just', $(".test-input-setget")],
                 "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
                 "input|setval": [always(''), 'new_todo']
             },
