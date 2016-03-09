@@ -408,14 +408,14 @@ describe('Plain base', function () {
     it('Testing removing from list', function(){
 		var $root = $(".test-list-remove");
 		var list_sources = {
-			add: {
-				'../new_todo': as('text'),
-			},
-			remove: {
-				'*/remove': function(a){
-					if(a && a[0] !== undefined) return a[0];
-				}
-			},
+                    add: {
+                            '../new_todo': as('text'),
+                    },
+                    remove: {
+                        '*/remove': function(a){
+                                if(a && a[0] !== undefined) return a[0];
+                        }
+                    },
 		}
         var app = Firera({
             __root: {
@@ -429,16 +429,16 @@ describe('Plain base', function () {
             'item': {
                 $free: {
                     text: '',
-					$template: `
-							<div class="td-item">
-								<div data-fr="text">
-								</div>
-								<div class="to-right">
-									<a href="#" class="remove">Remove</a>
-								</div>
-								<div class="clearfix"></div>
-							</div>
-							`,
+                    $template: `
+                    <div class="td-item">
+                        <div data-fr="text">
+                        </div>
+                        <div class="to-right">
+                            <a href="#" class="remove">Remove</a>
+                        </div>
+                        <div class="clearfix"></div>
+                    </div>
+                    `,
                 },
 				remove: '.remove|click',
                 completed: {
@@ -447,8 +447,27 @@ describe('Plain base', function () {
                 }
             }
         })
-		$root.find('input').val('ololo').change();
-		$root.find('button').click();
+        $root.find('input').val('ololo').change();
+        $root.find('button').click();
         
     });
+    
+    it('Testing async', function(done){
+        var app = Firera({
+            __root: {
+                b: ['just', 42],
+                a: ['async', function(cb, b){
+                        setTimeout(() => {
+                            console.log('setting b');
+                            cb(b);
+                        }, 1);
+                }, 'b']
+            }
+        })
+        assert.equal(app.get('a'), undefined);
+        setTimeout(() => {
+            assert.equal(app.get('a'), 42);
+            done();
+        }, 10)
+    })
 })

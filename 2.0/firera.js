@@ -278,7 +278,6 @@
 
     Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
         var cb = this.doRecursive.bind(this, func);
-        //console.log('children', cell, this.cell_children(cell));
         if(!skip) {
             //console.log('--Computing cell', this.cell_type(cell));
             func(cell, parent_cell);
@@ -321,10 +320,7 @@
                     this.set_cell_value(real_cell_name, val);
                     this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
                 });
-                //console.log('Computing ASYNC args', args);
-                var val = this.cell_func(real_cell_name).apply(null, args);
-                //console.log('computing', cell, args, val);
-                this.set_cell_value(real_cell_name, val);
+                this.cell_func(real_cell_name).apply(null, args);
             break;
             case 'nested':
                 var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
@@ -523,9 +519,7 @@
         'closure',
         'funnel',
         'map',
-        'funnel',
         'hash',
-        'children',
         'nested'
     ]);
     var side_effects = {
@@ -967,8 +961,8 @@
         predicates: {
             list: function(funcstring){
                 var item_type = funcstring.shift();
-				var deltas = restruct_list_sources(funcstring[0]);
-				//console.log('Deltas', deltas);
+                var deltas = restruct_list_sources(funcstring[0]);
+                //console.log('Deltas', deltas);
                 return [always([{
                     $deltas: deltas,
                     $free: {
