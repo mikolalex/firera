@@ -121,7 +121,7 @@
         var t0 = performance.now();
         ////////////////////////////////////////////////////////////////////////
         this.app = app;
-        this.name = name || 'root';
+        this.name = name || '__root';
         var parsed_pb = typeof parsed_pb_name === 'string' 
                         ? app.cbs[parsed_pb_name]
                         : app.parse_cbs(parsed_pb_name);
@@ -498,6 +498,7 @@
             side_effects[this.side_effects[cell]].func.call(this, cell, val);
             //console.log('Child', real_cell_name, 'val is', val);
         }
+        //if(cell === 'text' || cell === '*') console.log('Set cell value', cell, val, this.dynamic_cell_links[cell]);
         if(this.dynamic_cell_links[cell]){
             this.dynamic_cell_links[cell].each((links, hash_name) => {
                 var hsh = hash_name === '__self' ? this : this.linked_hashes[hash_name];
@@ -971,8 +972,8 @@
                 return [always([{
                     $deltas: deltas,
                     $free: {
-						$template: "<div>Ololo</div>"
-					},
+                        $template: "<div>Ololo</div>"
+                    },
                     '$changes': [
                         'closure',
                         () => {
@@ -992,52 +993,53 @@
                                         break;
                                     }
                                 })
+                                //console.info('hanges', chngs);
                                 return chngs;
                             };
                         },
                         '$deltas'
-                    ],
-					$list_template_writer: [function(deltas, $el){
-							//console.log('Delta come', deltas, $el);
-							for(var i in deltas){
-								var type = deltas[i][0];
-								var key = deltas[i][1];
-								switch(type){
-									case 'add':
-										$el.prepend('<div data-fr="' + key + '"></div>');
-										// I domt know...
-									break
-									case 'remove':
-										$el.children('[data-fr=' + key + ']').remove();
-									break
-								}
-							}
-					}, '$changes', '-$el'],
-					$children: '$changes'
+                ],
+                $list_template_writer: [function(deltas, $el){
+                    //console.log('Delta come', deltas, $el);
+                    for(var i in deltas){
+                        var type = deltas[i][0];
+                        var key = deltas[i][1];
+                        switch(type){
+                            case 'add':
+                                $el.prepend('<div data-fr="' + key + '"></div>');
+                                // I domt know...
+                            break
+                            case 'remove':
+                                $el.children('[data-fr=' + key + ']').remove();
+                            break
+                        }
+                    }
+                }, '$changes', '-$el'],
+                $children: '$changes'
                 }])];
             },
             arr_deltas: function(funcstring){
                 var cell = funcstring[0];
                 return ['closure', function(){
-                       var val = [];
-                       return function(new_arr){
-                           var new_ones = arr_diff(new_arr, val);
-                           var remove_ones = arr_diff(val, new_arr);
-                           var changed_ones = new_arr.mapFilter((v, k) => {
-                               if(val[k] !== v && val[k] !== undefined){
-                                    return k;
-                               }
-                           })
-                           //console.log('CHANGED ONES', changed_ones);
-                           val = new_arr;
-                           var deltas = [].concat(
-                                new_ones.map((key) => ['add', key, new_arr[key]]),
-                                remove_ones.map((key) => ['remove', key]),
-                                changed_ones.map((key) => ['change', key, new_arr[key]])
-                           )
-                           //console.info('deltas are', deltas);
-                           return deltas;
-                       }
+                    var val = [];
+                    return function(new_arr){
+                        var new_ones = arr_diff(new_arr, val);
+                        var remove_ones = arr_diff(val, new_arr);
+                        var changed_ones = new_arr.mapFilter((v, k) => {
+                            if(val[k] !== v && val[k] !== undefined){
+                                 return k;
+                            }
+                        })
+                        //console.log('CHANGED ONES', changed_ones);
+                        val = new_arr;
+                        var deltas = [].concat(
+                             new_ones.map((key) => ['add', key, new_arr[key]]),
+                             remove_ones.map((key) => ['remove', key]),
+                             changed_ones.map((key) => ['change', key, new_arr[key]])
+                        )
+                        //console.info('deltas are', deltas);
+                        return deltas;
+                    }
                 }, cell]
             }
         }
@@ -1074,21 +1076,36 @@
     var html = {
         eachHashMixin: {
             '$el': [get_by_selector, '$name', '../$el'],
-            'html_template': [function($el){
-					var str = '';
-					if($el){
-						str = $el.html();
-						if(str) str = str.trim();
-					}
-                    return str;
+            '$html_template': [function($el){
+                var str = '';
+                if($el){
+                    str = $el.html();
+                    if(str) str = str.trim();
+                }
+                return str;
             }, '$el'],
-            '$template_writer': [function(templ, $el){
-				//console.log('Writing template', templ, $el);
-				if(templ && $el){
-					$el.html(templ);
-				}	
-            }, '$template', '$el'],
-            '$htmlbindings': [search_fr_bindings, '$el'],
+            '$real_keys': [function(arr){
+                    return arr.filter((k) => {
+                        return k.match(/^(\w|\d|\_|\-)*$/);
+                    })
+            }, '$keys'],
+            '$template_writer': [
+                function(real_templ, $html_template, keys, $el){
+                    //console.log('Writing template', arguments);
+                    if(real_templ && $el){
+                            $el.html(real_templ);
+                            return;
+                    }	
+                    if(!$html_template && $el){
+                        var auto_template = keys.map((k) => {
+                            return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
+                        }).join(' ');
+                        //console.info('generating auto template', auto_template);
+                        $el.html(auto_template);
+                    }
+                }, '$template', '$html_template', '-$real_keys', '-$el'
+            ],
+            '$htmlbindings': [search_fr_bindings, '-$el', '$template_writer'],
             '$writer': [write_changes, '$htmlbindings', '*']
         },
         cellMatchers: [
