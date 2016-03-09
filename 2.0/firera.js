@@ -868,9 +868,9 @@
         var compilation_finished = performance.now();
         app.root = new Hash(app, '__root');
         var init_finished = performance.now();
-        console.info('App run', app.root
+        //console.info('App run', app.root
             //, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-        );
+        //);
         return app;
     };
 	Firera.apps = apps;
@@ -1096,7 +1096,7 @@
                             $el.html(real_templ);
                             return;
                     }	
-                    if(!$html_template && $el){
+                    if(!$html_template && $el && keys){
                         var auto_template = keys.map((k) => {
                             return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
                         }).join(' ');
