@@ -301,52 +301,12 @@
 
     Hash.prototype.compute = function(cell, parent_cell_name){
         var [listening_type, real_cell_name] = cell_listening_type(cell);
-        //console.log('Computing', real_cell_name);
-        switch(this.cell_type(real_cell_name)){
-            case 'free':
-                // really do nothing
-            break;
-            case 'is':
-                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-                //console.log('Computing args', args);
-                var val = this.cell_func(real_cell_name).apply(null, args);
-                //console.log('computing', cell, args, val);
-                this.set_cell_value(real_cell_name, val);
-            break;
-            case 'async':
-                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-                args.unshift((val) => {
-                    //console.log('ASYNC callback called!',val); 
-                    this.set_cell_value(real_cell_name, val);
-                    this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
-                });
-                this.cell_func(real_cell_name).apply(null, args);
-            break;
-            case 'nested':
-                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-                args.unshift((cell, val) => {
-                    //console.log('NESTED callback called!', cell, val, real_cell_name); 
-                    var cell_to_update = real_cell_name + '.' + cell;
-                    this.set_cell_value(cell_to_update, val);
-                    this.doRecursive(this.compute.bind(this), cell_to_update, true);
-                });
-                //console.log('Computing ASYNC args', args);
-                var val = this.cell_func(real_cell_name).apply(null, args);
-                //console.log('computing', cell, args, val);
-                this.set_cell_value(real_cell_name, val);
-            break;
-            case 'closure':
-                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-                //console.log('Checking whether closure func already exists', this.cell_funcs[real_cell_name], real_cell_name);
-                if(!this.cell_funcs[real_cell_name]){
-                    var new_func = this.cell_func(real_cell_name)();
-                    //console.log('Setting closure function', new_func);
-                    this.cell_funcs[real_cell_name] = new_func;
-                }
-                var val = this.cell_funcs[real_cell_name].apply(null, args);
-                //console.log('computing', cell, args, val);
-                this.set_cell_value(real_cell_name, val);
-            break;
+        var val;
+        var real_cell_type = this.cell_type(real_cell_name);
+        
+        var func;
+        // getting func
+        switch(real_cell_type) {
             case 'map':
                 if(!parent_cell_name){
                     throw new Error('Cannot calculate map cell value - no parent cell name provided!');
@@ -355,27 +315,87 @@
                 if(!func[parent_cell_name]){
                     throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
                 }
-                //debugger;
-                var new_val = func[parent_cell_name] instanceof Function 
-                              ? func[parent_cell_name](this.cell_value(get_real_cell_name(parent_cell_name)))
-                              : func[parent_cell_name];
-                this.set_cell_value(real_cell_name, new_val);
+                func = func[parent_cell_name];
+            break;
+            case 'closure':
+                if(!this.cell_funcs[real_cell_name]){
+                    var new_func = this.cell_func(real_cell_name)();
+                    //console.log('Setting closure function', new_func);
+                    this.cell_funcs[real_cell_name] = new_func;
+                }
+            default:
+                func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
+            break;
+        }
+        // getting arguments
+        var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
+        switch(real_cell_type){
+            case 'free':
+            case 'is':
+            case 'closure':
+            case 'map':
+                
+            break;
+            case 'async':
+                args.unshift((val) => {
+                    //console.log('ASYNC callback called!',val); 
+                    this.set_cell_value(real_cell_name, val);
+                    this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
+                });
+            break;
+            case 'nested':
+                args.unshift((cell, val) => {
+                    //console.log('NESTED callback called!', cell, val, real_cell_name); 
+                    var cell_to_update = real_cell_name + '.' + cell;
+                    this.set_cell_value(cell_to_update, val);
+                    this.doRecursive(this.compute.bind(this), cell_to_update, true);
+                });
             break;
             case 'funnel':
                 if(!parent_cell_name){
                     throw new Error('Cannot calculate map cell value - no parent cell name provided!');
                 }
-                var func = this.cell_func(real_cell_name);
                 parent_cell_name = get_real_cell_name(parent_cell_name);
-                this.set_cell_value(real_cell_name, func(parent_cell_name, this.cell_value(parent_cell_name)));
+                args = [parent_cell_name, this.cell_value(parent_cell_name)];
             break;
-            /*case 'child':
-                var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-                //console.log('Computing args', args);
+            default:
+                throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
+            break;
+        }
+        switch(real_cell_type){
+            case 'free':
+                // really do nothing
+            break;
+            case 'is':
+            case 'async':
+            case 'nested':
+            case 'funnel':
                 var val = this.cell_func(real_cell_name).apply(null, args);
-                this.linkChild(val, real_cell_name.replace("$child_", ""))
-                //console.log('Child', real_cell_name, 'val is', val);
-            break;*/
+            break;
+            case 'closure':
+                var val = this.cell_funcs[real_cell_name].apply(null, args);
+            break;
+            case 'map':
+                var val = func instanceof Function 
+                              ? func(this.cell_value(get_real_cell_name(parent_cell_name)))
+                              : func;
+            break;
+            default:
+                throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
+            break;
+        }
+        switch(real_cell_type){
+            case 'free':
+            case 'async':
+            case 'nested':
+                // really do nothing
+            break;
+            case 'is':
+            case 'closure':
+            case 'funnel':
+            case 'map':
+                this.set_cell_value(real_cell_name, val);
+            break;
             default:
                 throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
             break;
