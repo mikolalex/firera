@@ -406,18 +406,22 @@ describe('Plain base', function () {
         })
         
     });
+    var logger = (varname, a) => {
+        console.log(varname, ':', a);
+        return a;
+    }
     it('Testing removing from list', function(){
-		var $root = $(".test-list-remove");
-		var list_sources = {
-                    add: {
-                            '../new_todo': as('text'),
-                    },
-                    remove: {
-                        '*/remove': function(a){
-                                if(a && a[0] !== undefined) return a[0];
-                        }
-                    },
-		}
+        var $root = $(".test-list-remove");
+        var list_sources = {
+            add: {
+                    '../new_todo': as('text'),
+            },
+            remove: {
+                '*/remove': function(a){
+                        if(a && a[0] !== undefined) return a[0];
+                }
+            },
+        }
         var app = Firera({
             __root: {
                 $children: {
@@ -436,6 +440,7 @@ describe('Plain base', function () {
                     text: '',
                     $template: `
                     <div class="td-item">
+                        <input type="checkbox" name="completed" /> - completed
                         <div data-fr="text">
                         </div>
                         <div class="to-right">
@@ -446,10 +451,7 @@ describe('Plain base', function () {
                     `,
                 },
 		remove: '.remove|click',
-                completed: {
-                    __def: false,
-                    '.done|click': true
-                }
+                completed: [logger.bind(null, 'checkval'), 'input[type=checkbox]|getval']
             }
         })
         $root.find('input').val('ololo').change();

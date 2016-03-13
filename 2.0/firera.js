@@ -863,7 +863,7 @@
         //);
         return app;
     };
-	Firera.apps = apps;
+    Firera.apps = apps;
     Firera.eachHashMixin = {};
     Firera.run = Firera,
     Firera.loadPackage = function(pack) {
@@ -898,39 +898,39 @@
         });
     }
 	
-	var restruct_list_sources = (obj) => {
-		if(!(obj instanceof Object)){
-			return obj;
-		}
-		var res = {};
-		var runner = (a, b, val) => {
-			return a(b(val));
-		}
-		var type_funcs = {
-			add: (val) => {
-				if(val){
-					return [['add', null, val]];
-				}
-			},
-			remove: (key) => {
-				if(key !== undefined){
-					return [['remove', key]];
-				}
-			}
-		}
-		for(var type in obj){
-			if(obj[type] instanceof Object){
-				for(var cellname in obj[type]){
-					var func = obj[type][cellname];
-					res[cellname] = (runner).bind(null, type_funcs[type], func);
-				}
-			} else {
-				// just cellname
-				res[obj[type]] = (runner).bind(null, type_funcs[type], (a) => a);
-			}
-		}
-		return res;
-	}
+    var restruct_list_sources = (obj) => {
+        if(!(obj instanceof Object)){
+            return obj;
+        }
+        var res = {};
+        var runner = (a, b, val) => {
+            return a(b(val));
+        }
+        var type_funcs = {
+            add: (val) => {
+                if(val){
+                        return [['add', null, val]];
+                }
+            },
+            remove: (key) => {
+                if(key !== undefined){
+                    return [['remove', key]];
+                }
+            }
+        }
+        for(var type in obj){
+            if(obj[type] instanceof Object){
+                for(var cellname in obj[type]){
+                    var func = obj[type][cellname];
+                    res[cellname] = (runner).bind(null, type_funcs[type], func);
+                }
+            } else {
+                // just cellname
+                res[obj[type]] = (runner).bind(null, type_funcs[type], (a) => a);
+            }
+        }
+        return res;
+    }
 
     var core = {
         cellMatchers: [
@@ -942,14 +942,14 @@
                     if(context == 'setter') return;
                     var cellname = matches[2];
                     parse_fexpr(['closure', function(){
-                            var val;
-                            //console.log('Returning closure func!');
-                            return function(a){
-                                //console.log('getting prev val');
-                                var old_val = val;
-                                val = a;
-                                return [old_val, a];
-                            }
+                        var val;
+                        //console.log('Returning closure func!');
+                        return function(a){
+                            //console.log('getting prev val');
+                            var old_val = val;
+                            val = a;
+                            return [old_val, a];
+                        }
                     }, cellname], pool, '^' + cellname);
                 }
             }
@@ -1130,8 +1130,26 @@
                         case 'getval':
                             func = function(cb, vals){
                                 var onChange = function(){
-                                    //console.log('Updating value of', cellname);
-                                    cb($(this).val());
+                                    var el = $(this);
+                                    var type = el.attr('type');
+                                    var val;
+                                    if(type == 'checkbox'){
+                                        val = el.prop('checked');
+                                    } else {
+                                        val = el.val();
+                                    }
+                                    cb(val);
+                                };
+                                var onKeyup = function(){
+                                    var el = $(this);
+                                    var type = el.attr('type');
+                                    var val;
+                                    if(type == 'checkbox'){
+                                        return;
+                                    } else {
+                                        val = el.val();
+                                    }
+                                    cb(val);
                                 };
                                 var [$prev_el, $now_el] = vals;
                                 //console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
@@ -1139,7 +1157,9 @@
                                     $prev_el.off('keyup', selector);
                                     $prev_el.off('change', selector);
                                 }
-                                $now_el.on({keyup: onChange, change: onChange}, selector);
+                                if($now_el){
+                                    $now_el.on({keyup: onKeyup, change: onChange}, selector);
+                                }
                             }
                         break;
                         case 'click':
