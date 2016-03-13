@@ -132,6 +132,7 @@
         this.cell_links = parsed_pb.cell_links;
         this.side_effects = parsed_pb.side_effects;
         this.hashes_to_link = parsed_pb.hashes_to_link;
+		this.plain_base = parsed_pb.plain_base;
         this.linked_hashes = {};
         // for "closure" cell type
         this.cell_funcs = {};
@@ -478,6 +479,14 @@
         return this.cell_types[cell] ? this.cell_types[cell].type : [];
     }
     Hash.prototype.cell_value = function(cell){
+		if(cell === '$real_keys'){
+			return [...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			})
+		}
+		/*if(cell === '$vals'){
+			return Object.create(this.cell_values);
+		}*/
         //console.log('Getting cell value', cell, this.cell_values, this.cell_values[cell]);
         return this.cell_values[cell];
     }
@@ -954,8 +963,6 @@
 					var count = 0;
 					return (chng) => {
 						if(!chng) return;
-						console.log('Hash', chng[0], 'val', chng[1]);
-						
 						return chng;
 					}
 				}, '*/' + funcstring[0]]
@@ -1062,12 +1069,20 @@
         return res;
     }
     
-    var write_changes = function(bindings_table, changed){
-		if(changed[0][0] === '$') return;
-        //console.log('Writing cell values to HTML', bindings_table, changed);
-        if(changed && changed[0] && bindings_table && bindings_table[changed[0]]){
-            bindings_table[changed[0]].html(changed[1]);
-        }
+    var write_changes = function(){
+		var pool = {};
+		return (cell, val) => {
+			if(cell === '*'){
+				pool[val[0]] = val[1];
+			} else {
+				// htmlbindings, obviously
+				for(let i in pool){
+					if(val && val[i]){
+						val[i].html(pool[i]);
+					}
+				}
+			}
+		}
     }
     
     var html = {
@@ -1081,11 +1096,6 @@
                 }
                 return str;
             }, '$el'],
-            '$real_keys': [function(arr){
-                    return arr.filter((k) => {
-                        return k.match(/^(\w|\d|\_|\-)*$/);
-                    })
-            }, '$keys'],
             '$template_writer': [
                 function(real_templ, $html_template, keys, $el){
                     //console.log('Writing template', arguments);
@@ -1103,7 +1113,7 @@
                 }, '$template', '$html_template', '-$real_keys', '-$el'
             ],
             '$htmlbindings': [search_fr_bindings, '-$el', '$template_writer'],
-            '$writer': [write_changes, '$htmlbindings', '*']
+            '$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
         },
         cellMatchers: [
             {

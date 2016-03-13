@@ -391,7 +391,9 @@ describe('Plain base', function () {
             __root: {
                 $children: {
                     todos: ['list', 'item', {
-                            add: '../new_todo',
+						add: {
+							'../new_todo': as('text'),
+						},
                     }],
                 },
                 $el: ['just', $(".test-input-setget")],
@@ -402,9 +404,9 @@ describe('Plain base', function () {
             'item': {
                 $init: {
                     text: '',
+                    completed: false,
                 },
                 completed: {
-                    __def: false,
                     '.done|click': true
                 }
             }
