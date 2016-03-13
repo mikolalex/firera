@@ -101,8 +101,8 @@
             no_args_cells: {},
         }
         parse_pb(res);
-        init_if_empty(res.plain_base, '$free', {}, '$name', null);
-        //res.plain_base.$free['$name'] = null;
+        init_if_empty(res.plain_base, '$init', {}, '$name', null);
+        //res.plain_base.$init['$name'] = null;
         res.cell_types = parse_cell_types(res.plain_base);
         return res;
     }
@@ -116,7 +116,7 @@
         return res.join(', ');
     }
 
-    var Hash = function(app, parsed_pb_name, name, free_vals){
+    var Hash = function(app, parsed_pb_name, name, free_vals, init_later){
         ////////////////////////////////////////////////////////////////////////
         var t0 = performance.now();
         ////////////////////////////////////////////////////////////////////////
@@ -150,19 +150,20 @@
             }
             //console.log('Now dynamic links look like', this.dynamic_cell_links);
         }
-        this.cell_values = Object.create(parsed_pb.plain_base.$free || {});
+        this.cell_values = Object.create(parsed_pb.plain_base.$init || {});
         this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
         ////////////////////////////////////////////////////////////////////////
         var t1 = performance.now();
         ////////////////////////////////////////////////////////////////////////
         // @todo: refactor, make this set in one step
-		var free = Object.assign({}, parsed_pb.plain_base.$free, free_vals || {});
-        //console.log('Setting $free values', free);
+		this.init_values = Object.assign({}, parsed_pb.plain_base.$init, free_vals || {});
+        //console.log('Setting $init values', this.init_values);
         if(parsed_pb_name === '__root'){
-			free.$name = '__root';
+			this.init_values.$name = '__root';
 		}
-        if(parsed_pb.plain_base.$free){
-            this.set(free);
+        if(parsed_pb.plain_base.$init && !init_later){
+			//console.log('Setting init', parsed_pb.plain_base.$init, Object.keys(this.dynamic_cell_links.completed || {}));
+            this.init();
         }
         if(parsed_pb.no_args_cells){
             parsed_pb.no_args_cells.eachKey((cellname) => {
@@ -174,15 +175,12 @@
         ////////////////////////////////////////////////////////////////////////
         var t2 = performance.now();
         ////////////////////////////////////////////////////////////////////////
-        if(parsed_pb.default_values){
-            //console.log('Setting DEFAULT values', parsed_pb.default_values);
-            parsed_pb.default_values.each((val, cell) => this.force_set(cell, val));
-        }
-        ////////////////////////////////////////////////////////////////////////
-        var t3 = performance.now();
-        ////////////////////////////////////////////////////////////////////////
         //console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
     }
+
+    Hash.prototype.init = function(){
+		this.set(this.init_values);
+	}
 
     Hash.prototype.linkHash = function(cellname, val){
         //console.log('RUNNING SIDE EFFECT', this, val);         
@@ -216,13 +214,14 @@
         if(this.linked_hashes[link_as]){
             this.unlinkChild(link_as);
         }
-        var child = new Hash(this.app, type, link_as, Object.assign({}, free_vals, {
+        var child = new Hash(this.app, type, link_as, Object.assign({
 			$name: link_as
-		}));
+		}, free_vals), true);
         this.linked_hashes[link_as] = child;
         child.linked_hashes['..'] = this;
         this.linkCells(link_as, '..');
         child.linkCells('..', link_as);
+		child.init();
         //console.info('Successfully linked ', type, 'as', link_as);
     }
     Hash.prototype.unlinkChild = function(link_as){
@@ -493,15 +492,16 @@
         //if(cell === 'text' || cell === '*') console.log('Set cell value', cell, val, this.dynamic_cell_links[cell]);
         if(this.dynamic_cell_links[cell]){
             this.dynamic_cell_links[cell].each((links, hash_name) => {
-                var hsh = hash_name === '__self' ? this : this.linked_hashes[hash_name];
+				var own = hash_name === '__self';
+                var hsh = own ? this : this.linked_hashes[hash_name];
                 if(hsh){
                     for(var link of links){
                         //console.log('Writing dynamic cell link ' + link.cell_name, link.type === 'val', this.name);
-                        //log('Updating links', link, val);
                         if(link.type === 'val'){
                             hsh.set(link.cell_name, val);
                         } else {
-                            hsh.set(link.cell_name, [hash_name !== '__self' ? this.name : cell, val]);
+							//log('Updating links', hash_name, link.cell_name, [hash_name !== '__self' ? this.name : cell, val]);
+                            hsh.set(link.cell_name, [own ? cell : this.name, val]);
                         }
                     }
                 }
@@ -674,9 +674,9 @@
                     switch(funcname){
                         case 'nested':
                             var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
-                            init_if_empty(pool.plain_base, '$free', {});
+                            init_if_empty(pool.plain_base, '$init', {});
                             dependent_cells.each((name) => {
-                                pool.plain_base.$free[name] = null;
+                                pool.plain_base.$init[name] = null;
                             })
                             a.splice(2, 1);
                         default:
@@ -685,8 +685,8 @@
                     }
                 } else {
                     if(funcname === 'just'){
-                        init_if_empty(pool.plain_base, '$free', {});
-                        pool.plain_base.$free[key] = a[1];
+                        init_if_empty(pool.plain_base, '$init', {});
+                        pool.plain_base.$init[key] = a[1];
                         return;
                     } 
                     if(predefined_functions[funcname]){
@@ -709,14 +709,6 @@
                     }
                 }
             } else {
-                // it's object
-                if(a.__def !== undefined){
-                    //console.info('Found default value for', key, ':', a.__def);
-                    // default value for MAP cell
-                    init_if_empty(pool, 'default_values', {});
-                    pool.default_values[key] = a.__def;
-                    delete a.__def;
-                }
                 funcstring = ['map', a].concat(Object.keys(a));
                 //console.log('Parsing MAP fexpr', a, ' -> ', funcstring);
             }
@@ -765,7 +757,7 @@
             if(i === '$children'){
                 continue;
             }
-            if(i === '$free'){
+            if(i === '$init'){
                 //console.log('parsing free variables', pbs[i]);
                 for(var j in pbs[i]){
                     cell_types[j] = get_cell_type(type);
@@ -813,7 +805,7 @@
 
     var parse_pb = function(res){
         for(var key in res.plain_base) {
-            if(key === '$free'){
+            if(key === '$init'){
                 continue;
             }
             if(key === '$children'){
@@ -839,7 +831,7 @@
         return res;
     }
     
-    var parse_external_links_and_$free = function(pool, key){
+    var parse_external_links_and_$init = function(pool, key){
         
     }
 
@@ -858,9 +850,11 @@
         var compilation_finished = performance.now();
         app.root = new Hash(app, '__root');
         var init_finished = performance.now();
-        //console.info('App run', app.root
-            //, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-        //);
+		if(1 > 0){
+			console.info('App run', app.root
+				//, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
+			);
+		}
         return app;
     };
     Firera.apps = apps;
@@ -955,13 +949,25 @@
             }
         ],
         predicates: {
+			count: function(funcstring){
+				return ['closure', () => {
+					var count = 0;
+					return (chng) => {
+						if(!chng) return;
+						console.log('Hash', chng[0], 'val', chng[1]);
+						
+						return chng;
+					}
+				}, '*/' + funcstring[0]]
+			},
             list: function(funcstring){
                 var item_type = funcstring.shift();
                 var deltas = restruct_list_sources(funcstring[0]);
+                var mix_to_list = funcstring[1] || {};
                 //console.log('Deltas', deltas);
-                return [always([{
+                return [always([Object.assign(mix_to_list, {
                     $deltas: deltas,
-                    $free: {
+                    $init: {
                         $template: "<div>Ololo</div>"
                     },
                     '$arr_data': [
@@ -988,25 +994,26 @@
                             };
                         },
                         '$deltas'
-                ],
-                $list_template_writer: [function(deltas, $el){
-                    //console.log('Delta come', deltas, $el);
-                    for(var i in deltas){
-                        var type = deltas[i][0];
-                        var key = deltas[i][1];
-                        switch(type){
-                            case 'add':
-                                $el.prepend('<div data-fr="' + key + '"></div>');
-                                // I domt know...
-                            break
-                            case 'remove':
-                                $el.children('[data-fr=' + key + ']').remove();
-                            break
+                    ],
+                    $list_template_writer: [function(deltas, $el){
+                        //console.log('Delta come', deltas, $el);
+						if(!$el) return;
+                        for(var i in deltas){
+                            var type = deltas[i][0];
+                            var key = deltas[i][1];
+                            switch(type){
+                                case 'add':
+                                    $el.prepend('<div data-fr="' + key + '"></div>');
+                                    // I domt know...
+                                break
+                                case 'remove':
+                                    $el.children('[data-fr=' + key + ']').remove();
+                                break
+                            }
                         }
-                    }
-                }, '$arr_data.changes', '-$el'],
-                $children: '$arr_data.changes'
-                }])];
+                    }, '$arr_data.changes', '-$el'],
+                    $children: '$arr_data.changes'
+                })])];
             },
             arr_deltas: function(funcstring){
                 var cell = funcstring[0];
@@ -1230,7 +1237,7 @@
 
 Hashes crud interface
 
-create: name, type(or pb)[, init_values(for $free)]
+create: name, type(or pb)[, init_values(for $init)]
 remove: name,
 rename: name, new_name
 

@@ -11,7 +11,7 @@ describe('Plain base', function () {
             'c': ['+', 'a', 'b']
         }
         var pbs = Firera.func_test_export.parse_pb(pb).plain_base;
-        assert.deepEqual(pbs.$free, {
+        assert.deepEqual(pbs.$init, {
             a: 10,
             b: 32,
         });
@@ -20,7 +20,7 @@ describe('Plain base', function () {
     it('Testing simple grid', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     a: 10,
                     b: 32
                 },
@@ -35,7 +35,7 @@ describe('Plain base', function () {
     it('Testing nested fexpr', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     'a': 10,
                     'b': 20,
                     'c': 12,
@@ -54,7 +54,7 @@ describe('Plain base', function () {
         }
         var app = Firera({
             __root: {
-                '$free': {
+                '$init': {
                     '$el': $(".dummy")
                 },
                 'inp': ['async', function (done, [$prev_el, $now_el]) {
@@ -76,7 +76,7 @@ describe('Plain base', function () {
     it('Testing passive listening', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     'a': 10,
                     'b': 32,
                 },
@@ -94,7 +94,7 @@ describe('Plain base', function () {
     it('Testing map dependency', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     'a': 10,
                     'b': 32,
                 },
@@ -112,7 +112,7 @@ describe('Plain base', function () {
     it('Testing FUNNEL dependency', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     'a': 10,
                     'b': 32,
                 },
@@ -130,7 +130,7 @@ describe('Plain base', function () {
     it('Testing basic html functionality', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     $el: $(".test-html")
                 },
                 'someval': [id, 'input|getval'],
@@ -144,7 +144,7 @@ describe('Plain base', function () {
         var str = false;
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     $el: $(".test-nested")
                 },
                 someval: [id, 'todo/completed'],
@@ -153,8 +153,10 @@ describe('Plain base', function () {
                 },
             },
             'item': {
+				$init: {
+					completed: str,
+				},
             	completed: {
-            		'__def': str,
             		'.done|click': true,
             	}
             }
@@ -168,12 +170,13 @@ describe('Plain base', function () {
         var str = false;
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     $el: $(".test-nested")
                 },
                 completed_counter: ['closure', function(){
                         var c = 0;
                         return function(arr){
+							if(!arr) return;
                             var key = arr[0];
                             var prev_val = arr[1][0];
                             var val = arr[1][1];
@@ -193,8 +196,10 @@ describe('Plain base', function () {
                 },
             },
             'item': {
+				$init: {
+					completed: str,
+				},
             	completed: {
-            		'__def': str,
             		'.done|click': true,
             	},
                 'changes': '^completed',
@@ -211,7 +216,7 @@ describe('Plain base', function () {
     it('Testing nested cells', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     a: 42
                 },
                 'foo': ['nested', function(cb, a){
@@ -234,7 +239,7 @@ describe('Plain base', function () {
     it('Testing curcular dependency', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     d: 42,
                 },
                 a: [add.bind(null, 10), 'b'],
@@ -252,7 +257,7 @@ describe('Plain base', function () {
     it('Testing HTML package', function () {
         var app = Firera({
             __root: {
-                $free: {
+                $init: {
                     a: 42,
                 },
                 b: [add.bind(null, 20), 'a'],
@@ -261,7 +266,7 @@ describe('Plain base', function () {
                 }
             },
             person: {
-                $free: {
+                $init: {
                     name: 'John',
                     surname: 'Kovalenko',
                 },
@@ -284,14 +289,14 @@ describe('Plain base', function () {
     it('Testing dynamic $children members', function () {
         var app = Firera({
         	__root: {
-        		$free: {
+        		$init: {
         			registered: false,
         		},
 	        	val: [id, 'block/foo'],
 	        	$children: {
 	        		block: [always(
 	        			[{
-	        				$free: {
+	        				$init: {
 	        					foo: 'bar'
 	        				}
 	        			}, {
@@ -307,14 +312,14 @@ describe('Plain base', function () {
     it('Testing hash linking', function () {
         var app = Firera({
         	__root: {
-        		$free: {
+        		$init: {
         			registered: false,
         			val: null,
         		},
 	        	$children: {
 	        		block: [always(
 	        			[{
-	        				$free: {
+	        				$init: {
 	        					foo: 'bar',
 	        					boo: null
 	        				}
@@ -336,7 +341,7 @@ describe('Plain base', function () {
     it('Testing deltas, arrays', function () {
         var app = Firera({
         	__root: {
-        		$free: {
+        		$init: {
 	        		show: 'all',
 					numbers: [1, 2, 3]
 	        	},
@@ -395,7 +400,7 @@ describe('Plain base', function () {
                 "input|setval": [always(''), 'new_todo']
             },
             'item': {
-                $free: {
+                $init: {
                     text: '',
                 },
                 completed: {
@@ -425,7 +430,9 @@ describe('Plain base', function () {
         var app = Firera({
             __root: {
                 $children: {
-                    todos: ['list', 'item', list_sources],
+                    todos: ['list', 'item', list_sources, {
+						completed_number: ['count', 'completed']
+                    }],
                 },
                 $el: ['just', $root],
                 todos_number: [(a) => {
@@ -436,21 +443,22 @@ describe('Plain base', function () {
                 "input|setval": [always(''), 'new_todo']
             },
             'item': {
-                $free: {
+                $init: {
                     text: '',
+					completed: false,
                     $template: `
-                    <div class="td-item">
-                        <input type="checkbox" name="completed" /> - completed
-                        <div data-fr="text">
-                        </div>
-                        <div class="to-right">
-                            <a href="#" class="remove">Remove</a>
-                        </div>
-                        <div class="clearfix"></div>
-                    </div>
+						<div class="td-item">
+							<input type="checkbox" name="completed" /> - completed
+							<div data-fr="text">
+							</div>
+							<div class="to-right">
+								<a href="#" class="remove">Remove</a>
+							</div>
+							<div class="clearfix"></div>
+						</div>
                     `,
                 },
-		remove: '.remove|click',
+				remove: '.remove|click',
                 completed: [logger.bind(null, 'checkval'), 'input[type=checkbox]|getval']
             }
         })
