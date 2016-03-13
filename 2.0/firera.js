@@ -298,107 +298,83 @@
             }
         });
     }
+    
+    var toLowerCase = (a) => a.toLowerCase();
+    
+    var split_camelcase = (str) => {
+        if(!str.match) return false;
+        var first = str.match(/^([a-z0-9]*)/);
+        var others = (str.match(/[A-Z][a-z0-9]*/g) || []).map(toLowerCase);
+        return [first[1], ...others];
+    }
 
     Hash.prototype.compute = function(cell, parent_cell_name){
         var [listening_type, real_cell_name] = cell_listening_type(cell);
         var val;
-        var real_cell_type = this.cell_type(real_cell_name);
+        var real_cell_types = split_camelcase(this.cell_type(real_cell_name));
+        
+        var map = real_cell_types.indexOf('map') !== -1;
+        var closure = real_cell_types.indexOf('closure') !== -1;
+        var async = real_cell_types.indexOf('async') !== -1;
+        var nested = real_cell_types.indexOf('nested') !== -1;
+        var funnel = real_cell_types.indexOf('funnel') !== -1;
         
         var func;
         // getting func
-        switch(real_cell_type) {
-            case 'map':
-                if(!parent_cell_name){
-                    throw new Error('Cannot calculate map cell value - no parent cell name provided!');
-                }
-                var func = this.cell_func(real_cell_name);
-                if(!func[parent_cell_name]){
-                    throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
-                }
-                func = func[parent_cell_name];
-            break;
-            case 'closure':
-                if(!this.cell_funcs[real_cell_name]){
-                    var new_func = this.cell_func(real_cell_name)();
-                    //console.log('Setting closure function', new_func);
-                    this.cell_funcs[real_cell_name] = new_func;
-                }
-            default:
-                func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
-            break;
+        if(map){
+            if(!parent_cell_name){
+                throw new Error('Cannot calculate map cell value - no parent cell name provided!');
+            }
+            var func = this.cell_func(real_cell_name);
+            if(!func[parent_cell_name]){
+                throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
+            }
+            func = func[parent_cell_name];
+        } else if(closure){
+            if(!this.cell_funcs[real_cell_name]){
+                var new_func = this.cell_func(real_cell_name)();
+                //console.log('Setting closure function', new_func);
+                this.cell_funcs[real_cell_name] = new_func;
+            }
+            func = this.cell_funcs[real_cell_name];
+        } else {
+            func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
         }
         // getting arguments
         var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
-        switch(real_cell_type){
-            case 'free':
-            case 'is':
-            case 'closure':
-            case 'map':
-                
-            break;
-            case 'async':
-                args.unshift((val) => {
-                    //console.log('ASYNC callback called!',val); 
-                    this.set_cell_value(real_cell_name, val);
-                    this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
-                });
-            break;
-            case 'nested':
-                args.unshift((cell, val) => {
-                    //console.log('NESTED callback called!', cell, val, real_cell_name); 
-                    var cell_to_update = real_cell_name + '.' + cell;
-                    this.set_cell_value(cell_to_update, val);
-                    this.doRecursive(this.compute.bind(this), cell_to_update, true);
-                });
-            break;
-            case 'funnel':
-                if(!parent_cell_name){
-                    throw new Error('Cannot calculate map cell value - no parent cell name provided!');
-                }
-                parent_cell_name = get_real_cell_name(parent_cell_name);
-                args = [parent_cell_name, this.cell_value(parent_cell_name)];
-            break;
-            default:
-                throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
-            break;
+        if(funnel){
+            if(!parent_cell_name){
+                throw new Error('Cannot calculate map cell value - no parent cell name provided!');
+            }
+            parent_cell_name = get_real_cell_name(parent_cell_name);
+            args = [parent_cell_name, this.cell_value(parent_cell_name)];
         }
-        switch(real_cell_type){
-            case 'free':
-                // really do nothing
-            break;
-            case 'is':
-            case 'async':
-            case 'nested':
-            case 'funnel':
-                var val = this.cell_func(real_cell_name).apply(null, args);
-            break;
-            case 'closure':
-                var val = this.cell_funcs[real_cell_name].apply(null, args);
-            break;
-            case 'map':
-                var val = func instanceof Function 
-                              ? func(this.cell_value(get_real_cell_name(parent_cell_name)))
-                              : func;
-            break;
-            default:
-                throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
-            break;
-        }
-        switch(real_cell_type){
-            case 'free':
-            case 'async':
-            case 'nested':
-                // really do nothing
-            break;
-            case 'is':
-            case 'closure':
-            case 'funnel':
-            case 'map':
+        if(nested){
+            args.unshift((cell, val) => {
+                //console.log('NESTED callback called!', cell, val, real_cell_name); 
+                var cell_to_update = real_cell_name + '.' + cell;
+                this.set_cell_value(cell_to_update, val);
+                this.doRecursive(this.compute.bind(this), cell_to_update, true);
+            });
+        } else if(async){
+            args.unshift((val) => {
+                //console.log('ASYNC callback called!',val); 
                 this.set_cell_value(real_cell_name, val);
-            break;
-            default:
-                throw new Error('Unknown cell type:' + this.cell_type(real_cell_name));
-            break;
+                this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
+            });
+        }
+        // counting value
+        if(map){
+            var val = func instanceof Function 
+                          ? func(this.cell_value(get_real_cell_name(parent_cell_name)))
+                          : func;
+        } else {
+            var val = func.apply(null, args);
+        }
+        if(async || nested){
+            
+        } else {
+            this.set_cell_value(real_cell_name, val);
         }
     }
 
@@ -690,10 +666,11 @@
         if(a instanceof Object){
             if(a instanceof Array){
                 var funcname = a[0];
+                var cc = split_camelcase(funcname);
                 if(funcname instanceof Function){
                     // it's "is" be default
                     funcstring = ['is'].concat(a);
-                } else if(system_predicates.has(funcname)){
+                } else if(system_predicates.has(cc[0])){
                     switch(funcname){
                         case 'nested':
                             var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
@@ -707,30 +684,29 @@
                         break;
                     }
                 } else {
-					if(funcname === 'just'){
+                    if(funcname === 'just'){
                         init_if_empty(pool.plain_base, '$free', {});
-						pool.plain_base.$free[key] = a[1];
-						return;
-					} 
-					if(predefined_functions[funcname]){
-						var fnc = predefined_functions[funcname];
-						switch(fnc.type){
-							case 'func':
-								funcstring = ['is', fnc.func].concat(a.slice(1))
-							break;
-
-						}
-					} else {
-						//console.log('Having predicates', predicates);
-						if(predicates[funcname]){
-							funcstring = predicates[funcname](a.slice(1));
-							//console.log('Using package predicate', funcstring, key);
-							return parse_fexpr(funcstring, pool, key);
-						} else {
-							//console.log('Error', arguments, funcname instanceof Function);
-							throw new Error('Cannot find predicate: ' + funcname);
-						}
-					}
+                        pool.plain_base.$free[key] = a[1];
+                        return;
+                    } 
+                    if(predefined_functions[funcname]){
+                        var fnc = predefined_functions[funcname];
+                        switch(fnc.type){
+                            case 'func':
+                                funcstring = ['is', fnc.func].concat(a.slice(1))
+                            break;
+                        }
+                    } else {
+                        //console.log('Having predicates', predicates);
+                        if(predicates[funcname]){
+                            funcstring = predicates[funcname](a.slice(1));
+                            //console.log('Using package predicate', funcstring, key);
+                            return parse_fexpr(funcstring, pool, key);
+                        } else {
+                            //console.log('Error', arguments, funcname instanceof Function);
+                            throw new Error('Cannot find predicate: ' + funcname);
+                        }
+                    }
                 }
             } else {
                 // it's object
@@ -988,14 +964,14 @@
                     $free: {
                         $template: "<div>Ololo</div>"
                     },
-                    '$changes': [
-                        'closure',
+                    '$arr_data': [
+                        'nestedClosure',
                         () => {
                             var length = 0;
-                            return (changes) => {
+                            return (cb, changes) => {
                                 if(!changes || !changes.length) return;
                                 var chngs = arr_changes_to_child_changes(item_type, changes);
-								//console.log('Got changes:', frozen(chngs), 'from', changes);
+                                //console.log('Got changes:', frozen(chngs), 'from', changes);
                                 chngs.forEach((one) => {
                                     switch(one[0]){
                                         case 'add':
@@ -1007,8 +983,8 @@
                                         break;
                                     }
                                 })
-                                //console.info('hanges', chngs);
-                                return chngs;
+                                cb('changes', chngs);
+                                cb('length', length);
                             };
                         },
                         '$deltas'
@@ -1028,8 +1004,8 @@
                             break
                         }
                     }
-                }, '$changes', '-$el'],
-                $children: '$changes'
+                }, '$arr_data.changes', '-$el'],
+                $children: '$arr_data.changes'
                 }])];
             },
             arr_deltas: function(funcstring){
@@ -1174,7 +1150,7 @@
                                 if($prev_el){
                                     $prev_el.off('click', selector);
                                 }
-                                $now_el.on('click', selector, cb);
+                                $now_el.on('click', selector, (e) => {cb(e); return false});
                             }
                         break;
                         case 'press':

@@ -390,6 +390,7 @@ describe('Plain base', function () {
                     }],
                 },
                 $el: ['just', $(".test-input-setget")],
+                "foo": [(a) => { console.log('New todo:', a)}, 'new_todo'],
                 "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
                 "input|setval": [always(''), 'new_todo']
             },
@@ -423,6 +424,10 @@ describe('Plain base', function () {
                     todos: ['list', 'item', list_sources],
                 },
                 $el: ['just', $root],
+                todos_number: [(a) => {
+                    console.log('Length is', a);
+                    return a;
+                }, 'todos/$arr_data.length'],
                 "new_todo": [second, 'button.add-todo|click', '-input|getval'],
                 "input|setval": [always(''), 'new_todo']
             },
@@ -440,7 +445,7 @@ describe('Plain base', function () {
                     </div>
                     `,
                 },
-				remove: '.remove|click',
+		remove: '.remove|click',
                 completed: {
                     __def: false,
                     '.done|click': true
@@ -449,6 +454,7 @@ describe('Plain base', function () {
         })
         $root.find('input').val('ololo').change();
         $root.find('button').click();
+        assert.equal(app.get('$arr_data.length', 'todos'), 1);
         
     });
     
