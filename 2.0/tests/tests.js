@@ -438,7 +438,7 @@ describe('Plain base', function () {
                 },
                 $el: ['just', $root],
                 todos_number: [(a) => {
-                    console.log('Length is', a);
+                    //console.log('Length is', a);
                     return a;
                 }, 'todos/$arr_data.length'],
                 "new_todo": [second, 'button.add-todo|click', '-input|getval'],
@@ -464,9 +464,27 @@ describe('Plain base', function () {
                 completed: [logger.bind(null, 'checkval'), 'input[type=checkbox]|getval']
             }
         })
-        $root.find('input').val('ololo').change();
-        $root.find('button').click();
+		var add_item = (str = 'ololo') => {
+			$root.find('input[type=text]').val(str).change();
+			$root.find('button').click();
+		}
+		add_item();
         assert.equal(app.get('$arr_data.length', 'todos'), 1);
+        assert.equal(app.get('completed_number', 'todos'), 0);
+		add_item('ol');
+		add_item('al');
+        assert.equal(app.get('$arr_data.length', 'todos'), 3);
+        assert.equal(app.get('completed_number', 'todos'), 0);
+		
+		$root.find('input[type=checkbox]').click();
+        assert.equal(app.get('completed_number', 'todos'), 3);
+		
+		$root.find('[data-fr=todos] > *:first-child .remove').click();
+        assert.equal(app.get('completed_number', 'todos'), 2);
+		$root.find('[data-fr=todos] > *:first-child .remove').click();
+        assert.equal(app.get('completed_number', 'todos'), 1);
+		add_item();
+        assert.equal(app.get('completed_number', 'todos'), 1);
         
     });
     
@@ -476,7 +494,7 @@ describe('Plain base', function () {
                 b: ['just', 42],
                 a: ['async', function(cb, b){
                         setTimeout(() => {
-                            console.log('setting b');
+                            //console.log('setting b');
                             cb(b);
                         }, 1);
                 }, 'b']
@@ -488,4 +506,29 @@ describe('Plain base', function () {
             done();
         }, 10)
     })
+	
+	it('Listening to all', function(){
+		Firera({
+			__root: {
+				$init: {
+					$el: $(".test-trains")
+				},
+				$children: {
+					trains: ['list', 'train', {add: '../add_train'}, {
+						all_changes: [logger.bind(null, 'train changes'), '*/*'],
+					}]
+				},
+				add_train: ['is', (a) => {return {}}, '.add-train|click'],
+			},
+			train: {
+				$init: {
+					$template: `
+						<div>Some train</div>
+						<input> - enter name
+					`
+				},
+				name: [logger.bind(null, 'input'), 'input|getval'],
+			}
+		})
+	})
 })

@@ -311,7 +311,7 @@
     Hash.prototype.compute = function(cell, parent_cell_name){
         var [listening_type, real_cell_name] = cell_listening_type(cell);
         var val;
-        var real_cell_types = split_camelcase(this.cell_type(real_cell_name));
+        var real_cell_types = split_camelcase(this.cell_type(real_cell_name)) || []	;
         
         var map = real_cell_types.indexOf('map') !== -1;
         var closure = real_cell_types.indexOf('closure') !== -1;
@@ -859,7 +859,7 @@
         var compilation_finished = performance.now();
         app.root = new Hash(app, '__root');
         var init_finished = performance.now();
-		if(1 > 0){
+		if(1 < 0){
 			console.info('App run', app.root
 				//, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 			);
@@ -959,13 +959,42 @@
         ],
         predicates: {
 			count: function(funcstring){
-				return ['closure', () => {
+				return ['closureFunnel', () => {
 					var count = 0;
-					return (chng) => {
-						if(!chng) return;
-						return chng;
+					var vals = {};
+					return (cell, chng) => {
+						if(cell == '$arr_data.changes'){
+							// finding deletion
+							chng.filter((a) => {
+								return a[0] === 'remove';
+							}).each((a) => {
+								if(vals[a[1]]){
+									//console.log('Removing one');
+									count--;
+								}
+								delete vals[a[1]];
+							})
+							return count;;
+						}
+						if(!chng) return count;
+						var [key, val] = chng;
+						var prev_val = vals[key];
+						if(prev_val === undefined) {
+							if(val) count++
+						} else {
+							if(prev_val !== val){
+								if(val){
+									count++
+								} else {
+									count--;
+								}
+							}
+						}
+						vals[key] = val;
+						//console.log('Now count', count);
+						return count;
 					}
-				}, '*/' + funcstring[0]]
+				}, '*/' + funcstring[0], '$arr_data.changes']
 			},
             list: function(funcstring){
                 var item_type = funcstring.shift();
@@ -1155,6 +1184,7 @@
                                     } else {
                                         val = el.val();
                                     }
+									//console.log('CHange', el, val, selector);
                                     cb(val);
                                 };
                                 var onKeyup = function(){
@@ -1224,6 +1254,7 @@
                             }
                         break;
                         default:
+							debugger;
                             throw new Error('unknown HTML aspect: ' + aspect);
                         break;
                     }
@@ -1250,6 +1281,9 @@ Hashes crud interface
 create: name, type(or pb)[, init_values(for $init)]
 remove: name,
 rename: name, new_name
+																			
+Продумати захист від помилки юзера: заборонити інші значення
+в основному полі, крім масивів. Усе інше(Об"єкти, строки) - тільки в $init.	
 
 
 */
