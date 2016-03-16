@@ -347,7 +347,7 @@ describe('Plain base', function () {
 	        	},
                 arr_changes: ['arr_deltas', 'numbers'],
 	        	$children: {
-					items: ['list', 'item', '../arr_changes'],
+					items: ['list', 'item', {$deltas: '../arr_changes'}],
 				}
         	},
         	'item': {
@@ -385,6 +385,11 @@ describe('Plain base', function () {
     }
     
     var second = (__, a) => a;
+	var get = (i) => {
+		return (a) => {
+			if(a && a[i] !== undefined) return a[i];
+		}
+	}
     
     it('Testing html val set & get', function(){
         var app = Firera({
@@ -432,7 +437,11 @@ describe('Plain base', function () {
         var app = Firera({
             __root: {
                 $children: {
-                    todos: ['list', 'item', list_sources, {
+                    todos: ['list', 'item', {
+						$add: [as('text'), '../new_todo'],
+						$remove: [function(a){
+							if(a && a[0] !== undefined) return a[0];
+						}, '*/remove'],
 						completed_number: ['count', 'completed']
                     }],
                 },
@@ -507,15 +516,21 @@ describe('Plain base', function () {
         }, 10)
     })
 	
-	it('Listening to all', function(){
-		Firera({
+	it('Casting list as array', function(){
+        var $root = $(".test-trains");
+		var add_item = () => {
+			$root.find('button').click();
+		}
+		var app = Firera({
 			__root: {
 				$init: {
 					$el: $(".test-trains")
 				},
 				$children: {
-					trains: ['list', 'train', {add: '../add_train'}, {
-						all_changes: [logger.bind(null, 'train changes'), '*/*'],
+					trains: ['list', 'train', {
+						$add: '../add_train',
+						$remove: [get(0), '*/remove'],
+						arr: ['asArray', ['name']],
 					}]
 				},
 				add_train: ['is', (a) => {return {}}, '.add-train|click'],
@@ -525,10 +540,24 @@ describe('Plain base', function () {
 					$template: `
 						<div>Some train</div>
 						<input> - enter name
+						<div><a href="#" class="remove">Del</a></div>
 					`
 				},
-				name: [logger.bind(null, 'input'), 'input|getval'],
+				name: 'input|getval',
+				remove: '.remove|click',
 			}
 		})
+		add_item();
+		add_item();
+		assert.equal(app.get('arr', 'trains').length, 2);
+		
+		$root.find('[data-fr=trains] > *:first-child .remove').click();
+		assert.equal(app.get('arr', 'trains').length, 1);
+		
+		var inp = $root.find('[data-fr=trains] > *:first-child input');
+		inp.val('ololo').keyup();
+		assert.deepEqual(app.get('arr', 'trains'), [{
+				name: 'ololo'
+		}]);
 	})
 })

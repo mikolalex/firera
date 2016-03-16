@@ -7,6 +7,11 @@
     var log = console.log.bind(console);
 	
 	var frozen = (a) => JSON.parse(JSON.stringify(a));
+	
+	var id = (a) => a;
+	var ids = function(){
+		return arguments;
+	}
 
     Object.defineProperty(Object.prototype, 'map', {
         enumerable: false,
@@ -706,7 +711,7 @@
                             break;
                         }
                     } else {
-                        //console.log('Having predicates', predicates);
+                        //console.log('Having predicates', predicates, funcname, pool);
                         if(predicates[funcname]){
                             funcstring = predicates[funcname](a.slice(1));
                             //console.log('Using package predicate', funcstring, key);
@@ -900,40 +905,6 @@
             return new_val;
         });
     }
-	
-    var restruct_list_sources = (obj) => {
-        if(!(obj instanceof Object)){
-            return obj;
-        }
-        var res = {};
-        var runner = (a, b, val) => {
-            return a(b(val));
-        }
-        var type_funcs = {
-            add: (val) => {
-                if(val){
-                        return [['add', null, val]];
-                }
-            },
-            remove: (key) => {
-                if(key !== undefined){
-                    return [['remove', key]];
-                }
-            }
-        }
-        for(var type in obj){
-            if(obj[type] instanceof Object){
-                for(var cellname in obj[type]){
-                    var func = obj[type][cellname];
-                    res[cellname] = (runner).bind(null, type_funcs[type], func);
-                }
-            } else {
-                // just cellname
-                res[obj[type]] = (runner).bind(null, type_funcs[type], (a) => a);
-            }
-        }
-        return res;
-    }
 
     var core = {
         cellMatchers: [
@@ -958,6 +929,39 @@
             }
         ],
         predicates: {
+			asArray: function(funcstring){
+				var subscribe_to = '*/*';
+				if(funcstring[0] instanceof Array){
+					// its an array of fields
+					var fields = funcstring[0].map((a) => '*/' + a);
+					subscribe_to = ['funnel', ids, ...fields];
+				}
+				return ['closureFunnel', () => {
+						var arr = [];
+						//console.log('Returning closure');
+						return (cell, values) => {
+							if(cell === '$arr_data.changes'){
+								for(let i in values){
+									var [type, index, _, val] = values[i];
+									if(type === 'add'){
+										arr[index] = val;
+									} else if(type === 'remove'){
+										arr.splice(index, 1);
+									}
+								}
+							} else {
+								if(values){
+									var [fieldname, val] = values;
+									fieldname = fieldname.replace("*/", "");
+									if(val){
+										arr[val[0]][fieldname] = val[1];
+									}
+								}
+							}
+							return arr;
+						}
+				}, subscribe_to, '$arr_data.changes']
+			},
 			count: function(funcstring){
 				return ['closureFunnel', () => {
 					var count = 0;
@@ -998,11 +1002,22 @@
 			},
             list: function(funcstring){
                 var item_type = funcstring.shift();
-                var deltas = restruct_list_sources(funcstring[0]);
-                var mix_to_list = funcstring[1] || {};
+                //var deltas = restruct_list_sources(funcstring[0]);
+                var mix_to_list = funcstring[0] || {};
                 //console.log('Deltas', deltas);
                 return [always([Object.assign(mix_to_list, {
-                    $deltas: deltas,
+                    $deltas: {
+						$add: (val) => {
+							if(val){
+								return [['add', null, val]];
+							}
+						},
+						$remove: (key) => {
+							if(key !== undefined){
+								return [['remove', key]];
+							}
+						}
+					},
                     $init: {
                         $template: "<div>Ololo</div>"
                     },
@@ -1284,6 +1299,6 @@ rename: name, new_name
 																			
 Продумати захист від помилки юзера: заборонити інші значення
 в основному полі, крім масивів. Усе інше(Об"єкти, строки) - тільки в $init.	
-
+																			
 
 */
