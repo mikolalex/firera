@@ -560,4 +560,57 @@ describe('Plain base', function () {
 				name: 'ololo'
 		}]);
 	})
+	
+	it('$datasource', function(){
+		var app = Firera({
+			__root: {
+				$children: {
+					people: ['list', 'human', {
+						$datasource: '../people',
+						people: ['asArray', ['name', 'age']]
+					}]
+				},
+				people: ['just', [{
+					name: 'Ivan',
+					age: 35
+				}, {
+					name: 'Pylyp',
+					age: 93,
+				}, {
+					name: 'Yavdokha',
+					age: 91,
+				}]],
+			},
+			human: {
+				
+			}
+		})
+		assert.equal(app.get('$arr_data.length', 'people'), 3);
+		
+		app.set('people', [{
+			name: 'Ivan',
+			age: 36
+		}, {
+			name: 'Pylyp',
+			age: 94,
+		}, {
+			name: 'Yavdokha',
+			age: 92,
+		}]);
+	
+		
+		assert.deepEqual(app.get('people', 'people'), [{
+			name: 'Ivan',
+			age: 36
+		}, {
+			name: 'Pylyp',
+			age: 94,
+		}, {
+			name: 'Yavdokha',
+			age: 92,
+		}]);
+	
+		app.set('$arr_data.length', [], 'people');
+		assert.equal(app.get('$arr_data.length', 'people'), 0);
+	})
 })

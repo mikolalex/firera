@@ -12,6 +12,21 @@
 	var ids = function(){
 		return arguments;
 	}
+	
+	var arr_different = function(arr1, arr2, cb){
+		for(var i in arr1){
+			if(arr2[i] === undefined){
+				cb(i);
+			}
+		}
+	}
+	var arr_common = function(arr1, arr2, cb){
+		for(var i in arr1){
+			if(arr2[i] !== undefined){
+				cb(i);
+			}
+		}
+	}
 
     Object.defineProperty(Object.prototype, 'map', {
         enumerable: false,
@@ -186,6 +201,9 @@
 
     Hash.prototype.init = function(){
 		this.set(this.init_values);
+	}
+    Hash.prototype.updateChildFreeValues = function(childName, values){
+		this.linked_hashes[childName].set(values);
 	}
 
     Hash.prototype.linkHash = function(cellname, val){
@@ -542,7 +560,6 @@
         children: {
             regexp: /^\$all\_children$/,
             func: function(__, deltas){
-                //console.info('Runnning CHILDREN side-effect', deltas);
                 if(!deltas || !deltas.eachKey){
                     return;
                 }
@@ -555,9 +572,11 @@
                             this.unlinkChild(key);
                         break;
                         case 'add':
-                        case 'change':
                             //console.log('Adding hash', deltas[k]);
                             this.linkHash(key, [hashname, null, null, free_vals]);
+                        break;
+                        case 'change':
+                            this.updateChildFreeValues(key, free_vals);
                         break;
                         default:
                             throw new Error('Unknown action: ' + type);
@@ -1005,19 +1024,42 @@
                 //var deltas = restruct_list_sources(funcstring[0]);
                 var mix_to_list = funcstring[0] || {};
                 //console.log('Deltas', deltas);
-                return [always([Object.assign(mix_to_list, {
-                    $deltas: {
-						$add: (val) => {
-							if(val){
-								return [['add', null, val]];
-							}
-						},
-						$remove: (key) => {
-							if(key !== undefined){
-								return [['remove', key]];
-							}
+				if(!mix_to_list.$add && !mix_to_list.$datasource){
+					console.warn('No item source provided for list', mix_to_list);
+				}
+				var deltas_func = mix_to_list.$add ? {
+					$add: (val) => {
+						if(val){
+							return [['add', null, val]];
 						}
 					},
+					$remove: (key) => {
+						if(key !== undefined){
+							return [['remove', key]];
+						}
+					}
+				} : ['closure', () => {
+					var arr = [];
+					return (new_arr) => {
+						var changes = [];
+						arr_different(new_arr, arr, (key) => {
+							// create new element
+							changes.push(['add', key, new_arr[key]]);
+						})
+						//console.log('Computing changes between new an old arrays', new_arr, arr);
+						arr_diff(arr, new_arr, (key) => {
+							// create new element
+							changes.push(['remove', key]);
+						})
+						arr_common(arr, new_arr, (key) => {
+							changes.push(['change', key, new_arr[key]]);
+						})
+						arr = new_arr;
+						return changes;
+					}
+				}, '$datasource'];
+				var all_lists_mixin = {
+                    $deltas: deltas_func,
                     $init: {
                         $template: "<div>Ololo</div>"
                     },
@@ -1064,7 +1106,8 @@
                         }
                     }, '$arr_data.changes', '-$el'],
                     $children: '$arr_data.changes'
-                })])];
+                };
+                return [always([Object.assign(mix_to_list, all_lists_mixin)])];
             },
             arr_deltas: function(funcstring){
                 var cell = funcstring[0];
