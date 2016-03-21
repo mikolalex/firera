@@ -248,6 +248,9 @@
 		child.init();
         //console.info('Successfully linked ', type, 'as', link_as);
     }
+    Hash.prototype.cellExists = function(cellname){
+		return this.cell_types[cellname] !== undefined;
+	}
     Hash.prototype.unlinkChild = function(link_as){
         var child = this.linked_hashes[link_as];
         this.unlinkCells(link_as);
@@ -259,6 +262,16 @@
     Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash, type = 'val'){
         var other_hash = this.linked_hashes[hash_name];
         var pool = other_hash.dynamic_cell_links;
+		if(!other_hash.cellExists(parent_cell)){
+			if(unusual_cell(parent_cell)){
+				// try to init this cell in hash
+				//console.log('creating cellname on the fly', parent_cell, other_hash);
+				parse_cellname(parent_cell, other_hash, 'getter');
+				other_hash.cell_types = parse_cell_types(other_hash.plain_base);
+			} else {
+				//console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
+			}
+		}
         init_if_empty(pool, parent_cell, {});
         init_if_empty(pool[parent_cell], my_name_for_that_hash, []);
         pool[parent_cell][my_name_for_that_hash].push({
@@ -649,6 +662,10 @@
 			&& !findMatcher(cellname);
 	}
 	
+	var unusual_cell = (cellname) => {
+		return !(cellname.match(/^([a-zA-Z0-9\_]*)$/));
+	}
+	
 	var findMatcher = (cellname) => {
         for(var m of cellMatchers){
             var matches = cellname.match(m.regexp);
@@ -781,48 +798,53 @@
         return {type, func, parents: parents || [], children: []}
     }
 
+    var parse_cell_type = (i, row, pool, children) => {
+		var cell_types = pool;
+		let type = 'free';
+		if(i === '$children'){
+			return;
+		}
+		if(i === '$init'){
+			//console.log('parsing free variables', pbs[i]);
+			for(var j in row){
+				cell_types[j] = get_cell_type(type);
+			}
+			//console.log('now cell_types j looks like', cell_types);
+			return;
+		}
+		if(!(row instanceof Array)){
+			console.log('pbsi', pbs, i, row);
+		}
+		var func = row[0];
+		var parents = row.slice(1);
+		if(func instanceof Function){
+			// regular sync cell
+			type = 'is';
+		} else {
+			// may be 'async', 'changes' or something else
+			type = func;
+			func = parents.shift();
+		}
+		cell_types[i] = get_cell_type(type, func, parents);
+		//console.log('Cell', i, 'parent', parents);
+		for(var j in parents){
+			var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
+			//console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
+			if(listening_type !== 'passive'){
+				init_if_empty(children, parent_cell_name, {});
+				children[parent_cell_name][set_listening_type(i, listening_type)] = true;
+			} else {
+				//console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
+			}
+		}
+	};
+
     var parse_cell_types = function(pbs){
         var cell_types = {};
         var children = {};
         //console.log('PBS', pbs);
         for(let i in pbs){
-            let type = 'free';
-            if(i === '$children'){
-                continue;
-            }
-            if(i === '$init'){
-                //console.log('parsing free variables', pbs[i]);
-                for(var j in pbs[i]){
-                    cell_types[j] = get_cell_type(type);
-                }
-                //console.log('now cell_types j looks like', cell_types);
-                continue;
-            }
-            if(!(pbs[i] instanceof Array)){
-                console.log('pbsi', pbs, i, pbs[i]);
-            }
-            var func = pbs[i][0];
-            var parents = pbs[i].slice(1);
-            if(func instanceof Function){
-                // regular sync cell
-                type = 'is';
-            } else {
-                // may be 'async', 'changes' or something else
-                type = func;
-                func = parents.shift();
-            }
-            cell_types[i] = get_cell_type(type, func, parents);
-            //console.log('Cell', i, 'parent', parents);
-            for(var j in parents){
-                var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
-                //console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
-                if(listening_type !== 'passive'){
-                    init_if_empty(children, parent_cell_name, {});
-                    children[parent_cell_name][set_listening_type(i, listening_type)] = true;
-                } else {
-                    //console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
-                }
-            }
+			parse_cell_type(i, pbs[i], cell_types, children);
         }
         //console.log('Got following children after parsing', children, cell_types);
         for(let i in children){
@@ -980,6 +1002,42 @@
 							return arr;
 						}
 				}, subscribe_to, '$arr_data.changes']
+			},
+			reduce: function(funcstring){
+				var field = '*/' + funcstring[0];
+				var config = funcstring[1];
+				var res = config.def;
+				var vals = {};
+				return ['closureFunnel', () => {
+					return (cell, chng) => {
+						var key, val;
+						if(cell === '$arr_data.changes'){
+							if(chng instanceof Array){
+								for(let i in chng) {
+									if(!chng[i] instanceof Array) return;
+									var type = chng[i][0];
+									key = chng[i][1];
+									val = chng[i][3] ? chng[i][3][funcstring[0]] : undefined;
+									if(type === 'add'){
+										res = config.add(val, res);
+										vals[key] = val;
+									}
+									if(type === 'remove'){
+										res = config.add(vals[key], res);
+										delete vals[key];
+									}
+								}
+							}
+						} else {
+							if(chng){
+								[key, val] = chng;
+								res = config.change(val, vals[key], res);
+								vals[key] = val;
+							}
+						}
+						return res;
+					}
+				}, field, '$arr_data.changes']
 			},
 			count: function(funcstring){
 				return ['closureFunnel', () => {
@@ -1342,6 +1400,9 @@ rename: name, new_name
 																			
 Продумати захист від помилки юзера: заборонити інші значення
 в основному полі, крім масивів. Усе інше(Об"єкти, строки) - тільки в $init.	
-																			
+			
+Зараз при ініті чарунки на льоту ми заново перераховуємо весь 
+plain_base, cell_types... Задача: не перераховувати все, заборонити cell_matcher'ам 
+переписувати інші чарунки.
 
 */

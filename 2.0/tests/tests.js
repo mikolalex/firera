@@ -351,8 +351,10 @@ describe('Plain base', function () {
 				}
         	},
         	'item': {
+				$init: {
+					completed: false,
+				},
 				completed: {
-					__def: false,
 					'.done|click': true
 				}
         	}
@@ -529,7 +531,7 @@ describe('Plain base', function () {
 				$children: {
 					trains: ['list', 'train', {
 						$add: '../add_train',
-						$remove: [get(0), '*/remove'],
+						$remove: [get(0), '*/.remove|click'],
 						arr: ['asArray', ['name']],
 					}]
 				},
@@ -544,7 +546,6 @@ describe('Plain base', function () {
 					`
 				},
 				name: 'input|getval',
-				remove: '.remove|click',
 			}
 		})
 		add_item();
@@ -612,5 +613,45 @@ describe('Plain base', function () {
 	
 		app.set('$arr_data.length', [], 'people');
 		assert.equal(app.get('$arr_data.length', 'people'), 0);
+	})
+	
+	it('Reduce(position-free)', function(){
+		// tbd...
+		var app = Firera({
+			__root: {
+				$children: {
+					people: ['list', 'human', {
+						$datasource: '../people',
+						sum_age: ['reduce', 'age', {
+							add: (a, sum) => {
+								return sum + a;
+							},
+							remove: (a, sum) => sum - a,
+							change: (a, prev_a, sum) => {
+								return (a - prev_a) + sum;
+							},
+							def: 0,
+						}]
+					}]
+				},
+				people: ['just', [{
+						name: 'Ivan',
+						age: 35
+					}, {
+						name: 'Pylyp',
+						age: 93,
+					}, {
+						name: 'Yavdokha',
+						age: 91,
+					}]
+				],
+			},
+			human: {
+				
+			}
+		})
+		assert.equal(app.get('sum_age', 'people'), 219);
+		app.set('age', 36, 'people/0');
+		assert.equal(app.get('sum_age', 'people'), 220);
 	})
 })
