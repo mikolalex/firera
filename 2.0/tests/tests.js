@@ -702,30 +702,27 @@ describe('Che', function () {
 			},
 			item: {
 				children_tokens: [
-					'|',
-					{
-						type: 'bracket'
-					},
+					'>',
 					[
-						'>',
-						[
-							'|',
-							{ 
-								type: 'quoted_cellname'
-							},
-							{ 
-								type: 'cellname'
-							},
-						],
-						{
-							type: 'output',
-							optional: true,
+						'|',
+						{ 
+							type: 'quoted_cellname'
+						},
+						{ 
+							type: 'cellname'
 						},
 						{
-							type: 'quantifier',
-							optional: true,
-						}
-					]
+							type: 'bracket'
+						},
+					],
+					{
+						type: 'output',
+						optional: true,
+					},
+					{
+						type: 'quantifier',
+						optional: true,
+					}
 				]
 			},
 			bracket: {
@@ -801,7 +798,7 @@ describe('Che', function () {
 		var str = `> 
 					".select_rect|click"/active_figure/, 
 					(".map|click"/points/*), 
-					(| ".save|click"/rectangles|1/, ".discard|click")/ative_figure|false/),	
+					(| ".save|click"/rectangles|1/, ".discard|click")/active_figure|false/,	
 			`;
 		var res = parser(str);
 		$(".test-parser").html(che_parser.dump(res[0]));

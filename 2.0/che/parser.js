@@ -75,7 +75,7 @@
 									return [res, pos];
 								} else {
 									if(tk.regex){
-										if(!(char.match(tk.regex))){
+										if(!char || !(char.match(tk.regex))){
 											if(started){
 												console.log(char, 'is end for', tt, pos);
 												res.chars = str.substr(start_pos, pos - start_pos - 1);
@@ -110,33 +110,48 @@
 					var p = pos;
 					for(var b of rest_children){
 						var r;
-						if(b instanceof Array){
-							var rz = parse_rec(b, str, p);
-							r = rz[0];
-							p = rz[1];
+						var struct_to_parse = b instanceof Array ? b : b.type;
+						if(b.multiple){
+							console.log('===========================================Multiple!', b.type);
+							while(true){
+								var rz = parse_rec(struct_to_parse, str, p);
+								r = rz[0];
+								p = rz[1];
+								if(!r){
+									if(b.optional){
+										break;
+									}
+									console.log('Whole line failed!', tt);
+									return [false, p];
+								}	
+								console.log('___________Parsed', b, 'results', r, p);
+								pos = p;
+								res.children.push(r);
+							}
 						} else {
-							var rz = parse_rec(b.type, str, p);
+							var rz = parse_rec(struct_to_parse, str, p);
 							r = rz[0];
 							p = rz[1];
+							if(!r){
+								if(b.optional){
+									continue;
+								}
+								console.log('Whole line failed!', tt);
+								return [false, p];
+							}	
+							console.log('___________Parsed', b, 'results', r, p);
+							pos = p;
+							res.children.push(r);
 						}
 						//++p;
-						if(!r){
-							if(b.optional){
-								continue;
-							}
-							console.log('Whole line failed!', tt);
-							return [false, p];
-						}	
-						console.log('___________Parsed', b, 'results', r, p);
-						pos = p;
-						res.children.push(r);
 					}
 				break;
 				case '|':
 					//console.log('parsing | children', children);
 					for(var b of rest_children){
 						var r;
-						var rz = b instanceof Array ? parse_rec(b, str, pos) : parse_rec(b.type, str, pos);
+						var struct_to_parse = b instanceof Array ? b : b.type;
+						var rz =  parse_rec(struct_to_parse, str, pos);
 						r = rz[0];
 						p = rz[1];
 						if(!r){
