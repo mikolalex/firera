@@ -28,6 +28,12 @@
                     .clearleft {
                         clear: left;
                     }
+					
+					.test-parser div {
+						border: 1px dotted grey;
+						padding-left: 20px;
+						padding-top: 5px;
+					}
                 </style>
 	</head>
 	<body>
@@ -37,6 +43,7 @@
 		<script src="mocha.js"></script>
 		<script>mocha.setup('bdd')</script>
 		<script src="../firera.js"></script>
+		<script src="../che/parser.js"></script>
 		<script src="tests.js"></script>
 		<script>
 			mocha.checkLeaks();
@@ -86,6 +93,9 @@
 							
 						</div>
 						<button class="add-train">Add train</button>
+					</div>
+					<div class="test-parser">
+						
 					</div>
                 </div>
 	</body>

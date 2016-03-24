@@ -3,7 +3,7 @@ var always = (a) => {
 	return () => a;
 }
 
-describe('Plain base', function () {
+describe('Basic Firera functionality', function () {
     /*it('Testing simple values conversion', function () {
         var pb = {
             'a': 10,
@@ -653,5 +653,157 @@ describe('Plain base', function () {
 		assert.equal(app.get('sum_age', 'people'), 219);
 		app.set('age', 36, 'people/0');
 		assert.equal(app.get('sum_age', 'people'), 220);
+	})
+})
+
+describe('Che', function () {
+	//console.log = () => {};
+	var config = {
+		tokens: {
+			root_token: {
+				children_tokens: [
+					'>',
+					{
+						type: 'set'
+					},
+				]
+			},
+			set: {
+				children_tokens: [
+					'>',
+					{
+						type: 'operator',
+						optional: true,
+					},
+					{
+						type: 'item',
+					},
+					{
+						type: 'item_with_comma',
+						multiple: true,
+						optional: true,
+					}
+				],
+			},
+			operator: {
+				free_chars: true,
+				regex: /^[\>\|]$/,
+			},
+			item_with_comma: {
+				children_tokens: [
+					'>',
+					{ 
+						type: 'comma'
+					},
+					{ 
+						type: 'item'
+					},
+				],
+			},
+			item: {
+				children_tokens: [
+					'|',
+					{
+						type: 'bracket'
+					},
+					[
+						'>',
+						[
+							'|',
+							{ 
+								type: 'quoted_cellname'
+							},
+							{ 
+								type: 'cellname'
+							},
+						],
+						{
+							type: 'output',
+							optional: true,
+						},
+						{
+							type: 'quantifier',
+							optional: true,
+						}
+					]
+				]
+			},
+			bracket: {
+				start: '(',
+				children_tokens: [
+					'>',
+					{
+						type: 'set',
+					}
+				],
+				end: ')',
+			},
+			quoted_cellname: {
+				start: '"',
+				end: '"',
+				free_chars: true,
+			},
+			cellname: {
+				free_chars: true,
+				regex: /([a-zA-Z0-9_\-])/,
+			},
+			output: {
+				start: '/',
+				end: '/',
+				children_tokens: [
+					'>',
+					{
+						type: 'cellname'
+					}, 
+					{
+						type: 'pipe',
+						multiple: true,
+						optional: true,
+					}
+				],
+				regex: /([a-zA-Z0-9_\-])/
+			},
+			pipe: {
+				start: '|',
+				free_chars: true,
+				regex: /([a-zA-Z0-9_\-])/
+			},
+			comma: {
+				free_chars: true,
+				regex: /\,/,
+			},
+			quantifier_char: {
+				free_chars: true,
+				regex: /[\*\+]/,
+			},
+			quantifier_num: {
+				free_chars: true,
+				start: '{',
+				end: '}',
+			},
+			quantifier: {
+				children_tokens: [
+					'|',
+					{
+						type: 'quantifier_char',
+						optional: true,
+					},
+					{
+						type: 'quantifier_num',
+						optional: true,
+					},
+				]
+			},
+		},
+	}
+	it('Shoud return the structure', function(){
+		var parser = che_parser.get_parser(config);
+		var str = `> 
+					".select_rect|click"/active_figure/, 
+					(".map|click"/points/*), 
+					(| ".save|click"/rectangles|1/, ".discard|click")/ative_figure|false/),	
+			`;
+		var res = parser(str);
+		$(".test-parser").html(che_parser.dump(res[0]));
 	})
 })
