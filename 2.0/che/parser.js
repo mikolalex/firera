@@ -32,7 +32,7 @@
 				return str.substr(0, pos) + '@@@' + str.substr(pos);
 			}
 			if(!tt) debugger;
-			console.log('PR', pos, tt, 'from', showpos());
+			//console.log('PR', pos, tt, 'from', showpos());
 			var children;
 			var res = {
 				children: [],
@@ -51,7 +51,8 @@
 							continue;
 						}
 						if(char !== tk.start){
-							console.log('parsing', tt, 'failed:', pos, str[pos], 'instead of', tk.start);
+							//console.log('parsing', tt, 'failed:', pos, 
+							//str[pos], 'instead of', tk.start);
 							return [false, pos-1];
 						} else {
 							break;
@@ -77,11 +78,11 @@
 									if(tk.regex){
 										if(!char || !(char.match(tk.regex))){
 											if(started){
-												console.log(char, 'is end for', tt, pos);
+												//console.log(char, 'is end for', tt, pos);
 												res.chars = str.substr(start_pos, pos - start_pos - 1);
 												return [res, pos - 1];
 											} else {
-												console.log('DED END!', char, tt);
+												//console.log('DED END!', char, tt);
 												return [false, pos - 1];
 											}
 										}
@@ -112,7 +113,6 @@
 						var r;
 						var struct_to_parse = b instanceof Array ? b : b.type;
 						if(b.multiple){
-							console.log('===========================================Multiple!', b.type);
 							while(true){
 								var rz = parse_rec(struct_to_parse, str, p);
 								r = rz[0];
@@ -121,10 +121,10 @@
 									if(b.optional){
 										break;
 									}
-									console.log('Whole line failed!', tt);
+									//console.log('Whole line failed!', tt);
 									return [false, p];
 								}	
-								console.log('___________Parsed', b, 'results', r, p);
+								//console.log('___________Parsed', b, 'results', r, p);
 								pos = p;
 								res.children.push(r);
 							}
@@ -136,10 +136,10 @@
 								if(b.optional){
 									continue;
 								}
-								console.log('Whole line failed!', tt);
+								//console.log('Whole line failed!', tt);
 								return [false, p];
 							}	
-							console.log('___________Parsed', b, 'results', r, p);
+							//console.log('___________Parsed', b, 'results', r, p);
 							pos = p;
 							res.children.push(r);
 						}
@@ -163,6 +163,10 @@
 						}
 						return [false, pos];
 					}
+					if(!res.children.length){
+						//console.log('Nothing found', tt);
+						return [false, pos];
+					}
 				break;
 				default:
 					console.error('Unknown children type:', children_type);
@@ -170,10 +174,10 @@
 			}
 			if(tk && tk.end){
 				if(str[pos] === tk.end){
-					console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^', tt, 'finished!')
+					//console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^', tt, 'finished!')
 					++pos;
 				} else {
-					console.log('_+_+_+_+_+_+ FAIL FAIL FAIL! look for end of', tt, pos, str[pos]);
+					//console.log('_+_+_+_+_+_+ FAIL FAIL FAIL! look for end of', tt, pos, str[pos]);
 				}
 			}
 			return [res, pos];
