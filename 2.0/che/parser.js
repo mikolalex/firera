@@ -25,6 +25,66 @@
 		return a.slice(1);
 	}
 	
+	var parse_semantics = function(config, struct){
+		if(struct instanceof Array){
+			if(struct.length === 1){
+				struct = struct[0];
+			} else {
+				var r = [];
+				for(var i in struct){
+					r.push(parse_semantics(config, struct[i]));
+				}
+				return r;
+			}
+		}
+		var type = struct.type;
+		var children = struct.children;
+		var sem = config[type];
+		if(!sem){
+			console.error('No token semantic description', type, struct);
+			return;
+		}
+		if(sem.type){
+			switch(sem.type){
+				case 'door':
+					var to_parse = sem.ret ? children[sem.ret - 1] : children;
+					return parse_semantics(config, to_parse);
+				break;
+				case 'chars':
+					return {chars: struct.chars}
+				break;
+			}
+		}
+		if(sem.func){
+			return sem.func(struct, parse_semantics.bind(null, config));
+		}
+	};
+	
+	var flatten = function(struct, arr){
+		var get_children = function(struct, arr){
+			if(struct.children){
+				for(var i in struct.children){
+					if(struct.children[i].type){
+						var child = {
+							type: struct.children[i].type,
+							children: [],
+						}
+						if(struct.children[i].chars){
+							child.chars = struct.children[i].chars;
+						}
+						arr.push(child);
+						get_children(struct.children[i], child.children);
+					} else {
+						get_children(struct.children[i], arr);
+					}
+				}
+			}
+		}
+		var res = [];
+		get_children({children: [struct]}, res);
+		return res[0];
+	}
+	
 	var parse = function(config, str){
 		var parse_rec = function parse_rec(tt, str, pos){
 			var original_pos = pos;
@@ -39,10 +99,10 @@
 			};
 			if(typeof tt === 'string'){
 				res.type = tt;
-				if(!config.tokens[tt]){
+				if(!config.syntax[tt]){
 					console.error('Token not found:', tt);
 				}
-				var tk = config.tokens[tt];
+				var tk = config.syntax[tt];
 				if(tk.start !== undefined){
 					var started = false;
 					while(++pos){
@@ -182,7 +242,12 @@
 			}
 			return [res, pos];
 		}
-		return parse_rec('root_token', str, 0);
+		var struct = parse_rec('root_token', str, 0);
+		struct = flatten(struct[0]);
+		// sematic parsing
+		var sematics = parse_semantics(config.semantics, struct);
+		console.log('SEMANTICS', sematics);
+		return struct;
 	}
 	this.che_parser = {
 		get_parser: (config) => {
@@ -207,30 +272,6 @@
 				return '<div>' + res.join('<br>') + '</div>';
 			}
 			return rec(struct, 0);
-		},
-		flatten: function(struct, arr){
-			var get_children = function(struct, arr){
-				if(struct.children){
-					for(var i in struct.children){
-						if(struct.children[i].type){
-							var child = {
-								type: struct.children[i].type,
-								children: [],
-							}
-							if(struct.children[i].chars){
-								child.chars = struct.children[i].chars;
-							}
-							arr.push(child);
-							get_children(struct.children[i], child.children);
-						} else {
-							get_children(struct.children[i], arr);
-						}
-					}
-				}
-			}
-			var res = [];
-			get_children({children: [struct]}, res);
-			return res[0];
 		}
 	}
 })()

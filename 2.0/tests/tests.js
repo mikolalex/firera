@@ -659,7 +659,7 @@ describe('Basic Firera functionality', function () {
 describe('Che', function () {
 	//console.log = () => {};
 	var config = {
-		tokens: {
+		syntax: {
 			root_token: {
 				children_tokens: [
 					'>',
@@ -749,9 +749,15 @@ describe('Che', function () {
 				end: '/',
 				children_tokens: [
 					'>',
-					{
-						type: 'cellname'
-					}, 
+					[
+						'|',
+						{
+							type: 'quoted_cellname'
+						},
+						{
+							type: 'cellname'
+						},
+					], 
 					{
 						type: 'pipe',
 						multiple: true,
@@ -792,19 +798,114 @@ describe('Che', function () {
 				]
 			},
 		},
+		semantics: {
+			root_token: {
+				type: 'door',
+			},
+			bracket: {
+				type: 'door',
+			},
+			quantifier: {
+				type: 'door',
+			},
+			quantifier_char: {
+				type: 'chars',
+			},
+			set: {
+				func: (struct, parser) => {
+					var children = struct.children;
+					if(children[0].type === 'operator'){
+						return {
+							type: 'revolver',
+							subtype: children[0].chars,
+							children: parser(children.slice(1)),
+						}
+					} else {
+						if(children.length > 1){
+							console.log('Wrong semantics: set without operator');
+						} else {
+							return parser(children[0]);
+						}
+					}
+				}
+			},
+			output: {
+				func: (struct) => {
+					var self = {
+						title: false,
+						pipes: [],
+					}
+					for(let child of struct.children){
+						switch(child.type){
+							case 'cellname':
+							case 'quoted_cellname':
+								self.title = child.chars;
+							break;
+							default:
+								self.pipes.push(child.chars);
+							break;
+						}
+					}
+					return self;
+				}
+			},
+			item: {
+				func: (struct, parser) => {
+					var self = {};
+					if(struct.children.length === 1){
+						switch(struct.children[0].type){
+							case 'cellname':
+							case 'quoted_cellname':
+								self.event = {
+									name: struct.children[0].chars,
+									type: 'cell',
+								}
+							break;
+							default:
+								return parser(struct.children[0]);
+							break;
+
+						}
+					}
+					switch(struct.children[0].type){
+						case 'cellname':
+						case 'quoted_cellname':
+							self.event = {
+								name: struct.children[0].chars,
+								type: 'cell',
+							}
+						break;
+						default:
+							self.event = parser(struct.children[0]);
+						break;
+							
+					}
+					for(let child of struct.children){
+						if(child.type === 'output'){
+							self.output = parser(child);
+						}
+						if(child.type === 'quantifier'){
+							self.quantifier = parser(child);
+						}
+					}
+					return self;
+				}
+			},
+			item_with_comma: {
+				type: 'door',
+				ret: 2,
+			}
+		}
 	}
 	it('Shoud return the structure', function(){
 		var parser = che_parser.get_parser(config);
 		var str = `> 
 					".select_rect|click"/active_figure/, 
 					(".map|click"/points/*), 
-					(| ".save|click"/rectangles|1/, ".discard|click")/active_figure|false/,	
+					(| ".save|click"/"rectangles"|1/, ".discard|click")/active_figure|false/,	
 			`;
 		var res = parser(str);
-		$(".test-parser").html(che_parser.dump(res[0]));
-		var flattened = che_parser.flatten(res[0]);
-		console.log('Flattened', flattened);
-		$(".test-parser").html(che_parser.dump(flattened));
+		$(".test-parser").html(che_parser.dump(res));
 		
 	})
 })
