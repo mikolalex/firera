@@ -207,6 +207,30 @@
 				return '<div>' + res.join('<br>') + '</div>';
 			}
 			return rec(struct, 0);
+		},
+		flatten: function(struct, arr){
+			var get_children = function(struct, arr){
+				if(struct.children){
+					for(var i in struct.children){
+						if(struct.children[i].type){
+							var child = {
+								type: struct.children[i].type,
+								children: [],
+							}
+							if(struct.children[i].chars){
+								child.chars = struct.children[i].chars;
+							}
+							arr.push(child);
+							get_children(struct.children[i], child.children);
+						} else {
+							get_children(struct.children[i], arr);
+						}
+					}
+				}
+			}
+			var res = [];
+			get_children({children: [struct]}, res);
+			return res[0];
 		}
 	}
 })()

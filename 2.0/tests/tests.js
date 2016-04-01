@@ -802,5 +802,9 @@ describe('Che', function () {
 			`;
 		var res = parser(str);
 		$(".test-parser").html(che_parser.dump(res[0]));
+		var flattened = che_parser.flatten(res[0]);
+		console.log('Flattened', flattened);
+		$(".test-parser").html(che_parser.dump(flattened));
+		
 	})
 })
