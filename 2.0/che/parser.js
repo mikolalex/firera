@@ -245,8 +245,8 @@
 		var struct = parse_rec('root_token', str, 0);
 		struct = flatten(struct[0]);
 		// sematic parsing
-		var sematics = parse_semantics(config.semantics, struct);
-		console.log('SEMANTICS', sematics);
+		var semantics = parse_semantics(config.semantics, struct);
+		console.log('SEMANTICS', semantics);
 		return struct;
 	}
 	this.che_parser = {
