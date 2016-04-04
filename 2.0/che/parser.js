@@ -246,8 +246,7 @@
 		struct = flatten(struct[0]);
 		// sematic parsing
 		var semantics = parse_semantics(config.semantics, struct);
-		console.log('SEMANTICS', semantics);
-		return struct;
+		return {syntax: struct, semantics};
 	}
 	this.che_parser = {
 		get_parser: (config) => {
