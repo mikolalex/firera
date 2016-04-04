@@ -72,15 +72,18 @@ describe('Che', function () {
 		
 	})
 	it('Testing che', function(){
+		var res = 0;
 		var obj = che.link('> (|(> b, c),(> e, f)), d', {
 			onOutput: function(key, val){
 				//console.log('Che: got', key, val);
 			},
 			onSuccess: function(){
+				++res;
 			}
 		});
 		obj.drip("e");
 		obj.drip("f");
 		obj.drip("d");
+		assert.equal(res, 1);
 	})
 })
