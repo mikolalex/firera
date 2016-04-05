@@ -73,17 +73,37 @@ describe('Che', function () {
 	})
 	it('Testing che', function(){
 		var res = 0;
-		var obj = che.link('> (|(> b, c),(> e, f)), d', {
+		var output = {};
+		var obj = che.link('> (|(> b, c)/ololo/,(> e, f))/zzz/, d/aaa/', {
 			onOutput: function(key, val){
-				//console.log('Che: got', key, val);
+				output[key] = val;
 			},
 			onSuccess: function(){
 				++res;
 			}
 		});
-		obj.drip("e");
-		obj.drip("f");
-		obj.drip("d");
+		obj.drip("e", 1);
+		obj.drip("f", 2);
+		obj.drip("d", 3);
 		assert.equal(res, 1);
+		assert.equal(output.zzz, 2);
+		assert.equal(output.aaa, 3);
+	})
+		var res = 0;
+		var output = {};
+		var obj = che.link('> a*, b|1, c/res|2/', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+			onSuccess: function(){
+				++res;
+			}
+		});
+		obj.drip("a", 1);
+		obj.drip("f", 2);
+		obj.drip("d", 3);
+		assert.equal(res, 1);
+		assert.equal(output.zzz, 2);
+		assert.equal(output.aaa, 3);
 	})
 })

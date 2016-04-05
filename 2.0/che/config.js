@@ -57,6 +57,10 @@ window.che_config = {
 					},
 				],
 				{
+					type: 'pipe',
+					optional: true,
+				},
+				{
 					type: 'output',
 					optional: true,
 				},
@@ -152,6 +156,9 @@ window.che_config = {
 		quantifier_char: {
 			type: 'chars',
 		},
+		pipe: {
+			type: 'chars',
+		},
 		set: {
 			func: (struct, parser) => {
 				var children = struct.children;
@@ -227,6 +234,9 @@ window.che_config = {
 					}
 					if(child.type === 'quantifier'){
 						self.quantifier = parser(child);
+					}
+					if(child.type === 'pipe'){
+						self.pipe = parser(child);
 					}
 				}
 				return self;

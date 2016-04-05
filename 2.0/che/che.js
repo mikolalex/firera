@@ -7,10 +7,9 @@
 	var parsed_pool = {};
 	
 	var get_subscriptions = function(struct, cells_set){
-		if(!struct) 
-			debugger;
+		if(struct.event) struct = struct.event;
 		if(!struct.type){
-			console.warn('No type', struct);
+			console.warn('No type', struct);debugger;
 		}
 		switch(struct.type){
 			case 'revolver':
@@ -40,7 +39,13 @@
 		return cells_set;
 	}
 	
-	var absorb = function(struct, mirror_struct, cellname, value){
+	var output = function(){
+		
+	}
+	
+	var no_luck = {};
+	
+	var absorb = function(struct, mirror_struct, cellname, value, output_cb){
 		//console.log('Absorb', arguments);
 		//console.log('checking children', struct.children);
 		var res;
@@ -53,46 +58,56 @@
 				case 'cell':
 					//console.log('CHCKING CELL', child.name, cellname);
 					if(child.name === cellname){
-						return true;
+						return value;
 					}
 				break;
 				case 'revolver':
 					if(!mirror_struct.children[i]){
 						mirror_struct.children[i] = {
 							children: [],
-							parent: mirror_struct,
-							struct: child,
 						}
 					}
-					return absorb(child, mirror_struct.children[i], cellname, value);
+					return absorb(child, mirror_struct.children[i], cellname, value, output_cb);
 				break;
 			}
+			return no_luck;
+		}
+		var output = function(output, val){
+			var title = output.title;
+			output_cb(title, val);
 		}
 		switch(struct.subtype){
 			case '|':
 				for(let i in struct.children){
 					res = check(i);
-					if(res){
-						//console.log('| REVOLVER SUCCESS!');
-						return true;
+					if(res !== no_luck){
+						//console.log('| REVOLVER SUCCESS!', struct.children[i]);
+						if(struct.children[i].output){
+							output(struct.children[i].output, res);
+						}
+						return value;
 					}
 				}
 			break;
 			case '>':
 				var pos = mirror_struct.pos || 0;
 				res = check(pos);
-				if(res){
+				if(res !== no_luck){
+					if(struct.children[pos].output){
+						output(struct.children[pos].output, res);
+					}
 					var next_pos = ++pos;
 					if(!struct.children[next_pos]){
+						// revolver finished
 						//console.log(struct.children, next_pos, '> REVOLVER SUCCESS!');
-						return true;
+						return value;
 					} else {
 						mirror_struct.pos = next_pos;
 					}
 				}
 			break;
 		}
-		return false;
+		return no_luck;
 	}
 	
 	var State = function(struct){
@@ -107,8 +122,8 @@
 		return this.struct;
 	}
 	
-	State.prototype.absorb = function(cellname, value){
-		return absorb(this.struct, this.mirror, cellname, value);
+	State.prototype.absorb = function(cellname, value, output_cb){
+		return absorb(this.struct, this.mirror, cellname, value, output_cb);
 	}
 	
 	State.prototype.refreshSubscriptions = function(){
@@ -128,8 +143,9 @@
 			var state = new State(struct.semantics);
 			return {
 				drip: function(cellname, val){
-					var res = state.absorb(cellname, val);
-					if(res){
+					var res = state.absorb(cellname, val, linking.onOutput);
+					//console.log('Drip', val, 'to', cellname + ',', 'got', res);
+					if(res !== no_luck){
 						// pattern done
 						if(linking.onSuccess){
 							linking.onSuccess();
