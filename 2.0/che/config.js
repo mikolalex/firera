@@ -236,7 +236,7 @@ window.che_config = {
 						self.quantifier = parser(child);
 					}
 					if(child.type === 'pipe'){
-						self.pipe = parser(child);
+						self.pipe = parser(child).chars;
 					}
 				}
 				return self;

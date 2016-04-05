@@ -43,13 +43,30 @@
 		
 	}
 	
-	var no_luck = {};
+	var no_luck = new function NoLuck(){}
 	
-	var absorb = function(struct, mirror_struct, cellname, value, output_cb){
+	
+	var Chex = function(struct, linking, callbacks){
+		this.struct = struct;
+		this.onOutput = linking.onOutput;
+		this.onSuccess = linking.onSuccess;
+		this.callbacks = callbacks;
+		this.state = {};
+		this.mirror = {
+			children: [],
+		};
+		this.refreshSubscriptions();
+	};
+	
+	Chex.prototype.getStruct = function(struct){
+		return this.struct;
+	}
+	
+	Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		//console.log('Absorb', arguments);
 		//console.log('checking children', struct.children);
 		var res;
-		var check = function(i){
+		var check = (i) => {
 			let child = struct.children[i];
 			if(child.event){
 				child = child.event;
@@ -58,6 +75,17 @@
 				case 'cell':
 					//console.log('CHCKING CELL', child.name, cellname);
 					if(child.name === cellname){
+						var pipe = struct.children[i].pipe;
+						if(pipe){
+							--pipe; // because it's 1-based
+							if(!this.callbacks[pipe]){
+								console.error('No callback for pipe:', pipe);
+							}
+							this.state = this.callbacks[pipe](this.state, value);
+						} else {
+							// regular join
+							this.state[cellname] = value;
+						}
 						return value;
 					}
 				break;
@@ -67,14 +95,23 @@
 							children: [],
 						}
 					}
-					return absorb(child, mirror_struct.children[i], cellname, value, output_cb);
+					return this.absorb(child, mirror_struct.children[i], cellname, value);
 				break;
 			}
 			return no_luck;
 		}
-		var output = function(output, val){
+		var output = (output, val) => {
 			var title = output.title;
-			output_cb(title, val);
+			if(output.pipes.length){
+				for(let cb_num of output.pipes){
+					if(!this.callbacks[cb_num - 1]){
+						console.error('No callback provided - ', cb_num);
+						continue;
+					}
+					val = this.callbacks[cb_num - 1](this.state, val);
+				}
+			}
+			this.onOutput(title, val);
 		}
 		switch(struct.subtype){
 			case '|':
@@ -110,50 +147,30 @@
 		return no_luck;
 	}
 	
-	var State = function(struct){
-		this.struct = struct;
-		this.mirror = {
-			children: [],
-		};
-		this.refreshSubscriptions();
-	};
-	
-	State.prototype.getStruct = function(struct){
-		return this.struct;
-	}
-	
-	State.prototype.absorb = function(cellname, value, output_cb){
-		return absorb(this.struct, this.mirror, cellname, value, output_cb);
-	}
-	
-	State.prototype.refreshSubscriptions = function(){
+	Chex.prototype.refreshSubscriptions = function(){
 		var subscr = new Set;
 		this.subscriptions = get_subscriptions(this.getStruct(), subscr);
 	}
+	Chex.prototype.drip = function(cellname, val){
+		var res = this.absorb(this.struct, this.mirror, cellname, val);
+		if(res !== no_luck){
+			// pattern done
+			if(this.onSuccess){
+				this.onSuccess();
+			}
+		}
+	}
 	
 	window.che = {
-		link: function(che_expression, linking){
+		create: function(che_expression, linking, ...callbacks){
 			var struct;
 			if(parsed_pool[che_expression]){
 				struct = parsed_pool[che_expression];
 			} else {
 				struct = parsed_pool[che_expression] = parser(che_expression);
 			}
-			console.log('got struct', struct);
-			var state = new State(struct.semantics);
-			return {
-				drip: function(cellname, val){
-					var res = state.absorb(cellname, val, linking.onOutput);
-					//console.log('Drip', val, 'to', cellname + ',', 'got', res);
-					if(res !== no_luck){
-						// pattern done
-						if(linking.onSuccess){
-							linking.onSuccess();
-						}
-					}
-				},
-				state: state
-			}
+			var state = new Chex(struct.semantics, linking, callbacks);
+			return state;
 		},
 	}
 })()

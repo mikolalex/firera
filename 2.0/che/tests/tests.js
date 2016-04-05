@@ -74,7 +74,7 @@ describe('Che', function () {
 	it('Testing che', function(){
 		var res = 0;
 		var output = {};
-		var obj = che.link('> (|(> b, c)/ololo/,(> e, f))/zzz/, d/aaa/', {
+		var obj = che.create('> (|(> b, c)/ololo/,(> e, f))/zzz/, d/aaa/', {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
@@ -89,21 +89,28 @@ describe('Che', function () {
 		assert.equal(output.zzz, 2);
 		assert.equal(output.aaa, 3);
 	})
+	it('Testing che pipes', function(){
 		var res = 0;
 		var output = {};
-		var obj = che.link('> a*, b|1, c/res|2/', {
+		var obj = che.create('> a, b|1, c/res|2/', {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
 			onSuccess: function(){
 				++res;
 			}
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
 		});
 		obj.drip("a", 1);
-		obj.drip("f", 2);
-		obj.drip("d", 3);
-		assert.equal(res, 1);
-		assert.equal(output.zzz, 2);
-		assert.equal(output.aaa, 3);
+		obj.drip("a", 2);
+		obj.drip("a", 3);
+		obj.drip("b", 2);
+		obj.drip("c", 3);
+		assert.deepEqual(output, {res: 2});
+		assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
 })
