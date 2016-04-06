@@ -7,12 +7,11 @@ window.ozenfant_config = {
 				{
 					type: 'item',
 					multiple: true,
+					optional: true,
 				},
 			]
 		},
 		item: {
-			end: `
-`,
 			children: [
 				'>',
 				{
@@ -20,16 +19,40 @@ window.ozenfant_config = {
 					optional: true,
 				},
 				{
+					type: 'tagname',
+					optional: true,
+				},
+				{
+					type: 'classnames',
+					optional: true,
+				},
+				{
 					type: 'str',
+					optional: true,
+				},
+				{
+					type: 'lineend',
 				}
 			]
 		},
 		indent: {
-			regex: /\t/,
+			regex: /^\t+$/,
+			free_chars: true,
+		},
+		classnames: {
+			regex: /^\.[\\.a-zA-Z0-9\\-]*$/,
+			free_chars: true,
+		},
+		tagname: {
+			regex: /^[a-zA-Z0-9]+$/,
 			free_chars: true,
 		},
 		str: {
-			regex: /[^\n]/,
+			regex: /^[^\n]+$/,
+			free_chars: true,
+		},
+		lineend: {
+			regex: /\n$/,
 			free_chars: true,
 		},
 	},

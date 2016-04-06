@@ -144,7 +144,7 @@
 									//return [res, pos + 1];
 								}
 								//console.log('parsing free chars', '"' + char + '"', 'as', tk);
-								if((char === ' ' || char === '\n') && !started){
+								if((char === ' ') && !started){
 									continue;
 								}
 								if(tk.end && char === tk.end){
@@ -152,7 +152,13 @@
 									return [res, pos];
 								} else {
 									if(tk.regex){
-										if(!char || !(char.match(tk.regex))){
+										var string_to_compare = str.substr(start_pos, pos - start_pos);
+										var a1 = !!char.match(tk.regex);
+										var a2 = !!string_to_compare.match(tk.regex);
+										//if(a1 !== a2){
+										//console.log('Comparing', start_pos, a1, a2, tt, '"' + char + '"', 'vs.', '"' + string_to_compare + '".match(' + tk.regex + ')');
+										//}
+										if(!char || !(string_to_compare.match(tk.regex))){
 											if(started){
 												res.chars = str.substr(start_pos, pos - start_pos - 1);
 												return [res, pos - 1];
@@ -170,7 +176,7 @@
 							return [false, pos];
 						}
 					} else {
-						console.warn('No chars and no tokens - what to do?');
+						console.warn('No chars and no tokens - what to do?', tk);
 					}
 				}
 			} else {

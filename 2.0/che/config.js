@@ -28,7 +28,7 @@ window.che_config = {
 		},
 		operator: {
 			free_chars: true,
-			regex: /^[\>\|]$/,
+			regex: /^([\>\|])+$/,
 		},
 		item_with_comma: {
 			children: [
@@ -87,7 +87,7 @@ window.che_config = {
 		},
 		cellname: {
 			free_chars: true,
-			regex: /([a-zA-Z0-9_\-])/,
+			regex: /^\s?([a-zA-Z0-9_\-])+\s?$/,
 		},
 		output: {
 			start: '/',
@@ -109,20 +109,20 @@ window.che_config = {
 					optional: true,
 				}
 			],
-			regex: /([a-zA-Z0-9_\-])/
+			regex: /^([a-zA-Z0-9_\-])+$/
 		},
 		pipe: {
 			start: '|',
 			free_chars: true,
-			regex: /([a-zA-Z0-9_\-])/
+			regex: /^([a-zA-Z0-9_\-])+$/
 		},
 		comma: {
 			free_chars: true,
-			regex: /\,/,
+			regex: /^[\,]+$/,
 		},
 		quantifier_char: {
 			free_chars: true,
-			regex: /[\*\+]/,
+			regex: /^[\*\+]+$/,
 		},
 		quantifier_num: {
 			free_chars: true,
