@@ -42,7 +42,7 @@ describe('Amadee Ozenfant', function () {
 		
 		var parser = che_parser.get_parser(ozenfant_config);
 		var res = parser(example);
-		console.log('Got', res);
+		console.log('Got', res.semantics);
 		$(".test-parser").html(che_parser.dump(res.syntax));
 	})
 })

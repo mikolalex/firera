@@ -217,10 +217,14 @@
 							r = rz[0];
 							p = rz[1];
 							if(!r){
-								if(b.optional){
+								var optional = b.optional;
+								if(struct_to_parse instanceof Array && typeof struct_to_parse[struct_to_parse.length - 1] === 'string'){
+									optional = true;
+								}
+								if(optional){
 									continue;
 								}
-								//console.log('Whole line failed!', tt);
+								//console.log('Whole line failed!', struct_to_parse, tt);
 								return [false, p];
 							}	
 							//console.log('___________Parsed', b, 'results', r, p);
@@ -233,9 +237,10 @@
 				case '|':
 					//console.log('parsing | children', children);
 					for(var b of rest_children){
+						if(typeof b === 'string') continue;
 						var r;
 						var struct_to_parse = b instanceof Array ? b : b.type;
-						var rz =  parse_rec(struct_to_parse, str, pos);
+						var rz = parse_rec(struct_to_parse, str, pos);
 						r = rz[0];
 						p = rz[1];
 						if(!r){
