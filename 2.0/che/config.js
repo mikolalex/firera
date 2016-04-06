@@ -156,6 +156,9 @@ window.che_config = {
 		quantifier_char: {
 			type: 'chars',
 		},
+		quantifier_num: {
+			type: 'chars',
+		},
 		pipe: {
 			type: 'chars',
 		},
@@ -233,7 +236,26 @@ window.che_config = {
 						self.output = parser(child);
 					}
 					if(child.type === 'quantifier'){
-						self.quantifier = parser(child);
+						var res = {}, quant = parser(child);
+						//console.log('Found quantifier', quant);
+						switch(quant.chars){
+							case '*':
+								res.min = 0;
+							break;
+							case '+':
+								res.min = 1;
+							break;
+							default:
+								var pieces = quant.chars.split(',');
+								if(pieces[0]){
+									res.min = Number(pieces[0]);
+								}
+								if(pieces[1]){
+									res.max = Number(pieces[1]);
+								}
+							break;
+						}
+						self.quantifier = res;
 					}
 					if(child.type === 'pipe'){
 						self.pipe = parser(child).chars;

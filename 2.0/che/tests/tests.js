@@ -26,7 +26,7 @@ var er = {
 				"pipes": []
 			},
 			"quantifier": {
-				"chars": "*"
+				"min": 0,
 			}
 		}, {
 			"event": {
@@ -112,5 +112,84 @@ describe('Che', function () {
 		obj.drip("c", 3);
 		assert.deepEqual(output, {res: 2});
 		assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
+	})
+	it('Testing che quantifiers: *', function(){
+		var output = {};
+		var obj = che.create('> a, b*, c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
+		});
+		obj.drip("a", 1);
+		obj.drip("b", 2);
+		obj.drip("b", 3);
+		obj.drip("b", 2);
+		obj.drip("c", 3);
+		obj.drip("b", 2);
+		obj.drip("b", 2);
+		assert.deepEqual(obj.state, {"a":1,"b":[2,3,2],"c":3});
+		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
+	})
+	it('Testing che quantifiers: * 2', function(){
+		var output = {};
+		var obj = che.create('> a, b*, c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
+		});
+		obj.drip("a", 1);
+		obj.drip("c", 3);
+		assert.deepEqual(obj.state, {"a":1,"c":3});
+		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
+	})
+	it('Testing che quantifiers: +', function(){
+		var output = {};
+		var obj = che.create('> a, b+, c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
+		});
+		obj.drip("a", 1);
+		obj.drip("c", 3);
+		assert.deepEqual(obj.state, {a: 1});
+		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
+	})
+	it('Testing che quantifiers: {}', function(){
+		var output = {};
+		var obj = che.create('> a, b{2,4}, c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
+		});
+		obj.drip("a", 1);
+		obj.drip("b", 3);
+		obj.drip("c", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("c", 3);
+		assert.deepEqual(obj.state, {a: 1, b: [3, 3, 3, 3], c: 3});
+		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
 })

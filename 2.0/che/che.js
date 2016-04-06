@@ -44,6 +44,11 @@
 	}
 	
 	var no_luck = new function NoLuck(){}
+	var is_luck = (a) => a !== no_luck;
+	
+	var is_multiple = (quant) => {
+		return !!(quant && (quant.max !== quant.min));
+	}
 	
 	
 	var Chex = function(struct, linking, callbacks){
@@ -84,7 +89,15 @@
 							this.state = this.callbacks[pipe](this.state, value);
 						} else {
 							// regular join
-							this.state[cellname] = value;
+							var as_array = is_multiple(struct.children[i].quantifier);
+							if(as_array){
+								if(!this.state[cellname]){
+									this.state[cellname] = [];
+								}
+								this.state[cellname].push(value);
+							} else {
+								this.state[cellname] = value;
+							}
 						}
 						return value;
 					}
@@ -116,9 +129,9 @@
 		switch(struct.subtype){
 			case '|':
 				for(let i in struct.children){
+					//console.log('checking', struct.children[i]);
 					res = check(i);
-					if(res !== no_luck){
-						//console.log('| REVOLVER SUCCESS!', struct.children[i]);
+					if(is_luck(res)){
 						if(struct.children[i].output){
 							output(struct.children[i].output, res);
 						}
@@ -128,18 +141,59 @@
 			break;
 			case '>':
 				var pos = mirror_struct.pos || 0;
-				res = check(pos);
-				if(res !== no_luck){
-					if(struct.children[pos].output){
-						output(struct.children[pos].output, res);
+				//console.log('________________________', cellname, pos);
+				for(let i = pos; ; i++){
+					if(!struct.children[i]){
+						break;
 					}
-					var next_pos = ++pos;
-					if(!struct.children[next_pos]){
-						// revolver finished
-						//console.log(struct.children, next_pos, '> REVOLVER SUCCESS!');
-						return value;
+					res = check(i);
+					//console.log('Check', struct.children[i].event.name, cellname, is_luck(res));
+					if(is_luck(res)){
+						if(mirror_struct.counter === undefined){
+							mirror_struct.counter = 0;
+						}
+						++mirror_struct.counter;
+						
+						if(struct.children[i].output){
+							output(struct.children[i].output, res);
+						}
+						var next_pos = pos + 1;
+						if(!struct.children[next_pos]){
+							// revolver finished
+							//console.log(struct.children, next_pos, '> REVOLVER SUCCESS!');
+							return value;
+						} else {
+							if(!struct.children[i].quantifier 
+									|| mirror_struct.counter > struct.children[i].quantifier.max){
+								//console.log(struct.children[i].quantifier, mirror_struct.counter);
+								// if it's finite
+								pos = i;
+								++pos;
+								mirror_struct.pos = pos;
+							}
+						}
 					} else {
-						mirror_struct.pos = next_pos;
+						if(
+								struct.children[i].quantifier 
+								&& struct.children[i].quantifier.min !== 0
+								//&& struct.children[i].quantifier.max !== undefined
+						){
+							break;
+						}
+					}
+					if(!struct.children[i].quantifier || !is_multiple(struct.children[i].quantifier)){
+						//console.log('should break', struct.children[i].quantifier);
+						break;
+					}
+					if(
+							struct.children[i].quantifier 
+							&& struct.children[i].quantifier.max !== undefined
+							&& mirror_struct.counter < struct.children[i].quantifier.max
+					){
+						//console.log);
+						// struct.children[i].quantifier.max < mirror_struct.counter
+						//console.log('should break', struct.children[i].quantifier);
+						break;
 					}
 				}
 			break;
@@ -152,9 +206,14 @@
 		this.subscriptions = get_subscriptions(this.getStruct(), subscr);
 	}
 	Chex.prototype.drip = function(cellname, val){
+		if(this.finished){
+			console.log('No way, it\'s over!');
+			return;
+		}
 		var res = this.absorb(this.struct, this.mirror, cellname, val);
 		if(res !== no_luck){
 			// pattern done
+			this.finished = true;
 			if(this.onSuccess){
 				this.onSuccess();
 			}
