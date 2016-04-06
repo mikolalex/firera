@@ -2,7 +2,7 @@ var trim = $.trim;
 window.che_config = {
 	syntax: {
 		root_token: {
-			children_tokens: [
+			children: [
 				'>',
 				{
 					type: 'set'
@@ -10,7 +10,7 @@ window.che_config = {
 			]
 		},
 		set: {
-			children_tokens: [
+			children: [
 				'>',
 				{
 					type: 'operator',
@@ -31,7 +31,7 @@ window.che_config = {
 			regex: /^[\>\|]$/,
 		},
 		item_with_comma: {
-			children_tokens: [
+			children: [
 				'>',
 				{ 
 					type: 'comma'
@@ -42,7 +42,7 @@ window.che_config = {
 			],
 		},
 		item: {
-			children_tokens: [
+			children: [
 				'>',
 				[
 					'|',
@@ -72,7 +72,7 @@ window.che_config = {
 		},
 		bracket: {
 			start: '(',
-			children_tokens: [
+			children: [
 				'>',
 				{
 					type: 'set',
@@ -92,7 +92,7 @@ window.che_config = {
 		output: {
 			start: '/',
 			end: '/',
-			children_tokens: [
+			children: [
 				'>',
 				[
 					'|',
@@ -130,7 +130,7 @@ window.che_config = {
 			end: '}',
 		},
 		quantifier: {
-			children_tokens: [
+			children: [
 				'|',
 				{
 					type: 'quantifier_char',

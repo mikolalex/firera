@@ -37,6 +37,10 @@
 				return r;
 			}
 		}
+		if(!struct){
+			console.warn('oops', config, struct);
+			return;
+		}
 		var type = struct.type;
 		var children = struct.children;
 		var sem = config[type];
@@ -119,8 +123,8 @@
 						}
 					}
 				}
-				if(tk.children_tokens){
-					children = tk.children_tokens;
+				if(tk.children){
+					children = tk.children;
 				} else {
 					if(tk.free_chars){
 						var start_pos = pos;
@@ -128,6 +132,18 @@
 							var started = false;
 							while(++pos){
 								var char = str[pos - 1];
+								if(char === undefined){
+									// we reached the end!
+									if(pos - start_pos > 1){
+										//console.log('we reached the end!');
+										res.chars = str.substr(start_pos, pos - start_pos - 1);
+										return [res, pos - 1];
+									} else {
+										return false;
+									}
+									//return [res, pos + 1];
+								}
+								//console.log('parsing free chars', '"' + char + '"', 'as', tk);
 								if((char === ' ' || char === '\n') && !started){
 									continue;
 								}
@@ -138,7 +154,6 @@
 									if(tk.regex){
 										if(!char || !(char.match(tk.regex))){
 											if(started){
-												//console.log(char, 'is end for', tt, pos);
 												res.chars = str.substr(start_pos, pos - start_pos - 1);
 												return [res, pos - 1];
 											} else {
@@ -167,7 +182,7 @@
 			//console.log('chtype', children_type, rest_children);
 			switch(children_type){
 				case '>':
-					//console.log('parsing > children', rest_children);
+					//console.log('parsing > children', tt);
 					var p = pos;
 					for(var b of rest_children){
 						var r;
@@ -184,9 +199,12 @@
 									//console.log('Whole line failed!', tt);
 									return [false, p];
 								}	
-								//console.log('___________Parsed', b, 'results', r, p);
+								//console.log('___________Parsed sresults', r, p);
 								pos = p;
 								res.children.push(r);
+								if(str[p] === undefined){
+									break;
+								}
 							}
 						} else {
 							var rz = parse_rec(struct_to_parse, str, p);
@@ -254,6 +272,7 @@
 		},
 		dump: function(struct){
 			var rec = function(struct, level){
+				if(!struct) return;
 				var res = [];
 				if(struct.type){
 					res.push('Type: ' + struct.type);
