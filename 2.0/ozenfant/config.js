@@ -38,10 +38,10 @@
 						},
 						'optional'
 					],
-					/*{
+					{
 						type: 'bracket',
 						optional: true,
-					},*/
+					},
 					{
 						type: 'str',
 						optional: true,
@@ -53,6 +53,7 @@
 			},
 			comma: {
 				regex: /^\,\s?$/,
+				free_chars: true,
 			},
 			bracket: {
 				start: '(',
@@ -78,7 +79,7 @@
 			},
 			assign: {
 				free_chars: true,
-				regex: /^[^\)]*$/
+				regex: /^[^\)^\,]*$/
 			},
 			quoted_str: {
 				regex: /^\"[^\\"]*\"?$/,
@@ -117,18 +118,38 @@
 					var last_of_level = {
 						"-1": res,
 					}
-					var che = parser(struct.children);
-					for(let child of che){
+					var che_results = parser(struct.children);
+					console.log('Results', che_results);
+					var max_level = 0;
+					for(let i in che_results){
+						let child = che_results[i];
 						if(!child.tagname && !child.classnames && !child.quoted_str && !child.variable) continue;
 						var lvl = child.level || 0;
+						if(lvl > max_level){
+							max_level = lvl;
+						}
 						var put_to = lvl - 1;
 						child.children = [];
 						if(!last_of_level[put_to]){
-							console.log('oops', last_of_level[put_to]);
-							continue;
+							for(;put_to--;put_to > -2){
+								if(last_of_level[put_to]) break;
+							}
+							if(!last_of_level[put_to]){
+								continue;
+							}
 						}
+						//console.log('putting', child, 'to', last_of_level[put_to]);
 						last_of_level[put_to].children.push(child);
 						last_of_level[lvl] = child;
+						if(lvl + 1 < max_level){
+							//console.log('lvl', lvl+1, max_level);
+							var j = lvl + 1;
+							for(var j = lvl + 1;j <= max_level;j++){
+								if(!last_of_level[j]) break;
+								//console.log('delete', last_of_level[j]);
+								delete last_of_level[j];
+							}
+						}
 					}
 					return res.children;
 				}
@@ -140,6 +161,15 @@
 						switch(child.type){
 							case 'indent':
 								res.level = child.chars.length;
+								//console.log('INDEX', res.level);
+							break;
+							case 'bracket':
+								res.assignments = [];
+								for(let child1 of child.children){
+									if(child1.type === 'assign'){
+										res.assignments.push(child1.chars);
+									}
+								}
 								//console.log('INDEX', res.level);
 							break;
 						}

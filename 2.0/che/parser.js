@@ -102,6 +102,7 @@
 				children: [],
 			};
 			if(typeof tt === 'string'){
+				//console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Trying to parse', tt);
 				res.type = tt;
 				if(!config.syntax[tt]){
 					console.error('Token not found:', tt);
@@ -109,6 +110,7 @@
 				var tk = config.syntax[tt];
 				if(tk.start !== undefined){
 					var started = false;
+					var start_pos = pos;
 					while(++pos){
 						var char = str[pos - 1];
 						if(is_empty_char(char)){
@@ -117,7 +119,7 @@
 						if(char !== tk.start){
 							//console.log('parsing', tt, 'failed:', pos, 
 							//str[pos], 'instead of', tk.start);
-							return [false, pos-1];
+							return [false, start_pos];
 						} else {
 							break;
 						}
@@ -143,7 +145,7 @@
 									}
 									//return [res, pos + 1];
 								}
-								//console.log('parsing free chars', '"' + char + '"', 'as', tk);
+								//console.log('parsing free chars', '"' + char + '"', 'as', tt);
 								if((char === ' ') && !started){
 									continue;
 								}
@@ -191,47 +193,36 @@
 					//console.log('parsing > children', tt);
 					var p = pos;
 					for(var b of rest_children){
+						if(typeof b === 'string') continue;
 						var r;
 						var struct_to_parse = b instanceof Array ? b : b.type;
-						if(b.multiple){
-							while(true){
-								var rz = parse_rec(struct_to_parse, str, p);
-								r = rz[0];
-								p = rz[1];
-								if(!r){
-									if(b.optional){
-										break;
-									}
-									//console.log('Whole line failed!', tt);
-									return [false, p];
-								}	
-								//console.log('___________Parsed sresults', r, p);
-								pos = p;
-								res.children.push(r);
-								if(str[p] === undefined){
-									break;
-								}
-							}
-						} else {
+						var optional = b.optional;
+						var multiple = b.multiple;
+						if(struct_to_parse instanceof Array && typeof struct_to_parse[struct_to_parse.length - 1] === 'string'){
+							optional = true;
+							multiple = true;
+						}
+						while(true){
+							//console.log('parsing multiple', struct_to_parse, 'as', tt);
 							var rz = parse_rec(struct_to_parse, str, p);
 							r = rz[0];
 							p = rz[1];
 							if(!r){
-								var optional = b.optional;
-								if(struct_to_parse instanceof Array && typeof struct_to_parse[struct_to_parse.length - 1] === 'string'){
-									optional = true;
-								}
 								if(optional){
-									continue;
+										break;
 								}
-								//console.log('Whole line failed!', struct_to_parse, tt);
 								return [false, p];
 							}	
-							//console.log('___________Parsed', b, 'results', r, p);
 							pos = p;
 							res.children.push(r);
+							if(multiple){
+								if(str[p] === undefined){
+									break;
+								}
+							} else {
+								break;
+							}
 						}
-						//++p;
 					}
 				break;
 				case '|':

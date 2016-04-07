@@ -43,7 +43,39 @@ describe('Amadee Ozenfant', function () {
 		var parser = che_parser.get_parser(ozenfant_config);
 		var res = parser(example);
 		console.log('Got', res.semantics);
-		$(".test-parser").html(che_parser.dump(res.syntax));
+		$(".test-parser > *:nth-child(1)").html(che_parser.dump(res.syntax));
+	})
+	it('Testing Ozenfant', function(){
+		var tmpl = `
+		
+		body
+			menu
+				li
+					a(href: index.html)
+				li
+					a(href: index.html)
+				li
+					a(href: index.html)
+				li
+					a(href: index.html)
+			section
+				header.ololo
+						.user
+							.name$
+							.surname$
+			footer
+				"(c) Mikolalex"
+		`;
+		var tmpl1 = `
+		
+			form.add-comment(method: post, background-color: $color, $font-size)
+		`;
+		var tmpl = new Ozenfant(tmpl);
+		$(".test-parser > *:nth-child(2)").html(che_parser.dump(tmpl.struct.syntax));
+		var html = tmpl.toHTML();
+		$(".test-html > *:nth-child(1)").text(html);
+		console.log('tmpl', tmpl.struct.semantics);
+		console.log('html', html);
 	})
 })
 
