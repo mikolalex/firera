@@ -82,7 +82,8 @@
 				regex: /^[^\)^\,]*$/
 			},
 			quoted_str: {
-				regex: /^\"[^\\"]*\"?$/,
+				start: '"',
+				end: '"',
 				free_chars: true,
 			},
 			variable: {
@@ -119,7 +120,7 @@
 						"-1": res,
 					}
 					var che_results = parser(struct.children);
-					console.log('Results', che_results);
+					//console.log('Results', che_results);
 					var max_level = 0;
 					for(let i in che_results){
 						let child = che_results[i];

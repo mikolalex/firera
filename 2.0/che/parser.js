@@ -16,7 +16,7 @@
 	}
 	
 	var is_empty_char = (char) => {
-		return char === ' ' || char === '\n' || char === '	';
+		return char === ' ' || char === '	';
 	}
 	var head = (a) => {
 		return a[0];
