@@ -170,8 +170,15 @@ describe('Amadee Ozenfant', function () {
 		var tmpl = new Ozenfant(tmpl);
 		tmpl.render($(".test-variables").get(0), context);
 		var html = tmpl.toHTML(context);
-		console.log('Semantics', tmpl.struct.semantics[0]);
-		console.log('HTML', html);
+		//console.log('Semantics', tmpl.struct.semantics[0]);
+		//console.log('HTML', html);
+		//console.log('bindings', tmpl.bindings);
+		
+		tmpl.set('login', 'Ed1do');
+		tmpl.set('year', '2011');
+		
+		assert.equal($(".test-variables .login").html(), 'Ed1do');
+		assert.equal($(".test-variables footer").html(), 'Some info. Copyright (c) 2011');
 		
 	})
 })
