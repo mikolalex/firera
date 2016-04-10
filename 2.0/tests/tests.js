@@ -135,7 +135,8 @@ describe('Basic Firera functionality', function () {
                 },
                 'someval': [id, 'input|getval'],
                 '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
-            }
+            },
+			__packages: ['simpleHtmlTemplates', 'htmlCells']
         });
         $('.test-html input').val('ololo').keyup();
         assert.equal(app.get('someval'), 'ololo');
@@ -265,6 +266,7 @@ describe('Basic Firera functionality', function () {
                     item: 'person'
                 }
             },
+			__packages: ['simpleHtmlTemplates', 'htmlCells'],
             person: {
                 $init: {
                     name: 'John',
@@ -437,6 +439,7 @@ describe('Basic Firera functionality', function () {
             },
         }
         var app = Firera({
+			__packages: ['simpleHtmlTemplates', 'htmlCells'],
             __root: {
                 $children: {
                     todos: ['list', 'item', {
@@ -524,6 +527,7 @@ describe('Basic Firera functionality', function () {
 			$root.find('button').click();
 		}
 		var app = Firera({
+			__packages: ['simpleHtmlTemplates', 'htmlCells'],
 			__root: {
 				$init: {
 					$el: $(".test-trains")

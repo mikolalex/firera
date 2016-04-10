@@ -30,10 +30,14 @@
 
     Object.defineProperty(Object.prototype, 'map', {
         enumerable: false,
-        value: function(func){
+        value: function(func, conf){
             var res = {};
             var self = this;
+			var exceptions = conf ? conf.except : false;
             for(let key in self){
+				if(exceptions && exceptions.indexOf(key) !== -1){
+					continue;
+				}
                 res[key] = func(this[key], key);
             }
             return res;
@@ -95,12 +99,35 @@
         return cell_listening_type(str)[1];
     }
 
-    var cellMatchers = [];
-    var predicates = [];
-
+	
+	var PackagePool = function(proto = {}){
+		this.cellMatchers = Object.create(proto.cellMatchers || {});
+		this.predicates = Object.create(proto.predicates || {});
+		this.eachHashMixin = Object.create(proto.eachHashMixin || {});
+	}
+	PackagePool.prototype.load = function(pack){
+		if(typeof pack === 'string'){
+			pack = Firera.packagesAvailable[pack];
+		}
+        kcopy(pack.cellMatchers, this.cellMatchers);
+        kcopy(pack.predicates, this.predicates);
+        if(pack.eachHashMixin){
+            // update the mixin for each hash created
+            Object.assign(this.eachHashMixin, pack.eachHashMixin);
+        }
+	}
+	
+	var root_package_pool = new PackagePool();
 
     var apps = [];
-    var App = function(){};
+    var App = function(packages){
+		this.packagePool = new PackagePool(root_package_pool);
+		if(packages){
+			for(let pack of packages){
+				this.packagePool.load(pack);
+			}
+		}
+	};
     var noop = function(){
         console.log('Noop is called!');
     };
@@ -110,9 +137,8 @@
     App.prototype.set = function(cell, val, child){
         this.root.set(cell, val, child);
     }
-    App.prototype.parse_cbs = (a) => {
-        var mxn = Firera.eachHashMixin;
-        var eachMixin = Object.assign({}, mxn);
+    App.prototype.parse_cbs = function(a){
+        var eachMixin = Object.assign({}, this.packagePool.eachHashMixin);
         var res = {
             plain_base: Object.assign(eachMixin, a), 
             cell_links: {},
@@ -120,11 +146,15 @@
             hashes_to_link: {},
             no_args_cells: {},
         }
-        parse_pb(res);
+        parse_pb(res, this.packagePool);
         init_if_empty(res.plain_base, '$init', {}, '$name', null);
         //res.plain_base.$init['$name'] = null;
         res.cell_types = parse_cell_types(res.plain_base);
         return res;
+    }
+	
+    App.prototype.loadPackage = function(pack) {
+        this.packagePool.load(pack);
     }
     
     var show_performance = function(){
@@ -161,7 +191,7 @@
         if(parsed_pb.cell_types['*']){
             var omit_list = this.all_cell_children('*');
             for(let cell in this.cell_types){
-                if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell)){
+                if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell, this.app)){
                     init_if_empty(this.dynamic_cell_links, cell, {}, '__self', []);
                     this.dynamic_cell_links[cell].__self.push({
                         cell_name: '*',
@@ -266,7 +296,7 @@
 			if(unusual_cell(parent_cell)){
 				// try to init this cell in hash
 				//console.log('creating cellname on the fly', parent_cell, other_hash);
-				parse_cellname(parent_cell, other_hash, 'getter');
+				parse_cellname(parent_cell, other_hash, 'getter', this.app.packagePool);
 				other_hash.cell_types = parse_cell_types(other_hash.plain_base);
 			} else {
 				//console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
@@ -630,8 +660,8 @@
         },
     }
 
-    var get_app = function(){
-        var app = new App;
+    var get_app = function(packages){
+        var app = new App(packages);
         apps.push(app);
         return app;
     }
@@ -656,18 +686,19 @@
         }[type] + cell;
     }
 	
-	var can_be_set_to_html = (cellname) => {
+	var can_be_set_to_html = (cellname, packages) => {
 		return cellname !== '*' 
 			&& (cellname.indexOf('/') === -1)
-			&& !findMatcher(cellname);
+			&& !findMatcher(cellname, packages);
 	}
 	
 	var unusual_cell = (cellname) => {
 		return !(cellname.match(/^([a-zA-Z0-9\_]*)$/));
 	}
 	
-	var findMatcher = (cellname) => {
-        for(var m of cellMatchers){
+	var findMatcher = (cellname, packages) => {
+        for(var n in packages.cellMatchers){
+			var m = packages.cellMatchers[n];
             var matches = cellname.match(m.regexp);
             if(matches){
 				return [m, matches];
@@ -675,7 +706,7 @@
         }
 	} 
 
-    var parse_cellname = function(cellname, pool, context){
+    var parse_cellname = function(cellname, pool, context, packages){
         if(cellname.indexOf('/') !== -1){
             // it's a path - link to other hashes
             var path = cellname.split('/');
@@ -693,9 +724,10 @@
                 pool.side_effects[cellname].push(n);
             }
         }
-		var matched = findMatcher(real_cellname);
+		//console.log('looking for matches', packages);
+		var matched = findMatcher(real_cellname, packages);
 		if(matched){
-			matched[0].func(matched[1], pool, context);
+			matched[0].func(matched[1], pool, context, packages);
 		}
     }
 
@@ -707,7 +739,7 @@
         }
     })()
 
-    var parse_fexpr = function(a, pool, key){
+    var parse_fexpr = function(a, pool, key, packages){
         var funcstring;
         if(typeof a === 'string'){
             // just link to other cell
@@ -748,10 +780,10 @@
                         }
                     } else {
                         //console.log('Having predicates', predicates, funcname, pool);
-                        if(predicates[funcname]){
-                            funcstring = predicates[funcname](a.slice(1));
+                        if(packages.predicates[funcname]){
+                            funcstring = packages.predicates[funcname](a.slice(1));
                             //console.log('Using package predicate', funcstring, key);
-                            return parse_fexpr(funcstring, pool, key);
+                            return parse_fexpr(funcstring, pool, key, packages);
                         } else {
                             //console.log('Error', arguments, funcname instanceof Function);
                             throw new Error('Cannot find predicate: ' + funcname);
@@ -773,13 +805,13 @@
             var cellname = funcstring[k];
             switch(typeof(cellname)){
                 case 'string':
-                    parse_cellname(cellname, pool);
+                    parse_cellname(cellname, pool, null, packages);
                 break;
                 case 'object':
                     if(cellname instanceof Array){
                         var some_key = get_random_name();
                         //console.log('Random name is', some_key);
-                        parse_fexpr(cellname, pool, some_key);
+                        parse_fexpr(cellname, pool, some_key, packages);
                         funcstring[k] = some_key;
                     }
                 break;
@@ -788,7 +820,7 @@
                 break;
             }
         }
-        parse_cellname(key, pool, 'setter');
+        parse_cellname(key, pool, 'setter', packages);
         //console.log('Got funcstring', funcstring);
         pool.plain_base[key] = funcstring;
     }
@@ -858,7 +890,7 @@
         return cell_types;
     }
 
-    var parse_pb = function(res){
+    var parse_pb = function(res, packages){
         for(var key in res.plain_base) {
             if(key === '$init'){
                 continue;
@@ -867,13 +899,13 @@
                 var value = res.plain_base.$children;
                 if(value instanceof Array || typeof value === 'string'){
                     // its dynamic children
-                    parse_fexpr(value, res, '$all_children');
+                    parse_fexpr(value, res, '$all_children', packages);
                 } else {
                     value.each((hash_type, link_as) => {
                         if(hash_type instanceof Array){
                             key = '$child_' + link_as;
                             //console.log('Child', link_as, hash_type);
-                            parse_fexpr(hash_type, res, key);
+                            parse_fexpr(hash_type, res, key, packages);
                         } else {
                             res.hashes_to_link[link_as] = hash_type;
                         }
@@ -881,7 +913,7 @@
                 }
                 continue;
             }
-            parse_fexpr(res.plain_base[key], res, key);
+            parse_fexpr(res.plain_base[key], res, key, packages);
         }
         return res;
     }
@@ -893,35 +925,29 @@
     
     var Firera = function(config){
         var start = performance.now();
-        var app = get_app();
+        var app = get_app(config.__packages);
         // getting real pbs
-        app.cbs = config.map(app.parse_cbs);
+        app.cbs = config.map(app.parse_cbs.bind(app), {except: ['__packages']});
         // now we should instantiate each pb
         if(!app.cbs.__root){
             // no root hash
-            throw new Error('Cant find root app!', app);
+            throw new Error('Cant find root app!', packages);
         }
         //console.log(app);
         var compilation_finished = performance.now();
         app.root = new Hash(app, '__root');
         var init_finished = performance.now();
 		if(1 < 0){
-			console.info('App run', app.root
+			console.info('App run', packages.root
 				//, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 			);
 		}
         return app;
     };
     Firera.apps = apps;
-    Firera.eachHashMixin = {};
     Firera.run = Firera,
     Firera.loadPackage = function(pack) {
-        copy(pack.cellMatchers, cellMatchers);
-        kcopy(pack.predicates, predicates);
-        if(pack.eachHashMixin){
-            // update the mixin for each hash created
-            Object.assign(Firera.eachHashMixin, pack.eachHashMixin);
-        }
+        root_package_pool.load(pack);
     }
 
     window.Firera = Firera;
@@ -948,12 +974,12 @@
     }
 
     var core = {
-        cellMatchers: [
-            {
+        cellMatchers: {
+            prevValue: {
                 // ^foo -> previous values of 'foo'
                 name: 'PrevValue',
                 regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
-                func: function(matches, pool, context){
+                func: function(matches, pool, context, packages){
                     if(context == 'setter') return;
                     var cellname = matches[2];
                     parse_fexpr(['closure', function(){
@@ -965,10 +991,10 @@
                             val = a;
                             return [old_val, a];
                         }
-                    }, cellname], pool, '^' + cellname);
+                    }, cellname], pool, '^' + cellname, packages);
                 }
             }
-        ],
+		},
         predicates: {
 			asArray: function(funcstring){
 				var subscribe_to = '*/*';
@@ -1230,7 +1256,7 @@
 		}
     }
     
-    var html = {
+    var simpleHtmlTemplates = {
         eachHashMixin: {
             '$el': [get_by_selector, '$name', '../$el'],
             '$html_template': [function($el){
@@ -1259,13 +1285,15 @@
             ],
             '$htmlbindings': [search_fr_bindings, '-$el', '$template_writer'],
             '$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
-        },
-        cellMatchers: [
-            {
+        }
+	}
+	var htmlCells = {
+        cellMatchers: {
+			HTMLAspects: {
                 // ^foo -> previous values of 'foo'
                 name: 'HTMLAspects',
                 regexp: new RegExp('^(\-|\:)?([^\|]*)\\|(.*)', 'i'),
-                func: function(matches, pool, context){
+                func: function(matches, pool, context, packages){
                     var cellname = matches[0];
                     var aspect = matches[3];
                     var selector = matches[2];
@@ -1375,18 +1403,19 @@
                         break;
                     }
                     if(context === 'setter'){
-                        parse_fexpr(['is', func, [(a) => a.find(selector), '$el'], cellname], pool, get_random_name());
+                        parse_fexpr(['is', func, [(a) => a.find(selector), '$el'], cellname], pool, get_random_name(), packages);
                     } else {
-                        parse_fexpr(['async', func, '^$el'], pool, cellname);
+                        parse_fexpr(['async', func, '^$el'], pool, cellname, packages);
                     }
                 }
             }
-        ]
+		}
     }
 
 
     Firera.loadPackage(core);
-    Firera.loadPackage(html);
+	Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells};
+    //Firera.loadPackage(html);
     Firera.func_test_export = {parse_pb, parse_fexpr};
 })()
 
