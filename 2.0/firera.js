@@ -107,6 +107,10 @@
 	}
 	PackagePool.prototype.load = function(pack){
 		if(typeof pack === 'string'){
+			if(!Firera.packagesAvailable[pack]){
+				console.error('Package not found!', pack);
+				return;
+			}
 			pack = Firera.packagesAvailable[pack];
 		}
         kcopy(pack.cellMatchers, this.cellMatchers);
@@ -549,6 +553,15 @@
 			return [...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
 				return k.match(/^(\w|\d|\_|\-)*$/);
 			})
+		}
+		if(cell === '$real_values'){
+			var res = {};
+			[...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			}).each((k, v) => {
+				res[k] = this.cell_value(k);
+			})
+			return res;
 		}
 		/*if(cell === '$vals'){
 			return Object.create(this.cell_values);
@@ -1411,10 +1424,28 @@
             }
 		}
     }
+	var get_ozenfant_template = (str, $el, context) => {
+		if(!$el || !str) return;
+		var template = new Ozenfant(str);
+		template.render($el.get(0), context);
+		return template;
+	}
+	var write_changes = function(change, template){
+		if(!template) return;
+		var [k, v] = change;
+		if(unusual_cell(k)) return;
+		template.set(...change);
+	}
+	var ozenfant = {
+		eachHashMixin: {
+			'$ozenfant.template': [get_ozenfant_template, '$template', '$el', '-$real_values'],
+			'$ozenfant.writer': [write_changes, '*', '-$ozenfant.template']
+		}
+	}
 
 
     Firera.loadPackage(core);
-	Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells};
+	Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant};
     //Firera.loadPackage(html);
     Firera.func_test_export = {parse_pb, parse_fexpr};
 })()

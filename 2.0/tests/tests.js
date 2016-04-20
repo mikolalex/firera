@@ -658,5 +658,28 @@ describe('Basic Firera functionality', function () {
 		app.set('age', 36, 'people/0');
 		assert.equal(app.get('sum_age', 'people'), 220);
 	})
+	
+	it('Templates with Ozenfant', function(){
+        var app = Firera({
+            __root: {
+                $init: {
+                    $el: $(".test-ozenfant"),
+					text: 'This is Ozenfant!',
+					$template: `
+					.
+						form
+							h1
+								"Hello!"
+							.
+							.text$
+					
+					`
+                },
+            },
+			__packages: ['ozenfant', 'htmlCells']
+        });
+		app.set('text', 'ololo');
+		assert.equal($('.test-ozenfant .text').html(), 'ololo');
+	})
 })
 
