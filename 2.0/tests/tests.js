@@ -1,3 +1,7 @@
+var Firera = require('../firera');
+var che = require('../che/che');
+var Ozenfant = require('../ozenfant/ozenfant');
+
 var id = a => a;
 var always = (a) => {
 	return () => a;

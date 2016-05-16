@@ -38,18 +38,17 @@
 	</head>
 	<body>
 		<div id="mocha"></div>
-                <script src="../../require1k.min.js" data-main="./tests"></script>
+                <script src="../../require1k.min.js"></script>
 		<script src="../../jquery.js"></script>
 		<script src="assert.js"></script>
 		<script src="mocha.js"></script>
 		<script>mocha.setup('bdd')</script>
-		<script src="../../firera.js"></script>
 		<script>
-                    setTimeout(() => {
+                    R("./tests", () => {
 			mocha.checkLeaks();
 			mocha.globals(['jQuery']);
 			mocha.run();
-                    }, 100);
+                    });
 		</script>
                 <div class="tcases">
                     <div class="test-parser">

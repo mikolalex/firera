@@ -5,54 +5,50 @@
 		<title>Mocha Tests</title>
 		<link rel="stylesheet" href="mocha.css" />
                 <style>
-                    .tcases > * {
-                        padding: 20px;
-                        margin: 20px;
-                        border-radius: 10px;
-                        background-color: whitesmoke;
-                    }
-                    
-                    .td-item {
-                        border: 1px solid green;
-                        padding: 10px;
-                        margin: 10px;
-                    }
-                    
-                    .to-right {
-                        float: right;
-                    }
-                    
-                    .clearfix {
-                        clear: both;
-                    }
-                    .clearleft {
-                        clear: left;
-                    }
-					
-					.test-parser div {
-						border: 1px dotted grey;
-						padding-left: 20px;
-						padding-top: 5px;
-					}
+    .tcases > * {
+        padding: 20px;
+        margin: 20px;
+        border-radius: 10px;
+        background-color: whitesmoke;
+    }
+
+    .td-item {
+        border: 1px solid green;
+        padding: 10px;
+        margin: 10px;
+    }
+
+    .to-right {
+        float: right;
+    }
+
+    .clearfix {
+        clear: both;
+    }
+    .clearleft {
+        clear: left;
+    }
+
+    .test-parser div {
+            border: 1px dotted grey;
+            padding-left: 20px;
+            padding-top: 5px;
+    }
                 </style>
 	</head>
 	<body>
 		<div id="mocha"></div>
+                <script src="../require1k.min.js"></script>
 		<script src="../jquery.js"></script>
 		<script src="assert.js"></script>
 		<script src="mocha.js"></script>
-		<script>mocha.setup('bdd')</script>
-		<script src="../firera.js"></script>
-		<script src="../che/parser.js"></script>
-		<script src="../che/config.js"></script>
-		<script src="../che/che.js"></script>
-		<script src="../ozenfant/config.js"></script>
-		<script src="../ozenfant/ozenfant.js"></script>
-		<script src="tests.js"></script>
-		<script>
+                <script>
+                    mocha.setup('bdd');
+                    R('./tests', () => {
 			mocha.checkLeaks();
 			mocha.globals(['jQuery']);
 			mocha.run();
+                    })
 		</script>
                 <div class="tcases">
                     <div class="dummy">
