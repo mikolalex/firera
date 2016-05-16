@@ -1,3 +1,6 @@
+var che_parser = require('../parser');
+var che = require('../che');
+		
 var id = a => a;
 var always = (a) => {
 	return () => a;

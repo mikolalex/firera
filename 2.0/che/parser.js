@@ -4,7 +4,6 @@
  * and open the template in the editor.
  */
 
-(function(){
 	var get_token = (type) => {
 		return {
 			type: type,
@@ -12,9 +11,9 @@
 		}
 	}
 	var match_start = function(){
-		
+
 	}
-	
+
 	var is_empty_char = (char) => {
 		return char === ' ' || char === '	';
 	}
@@ -24,7 +23,7 @@
 	var tail = (a) => {
 		return a.slice(1);
 	}
-	
+
 	var parse_semantics = function(config, struct){
 		if(struct instanceof Array){
 			if(struct.length === 1){
@@ -63,7 +62,7 @@
 			return sem.func(struct, parse_semantics.bind(null, config));
 		}
 	};
-	
+
 	var flatten = function(struct, arr){
 		var get_children = function(struct, arr){
 			if(struct.children){
@@ -88,21 +87,19 @@
 		get_children({children: [struct]}, res);
 		return res[0];
 	}
-	
+
 	var parse = function(config, str){
 		var parse_rec = function parse_rec(tt, str, pos){
 			var original_pos = pos;
 			var showpos = function(){
 				return str.substr(0, pos) + '@@@' + str.substr(pos);
 			}
-			if(!tt) debugger;
 			//console.log('PR', pos, tt, 'from', showpos());
 			var children;
 			var res = {
 				children: [],
 			};
 			if(typeof tt === 'string'){
-				//console.log('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Trying to parse', tt);
 				res.type = tt;
 				if(!config.syntax[tt]){
 					console.error('Token not found:', tt);
@@ -268,7 +265,7 @@
 		var semantics = parse_semantics(config.semantics, struct);
 		return {syntax: struct, semantics};
 	}
-	this.che_parser = {
+	module.exports = {
 		get_parser: (config) => {
 			return parse.bind(null, config);
 		},
@@ -294,4 +291,3 @@
 			return rec(struct, 0);
 		}
 	}
-})()

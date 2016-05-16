@@ -1,3 +1,9 @@
+var $ = require('../../jquery');
+var assert = require('./assert');
+var che_parser = require("../../che/parser");
+var ozenfant_config = require('../config');
+var Ozenfant = require('../ozenfant');
+
 var id = a => a;
 var always = (a) => {
 	return () => a;
@@ -104,7 +110,7 @@ describe('Amadee Ozenfant', function () {
 		return fnc;
 	}
 	it('Testing simple example', function(){
-		
+		console.log('CONFIG', ozenfant_config);
 		var parser = che_parser.get_parser(ozenfant_config);
 		var res = parser(example);
 		//console.log('Got', res.semantics);
@@ -182,5 +188,10 @@ describe('Amadee Ozenfant', function () {
 		
 	})
 })
+
+
+mocha.checkLeaks();
+mocha.globals(['jQuery']);
+mocha.run();
 
 

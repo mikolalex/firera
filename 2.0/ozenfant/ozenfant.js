@@ -1,5 +1,5 @@
-(function(){
-	var parser = che_parser.get_parser(ozenfant_config);
+	var ozenfant_config = require('./config');
+	var parser = require('../che/parser').get_parser(ozenfant_config);
 	var Ozenfant = function(str){
 		this.struct = parser(str);
 		this.node_vars_paths = {};
@@ -7,7 +7,6 @@
 		this.nodes_vars = {};
 		get_vars({children: this.struct.semantics}, this.node_vars_paths, this.text_vars_paths, this.nodes_vars, '.');
 	};
-	
 	var get_varname = (node) => {
 		var key = node.variable.substr(1);
 		if(!key.length){
@@ -143,6 +142,5 @@
 		return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext(); 
 	}
 	
-	window.Ozenfant = Ozenfant;
-})()
+	module.exports = Ozenfant;
 
