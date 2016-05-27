@@ -61,13 +61,22 @@ var er = {
 
 describe('Che', function () {
 	//console.log = () => {};
-	var str = '> ".select_rect|click"/active_figure/, (".map|click"/points/*), (| ".save|click"/"rectangles"|1/, ".discard|click")/active_figure|false/';
+	var str = `
+			> 
+				".select_rect|click"/active_figure/, 
+				(".map|click"/points/*), 
+				(
+					| 
+					".save|click"/"rectangles"|1/, 
+					".discard|click"
+					)/active_figure|false/`;
 	it('Testing parser', function(){
 		var parser = che_parser.get_parser(che_config);
 		var res = parser(str);
 		$(".test-parser").html(che_parser.dump(res.syntax));
-		//console.log(JSON.stringify(
-		//	res.semantics));
+		console.log(JSON.stringify(
+			res.semantics));
+		
 		assert.deepEqual(
 			res.semantics, 
 			er

@@ -38,7 +38,7 @@
 	</head>
 	<body>
 		<div id="mocha"></div>
-                <script src="../../require1k.min.js" data-main="./tests"></script>
+                <script src="../../require1k.min.js"></script>
 		<script src="mocha.js"></script>
 		<script>mocha.setup('bdd')</script>
 		<!--<script src="../../jquery.js"></script>
@@ -47,7 +47,13 @@
 		<script src="../config.js"></script>
 		<script src="../ozenfant.js"></script>
 		<script src="tests.js"></script>-->
-		<script>
+                <script>
+                    mocha.setup('bdd');
+                    R('./tests', () => {
+			mocha.checkLeaks();
+			mocha.globals(['jQuery']);
+			mocha.run();
+                    })
 		</script>
                 <div class="tcases">
                     <div class="test-parser">

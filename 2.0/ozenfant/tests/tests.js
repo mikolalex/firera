@@ -177,7 +177,7 @@ describe('Amadee Ozenfant', function () {
 		tmpl.render($(".test-variables").get(0), context);
 		var html = tmpl.toHTML(context);
 		//console.log('Semantics', tmpl.struct.semantics[0]);
-		//console.log('HTML', html);
+		console.log('HTML', html);
 		//console.log('bindings', tmpl.bindings);
 		
 		tmpl.set('login', 'Ed1do');
@@ -188,10 +188,4 @@ describe('Amadee Ozenfant', function () {
 		
 	})
 })
-
-
-mocha.checkLeaks();
-mocha.globals(['jQuery']);
-mocha.run();
-
 

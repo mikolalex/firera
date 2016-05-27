@@ -13,10 +13,8 @@
 	var match_start = function(){
 
 	}
-
-	var is_empty_char = (char) => {
-		return char === ' ' || char === '	';
-	}
+	var empty_chars_default = [' ', '	', `
+`];
 	var head = (a) => {
 		return a[0];
 	}
@@ -88,13 +86,17 @@
 		return res[0];
 	}
 
-	var parse = function(config, str){
+	var parse = function(config, str, debug){
+		var is_empty_char = (char) => {
+			var empty_chars = config.empty_chars || empty_chars_default;
+			return empty_chars.indexOf(char) !== -1;
+		}
 		var parse_rec = function parse_rec(tt, str, pos){
 			var original_pos = pos;
 			var showpos = function(){
 				return str.substr(0, pos) + '@@@' + str.substr(pos);
 			}
-			//console.log('PR', pos, tt, 'from', showpos());
+			//console.log('Parsing', '___' + tt + '___', 'token from', pos, showpos());
 			var children;
 			var res = {
 				children: [],
@@ -105,6 +107,7 @@
 					console.error('Token not found:', tt);
 				}
 				var tk = config.syntax[tt];
+				//console.log('Token props:', tk);
 				if(tk.start !== undefined){
 					var started = false;
 					var start_pos = pos;
@@ -126,11 +129,14 @@
 					children = tk.children;
 				} else {
 					if(tk.free_chars){
+						//console.log('Parsing free chars');
 						var start_pos = pos;
 						if(tk.end || tk.regex){
 							var started = false;
+							var lag = 0;
 							while(++pos){
 								var char = str[pos - 1];
+								//console.log('Considering char', char);
 								if(char === undefined){
 									// we reached the end!
 									if(pos - start_pos > 1){
@@ -143,15 +149,17 @@
 									//return [res, pos + 1];
 								}
 								//console.log('parsing free chars', '"' + char + '"', 'as', tt);
-								if((char === ' ') && !started){
+								if(is_empty_char(char) && !started){
+									++lag;
 									continue;
 								}
 								if(tk.end && char === tk.end){
-									res.chars = str.substr(start_pos, pos - start_pos - 1);
+									res.chars = str.substr(start_pos, pos - start_pos - 1 + lag);
 									return [res, pos];
 								} else {
 									if(tk.regex){
-										var string_to_compare = str.substr(start_pos, pos - start_pos);
+										var string_to_compare = str.substr(start_pos + lag, pos - start_pos - lag);
+										//console.log('matching regex', tk.regex, 'against', string_to_compare);
 										var a1 = !!char.match(tk.regex);
 										var a2 = !!string_to_compare.match(tk.regex);
 										//if(a1 !== a2){
@@ -159,11 +167,12 @@
 										//}
 										if(!char || !(string_to_compare.match(tk.regex))){
 											if(started){
-												res.chars = str.substr(start_pos, pos - start_pos - 1);
+												res.chars = str.substr(start_pos + lag, pos - start_pos - 1 - lag);
+												//console.log('______________ success', res.chars);
 												return [res, pos - 1];
 											} else {
 												//console.log('DED END!', char, tt);
-												return [false, pos - 1];
+												return [false, pos - 1 - lag];
 											}
 										}
 									}
@@ -250,11 +259,16 @@
 				break;
 			}
 			if(tk && tk.end){
-				if(str[pos] === tk.end){
-					//console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^', tt, 'finished!')
-					++pos;
-				} else {
-					//console.log('_+_+_+_+_+_+ FAIL FAIL FAIL! look for end of', tt, pos, str[pos]);
+				var pp = pos;
+				while(++pp){
+					var char = str[pp - 1];
+					if(is_empty_char(char)){
+						continue;
+					}
+					if(char === tk.end){
+						pos = pp;
+					}
+					break;
 				}
 			}
 			return [res, pos];

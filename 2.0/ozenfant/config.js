@@ -1,5 +1,6 @@
 var fields = ['classnames', 'tagname', 'str', 'quoted_str', 'variable'];
 module.exports = {
+	empty_chars: [' '],
 	syntax: {
 		root_token: {
 			children: [
