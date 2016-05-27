@@ -76,8 +76,16 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		}
 		switch(child.type){
 			case 'cell':
-				//console.log('CHCKING CELL', child.name, cellname);
 				if(child.name === cellname){
+					var cond = struct.children[i].cond;
+					if(cond){
+						--cond; // because it's 1-based
+						if(!this.callbacks[cond]){
+							console.error('No callback for cond:', cond);
+						}
+						var lakmus = this.callbacks[cond](this.state, value);
+						if(!lakmus) return no_luck;
+					} 
 					var pipe = struct.children[i].pipe;
 					if(pipe){
 						--pipe; // because it's 1-based

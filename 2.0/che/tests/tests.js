@@ -61,18 +61,9 @@ var er = {
 
 describe('Che', function () {
 	//console.log = () => {};
-	var str = `
-			> 
-				".select_rect|click"/active_figure/, 
-				(".map|click"/points/*), 
-				(
-					| 
-					".save|click"/"rectangles"|1/, 
-					".discard|click"
-					)/active_figure|false/`;
 	it('Testing parser', function(){
 		var parser = che_parser.get_parser(che_config);
-		var res = parser(str);
+		var res = parser(str11);
 		$(".test-parser").html(che_parser.dump(res.syntax));
 		console.log(JSON.stringify(
 			res.semantics));
@@ -204,4 +195,36 @@ describe('Che', function () {
 		assert.deepEqual(obj.state, {a: 1, b: [3, 3, 3, 3], c: 3});
 		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
+	it('Testing conditional events', function(){
+		var output = {};
+		var obj = che.create('> a, b?1|2, c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			return val > 10;
+		}, function(state, val){
+			state.b = val;
+			return state;
+		});
+		obj.drip("a", 1);
+		obj.drip("b", 3);
+		obj.drip("c", 3);
+		obj.drip("b", 13);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("c", 3);
+		//console.log(JSON.stringify(obj.state));
+		assert.deepEqual(obj.state, {a: 1, b: 13, c: 3});
+	})
 })
+	var str11 = `
+			> 
+				".select_rect|click"/active_figure/, 
+				(".map|click"/points/*), 
+				(
+					| 
+					".save|click"/"rectangles"|1/, 
+					".discard|click"
+					)/active_figure|false/`;

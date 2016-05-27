@@ -57,6 +57,10 @@ window.che_config = {
 					},
 				],
 				{
+					type: 'cond',
+					optional: true,
+				}, 
+				{
 					type: 'pipe',
 					optional: true,
 				},
@@ -116,6 +120,11 @@ window.che_config = {
 			free_chars: true,
 			regex: /^([a-zA-Z0-9_\-])+$/
 		},
+		cond: {
+			start: '?',
+			free_chars: true,
+			regex: /^([a-zA-Z0-9_\-])+$/
+		},
 		comma: {
 			free_chars: true,
 			regex: /^[\,]+$/,
@@ -157,6 +166,9 @@ window.che_config = {
 			type: 'chars',
 		},
 		quantifier_num: {
+			type: 'chars',
+		},
+		cond: {
 			type: 'chars',
 		},
 		pipe: {
@@ -259,6 +271,9 @@ window.che_config = {
 					}
 					if(child.type === 'pipe'){
 						self.pipe = parser(child).chars;
+					}
+					if(child.type === 'cond'){
+						self.cond = parser(child).chars;
 					}
 				}
 				return self;
