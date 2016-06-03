@@ -1023,14 +1023,19 @@ var core = {
 							for(let i in values){
 								var [type, index, _, val] = values[i];
 								if(type === 'add'){
-									arr[index] = val;
+									var added_obj = {};
+									for(let fieldname of fields){
+										fieldname = fieldname.replace("*/", "");
+										added_obj[fieldname] = val[fieldname];
+									}
+									arr[index] = added_obj;
 								} else if(type === 'remove'){
 									arr.splice(index, 1);
 								}
 							}
 						} else {
 							if(values){
-								var [fieldname, val] = values;
+								let [fieldname, val] = values;
 								fieldname = fieldname.replace("*/", "");
 								if(val){
 									arr[val[0]][fieldname] = val[1];

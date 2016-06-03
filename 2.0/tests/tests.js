@@ -576,19 +576,26 @@ describe('Basic Firera functionality', function () {
 				$children: {
 					people: ['list', 'human', {
 						$datasource: '../people',
-						people: ['asArray', ['name', 'age']]
+						people_ages: ['asArray', ['name', 'age']]
 					}]
 				},
-				people: ['just', [{
-					name: 'Ivan',
-					age: 35
-				}, {
-					name: 'Pylyp',
-					age: 93,
-				}, {
-					name: 'Yavdokha',
-					age: 91,
-				}]],
+				$init: {
+					people: [
+						{
+							name: 'Ivan',
+							age: 35,
+							gender: 'male'
+						}, {
+							name: 'Pylyp',
+							age: 93,
+							gender: 'male'
+						}, {
+							name: 'Yavdokha',
+							age: 91,
+							gender: 'female'
+						}
+					]
+				},
 			},
 			human: {
 				
@@ -608,7 +615,7 @@ describe('Basic Firera functionality', function () {
 		}]);
 	
 		
-		assert.deepEqual(app.get('people', 'people'), [{
+		assert.deepEqual(app.get('people_ages', 'people'), [{
 			name: 'Ivan',
 			age: 36
 		}, {
@@ -684,6 +691,7 @@ describe('Basic Firera functionality', function () {
         });
 		app.set('text', 'ololo');
 		assert.equal($('.test-ozenfant .text').html(), 'ololo');
+		console.log(app);
 	})
 })
 
