@@ -412,7 +412,9 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
 	}
 	// getting arguments
-	var args = this.cell_parents(real_cell_name).map((parent_cell_name) => this.cell_value(get_real_cell_name(parent_cell_name)));
+	var args = this.cell_parents(real_cell_name).map((parent_cell_name) => {
+		return this.cell_value(get_real_cell_name(parent_cell_name))
+	});
 	if(funnel){
 		if(!parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
@@ -557,7 +559,8 @@ Hash.prototype.cell_value = function(cell){
 	}
 	if(cell === '$real_values'){
 		var res = {};
-		[...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
+		[...(new Set(Object.keys(this.plain_base)
+					.concat(Object.keys(this.init_values))))].filter((k) => {
 			return k.match(/^(\w|\d|\_|\-)*$/);
 		}).each((k, v) => {
 			res[k] = this.cell_value(k);
@@ -761,6 +764,7 @@ var parse_fexpr = function(a, pool, key, packages){
 	}
 	if(a instanceof Object){
 		if(a instanceof Array){
+			a = a.slice();
 			var funcname = a[0];
 			var cc = split_camelcase(funcname);
 			if(funcname instanceof Function){
@@ -1008,6 +1012,31 @@ var core = {
 		}
 	},
 	predicates: {
+		firstDefined: function(funcstring){
+			return [function(){
+					for(var i in arguments){
+						if(arguments[i] !== undefined) return arguments[i];
+					}
+			}, ...funcstring]
+		},
+		firstTrue: function(funcstring){
+			return [function(){
+					//console.log('Looking for firstTrue', arguments);
+					for(var i in arguments){
+						if(arguments[i]) return arguments[i];
+					}
+			}, ...funcstring]
+		},
+		firstTrueCb: function(funcstring){
+			var cb = funcstring[0];
+			var fncstr = funcstring.slice(1);
+			return [function(){
+					//console.log('Looking for firstTrue', arguments);
+					for(var i in arguments){
+						if(cb(arguments[i])) return arguments[i];
+					}
+			}, ...fncstr]
+		},
 		asArray: function(funcstring){
 			var subscribe_to = '*/*';
 			if(funcstring[0] instanceof Array){
@@ -1125,6 +1154,10 @@ var core = {
 			//var deltas = restruct_list_sources(funcstring[0]);
 			var mix_to_list = funcstring[0] || {};
 			//console.log('Deltas', deltas);
+			if(typeof mix_to_list === 'string'){
+				// it's datasource
+				mix_to_list = {$datasource: mix_to_list};
+			}
 			if(!mix_to_list.$add && !mix_to_list.$datasource){
 				console.warn('No item source provided for list', mix_to_list);
 			}
@@ -1205,7 +1238,7 @@ var core = {
 							break
 						}
 					}
-				}, '$arr_data.changes', '-$el'],
+				}, '$arr_data.changes', '$real_el'],
 				$children: '$arr_data.changes'
 			};
 			return [always([Object.assign(mix_to_list, all_lists_mixin)])];
@@ -1239,12 +1272,13 @@ var core = {
 
 
 var get_by_selector = function(name, $el){
-	//console.info("GBS", arguments);
 	if(name === null) return null;
 	if(name === '__root') return $('body');
-	return  $el 
+	var res=$el 
 			? $el.find('[data-fr=' + name + ']')
 			: null;
+	//console.info("GBS", res ? res.length : null, $el ? $el.html() : '');
+	return res;''
 }
 var search_fr_bindings = function($el){
 	var res = {};
@@ -1275,7 +1309,8 @@ var write_changes = function(){
 
 var simpleHtmlTemplates = {
 	eachHashMixin: {
-		'$el': [get_by_selector, '$name', '../$el'],
+		'$el': [get_by_selector, '$name', '../$real_el'],
+		'$real_el': ['firstDefined', '$el'],
 		'$html_template': [function($el){
 			var str = '';
 			if($el){
@@ -1283,7 +1318,7 @@ var simpleHtmlTemplates = {
 				if(str) str = str.trim();
 			}
 			return str;
-		}, '$el'],
+		}, '$real_el'],
 		'$template_writer': [
 			function(real_templ, $html_template, keys, $el){
 				//console.log('Writing template', arguments);
@@ -1298,9 +1333,9 @@ var simpleHtmlTemplates = {
 					//console.info('generating auto template', auto_template);
 					$el.html(auto_template);
 				}
-			}, '$template', '$html_template', '-$real_keys', '-$el'
+			}, '$template', '$html_template', '-$real_keys', '-$real_el'
 		],
-		'$htmlbindings': [search_fr_bindings, '-$el', '$template_writer'],
+		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 }
@@ -1420,19 +1455,22 @@ var htmlCells = {
 					break;
 				}
 				if(context === 'setter'){
-					parse_fexpr(['is', func, [(a) => a.find(selector), '$el'], cellname], pool, get_random_name(), packages);
+					parse_fexpr(['is', func, [(a) => a.find(selector), '$real_el'], cellname], pool, get_random_name(), packages);
 				} else {
-					parse_fexpr(['async', func, '^$el'], pool, cellname, packages);
+					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
 				}
 			}
 		}
 	}
 }
-var get_ozenfant_template = (str, $el, context) => {
+var get_ozenfant_template = (cb, str, $el, context) => {
 	if(!$el || !str) return;
 	var template = new Ozenfant(str);
 	template.render($el.get(0), context);
-	return template;
+	cb('template', template);
+	cb('bindings_search', (str) => {
+		return template.bindings[str];
+	})
 }
 var write_changes = function(change, template){
 	if(!template) return;
@@ -1442,8 +1480,17 @@ var write_changes = function(change, template){
 }
 var ozenfant = {
 	eachHashMixin: {
-		'$ozenfant.template': [get_ozenfant_template, '$template', '$el', '-$real_values'],
-		'$ozenfant.writer': [write_changes, '*', '-$ozenfant.template']
+		'$ozenfant_el': [(searcher, name) => {
+				var res;
+				if(searcher instanceof Function){
+					res = searcher(name);
+				}
+				return res ? $(res) : false;
+		}, '../$ozenfant.bindings_search', '$name'],
+		'$list_el': [get_by_selector, '$name', '../$real_el', '../$list_template_writer'],
+		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
+		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
+		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template']
 	}
 }
 

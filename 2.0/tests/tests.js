@@ -670,7 +670,7 @@ describe('Basic Firera functionality', function () {
 		assert.equal(app.get('sum_age', 'people'), 220);
 	})
 	
-	it('Templates with Ozenfant', function(){
+	it('Simple templates with Ozenfant', function(){
         var app = Firera({
             __root: {
                 $init: {
@@ -692,6 +692,44 @@ describe('Basic Firera functionality', function () {
 		app.set('text', 'ololo');
 		assert.equal($('.test-ozenfant .text').html(), 'ololo');
 		console.log(app);
+	})
+	it('Nested templates with Ozenfant', function(){
+        var app = Firera({
+            __root: {
+                $init: {
+                    $el: $(".test-ozenfant-nested"),
+					people_arr: [{name: 'John'}, {name: 'Ivan'}, {name: 'Semen'}],
+					$template: `
+					.
+						h1
+							"People"
+						ul.people$
+					
+					`
+                },
+				$children: {
+					people: ['list', 'human', {$datasource: '../people_arr'}],
+				}
+            },
+			human: {
+				$init: {
+					$template: `
+				.
+					"Hello, "
+					span$name
+					"!"
+					`
+				}
+			},
+			__packages: ['ozenfant', 'htmlCells']
+        });
+		app.set('text', 'ololo');
+		var res = `Hello,  
+				
+					Ivan
+				 
+				!`;
+		assert.equal($.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()),  res);
 	})
 })
 
