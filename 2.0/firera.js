@@ -132,6 +132,8 @@ var App = function(packages){
 			this.packagePool.load(pack);
 		}
 	}
+	this.hashes = {};
+	this.hashIds = 0;
 };
 var noop = function(){
 	console.log('Noop is called!');
@@ -162,6 +164,17 @@ App.prototype.loadPackage = function(pack) {
 	this.packagePool.load(pack);
 }
 
+App.prototype.setHash = function(id, hash){
+	this.hashes[id] = hash;
+}
+
+App.prototype.createHash = function(type, link_as, free_vals) {
+	var child = new Hash(this, type, link_as, Object.assign({
+				$name: link_as
+			}, free_vals), true);
+	return child.id;
+}
+
 var show_performance = function(){
 	var res = [];
 	for(var i = 1; i < arguments.length; ++i){
@@ -171,7 +184,11 @@ var show_performance = function(){
 	return res.join(', ');
 }
 
-var Hash = function(app, parsed_pb_name, name, free_vals, init_later){
+var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
+	var self = this;
+	var id = ++app.hashIds;
+	app.setHash(id, this);
+	this.id = id;
 	////////////////////////////////////////////////////////////////////////
 	var t0 = performance.now();
 	////////////////////////////////////////////////////////////////////////
@@ -191,20 +208,24 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later){
 	this.linked_hashes_provider = {
 		pool: {},
 		create: function(self, type, link_as, free_vals){
-			var child = new Hash(self.app, type, link_as, Object.assign({
+			var child = self.app.createHash(type, link_as, free_vals);
+					
+			/*new Hash(self.app, type, link_as, Object.assign({
 				$name: link_as
-			}, free_vals), true);
+			}, free_vals), true);*/
 			this.set(link_as, child);
-			this.get(link_as).linked_hashes_provider.set('..', self);
+			this.get(link_as).linked_hashes_provider.set('..', self.id);
 		},
-		set: function(name, hsh){
-			this.pool[name] = hsh;
+		set: function(name, hash_id){
+			this.pool[name] = hash_id;
 		},
 		isLinked: function(name){
 			return !!this.get(name);
 		},
 		get: function(name){
-			return this.pool[name];
+			var id = this.pool[name];
+			
+			return id ? app.hashes[id] : false;
 		},
 		remove: function(name){
 			delete this.pool[name];

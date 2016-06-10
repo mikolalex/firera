@@ -167,6 +167,7 @@ describe('Basic Firera functionality', function () {
             }
         });
         //$('.test-html input').val('ololo').keyup();
+		console.log('=============================== APP', app);
         assert.equal(app.get('someval'), str);
         app.set('completed', true, 'todo');
         assert.equal(app.get('someval'), true);
