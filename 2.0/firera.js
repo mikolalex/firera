@@ -188,6 +188,68 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later){
 	this.side_effects = parsed_pb.side_effects;
 	this.hashes_to_link = parsed_pb.hashes_to_link;
 	this.plain_base = parsed_pb.plain_base;
+	this.linked_hashes_provider = {
+		pool: {},
+		create: function(self, type, link_as, free_vals){
+			var child = new Hash(self.app, type, link_as, Object.assign({
+				$name: link_as
+			}, free_vals), true);
+			this.set(link_as, child);
+			this.get(link_as).linked_hashes_provider.set('..', self);
+		},
+		set: function(name, hsh){
+			this.pool[name] = hsh;
+		},
+		isLinked: function(name){
+			return !!this.get(name);
+		},
+		get: function(name){
+			return this.pool[name];
+		},
+		remove: function(name){
+			delete this.pool[name];
+		},
+		setCellValues: function(childName, values){
+			this.get(childName).set(values);
+		},
+		linkChildCells: function(his_cell, my_cell, cellname){
+			this.get(cellname).linkTwoCells(his_cell, my_cell, '..', cellname, 'val')
+		},
+		initLinkChildCells: function(name){
+			this.get(name).linkCells('..', name);
+		},
+		initChild: function(name){
+			this.get(name).init();
+		},
+		unlinkChildCells: function(name){
+			this.get(name).unlinkCells('..');
+			this.remove(name);
+		},
+		getLinkedHashCellValue: function(hashname, cellname){
+			return this.get(hashname).cell_value(cellname);
+		},
+		linkTwoCells: function(name, self, parent_cell, child_cell, hash_name, my_name_for_that_hash, type){
+			var other_hash = this.get(name);
+			var pool = other_hash.dynamic_cell_links;
+			if(!other_hash.cellExists(parent_cell)){
+				if(unusual_cell(parent_cell)){
+					// try to init this cell in hash
+					//console.log('creating cellname on the fly', parent_cell, other_hash);
+					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool);
+					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
+				} else {
+					//console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
+				}
+			}
+			init_if_empty(pool, parent_cell, {});
+			init_if_empty(pool[parent_cell], my_name_for_that_hash, []);
+			pool[parent_cell][my_name_for_that_hash].push({
+				cell_name: child_cell,
+				type: type
+			});
+			//this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
+		}
+	};
 	this.linked_hashes = {};
 	// for "closure" cell type
 	this.cell_funcs = {};
@@ -238,7 +300,8 @@ Hash.prototype.init = function(){
 	this.set(this.init_values);
 }
 Hash.prototype.updateChildFreeValues = function(childName, values){
-	this.linked_hashes[childName].set(values);
+	this.linked_hashes_provider.setCellValues(childName, values);
+	//this.linked_hashes[childName].set(values);
 }
 
 Hash.prototype.linkHash = function(cellname, val){
@@ -264,38 +327,45 @@ Hash.prototype.linkHash = function(cellname, val){
 	if(link2){
 		//console.info('Linking by link2 hash', link2);
 		link2.each((his_cell, my_cell) => {
-			this.linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
+			this.linked_hashes_provider.linkChildCells(his_cell, my_cell, cellname)
+			//linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
 		})
 	}
 }
 
 Hash.prototype.linkChild = function(type, link_as, free_vals){
-	if(this.linked_hashes[link_as]){
+	if(this.linked_hashes_provider.isLinked(link_as)){
 		this.unlinkChild(link_as);
 	}
-	var child = new Hash(this.app, type, link_as, Object.assign({
+	/*var child = new Hash(this.app, type, link_as, Object.assign({
 		$name: link_as
 	}, free_vals), true);
 	this.linked_hashes[link_as] = child;
-	child.linked_hashes['..'] = this;
+	child.linked_hashes['..'] = this;*/
+	this.linked_hashes_provider.create(this, type, link_as, free_vals);
+	
 	this.linkCells(link_as, '..');
-	child.linkCells('..', link_as);
-	child.init();
+	this.linked_hashes_provider.initLinkChildCells(link_as);
+	//child.linkCells('..', link_as);
+	this.linked_hashes_provider.initChild(link_as);
+	//child.init();
 	//console.info('Successfully linked ', type, 'as', link_as);
 }
 Hash.prototype.cellExists = function(cellname){
 	return this.cell_types[cellname] !== undefined;
 }
 Hash.prototype.unlinkChild = function(link_as){
-	var child = this.linked_hashes[link_as];
 	this.unlinkCells(link_as);
+	this.linked_hashes_provider.unlinkChildCells(link_as);
+	/*var child = this.linked_hashes[link_as];
 	child.unlinkCells('..');
-	delete this.linked_hashes[link_as];
+	delete this.linked_hashes[link_as];*/
 	//console.info('Successfully linked ', type, 'as', link_as);
 }
 
 Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash, type = 'val'){
-	var other_hash = this.linked_hashes[hash_name];
+	this.linked_hashes_provider.linkTwoCells(hash_name, this, parent_cell, child_cell, hash_name, my_name_for_that_hash, type);
+	/*var other_hash = this.linked_hashes[hash_name];
 	var pool = other_hash.dynamic_cell_links;
 	if(!other_hash.cellExists(parent_cell)){
 		if(unusual_cell(parent_cell)){
@@ -312,11 +382,11 @@ Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_na
 	pool[parent_cell][my_name_for_that_hash].push({
 		cell_name: child_cell,
 		type: type
-	});
-	this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
+	});*/
+	this.set(child_cell, this.linked_hashes_provider.getLinkedHashCellValue(hash_name, parent_cell));
 }
 Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash){
-	var other_hash = this.linked_hashes[hash_name];
+	var other_hash = this.linked_hashes_provider.get(hash_name);
 	var pool = other_hash.dynamic_cell_links;
 	pool[parent_cell][my_name_for_that_hash].forEach((lnk, key) => {
 		//console.log('Searching links...', lnk, child_cell);
@@ -457,7 +527,7 @@ Hash.prototype.get = function(cell, child){
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_hashes[childname];
+		var child = this.linked_hashes_provider.get(childname);
 		if(!child){
 			console.warn('Cannot set - no such path', path);
 			return;
@@ -475,7 +545,7 @@ Hash.prototype.set = function(cell, val, child){
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_hashes[childname];
+		var child = this.linked_hashes_provider.get(childname);
 		if(!child){
 			console.warn('Cannot set - no such path', path);
 			return;
@@ -585,7 +655,8 @@ Hash.prototype.set_cell_value = function(cell, val){
 	if(this.dynamic_cell_links[cell]){
 		this.dynamic_cell_links[cell].each((links, hash_name) => {
 			var own = hash_name === '__self';
-			var hsh = own ? this : this.linked_hashes[hash_name];
+			var hsh = own ? this : this.linked_hashes_provider.get(hash_name);
+			//console.log('Updating dynamic cell links for cell', cell, links, hash_name, this.linked_hashes_provider, hsh);
 			if(hsh){
 				for(var link of links){
 					//console.log('Writing dynamic cell link ' + link.cell_name, link.type === 'val', this.name);
