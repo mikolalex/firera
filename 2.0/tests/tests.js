@@ -738,6 +738,10 @@ describe('Basic Firera functionality', function () {
 							h1
 								"Trains"
 							.trains$
+							.
+								.
+									"Edit train"
+								.edit-train-form$edit_train_form
 					`,
 					$el: $(".test-trains2"),
 					trains_arr: [
@@ -756,11 +760,27 @@ describe('Basic Firera functionality', function () {
 					],
 				},
 				$children: {
-					trains: ['list', 'train', '../trains_arr']
+					trains: ['list', 'train', '../trains_arr'],
+					edit_train_form: {
+						type: 'edit_train_form',
+						add: 'edit_train',
+						remove: 'edit_train_form/close'
+					}
 				},
 				edit_train: [function([num, data]){
 						console.log('Click!', num, data);
 				}, 'trains/*/edit_train']
+			},
+			edit_train_form: {
+				$init: {
+					$template: `
+					.
+						"editing train..."
+						a.close(href: ololo)
+							"Close"
+					`
+				},
+				close: '.close|click'
 			},
 			train: {
 				$init: {

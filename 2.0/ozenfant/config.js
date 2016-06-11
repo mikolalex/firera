@@ -87,7 +87,7 @@ module.exports = {
 			free_chars: true,
 		},
 		variable: {
-			regex: /^\$[a-zA-Z0-9]*$/,
+			regex: /^\$[a-zA-Z0-9\-\_]*$/,
 			free_chars: true,
 		},
 		indent: {

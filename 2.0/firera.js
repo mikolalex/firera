@@ -326,7 +326,7 @@ Hash.prototype.updateChildFreeValues = function(childName, values){
 }
 
 Hash.prototype.linkHash = function(cellname, val){
-	//console.log('RUNNING SIDE EFFECT', this, val);         
+	//console.log('RUNNING SIDE EFFECT', this, val); 
 	var hash, link1, link2, free_vals;
 	cellname = cellname.replace("$child_", "");
 	if(val instanceof Array){
@@ -337,6 +337,10 @@ Hash.prototype.linkHash = function(cellname, val){
 		free_vals = val[3] || {};
 	} else {
 		hash = val;
+	}
+	if(!hash){
+		console.warn('Trying to link undefined hash:', hash);
+		return;
 	}
 	this.linkChild(hash, cellname, free_vals);
 	if(link1){
@@ -691,7 +695,23 @@ var system_predicates = new Set([
 ]);
 var side_effects = {
 	'child': {
-		func: function(cellname, val){
+		func: function(cellname, val, type){
+			//console.log('_____________________________ Linking child as', cellname, val);
+			if(val instanceof Object && !(val instanceof Array)){
+				// it's just Object
+				var link_as = cellname.replace('$child_', '');
+				switch(val.action){
+					case 'add':
+						this.linkHash(link_as, val.type);
+					break;
+					case 'remove':
+						console.log('Unlink child');
+						this.unlinkChild(link_as);
+					break;
+					
+				}
+				return;
+			}
 			this.linkHash(cellname, val);
 		},
 		regexp: /^\$child\_/,
@@ -1001,10 +1021,28 @@ var parse_pb = function(res, packages){
 				value.each((hash_type, link_as) => {
 					if(hash_type instanceof Array){
 						key = '$child_' + link_as;
-						//console.log('Child', link_as, hash_type);
+						//console.log('Child', hash_type, link_as, key);
 						parse_fexpr(hash_type, res, key, packages);
 					} else {
-						res.hashes_to_link[link_as] = hash_type;
+						if(typeof hash_type === 'string'){
+							res.hashes_to_link[link_as] = hash_type;
+						} else if(!hash_type.add && !hash_type.remove){
+							res.hashes_to_link[link_as] = hash_type.type;
+						} else {
+							// console.log('Adding cells for managing dynamic hash', hash_type);
+							var obj = {};
+							if(hash_type.add){
+								obj[hash_type.add] = function(){
+									return {type: hash_type.type, action: 'add'};
+								}
+							}
+							if(hash_type.remove){
+								obj[hash_type.remove] = function(){
+									return {action: 'remove'};
+								}
+							}
+							parse_fexpr(obj, res, '$child_' + link_as, packages);
+						}
 					}
 				})
 			}
@@ -1549,6 +1587,7 @@ var htmlCells = {
 	}
 }
 var get_ozenfant_template = (cb, str, $el, context) => {
+	//console.log('Creating Ozenfant template', str);
 	if(!$el || !str) return;
 	var template = new Ozenfant(str);
 	template.render($el.get(0), context);
@@ -1570,6 +1609,7 @@ var ozenfant = {
 				if(searcher instanceof Function){
 					res = searcher(name);
 				}
+				//console.log('counting ozenfant el', searcher, name, res);
 				return res ? $(res) : false;
 		}, '../$ozenfant.bindings_search', '$name'],
 		'$list_el': [get_by_selector, '$name', '../$real_el', '../$list_template_writer'],
