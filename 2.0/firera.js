@@ -228,7 +228,10 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 			return id ? app.hashes[id] : false;
 		},
 		remove: function(name){
+			var id = this.pool[name];
 			delete this.pool[name];
+			self.app.hashes[id].set('$remove', true);
+			delete self.app.hashes[id];
 		},
 		setCellValues: function(childName, values){
 			this.get(childName).set(values);
@@ -1615,7 +1618,10 @@ var ozenfant = {
 		'$list_el': [get_by_selector, '$name', '../$real_el', '../$list_template_writer'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
-		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template']
+		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
+		'$ozenfant_remove': [function(_, $el){
+			$el.html('');
+		}, '$remove', '-$real_el']
 	}
 }
 

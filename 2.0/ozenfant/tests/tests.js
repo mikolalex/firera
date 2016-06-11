@@ -122,7 +122,7 @@ describe('Amadee Ozenfant', function () {
 		body
 			menu
 				li
-					a(href: index.html)
+					a(href: index.html, target: _blank)
 				li
 					a(href: index.html)
 				li
@@ -144,8 +144,6 @@ describe('Amadee Ozenfant', function () {
 		//$(".test-parser > *:nth-child(2)").html(che_parser.dump(tmpl.struct.syntax));
 		var html = tmpl.toHTML();
 		//$(".test-html > *:nth-child(1)").text(html);
-		//console.log('Semantics', tmpl.struct.semantics[0]);
-		//console.log('HTML', html);
 		var struct = do_in_tree(tmpl.struct.semantics[0], (a) => {
 			return {tag: a.tagname};
 		})
