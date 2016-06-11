@@ -167,7 +167,6 @@ describe('Basic Firera functionality', function () {
             }
         });
         //$('.test-html input').val('ololo').keyup();
-		console.log('=============================== APP', app);
         assert.equal(app.get('someval'), str);
         app.set('completed', true, 'todo');
         assert.equal(app.get('someval'), true);
@@ -692,7 +691,6 @@ describe('Basic Firera functionality', function () {
         });
 		app.set('text', 'ololo');
 		assert.equal($('.test-ozenfant .text').html(), 'ololo');
-		console.log(app);
 	})
 	it('Nested templates with Ozenfant', function(){
         var app = Firera({
@@ -731,6 +729,56 @@ describe('Basic Firera functionality', function () {
 				 
 				!`;
 		assert.equal($.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()),  res);
+	})
+	it('Getting data from arrays by index', function(){
+		var app = Firera({
+			__root: {
+				$init: {
+					$template: `
+							h1
+								"Trains"
+							.trains$
+					`,
+					$el: $(".test-trains2"),
+					trains_arr: [
+						{
+							number: 117,
+							id: 1,
+						},
+						{
+							number: 148,
+							id: 2,
+						},
+						{
+							number: 49,
+							id: 3,
+						},
+					],
+				},
+				$children: {
+					trains: ['list', 'train', '../trains_arr']
+				},
+				edit_train: [function([num, data]){
+						console.log('Click!', num, data);
+				}, 'trains/*/edit_train']
+			},
+			train: {
+				$init: {
+					$template: `
+						li
+							.
+								"Train #"
+								span.number$
+							.
+								a.edit(href: #)
+									"Edit"
+						`,
+				},
+				edit_train: ['second', '.edit|click', '-$real_values']
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		console.log('app', app);
 	})
 })
 

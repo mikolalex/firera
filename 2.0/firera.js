@@ -259,7 +259,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool);
 					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
 				} else {
-					//console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
+					console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
 				}
 			}
 			init_if_empty(pool, parent_cell, {});
@@ -386,25 +386,10 @@ Hash.prototype.unlinkChild = function(link_as){
 
 Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash, type = 'val'){
 	this.linked_hashes_provider.linkTwoCells(hash_name, this, parent_cell, child_cell, hash_name, my_name_for_that_hash, type);
-	/*var other_hash = this.linked_hashes[hash_name];
-	var pool = other_hash.dynamic_cell_links;
-	if(!other_hash.cellExists(parent_cell)){
-		if(unusual_cell(parent_cell)){
-			// try to init this cell in hash
-			//console.log('creating cellname on the fly', parent_cell, other_hash);
-			parse_cellname(parent_cell, other_hash, 'getter', this.app.packagePool);
-			other_hash.cell_types = parse_cell_types(other_hash.plain_base);
-		} else {
-			//console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
-		}
+	var other_val = this.linked_hashes_provider.getLinkedHashCellValue(hash_name, parent_cell);
+	if(other_val !== undefined){
+		this.set(child_cell, other_val);
 	}
-	init_if_empty(pool, parent_cell, {});
-	init_if_empty(pool[parent_cell], my_name_for_that_hash, []);
-	pool[parent_cell][my_name_for_that_hash].push({
-		cell_name: child_cell,
-		type: type
-	});*/
-	this.set(child_cell, this.linked_hashes_provider.getLinkedHashCellValue(hash_name, parent_cell));
 }
 Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash){
 	var other_hash = this.linked_hashes_provider.get(hash_name);
@@ -428,7 +413,9 @@ Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
 	}
 	if(links = this.cell_links['*']){
 		links.each((parent_cell, child_cell) => { 
-			this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash, 'val_and_hashname'); 
+			if(my_name_for_that_hash === '..'){
+				this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash, 'val_and_hashname');
+			} 
 		});
 	}
 }
@@ -1104,6 +1091,12 @@ var core = {
 		}
 	},
 	predicates: {
+		first: function(funcstring){
+			return [(a) => a, ...funcstring]
+		},
+		second: function(funcstring){
+			return [(a, b) => b, ...funcstring]
+		},
 		firstDefined: function(funcstring){
 			return [function(){
 					for(var i in arguments){

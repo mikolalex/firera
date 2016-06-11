@@ -82,6 +82,12 @@
 				if(node.classnames && node.classnames.length > 1){
 					res2.push(' class="' + node.classnames.substr(1).replace(/\./g, " ") + '"');
 				}
+				if(node.assignments){
+					for(let ass of node.assignments){
+						var assign = ass.split(':');
+						res2.push(' ' + assign[0].trim() + '="' + assign[1].trim() + '"');
+					}
+				}
 				res2.push('>');
 				if(node.variable){
 					var key = get_varname(node);
@@ -139,7 +145,7 @@
 	Ozenfant.prototype.set = function(key, val){
 		this.state[key] = val;
 		if(!this.bindings[key]){
-			console.warn('Unknown key for binding:', key);
+			//console.warn('Unknown key for binding:', key);
 			return;
 		}
 		if(!this.root) return;
