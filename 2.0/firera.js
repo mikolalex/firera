@@ -864,55 +864,55 @@ var parse_fexpr = function(a, pool, key, packages){
 		// just link to other cell
 		a = [id, a];
 	}
-	if(a instanceof Object){
-		if(a instanceof Array){
-			a = a.slice();
-			var funcname = a[0];
-			var cc = split_camelcase(funcname);
-			if(funcname instanceof Function){
-				// it's "is" be default
-				funcstring = ['is'].concat(a);
-			} else if(system_predicates.has(cc[0])){
-				switch(funcname){
-					case 'nested':
-						var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
-						init_if_empty(pool.plain_base, '$init', {});
-						dependent_cells.each((name) => {
-							pool.plain_base.$init[name] = null;
-						})
-						a.splice(2, 1);
-					default:
-						funcstring = a; 
+	if(a instanceof Array){
+		a = a.slice();
+		var funcname = a[0];
+		var cc = split_camelcase(funcname);
+		if(funcname instanceof Function){
+			// it's "is" be default
+			funcstring = ['is'].concat(a);
+		} else if(system_predicates.has(cc[0])){
+			switch(funcname){
+				case 'nested':
+					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
+					init_if_empty(pool.plain_base, '$init', {});
+					dependent_cells.each((name) => {
+						pool.plain_base.$init[name] = null;
+					})
+					a.splice(2, 1);
+					funcstring = a; 
+				break;
+				case 'map':
+					funcstring = ['map', a[1]].concat(Object.keys(a[1]));
+				break;
+				default:
+					funcstring = a; 
+				break;
+			}
+		} else {
+			if(funcname === 'just'){
+				init_if_empty(pool.plain_base, '$init', {});
+				pool.plain_base.$init[key] = a[1];
+				return;
+			} 
+			if(predefined_functions[funcname]){
+				var fnc = predefined_functions[funcname];
+				switch(fnc.type){
+					case 'func':
+						funcstring = ['is', fnc.func].concat(a.slice(1))
 					break;
 				}
 			} else {
-				if(funcname === 'just'){
-					init_if_empty(pool.plain_base, '$init', {});
-					pool.plain_base.$init[key] = a[1];
-					return;
-				} 
-				if(predefined_functions[funcname]){
-					var fnc = predefined_functions[funcname];
-					switch(fnc.type){
-						case 'func':
-							funcstring = ['is', fnc.func].concat(a.slice(1))
-						break;
-					}
+				//console.log('Having predicates', predicates, funcname, pool);
+				if(packages.predicates[funcname]){
+					funcstring = packages.predicates[funcname](a.slice(1));
+					//console.log('Using package predicate', funcstring, key);
+					return parse_fexpr(funcstring, pool, key, packages);
 				} else {
-					//console.log('Having predicates', predicates, funcname, pool);
-					if(packages.predicates[funcname]){
-						funcstring = packages.predicates[funcname](a.slice(1));
-						//console.log('Using package predicate', funcstring, key);
-						return parse_fexpr(funcstring, pool, key, packages);
-					} else {
-						//console.log('Error', arguments, funcname instanceof Function);
-						throw new Error('Cannot find predicate: ' + funcname);
-					}
+					//console.log('Error', arguments, funcname instanceof Function);
+					throw new Error('Cannot find predicate: ' + funcname);
 				}
 			}
-		} else {
-			funcstring = ['map', a].concat(Object.keys(a));
-			//console.log('Parsing MAP fexpr', a, ' -> ', funcstring);
 		}
 	} else {
 		throw new Error('Cannot parse primitive value as fexpr: ' + a);
@@ -1044,7 +1044,7 @@ var parse_pb = function(res, packages){
 									return {action: 'remove'};
 								}
 							}
-							parse_fexpr(obj, res, '$child_' + link_as, packages);
+							parse_fexpr(['map', obj], res, '$child_' + link_as, packages);
 						}
 					}
 				})
@@ -1287,7 +1287,7 @@ var core = {
 			if(!mix_to_list.$add && !mix_to_list.$datasource){
 				console.warn('No item source provided for list', mix_to_list);
 			}
-			var deltas_func = mix_to_list.$add ? {
+			var deltas_func = mix_to_list.$add ? ['map', {
 				$add: (val) => {
 					if(val){
 						return [['add', null, val]];
@@ -1298,7 +1298,7 @@ var core = {
 						return [['remove', key]];
 					}
 				}
-			} : ['closure', () => {
+			}] : ['closure', () => {
 				var arr = [];
 				return (new_arr) => {
 					var changes = [];

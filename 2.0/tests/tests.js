@@ -102,10 +102,10 @@ describe('Basic Firera functionality', function () {
                     'a': 10,
                     'b': 32,
                 },
-                'c': {
+                'c': ['map', {
                     a: function(z){ return z + 1;}, 
                     b: function(z){ return z*(-1);
-                }}
+                }}]
             }
         });
         app.set('a', 20);
@@ -161,9 +161,9 @@ describe('Basic Firera functionality', function () {
 				$init: {
 					completed: str,
 				},
-            	completed: {
+            	completed: ['map', {
             		'.done|click': true,
-            	}
+            	}]
             }
         });
         //$('.test-html input').val('ololo').keyup();
@@ -204,9 +204,9 @@ describe('Basic Firera functionality', function () {
 				$init: {
 					completed: str,
 				},
-            	completed: {
+            	completed: ['map', {
             		'.done|click': true,
-            	},
+            	}],
                 'changes': '^completed',
             }
         });
@@ -360,9 +360,9 @@ describe('Basic Firera functionality', function () {
 				$init: {
 					completed: false,
 				},
-				completed: {
+				completed: ['map', {
 					'.done|click': true
-				}
+				}]
         	}
         })
         app.set('numbers', [1, 2, 5, 5]);
@@ -404,9 +404,9 @@ describe('Basic Firera functionality', function () {
             __root: {
                 $children: {
                     todos: ['list', 'item', {
-						add: {
+						add: ['map', {
 							'../new_todo': as('text'),
-						},
+						}],
                     }],
                 },
                 $el: ['just', $(".test-input-setget")],
@@ -419,9 +419,9 @@ describe('Basic Firera functionality', function () {
                     text: '',
                     completed: false,
                 },
-                completed: {
-                    '.done|click': true
-                }
+                completed: ['map', {
+					'.done|click': true
+				}]
             }
         })
         
@@ -433,9 +433,9 @@ describe('Basic Firera functionality', function () {
     it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
         var list_sources = {
-            add: {
+            add: ['map', {
                     '../new_todo': as('text'),
-            },
+            }],
             remove: {
                 '*/remove': function(a){
                         if(a && a[0] !== undefined) return a[0];
