@@ -860,62 +860,70 @@ var get_random_name = (function(){
 
 var parse_fexpr = function(a, pool, key, packages){
 	var funcstring;
-	if(typeof a === 'string'){
-		// just link to other cell
-		a = [id, a];
-	}
 	if(a instanceof Array){
 		a = a.slice();
 		var funcname = a[0];
 		var cc = split_camelcase(funcname);
-		if(funcname instanceof Function){
-			// it's "is" be default
-			funcstring = ['is'].concat(a);
-		} else if(system_predicates.has(cc[0])){
-			switch(funcname){
-				case 'nested':
-					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
-					init_if_empty(pool.plain_base, '$init', {});
-					dependent_cells.each((name) => {
-						pool.plain_base.$init[name] = null;
-					})
-					a.splice(2, 1);
-					funcstring = a; 
-				break;
-				case 'map':
-					funcstring = ['map', a[1]].concat(Object.keys(a[1]));
-				break;
-				default:
-					funcstring = a; 
-				break;
-			}
+		if(a.length === 1 && (typeof a[0] === 'string')){
+			funcstring = ['is', id, a[0]];
 		} else {
-			if(funcname === 'just'){
-				init_if_empty(pool.plain_base, '$init', {});
-				pool.plain_base.$init[key] = a[1];
-				return;
-			} 
-			if(predefined_functions[funcname]){
-				var fnc = predefined_functions[funcname];
-				switch(fnc.type){
-					case 'func':
-						funcstring = ['is', fnc.func].concat(a.slice(1))
+			if(funcname instanceof Function){
+				// it's "is" be default
+				funcstring = ['is'].concat(a);
+			} else if(system_predicates.has(cc[0])){
+				switch(funcname){
+					case 'nested':
+						var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
+						init_if_empty(pool.plain_base, '$init', {});
+						dependent_cells.each((name) => {
+							pool.plain_base.$init[name] = null;
+						})
+						a.splice(2, 1);
+						funcstring = a; 
+					break;
+					case 'map':
+						funcstring = ['map', a[1]].concat(Object.keys(a[1]));
+						if(a[2]){
+							// default value
+							init_if_empty(pool.plain_base, '$init', {});
+							pool.plain_base.$init[key] = a[2];
+						}
+					break;
+					default:
+						funcstring = a; 
 					break;
 				}
 			} else {
-				//console.log('Having predicates', predicates, funcname, pool);
-				if(packages.predicates[funcname]){
-					funcstring = packages.predicates[funcname](a.slice(1));
-					//console.log('Using package predicate', funcstring, key);
-					return parse_fexpr(funcstring, pool, key, packages);
+				if(funcname === 'just'){
+					init_if_empty(pool.plain_base, '$init', {});
+					pool.plain_base.$init[key] = a[1];
+					return;
+				} 
+				if(predefined_functions[funcname]){
+					var fnc = predefined_functions[funcname];
+					switch(fnc.type){
+						case 'func':
+							funcstring = ['is', fnc.func].concat(a.slice(1))
+						break;
+					}
 				} else {
-					//console.log('Error', arguments, funcname instanceof Function);
-					throw new Error('Cannot find predicate: ' + funcname);
+					//console.log('Having predicates', predicates, funcname, pool);
+					if(packages.predicates[funcname]){
+						funcstring = packages.predicates[funcname](a.slice(1));
+						//console.log('Using package predicate', funcstring, key);
+						return parse_fexpr(funcstring, pool, key, packages);
+					} else {
+						//console.log('Error', arguments, a);
+						throw new Error('Cannot find predicate: ' + funcname, a);
+					}
 				}
 			}
 		}
 	} else {
-		throw new Error('Cannot parse primitive value as fexpr: ' + a);
+		// it's primitive value
+		init_if_empty(pool.plain_base, '$init', {});
+		pool.plain_base.$init[key] = a;
+		return;
 	}
 	if(!funcstring[2]){
 		// function with no dependancy
@@ -965,7 +973,8 @@ var parse_cell_type = (i, row, pool, children) => {
 		return;
 	}
 	if(!(row instanceof Array)){
-		console.log('pbsi', pbs, i, row);
+		cell_types[i] = get_cell_type(type);
+		return;
 	}
 	var func = row[0];
 	var parents = row.slice(1);
@@ -1282,7 +1291,7 @@ var core = {
 			//console.log('Deltas', deltas);
 			if(typeof mix_to_list === 'string'){
 				// it's datasource
-				mix_to_list = {$datasource: mix_to_list};
+				mix_to_list = {$datasource: [mix_to_list]};
 			}
 			if(!mix_to_list.$add && !mix_to_list.$datasource){
 				console.warn('No item source provided for list', mix_to_list);
@@ -1365,7 +1374,7 @@ var core = {
 						}
 					}
 				}, '$arr_data.changes', '$real_el'],
-				$children: '$arr_data.changes'
+				$children: ['$arr_data.changes']
 			};
 			return [always([Object.assign(mix_to_list, all_lists_mixin)])];
 		},
@@ -1581,7 +1590,7 @@ var htmlCells = {
 					break;
 				}
 				if(context === 'setter'){
-					parse_fexpr(['is', func, [(a) => a.find(selector), '$real_el'], cellname], pool, get_random_name(), packages);
+					parse_fexpr([func, [(a) => a.find(selector), '$real_el'], cellname], pool, get_random_name(), packages);
 				} else {
 					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
 				}
