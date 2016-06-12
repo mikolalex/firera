@@ -3,8 +3,14 @@ var che = require('../che/che');
 var Ozenfant = require('../ozenfant/ozenfant');
 
 var id = a => a;
+var not = a => !a;
 var always = (a) => {
 	return () => a;
+}
+var prop = (key) => {
+	return (a) => {
+		return a instanceof Object ? a[key] : undefined;
+	}
 }
 
 describe('Basic Firera functionality', function () {
@@ -416,11 +422,8 @@ describe('Basic Firera functionality', function () {
 						completed_number: ['count', 'completed']
                     }],
                 },
-                $el: ['just', $root],
-                todos_number: [(a) => {
-                    //console.log('Length is', a);
-                    return a;
-                }, 'todos/$arr_data.length'],
+                $el: $root,
+                todos_number: ['todos/$arr_data.length'],
                 "new_todo": [second, 'button.add-todo|click', '-input|getval'],
                 "input|setval": [always(''), 'new_todo']
             },
@@ -438,7 +441,7 @@ describe('Basic Firera functionality', function () {
 					</div>
 				`,
 				remove: ['.remove|click'],
-                completed: [logger.bind(null, 'checkval'), 'input[type=checkbox]|getval']
+                completed: ['input[type=checkbox]|getval']
             }
         })
 		var add_item = (str = 'ololo') => {
@@ -679,6 +682,56 @@ describe('Basic Firera functionality', function () {
 				!`;
 		assert.equal($.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()),  res);
 	})
+	
+	it('Testing indices predicate', function(){
+		var $root = $(".test-indices");
+		var app = Firera({
+			__packages: ['ozenfant', 'htmlCells'],
+			__root: {
+				$init: {
+					undone_num: 0,
+				},
+				$el: $root,
+				add_new: ['.add-todo|click'],
+				$template: `
+					.
+						"todo list"
+						ul$todos
+						.add-todo
+							"Add todo"
+						.
+							"Undone:"
+							span.undone_num$
+				`,
+				undone_num: [prop('size'), 'todos/undone'],
+				$children: {
+					todos: ['list', 'todo', {
+						$add: [always({text: 'Do something', completed: false}), '../add_new'],
+						undone: ['indices', not, 'completed'],
+					}]
+				}
+			},
+			todo: {
+				$template: `
+					li
+						.$text
+						.complete
+							"Complete!"
+				`,
+				completed: [always(true), '.complete|click'],
+			}
+		})
+		$root.find('.add-todo').click();
+		$root.find('.add-todo').click();
+		$root.find('.add-todo').click();
+		$root.find('.add-todo').click();
+		$root.find('ul > *:nth-child(3) .complete').click();
+		//console.log('app', app);
+		assert.equal($root.find('.undone_num').html(), '3');
+		
+		
+	})
+	
 	it('Getting data from arrays by index', function(){
 		var app = Firera({
 			__root: {
@@ -741,7 +794,7 @@ describe('Basic Firera functionality', function () {
 			},
 			__packages: ['ozenfant', 'htmlCells']
 		})
-		console.log('app', app);
+		//console.log('app', app);
 	})
 })
 

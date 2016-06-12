@@ -261,6 +261,9 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 					//console.log('creating cellname on the fly', parent_cell, other_hash);
 					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool);
 					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
+					/*if(other_hash.cell_types[parent_cell]){
+						other_hash.compute(parent_cell);
+					}*/
 				} else {
 					console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
 				}
@@ -987,10 +990,8 @@ var parse_cell_type = (i, row, pool, children) => {
 		func = parents.shift();
 	}
 	cell_types[i] = get_cell_type(type, func, parents);
-	//console.log('Cell', i, 'parent', parents);
 	for(var j in parents){
 		var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
-		//console.log('real cell name:', parents[j], '->', parent_cell_name, listening_type);
 		if(listening_type !== 'passive'){
 			init_if_empty(children, parent_cell_name, {});
 			children[parent_cell_name][set_listening_type(i, listening_type)] = true;
@@ -1007,7 +1008,6 @@ var parse_cell_types = function(pbs){
 	for(let i in pbs){
 		parse_cell_type(i, pbs[i], cell_types, children);
 	}
-	//console.log('Got following children after parsing', children, cell_types);
 	for(let i in children){
 		//console.log('resi', res, i);
 		if(!cell_types[i]){
@@ -1209,6 +1209,22 @@ var core = {
 						return arr;
 					}
 			}, subscribe_to, '$arr_data.changes']
+		},
+		indices: function(funcstring){
+			var func = funcstring[0];
+			var field = '*/' + funcstring[1];
+			return ['closureFunnel', () => {
+				var indices = new Set();
+				return (field, [index, val]) => {
+					var res = func(val);
+					if(res){
+						indices.add(index);
+					} else {
+						indices.delete(index);
+					}
+					return indices;
+				}
+			}, field];
 		},
 		reduce: function(funcstring){
 			var field = '*/' + funcstring[0];
@@ -1542,6 +1558,7 @@ var htmlCells = {
 					break;
 					case 'click':
 						func = function(cb, vals){
+							if(!vals) return;
 							var [$prev_el, $now_el] = vals;
 							if(!$now_el) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
