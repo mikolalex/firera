@@ -199,6 +199,10 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 	//console.log('________________________________________________________');
 	//console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
 	// creating cell values obj
+	if(!parsed_pb){
+		console.error('Cannot find hash to parse:', parsed_pb_name);
+		return;
+	}
 	this.cell_types = parsed_pb.cell_types;
 	this.cell_links = parsed_pb.cell_links;
 	this.side_effects = parsed_pb.side_effects;
@@ -484,7 +488,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
 		var func = this.cell_func(real_cell_name);
-		if(!func[parent_cell_name]){
+		if(func[parent_cell_name] === undefined){
 			throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
 		}
 		func = func[parent_cell_name];
@@ -662,7 +666,7 @@ Hash.prototype.cell_value = function(cell){
 }
 Hash.prototype.set_cell_value = function(cell, val){
 	this.cell_values[cell] = val;
-	//log('Setting', cell, val, this.dynamic_cell_links[cell]);
+	//log('_____Setting', cell, val, this.dynamic_cell_links[cell], this.side_effects[cell]);
 	if(this.side_effects[cell]){
 		//console.info('I SHOULD SET side-effect', val);
 		side_effects[this.side_effects[cell]].func.call(this, cell, val);
@@ -702,22 +706,13 @@ var side_effects = {
 	'child': {
 		func: function(cellname, val, type){
 			//console.log('_____________________________ Linking child as', cellname, val);
-			if(val instanceof Object && !(val instanceof Array)){
-				// it's just Object
-				var link_as = cellname.replace('$child_', '');
-				switch(val.action){
-					case 'add':
-						this.linkHash(link_as, val.type);
-					break;
-					case 'remove':
-						console.log('Unlink child');
-						this.unlinkChild(link_as);
-					break;
-					
-				}
-				return;
+			if(val){
+				this.linkHash(cellname, val);
 			}
-			this.linkHash(cellname, val);
+			if(val === false) {
+				var link_as = cellname.replace('$child_', '');
+				this.unlinkChild(link_as);
+			}
 		},
 		regexp: /^\$child\_/,
 	},
@@ -862,6 +857,7 @@ var get_random_name = (function(){
 
 var parse_fexpr = function(a, pool, key, packages){
 	var funcstring;
+	//console.log('Parse fexpr', a, key);
 	if(a instanceof Array){
 		a = a.slice();
 		var funcname = a[0];
@@ -924,6 +920,7 @@ var parse_fexpr = function(a, pool, key, packages){
 	} else {
 		// it's primitive value
 		init_if_empty(pool.plain_base, '$init', {});
+		parse_cellname(key, pool, null, packages);
 		pool.plain_base.$init[key] = a;
 		return;
 	}

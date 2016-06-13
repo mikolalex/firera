@@ -51,6 +51,8 @@
 		}
 	}
 	
+	var html_attrs = new Set('href', 'src', 'style', 'target', 'id', 'class', 'rel')
+	
 	var toHTML = function(node, context, parent_tag){
 		var indent = `
 ` + new Array(node.level).join('	');
@@ -83,9 +85,19 @@
 					res2.push(' class="' + node.classnames.substr(1).replace(/\./g, " ") + '"');
 				}
 				if(node.assignments){
+					var styles = [];
 					for(let ass of node.assignments){
 						var assign = ass.split(':');
-						res2.push(' ' + assign[0].trim() + '="' + assign[1].trim() + '"');
+						var key = assign[0].trim();
+						var val = assign[1].trim();
+						if(html_attrs.has(key) || key.match(/^data\-/)){
+							res2.push(' ' + key + '="' + val + '"');
+						} else {
+							styles.push(key + ': ' + val + ';');
+						}
+					}
+					if(styles.length){
+						res2.push(' style="' + styles.join('') + '"');
 					}
 				}
 				res2.push('>');

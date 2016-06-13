@@ -12,6 +12,11 @@ var prop = (key) => {
 		return a instanceof Object ? a[key] : undefined;
 	}
 }
+var adder = (a) => {
+	return (b) => {
+		return b+a;
+	}
+}
 
 describe('Basic Firera functionality', function () {
     /*it('Testing simple values conversion', function () {
@@ -795,6 +800,93 @@ describe('Basic Firera functionality', function () {
 			__packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('app', app);
+	})
+	it('Testing new $child interface', function(){
+		var app = Firera({
+			__root: {
+				a: 10,
+				b: 20,
+				$child_todo: 'todo',
+				c: ['+', 'a', 'b'],
+			},
+			todo: {
+				d: [adder(12), '../c'],
+			}
+		})
+		assert.equal(app.get('d', 'todo'), 42);
+	})
+	it('Testing new $child interface', function(){
+		var app = Firera({
+			__root: {
+				a: 10,
+				b: 20,
+				$child_todo: 'todo',
+				c: ['+', 'a', 'b'],
+			},
+			todo: {
+				d: [adder(12), '../c'],
+			}
+		})
+		assert.equal(app.get('d', 'todo'), 42);
+	})
+	it('Testing new $child interface 2', function(){
+		var app = Firera({
+			__root: {
+				a: 10,
+				b: 20,
+				$child_todo: {
+					d: [adder(12), '../c'],
+				},
+				c: ['+', 'a', 'b'],
+			},
+		})
+		assert.equal(app.get('d', 'todo'), 42);
+	})
+	it('Testing new $child interface 3: add and remove', function(){
+		var app = Firera({
+			__root: {
+				a: 10,
+				b: 20,
+				$el: $(".test-new-children"),
+				someval: ['todo/ololo'],
+				$template: `
+				.
+					a.add(href: #)
+						"Show todo"
+				.
+					a.remove(href: #)
+						"Hide"
+				.
+					.$someval
+				.
+					.todo$
+				`,
+				$child_todo: ['map', {
+					'.add|click': 'todo',
+					'.remove|click': false,
+				}],
+				c: ['+', 'a', 'b'],
+			},
+			todo: {
+				ololo: 42,
+				$template: `
+					.todosya( background-color: green, 
+							width: 300px, 
+							height: 50px, 
+							margin: 10px, 
+							border-radius: 10px, 
+							padding: 10px, 
+							color: white 
+						)
+						"todo"
+				`,
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		$(".test-new-children .add").click();
+		assert.equal($(".test-new-children .todosya").length, 1);
+		$(".test-new-children .remove").click();
+		assert.equal($(".test-new-children .todosya").length, 0);
 	})
 })
 
