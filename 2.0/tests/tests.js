@@ -148,9 +148,7 @@ describe('Basic Firera functionality', function () {
             __root: {
                 $el: $(".test-nested"),
                 someval: [id, 'todo/completed'],
-                $children: {
-                    todo: 'item',
-                },
+                $child_todo: 'item',
             },
             'item': {
 				$init: {
@@ -253,9 +251,7 @@ describe('Basic Firera functionality', function () {
             __root: {
                 a: 42,
                 b: [add.bind(null, 20), 'a'],
-                $children: {
-                    item: 'person'
-                }
+                $child_item: 'person',
             },
 			__packages: ['simpleHtmlTemplates', 'htmlCells'],
             person: {
@@ -282,17 +278,18 @@ describe('Basic Firera functionality', function () {
         	__root: {
         		registered: false,
 	        	val: [id, 'block/foo'],
-	        	$children: {
-	        		block: [always(
-	        			[{
-	        				$init: {
-	        					foo: 'bar'
-	        				}
-	        			}, {
-	        				
-	        			}]
-	        		), 'registered'],
-	        	}
+	        	$child_block: [
+					always(
+						[{
+							$init: {
+								foo: 'bar'
+							}
+						}, {
+
+						}]
+					), 
+					'registered'
+				],
         	},
         })
         assert.equal(app.get('val'), 'bar');
@@ -303,21 +300,20 @@ describe('Basic Firera functionality', function () {
         	__root: {
 				registered: false,
 				val: null,
-	        	$children: {
-	        		block: [always(
-	        			[{
-	        				$init: {
-	        					foo: 'bar',
-	        					boo: null
-	        				}
-	        			}, {
-	        				'val': 'foo'
-	        			},
-	        			{
-	        				'boo': 'registered'
-	        			}]
-	        		), 'registered'],
-	        	}
+	        	$child_block: [always(
+						[{
+							$init: {
+								foo: 'bar',
+								boo: null
+							}
+						}, {
+							'val': 'foo'
+						},
+						{
+							'boo': 'registered'
+						}]
+					), 'registered'
+				],
         	},
         })
         assert.equal(app.get('val'), 'bar');
@@ -330,15 +326,7 @@ describe('Basic Firera functionality', function () {
         	__root: {
 				show: 'all',
 				numbers: ['just', [1, 2, 3]],
-                arr_changes: ['arr_deltas', 'numbers'],
-	        	$children: {
-					items: ['list', 'item', {$deltas: '../arr_changes'}],
-				}
-        	},
-        	'item': {
-				completed: ['map', {
-					'.done|click': true
-				}, false]
+                arr_changes: ['arr_deltas', 'numbers']
         	}
         })
         app.set('numbers', [1, 2, 5, 5]);
@@ -378,13 +366,6 @@ describe('Basic Firera functionality', function () {
     it('Testing html val set & get', function(){
         var app = Firera({
             __root: {
-                $children: {
-                    todos: ['list', 'item', {
-						add: ['map', {
-							'../new_todo': as('text'),
-						}],
-                    }],
-                },
                 $el: ['just', $(".test-input-setget")],
                 "foo": [(a) => { console.log('New todo:', a)}, 'new_todo'],
                 "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
@@ -418,15 +399,16 @@ describe('Basic Firera functionality', function () {
         var app = Firera({
 			__packages: ['simpleHtmlTemplates', 'htmlCells'],
             __root: {
-                $children: {
-                    todos: ['list', 'item', {
-						$add: [as('text'), '../new_todo'],
-						$remove: [function(a){
-							if(a && a[0] !== undefined) return a[0];
-						}, '*/remove'],
+                $child_todos: ['list', {
+					type: 'item',
+					push: [as('text'), '../new_todo'],
+					pop: [function(a){
+						if(a && a[0] !== undefined) return a[0];
+					}, '*/remove'],
+					self: {
 						completed_number: ['count', 'completed']
-                    }],
-                },
+					},
+				}],
                 $el: $root,
                 todos_number: ['todos/$arr_data.length'],
                 "new_todo": [second, 'button.add-todo|click', '-input|getval'],
@@ -501,13 +483,12 @@ describe('Basic Firera functionality', function () {
 			__packages: ['simpleHtmlTemplates', 'htmlCells'],
 			__root: {
 				$el: $(".test-trains"),
-				$children: {
-					trains: ['list', 'train', {
-						$add: ['../add_train'],
-						$remove: [get(0), '*/.remove|click'],
-						arr: ['asArray', ['name']],
-					}]
-				},
+				$child_trains: ['list', {
+					type: 'train',
+					push: ['../add_train'],
+					pop: [get(0), '*/.remove|click'],
+					self: {arr: ['asArray', ['name']]},
+				}],
 				add_train: ['is', (a) => {return {}}, '.add-train|click'],
 			},
 			train: {
@@ -536,12 +517,11 @@ describe('Basic Firera functionality', function () {
 	it('$datasource', function(){
 		var app = Firera({
 			__root: {
-				$children: {
-					people: ['list', 'human', {
-						$datasource: ['../people'],
-						people_ages: ['asArray', ['name', 'age']]
-					}]
-				},
+				$child_people: ['list', {
+					type: 'human',
+					datasource: ['../people'],
+					self: {people_ages: ['asArray', ['name', 'age']]},
+				}],
 				people: ['just', [
 					{
 						name: 'Ivan',
@@ -595,9 +575,10 @@ describe('Basic Firera functionality', function () {
 		// tbd...
 		var app = Firera({
 			__root: {
-				$children: {
-					people: ['list', 'human', {
-						$datasource: ['../people'],
+				$child_people: ['list', {
+					type: 'human', 
+					datasource: ['../people'],
+					self: { 
 						sum_age: ['reduce', 'age', {
 							add: (a, sum) => {
 								return sum + a;
@@ -608,8 +589,8 @@ describe('Basic Firera functionality', function () {
 							},
 							def: 0,
 						}]
-					}]
-				},
+					}
+				}],
 				people: ['just', [{
 						name: 'Ivan',
 						age: 35
@@ -665,9 +646,7 @@ describe('Basic Firera functionality', function () {
 					
 					`
                 },
-				$children: {
-					people: ['list', 'human', {$datasource: ['../people_arr']}],
-				}
+				$child_people: ['list', {type: 'human', datasource: ['../people_arr']}],
             },
 			human: {
 				$template: `
@@ -709,12 +688,13 @@ describe('Basic Firera functionality', function () {
 							span.undone_num$
 				`,
 				undone_num: [prop('size'), 'todos/undone'],
-				$children: {
-					todos: ['list', 'todo', {
-						$add: [always({text: 'Do something', completed: false}), '../add_new'],
-						undone: ['indices', not, 'completed'],
-					}]
-				}
+				$child_todos: ['list', {
+					type: 'todo',
+					push: [always({text: 'Do something', completed: false}), '../add_new'],
+					self: { 
+						undone: ['indices', not, 'completed']
+					},
+				}]
 			},
 			todo: {
 				$template: `

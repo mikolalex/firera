@@ -1297,18 +1297,16 @@ var core = {
 			}, '*/' + funcstring[0], '$arr_data.changes']
 		},
 		list: function(funcstring){
-			var item_type = funcstring.shift();
-			//var deltas = restruct_list_sources(funcstring[0]);
-			var mix_to_list = funcstring[0] || {};
-			//console.log('Deltas', deltas);
-			if(typeof mix_to_list === 'string'){
-				// it's datasource
-				mix_to_list = {$datasource: [mix_to_list]};
+			var props = funcstring[0];
+			if(!props instanceof Object){
+				console.error('List properties should be an object!');
 			}
-			if(!mix_to_list.$add && !mix_to_list.$datasource){
-				console.warn('No item source provided for list', mix_to_list);
+			var item_type = props.type;
+			if(!props.push && !props.datasource){
+				console.warn('No item source provided for list', props);
 			}
-			var deltas_func = mix_to_list.$add ? ['map', {
+			//console.log('List properties', props);
+			var deltas_func = props.push ? ['map', {
 				$add: (val) => {
 					if(val){
 						return [['add', null, val]];
@@ -1341,9 +1339,9 @@ var core = {
 			}, '$datasource'];
 			var all_lists_mixin = {
 				$deltas: deltas_func,
-				$init: {
+				/*$init: {
 					$template: "<div>Ololo</div>"
-				},
+				},*/
 				'$arr_data': [
 					'nestedClosure',
 					() => {
@@ -1388,7 +1386,18 @@ var core = {
 				}, '$arr_data.changes', '$real_el'],
 				$children: ['$arr_data.changes']
 			};
-			return [always([Object.assign(mix_to_list, all_lists_mixin)])];
+			if(props.push){
+				all_lists_mixin.$add = props.push;
+			}
+			if(props.pop){
+				all_lists_mixin.$remove = props.pop;
+			}
+			if(props.datasource){
+				all_lists_mixin.$datasource = props.datasource;
+			}
+			var list_own_type = Object.assign(all_lists_mixin, props.self || {});
+			//console.log('List looks like', list_own_type);
+			return [always(list_own_type)];
 		},
 		arr_deltas: function(funcstring){
 			var cell = funcstring[0];
