@@ -1,6 +1,6 @@
-var Firera = require('../firera');
-var che = require('../che/che');
-var Ozenfant = require('../ozenfant/ozenfant');
+//var Firera = require('../firera');
+//var che = require('../che/che');
+//var Ozenfant = require('../ozenfant/ozenfant');
 
 var id = a => a;
 var not = a => !a;

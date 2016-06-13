@@ -1,5 +1,5 @@
 var fields = ['classnames', 'tagname', 'str', 'quoted_str', 'variable'];
-module.exports = {
+var ozenfant_config = {
 	empty_chars: [' '],
 	syntax: {
 		root_token: {

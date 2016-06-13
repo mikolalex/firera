@@ -279,7 +279,7 @@
 		var semantics = parse_semantics(config.semantics, struct);
 		return {syntax: struct, semantics};
 	}
-	module.exports = {
+	var parser = {
 		get_parser: (config) => {
 			return parse.bind(null, config);
 		},

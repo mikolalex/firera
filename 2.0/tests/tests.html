@@ -38,17 +38,32 @@
 	</head>
 	<body>
 		<div id="mocha"></div>
-                <script src="../require1k.min.js"></script>
+        <!--<script src="../require1k.min.js"></script>-->
 		<script src="../jquery.js"></script>
+		<script>
+			console.log('$', $);
+		</script>
+		<script>
+			var require = () => null;
+			var module = {exports: {}};
+		</script>
+		<script src="../che/parser.js"></script>
+		<script src="../ozenfant/config.js"></script>
+		<script src="../ozenfant/ozenfant.js"></script>
 		<script src="assert.js"></script>
 		<script src="mocha.js"></script>
-                <script>
-                    mocha.setup('bdd');
-                    R('./tests', () => {
-			mocha.checkLeaks();
-			mocha.globals(['jQuery']);
-			mocha.run();
-                    })
+        <script>
+			mocha.setup('bdd');
+		</script>
+		<script src="../firera.js"></script>
+		<script src="tests.js"></script>
+        <script>
+			//mocha.setup('bdd');
+			//R('./tests', () => {
+				mocha.checkLeaks();
+				mocha.globals(['jQuery']);
+				mocha.run();
+			//})
 		</script>
                 <div class="tcases">
                     <div class="dummy">
