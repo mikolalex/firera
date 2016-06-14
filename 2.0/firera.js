@@ -747,6 +747,22 @@ var side_effects = {
 };
 
 var predefined_functions = {
+	'=': {
+		type: 'func', 
+		func: function(a, b){ return a == b;}
+	},
+	'==': {
+		type: 'func', 
+		func: function(a, b){ return a === b;}
+	},
+	'!=': {
+		type: 'func', 
+		func: function(a, b){ return a != b;}
+	},
+	'!==': {
+		type: 'func', 
+		func: function(a, b){ return a !== b;}
+	},
 	'+': {
 		type: 'func', 
 		func: function(a, b){ return (a ? Number(a) : 0) + (b ? Number(b) : 0);}
@@ -1307,12 +1323,12 @@ var core = {
 			}
 			//console.log('List properties', props);
 			var deltas_func = props.push ? ['map', {
-				$add: (val) => {
+				$push: (val) => {
 					if(val){
 						return [['add', null, val]];
 					}
 				},
-				$remove: (key) => {
+				$pop: (key) => {
 					if(key !== undefined){
 						return [['remove', key]];
 					}
@@ -1387,10 +1403,10 @@ var core = {
 				$children: ['$arr_data.changes']
 			};
 			if(props.push){
-				all_lists_mixin.$add = props.push;
+				all_lists_mixin.$push = props.push;
 			}
 			if(props.pop){
-				all_lists_mixin.$remove = props.pop;
+				all_lists_mixin.$pop = props.pop;
 			}
 			if(props.datasource){
 				all_lists_mixin.$datasource = props.datasource;
@@ -1495,6 +1511,12 @@ var simpleHtmlTemplates = {
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 }
+var htmlPipeAspects = {
+	attr: (el, attr) => {
+		if(!el) return;
+		return $(el).attr(attr);
+	}
+}
 var htmlCells = {
 	cellMatchers: {
 		HTMLAspects: {
@@ -1502,21 +1524,41 @@ var htmlCells = {
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)\\|(.*)', 'i'),
 			func: function(matches, pool, context, packages){
-				var cellname = matches[0];
-				var aspect = matches[3];
-				var selector = matches[2];
-				var func;
-				var setters = ['visibility', 'setval'];
-				setters.has = function(str){
-					return this.indexOf(str) !== -1;
+				var get_params = (aspect) => {
+					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
+					if(params && params[1]){
+						aspect = params[1];
+						params = params[2].split(',');
+					}  
+					return [aspect, params || []];
 				}
-
-				var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
-				if(params && params[1]){
-					aspect = params[1];
-					params = params[2].split(',');
-				}                    
-				//console.info('Aspect:', aspect, setters.has(aspect), context);
+				var cellname = matches[0];
+				var aspects = matches[3].split('|');
+				//console.log('Got following aspects', aspects);
+				var aspect = aspects[0];
+				var pipe = aspects.slice(1);
+				if(pipe.length){
+					pipe = pipe.map(get_params);
+				}
+				
+				var make_resp = !pipe.length ? (cb, val) => { 
+					return cb(val);
+				} : function(cb, e){
+					var res = e.target;
+					for(const [asp, pars] of pipe){
+						if(!htmlPipeAspects[asp]){
+							console.error('Unknown pipe aspect:', asp);
+							continue;
+						}
+						res = htmlPipeAspects[asp](res, ...pars);
+					}
+					return cb(res);
+				}
+				var selector = matches[2];
+				var func, params;
+				var setters = new Set(['visibility', 'setval']);
+                [aspect, params] = get_params(aspect);
+				//console.info('Aspect:', aspect, params, matches[2]);
 				if(
 					(context === 'setter' && !setters.has(aspect))
 					||
@@ -1537,7 +1579,7 @@ var htmlCells = {
 									val = el.val();
 								}
 								//console.log('CHange', el, val, selector);
-								cb(val);
+								make_resp(cb, val);
 							};
 							var onKeyup = function(){
 								var el = $(this);
@@ -1548,7 +1590,7 @@ var htmlCells = {
 								} else {
 									val = el.val();
 								}
-								cb(val);
+								make_resp(cb, val);
 							};
 							var [$prev_el, $now_el] = vals;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
@@ -1570,7 +1612,13 @@ var htmlCells = {
 							if($prev_el){
 								$prev_el.off('click', selector);
 							}
-							$now_el.on('click', selector, (e) => {cb(e); return false});
+							if($now_el.length === 0){
+								console.log('Assigning handlers to nothing', $now_el);
+							}
+							$now_el.on('click', selector, (e) => {
+								make_resp(cb, e);
+								return false
+							});
 						}
 					break;
 					case 'press':
@@ -1587,12 +1635,36 @@ var htmlCells = {
 									'27': 'Esc',
 								}
 								if(params.indexOf(btn_map[e.keyCode]) !== -1){
-									cb(e);
+									make_resp(cb, e);
+								}
+							});
+						}
+					break;
+					case 'enterText':
+						func = function(cb, vals){
+							//if(!vals) debugger;
+							var [$prev_el, $now_el] = vals;
+							if(!$now_el) return;
+							if($prev_el){
+								$prev_el.off('keyup', selector);
+							}
+							$now_el.on('keyup', selector, function(e){
+								if(e.keyCode == 13){
+									make_resp(cb, e.target.value);
 								}
 							});
 						}
 					break;
 					case 'visibility':
+						func = function($el, val){
+							if(val){
+								$el.css('visibility', 'visible');
+							} else {
+								$el.css('visibility', 'hidden');
+							}
+						}
+					break;
+					case 'display':
 						func = function($el, val){
 							if(val){
 								$el.show();
@@ -1607,12 +1679,14 @@ var htmlCells = {
 						}
 					break;
 					default:
-						debugger;
 						throw new Error('unknown HTML aspect: ' + aspect);
 					break;
 				}
 				if(context === 'setter'){
-					parse_fexpr([func, [(a) => a.find(selector), '$real_el'], cellname], pool, get_random_name(), packages);
+					parse_fexpr([func, [(a) => {
+						if(!a) return $();
+						return a.find(selector)
+					}, '$real_el'], cellname], pool, get_random_name(), packages);
 				} else {
 					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
 				}

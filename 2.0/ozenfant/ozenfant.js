@@ -51,7 +51,8 @@
 		}
 	}
 	
-	var html_attrs = new Set('href', 'src', 'style', 'target', 'id', 'class', 'rel')
+	var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type'])
+	var input_types = new Set(['text', 'submit', 'checkbox', 'radio']);
 	
 	var toHTML = function(node, context, parent_tag){
 		var indent = `
@@ -61,7 +62,13 @@
 			// it's a node
 			var tag;
 			if(node.tagname){
-				tag = node.tagname;
+				if(input_types.has(node.tagname)) {
+					node.assignments = node.assignments || [];
+					node.assignments.push('type: ' + node.tagname);
+					tag = 'input';
+				} else {
+					tag = node.tagname;
+				}
 			} else {
 				switch(parent_tag){
 					case 'ol':
@@ -126,7 +133,8 @@
 	}
 	
 	Ozenfant.prototype.toHTML = function(context = {}){
-		return toHTML({children: this.struct.semantics}, context = context);
+		var res = toHTML({children: this.struct.semantics}, context = context);
+		return res;
 	}
 	
 	Ozenfant.prototype.searchByPath = function(path){

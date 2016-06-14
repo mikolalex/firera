@@ -18,6 +18,13 @@ var adder = (a) => {
 	}
 }
 
+var triggerEnter = (el) => {
+	var e = jQuery.Event("keyup");
+	e.which = 13; //choose the one you want
+	e.keyCode = 13;
+	el.trigger(e);
+}
+
 describe('Basic Firera functionality', function () {
     /*it('Testing simple values conversion', function () {
         var pb = {
@@ -867,6 +874,90 @@ describe('Basic Firera functionality', function () {
 		assert.equal($(".test-new-children .todosya").length, 1);
 		$(".test-new-children .remove").click();
 		assert.equal($(".test-new-children .todosya").length, 0);
+	})
+	it('Test todo mvc', function(){
+		var $root = $(".test-todo-mvc");
+		var main_template = `
+			h1 
+				"Todo MVC"
+			.
+				"Todos"
+			ul$todos
+			.
+				"Display:"
+				ul.display
+					.all
+						"All"
+					.done
+						"Done"
+					.undone
+						"Undone"
+			.
+				h2
+					"Add todo"
+				.
+					text.new-todo-text
+		`;
+		var todo_template = `
+			.
+				"This is todo"
+			.$text
+			.
+				a.complete(href: #)
+					"Complete"
+			.
+				a.remove(href: #)
+					"Remove"
+		`;
+		var app = Firera({
+			__root: {
+				$template: main_template,
+				$el: $root,
+				$child_todos: ['list', {
+					type: 'todo',
+					push: [(text) => {
+							return {
+								text,
+								complete: false,
+							}
+					}, '../new_todos'],
+					pop: ['map', {
+						'done': id,
+						'*/.remove|click': ([ind]) => ind
+					}],
+					self: {
+						'display': [function(a){
+							switch(a){
+								case 'all':
+									return '*';
+								break;
+								case 'undone':
+									return true;
+								break;
+								case 'done':
+									return false;
+								break;
+							}
+						}, '../display'],
+					}
+				}],
+				'new_todos': ['.new-todo-text|enterText'],
+				'display': ['.display > *|click|attr(class)'],
+				'.new-todo-text|setval': [always(''), 'new_todos'],
+			},
+			todo: {
+				'*|visibility': ['!=', '../display', 'complete'],
+				$template: todo_template,
+				complete: [always(true), '.complete|click'],
+				'c': ['+', 'a', 'b']
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		console.log('app', app, $root.find('input[type=text]'));
+		$root.find('input[type=text]').val('Do something useful');
+		triggerEnter($root.find('input[type=text]'));
+		$root.find('input[type=text]').val('Have a rest');
+		triggerEnter($root.find('input[type=text]'));
 	})
 })
 
