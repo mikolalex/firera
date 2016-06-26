@@ -27,6 +27,11 @@ var arr_common = function(arr1, arr2, cb){
 		}
 	}
 }
+var fromMap = function(map, def){
+	return (val) => {
+		return (map[val] !== undefined) ? map[val] : def;
+	}
+}
 
 Object.defineProperty(Object.prototype, 'map', {
 	enumerable: false,
@@ -1275,6 +1280,11 @@ var core = {
 			}, field, '$arr_data.changes']
 		},
 		count: function(funcstring){
+			var fieldname = funcstring[0];
+			if(fieldname === '*'){
+				// just count all
+				return ['$arr_data.length'];
+			}
 			return ['closureFunnel', () => {
 				var count = 0;
 				var vals = {};
@@ -1310,7 +1320,7 @@ var core = {
 					//console.log('Now count', count);
 					return count;
 				}
-			}, '*/' + funcstring[0], '$arr_data.changes']
+			}, '*/' + fieldname, '$arr_data.changes']
 		},
 		list: function(funcstring){
 			var props = funcstring[0];

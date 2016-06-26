@@ -18,6 +18,21 @@ var adder = (a) => {
 	}
 }
 
+var as = (propName, defValues = {}) => {
+	return (val) => {
+		if(val === undefined) return;
+		var obj = {};
+		obj[propName] = val;
+		return Object.assign(obj, defValues);
+	}
+}
+
+var ind = (index = 0) => {
+	return (arr) => {
+		return arr instanceof Object ? arr[index] : null;
+	}
+}
+
 var triggerEnter = (el) => {
 	var e = jQuery.Event("keyup");
 	e.which = 13; //choose the one you want
@@ -346,16 +361,6 @@ describe('Basic Firera functionality', function () {
         assert.deepEqual(deltas, [["remove","0"],["remove","1"],["remove","2"],["remove","3"]]);
         app.set('numbers', [1, 2, 5, 5]);
     });
-    
-    var as = function(key){
-        return (a) => {
-			if(a){
-				var b = {};
-				b[key] = a;
-				return b;
-			}
-        }
-    }
     
     var add = function(vals){
         if(vals){
@@ -893,6 +898,14 @@ describe('Basic Firera functionality', function () {
 					.undone
 						"Undone"
 			.
+				span
+					"Completed: "
+					span.$completed_number
+			.
+				span
+					"Total: "
+					span.$all_number
+			.
 				h2
 					"Add todo"
 				.
@@ -915,35 +928,29 @@ describe('Basic Firera functionality', function () {
 				$el: $root,
 				$child_todos: ['list', {
 					type: 'todo',
-					push: [(text) => {
-							return {
-								text,
-								complete: false,
-							}
-					}, '../new_todos'],
+					push: [
+						as('text', {complete: false}), 
+						'../new_todos'
+					],
 					pop: ['map', {
 						'done': id,
-						'*/.remove|click': ([ind]) => ind
+						'*/.remove|click': ind(0)
 					}],
 					self: {
-						'display': [function(a){
-							switch(a){
-								case 'all':
-									return '*';
-								break;
-								case 'undone':
-									return true;
-								break;
-								case 'done':
-									return false;
-								break;
-							}
-						}, '../display'],
+						'display': [fromMap({
+							all: '*',
+							undone: true,
+							done: false,
+						}), '../display'],
+						'completed_number': ['count', 'complete'],
+						'all_number': ['count', '*'],
 					}
 				}],
 				'new_todos': ['.new-todo-text|enterText'],
 				'display': ['.display > *|click|attr(class)'],
 				'.new-todo-text|setval': [always(''), 'new_todos'],
+				'completed_number': ['todos/completed_number'],
+				'all_number': ['todos/all_number'],
 			},
 			todo: {
 				'*|visibility': ['!=', '../display', 'complete'],
