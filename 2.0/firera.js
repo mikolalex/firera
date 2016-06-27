@@ -1230,6 +1230,10 @@ var core = {
 		indices: function(funcstring){
 			var func = funcstring[0];
 			var field = '*/' + funcstring[1];
+			if(!funcstring[1]){
+				field = '*/' + func;
+				func = id;
+			}
 			return ['closureFunnel', () => {
 				var indices = new Set();
 				return (field, [index, val]) => {
@@ -1339,7 +1343,15 @@ var core = {
 					}
 				},
 				$pop: (key) => {
-					if(key !== undefined){
+					if(key || key === 0 || key === '0'){
+						//console.log('remove', key);
+						if(key instanceof Array || key instanceof Set){
+							var arr = [];
+							for(let k of key){
+								arr.push(['remove', k]);
+							}
+							return arr;
+						}
 						return [['remove', key]];
 					}
 				}
@@ -1532,7 +1544,7 @@ var htmlCells = {
 		HTMLAspects: {
 			// ^foo -> previous values of 'foo'
 			name: 'HTMLAspects',
-			regexp: new RegExp('^(\-|\:)?([^\|]*)\\|(.*)', 'i'),
+			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
 			func: function(matches, pool, context, packages){
 				var get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
@@ -1566,7 +1578,7 @@ var htmlCells = {
 				}
 				var selector = matches[2];
 				var func, params;
-				var setters = new Set(['visibility', 'setval']);
+				var setters = new Set(['visibility', 'setval', 'hasClass']);
                 [aspect, params] = get_params(aspect);
 				//console.info('Aspect:', aspect, params, matches[2]);
 				if(
@@ -1650,6 +1662,13 @@ var htmlCells = {
 							});
 						}
 					break;
+					case 'hasClass':
+						func = function($el, val){
+							if(!$el) return;
+							var [classname] = params;
+							$el.toggleClass(classname, val);
+						}
+					break;
 					case 'enterText':
 						func = function(cb, vals){
 							//if(!vals) debugger;
@@ -1695,7 +1714,7 @@ var htmlCells = {
 				if(context === 'setter'){
 					parse_fexpr([func, [(a) => {
 						if(!a) return $();
-						return a.find(selector)
+						return selector ? a.find(selector) : a;
 					}, '$real_el'], cellname], pool, get_random_name(), packages);
 				} else {
 					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
@@ -1735,7 +1754,9 @@ var ozenfant = {
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
 		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
 		'$ozenfant_remove': [function(_, $el){
-			$el.html('');
+			if($el){
+				$el.html('');
+			}
 		}, '$remove', '-$real_el']
 	}
 }

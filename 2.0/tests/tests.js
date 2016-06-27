@@ -392,6 +392,12 @@ describe('Basic Firera functionality', function () {
         })
         
     });
+	var mk_logger = (a) => {
+		return (b) => {
+			console.log(a, b);
+			return b;
+		}
+	}
     var logger = (varname, a) => {
         console.log(varname, ':', a);
         return a;
@@ -906,6 +912,9 @@ describe('Basic Firera functionality', function () {
 					"Total: "
 					span.$all_number
 			.
+				a.clear-completed(href: #)
+					"Clear completed"
+			.
 				h2
 					"Add todo"
 				.
@@ -934,7 +943,8 @@ describe('Basic Firera functionality', function () {
 					],
 					pop: ['map', {
 						'done': id,
-						'*/.remove|click': ind(0)
+						'*/.remove|click': ind(0),
+						'remove_completed': id,
 					}],
 					self: {
 						'display': [fromMap({
@@ -944,8 +954,13 @@ describe('Basic Firera functionality', function () {
 						}), '../display'],
 						'completed_number': ['count', 'complete'],
 						'all_number': ['count', '*'],
+						'completed_indices': ['indices', 'complete'],
+						'remove_completed': [(a, b) => {
+							return a ? b : a;
+						}, '../remove_done', '-completed_indices']
 					}
 				}],
+				'remove_done': ['.clear-completed|click'],
 				'new_todos': ['.new-todo-text|enterText'],
 				'display': ['.display > *|click|attr(class)'],
 				'.new-todo-text|setval': [always(''), 'new_todos'],
@@ -953,7 +968,8 @@ describe('Basic Firera functionality', function () {
 				'all_number': ['todos/all_number'],
 			},
 			todo: {
-				'*|visibility': ['!=', '../display', 'complete'],
+				'|visibility': ['!=', '../display', 'complete'],
+				'|hasClass(completed)': ['complete'],
 				$template: todo_template,
 				complete: [always(true), '.complete|click'],
 				'c': ['+', 'a', 'b']
