@@ -33,6 +33,8 @@ var fromMap = function(map, def){
 	}
 }
 
+var path_cellname = (a) => a.split('/').pop();
+
 Object.defineProperty(Object.prototype, 'map', {
 	enumerable: false,
 	value: function(func, conf){
@@ -254,7 +256,12 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 			this.get(name).init();
 		},
 		unlinkChildCells: function(name){
-			this.get(name).unlinkCells('..');
+			var hsh = this.get(name);
+			if(!hsh){
+				console.warn('removing unexisting hash!', name);
+				return;
+			}
+			hsh.unlinkCells('..');
 			this.remove(name);
 		},
 		getLinkedHashCellValue: function(hashname, cellname){
@@ -1236,16 +1243,26 @@ var core = {
 			}
 			return ['closureFunnel', () => {
 				var indices = new Set();
-				return (field, [index, val]) => {
-					var res = func(val);
-					if(res){
-						indices.add(index);
+				return (fieldname, vl) => {
+					if(field === fieldname){
+						var [index, val] = vl;
+						var res = func(val);
+						if(res){
+							indices.add(index);
+						} else {
+							indices.delete(index);
+						}
 					} else {
-						indices.delete(index);
+						if(!vl) return indices;
+						for(let [change_type, index] of vl){
+							if(change_type === 'remove') {
+								indices.delete(index);
+							}
+						}
 					}
 					return indices;
 				}
-			}, field];
+			}, field, '$arr_data.changes'];
 		},
 		reduce: function(funcstring){
 			var field = '*/' + funcstring[0];
@@ -1285,15 +1302,18 @@ var core = {
 		},
 		count: function(funcstring){
 			var fieldname = funcstring[0];
+			var pieces = fieldname.split('/');
+			fieldname = pieces.pop();
+			var prefix = pieces.length ? pieces.join('/') + '/' : '';
 			if(fieldname === '*'){
 				// just count all
-				return ['$arr_data.length'];
+				return [ prefix + '$arr_data.length'];
 			}
 			return ['closureFunnel', () => {
 				var count = 0;
 				var vals = {};
 				return (cell, chng) => {
-					if(cell == '$arr_data.changes'){
+					if(path_cellname(cell) == '$arr_data.changes'){
 						// finding deletion
 						chng.filter((a) => {
 							return a[0] === 'remove';
@@ -1324,7 +1344,13 @@ var core = {
 					//console.log('Now count', count);
 					return count;
 				}
-			}, '*/' + fieldname, '$arr_data.changes']
+			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes']
+		},
+		join: function(funcstring){
+			var fnc = funcstring.slice();
+			fnc[0] = 'funnel';
+			fnc.splice(1, 0, second);
+			return fnc;
 		},
 		list: function(funcstring){
 			var props = funcstring[0];

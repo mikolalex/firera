@@ -17,6 +17,7 @@ var adder = (a) => {
 		return b+a;
 	}
 }
+var second = (__, a) => a;
 
 var as = (propName, defValues = {}) => {
 	return (val) => {
@@ -906,11 +907,11 @@ describe('Basic Firera functionality', function () {
 			.
 				span
 					"Completed: "
-					span.$completed_number
+					span.completed_number$
 			.
 				span
 					"Total: "
-					span.$all_number
+					span.all_number$
 			.
 				a.clear-completed(href: #)
 					"Clear completed"
@@ -941,31 +942,28 @@ describe('Basic Firera functionality', function () {
 						as('text', {complete: false}), 
 						'../new_todos'
 					],
-					pop: ['map', {
-						'done': id,
-						'*/.remove|click': ind(0),
-						'remove_completed': id,
-					}],
+					pop: ['join', 
+						'done', 
+						[ind(0), '*/.remove|click'], 
+						[(a, b) => {
+							return a ? b : a;
+						}, '../remove_done', '-completed_indices']
+					],
 					self: {
 						'display': [fromMap({
 							all: '*',
 							undone: true,
 							done: false,
 						}), '../display'],
-						'completed_number': ['count', 'complete'],
-						'all_number': ['count', '*'],
 						'completed_indices': ['indices', 'complete'],
-						'remove_completed': [(a, b) => {
-							return a ? b : a;
-						}, '../remove_done', '-completed_indices']
 					}
 				}],
 				'remove_done': ['.clear-completed|click'],
 				'new_todos': ['.new-todo-text|enterText'],
 				'display': ['.display > *|click|attr(class)'],
 				'.new-todo-text|setval': [always(''), 'new_todos'],
-				'completed_number': ['todos/completed_number'],
-				'all_number': ['todos/all_number'],
+				'completed_number': ['count', 'todos/complete'],
+				'all_number': ['count', 'todos/*'],
 			},
 			todo: {
 				'|visibility': ['!=', '../display', 'complete'],
@@ -976,11 +974,30 @@ describe('Basic Firera functionality', function () {
 			},
 			__packages: ['ozenfant', 'htmlCells']
 		})
-		console.log('app', app, $root.find('input[type=text]'));
+		//console.log('app', app, $root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Do something useful');
 		triggerEnter($root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Have a rest');
 		triggerEnter($root.find('input[type=text]'));
+		$root.find('input[type=text]').val('Write some tests');
+		triggerEnter($root.find('input[type=text]'));
+		$root.find('ul > *:nth-child(2) .complete').click();
+		$root.find('input[type=text]').val('Listen to music');
+		triggerEnter($root.find('input[type=text]'));
+		$root.find('ul > *:nth-child(2) .complete').click();
+		
+		assert.equal(Number($root.find('span.completed_number').html()), 2);
+		assert.equal(Number($root.find('span.all_number').html()), 4);
+		
+		$root.find('.clear-completed').click();
+		
+		assert.equal(Number($root.find('span.completed_number').html()), 0);
+		assert.equal(Number($root.find('span.all_number').html()), 2);
+		
+		$root.find('.clear-completed').click();
+		
+		assert.equal(Number($root.find('span.completed_number').html()), 0);
+		assert.equal(Number($root.find('span.all_number').html()), 2);
 	})
 })
 
