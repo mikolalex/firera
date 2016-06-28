@@ -28,7 +28,7 @@ window.che_config = {
 		},
 		operator: {
 			free_chars: true,
-			regex: /^([\>\|])+$/,
+			regex: /^([\>\|\&])+$/,
 		},
 		item_with_comma: {
 			children: [

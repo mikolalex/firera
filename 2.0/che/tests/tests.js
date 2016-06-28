@@ -65,8 +65,8 @@ describe('Che', function () {
 		var parser = che_parser.get_parser(che_config);
 		var res = parser(str11);
 		$(".test-parser").html(che_parser.dump(res.syntax));
-		console.log(JSON.stringify(
-			res.semantics));
+		/*console.log(JSON.stringify(
+			res.semantics));*/
 		
 		assert.deepEqual(
 			res.semantics, 
@@ -217,6 +217,49 @@ describe('Che', function () {
 		obj.drip("c", 3);
 		//console.log(JSON.stringify(obj.state));
 		assert.deepEqual(obj.state, {a: 1, b: 13, c: 3});
+	})
+})
+
+describe('Testing & operator', function () {
+	it('Simple positive example', function(){
+		var output = {};
+		var obj = che.create('> a, (& b, d), c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		});
+		obj.drip("a", 1);
+		obj.drip("d", 1);
+		obj.drip("b", 1);
+		obj.drip("c", 1);
+		assert.deepEqual(obj.state, {a: 1, b: 1, c: 1, d: 1});
+		assert.equal(obj.finished, true);
+	})
+	it('Simple negative example', function(){
+		var output = {};
+		var obj = che.create('> a, (& b, d), c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		});
+		obj.drip("a", 1);
+		obj.drip("d", 1);
+		obj.drip("c", 1);
+		assert.equal(obj.finished, undefined);
+	})
+	it('Complex positive example', function(){
+		var output = {};
+		var obj = che.create('> a, (& (> b, v), d), c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		});
+		obj.drip("a", 1);
+		obj.drip("b", 1);
+		obj.drip("d", 1);
+		obj.drip("v", 1);
+		obj.drip("c", 1);
+		assert.equal(obj.finished, true);
 	})
 })
 	var str11 = `

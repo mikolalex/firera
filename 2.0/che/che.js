@@ -145,6 +145,27 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				}
 			}
 		break;
+		case '&':
+			mirror_struct.count_all_counter = mirror_struct.count_all_counter || 0;
+			mirror_struct.count_all_each_event = mirror_struct.count_all_each_event || {};
+			for(let i in struct.children){
+				//console.log('checking', struct.children[i], i, mirror_struct.count_all_counter);
+				res = check(i);
+				if(is_luck(res)){
+					if(struct.children[i].output){
+						output(struct.children[i].output, res);
+					}
+					if(!mirror_struct.count_all_each_event[i]){
+						mirror_struct.count_all_counter++;
+						if(mirror_struct.count_all_counter === struct.children.length){
+							//console.log('Full success!');
+							return value;
+						}
+					}
+					mirror_struct.count_all_each_event[i] = true;
+				}
+			}
+		break;
 		case '>':
 			var pos = mirror_struct.pos || 0;
 			//console.log('________________________', cellname, pos);
@@ -219,7 +240,11 @@ Chex.prototype.drip = function(cellname, val){
 	var res = this.absorb(this.struct, this.mirror, cellname, val);
 	if(res !== no_luck){
 		// pattern done
+		//console.log('________ FINISH!');
 		this.finished = true;
+		this.mirror = {
+			children: [],
+		};
 		if(this.onSuccess){
 			this.onSuccess();
 		}
