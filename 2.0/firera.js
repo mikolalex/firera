@@ -28,11 +28,6 @@ var arr_common = function(arr1, arr2, cb){
 		}
 	}
 }
-var fromMap = function(map, def){
-	return (val) => {
-		return (map[val] !== undefined) ? map[val] : def;
-	}
-}
 
 var path_cellname = (a) => a.split('/').pop();
 
@@ -1129,6 +1124,8 @@ var arr_diff = function(a, b){
 	}
 	return diff;
 }
+
+var second = (__, a) => a;
 
 var arr_changes_to_child_changes = function(item_hash, arr_change){
 	//console.log('beyond the reals of death', item_hash, arr_change);

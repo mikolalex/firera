@@ -41,6 +41,12 @@ var triggerEnter = (el) => {
 	el.trigger(e);
 }
 
+var fromMap = function(map, def){
+	return (val) => {
+		return (map[val] !== undefined) ? map[val] : def;
+	}
+}
+
 describe('Basic Firera functionality', function () {
     /*it('Testing simple values conversion', function () {
         var pb = {
