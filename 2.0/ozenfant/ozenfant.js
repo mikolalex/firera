@@ -1,5 +1,5 @@
-	//var ozenfant_config = require('./config');
-	var parser = parser.get_parser(ozenfant_config);
+	var ozenfant_config = require('./config');
+	var parser = require('../che/parser').get_parser(ozenfant_config);
 	var Ozenfant = function(str){
 		this.struct = parser(str);
 		this.node_vars_paths = {};

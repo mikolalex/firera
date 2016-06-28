@@ -1,6 +1,7 @@
 'use strict';
 
-//var Ozenfant = require('./ozenfant/ozenfant');
+var Ozenfant = require('./ozenfant/ozenfant');
+
 var always = (a) => {
 	return () => a;
 }
