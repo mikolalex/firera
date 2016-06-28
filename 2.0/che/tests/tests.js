@@ -254,6 +254,7 @@ describe('Testing & operator', function () {
 				output[key] = val;
 			},
 		});
+		
 		obj.drip("a", 1);
 		obj.drip("b", 1);
 		obj.drip("d", 1);
@@ -262,6 +263,13 @@ describe('Testing & operator', function () {
 		assert.equal(obj.finished, true);
 	})
 })
+
+describe('Testing plots', function(){
+	it('Simple plot', () => {
+		
+	})
+})
+
 	var str11 = `
 			> 
 				".select_rect|click"/active_figure/, 

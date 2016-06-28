@@ -59,6 +59,7 @@ var Chex = function(struct, linking, callbacks){
 		children: [],
 	};
 	this.refreshSubscriptions();
+	this.activate_needed_events();
 };
 
 Chex.prototype.getStruct = function(struct){
@@ -66,7 +67,6 @@ Chex.prototype.getStruct = function(struct){
 }
 
 Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
-	//console.log('Absorb', arguments);
 	//console.log('checking children', struct.children);
 	var res;
 	var check = (i) => {
@@ -232,12 +232,72 @@ Chex.prototype.refreshSubscriptions = function(){
 	var subscr = new Set;
 	this.subscriptions = get_subscriptions(this.getStruct(), subscr);
 }
+
+Chex.prototype.sleep = function(){
+	this.mirror = {
+		children: [],
+	};
+	this.state = {};
+	this.sleeping = true;
+}
+
+Chex.prototype.awake = function(){
+	this.sleeping = false;
+}
+
+Chex.prototype.activate_needed_events = function(){
+	var ac = this.get_active_cells(this.struct, this.mirror);
+	// @todo: check for linked chex' and activate them
+}
+
+Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
+	var res = [];
+	if(!branch) debugger;
+	if(branch.type === 'revolver'){
+		if(!mirror.children){
+			mirror.children = [];
+		}
+		switch(branch.subtype){
+			case '>':
+				//console.log('Activate selected part of > revolver');
+				mirror.pos = mirror.pos || 0;
+				if(!mirror.children[mirror.pos]) mirror.children[mirror.pos] = {children: []};
+				if(!branch.children[mirror.pos]){
+					// revolver finished
+					return;
+				}
+				this.get_active_cells(branch.children[mirror.pos], mirror.children[mirror.pos], cells);
+			break;
+			default:
+				for(let p in branch.children){
+					if(!mirror.children[p]){
+						mirror.children[p] = {children: []};
+					}
+					this.get_active_cells(branch.children[p], 
+					mirror.children[p], cells);
+				}
+				//console.log('Activate each part of revolver');
+			break;
+		}
+	} else {
+		//console.log('activate something eles', branch);
+		cells.add(branch.event.name);
+	}
+	//console.log('_____ got', res);
+	return cells;
+}
+
 Chex.prototype.drip = function(cellname, val){
 	if(this.finished){
-		console.log('No way, it\'s over!');
+		//console.log('No way, it\'s over!');
+		return;
+	}
+	if(this.sleeping){
+		//console.log('No, I\'m sleeping!');
 		return;
 	}
 	var res = this.absorb(this.struct, this.mirror, cellname, val);
+	this.activate_needed_events();
 	if(res !== no_luck){
 		// pattern done
 		//console.log('________ FINISH!');
