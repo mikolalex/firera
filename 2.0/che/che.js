@@ -246,13 +246,12 @@ Chex.prototype.awake = function(){
 }
 
 Chex.prototype.activate_needed_events = function(){
-	var ac = this.get_active_cells(this.struct, this.mirror);
+	this.needed_events = this.get_active_cells(this.struct, this.mirror);
 	// @todo: check for linked chex' and activate them
 }
 
 Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
 	var res = [];
-	if(!branch) debugger;
 	if(branch.type === 'revolver'){
 		if(!mirror.children){
 			mirror.children = [];
@@ -261,12 +260,13 @@ Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
 			case '>':
 				//console.log('Activate selected part of > revolver');
 				mirror.pos = mirror.pos || 0;
-				if(!mirror.children[mirror.pos]) mirror.children[mirror.pos] = {children: []};
-				if(!branch.children[mirror.pos]){
-					// revolver finished
-					return;
+				for(let p = mirror.pos; p < branch.children.length; p++){
+					if(!mirror.children[p]){
+						mirror.children[p] = {children: []};
+					}
+					this.get_active_cells(branch.children[p], 
+					mirror.children[p], cells);
 				}
-				this.get_active_cells(branch.children[mirror.pos], mirror.children[mirror.pos], cells);
 			break;
 			default:
 				for(let p in branch.children){
@@ -280,10 +280,19 @@ Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
 			break;
 		}
 	} else {
-		//console.log('activate something eles', branch);
-		cells.add(branch.event.name);
+		switch(branch.event.type){
+			case 'cell':
+				cells.add(branch.event.name);
+			break;
+			case 'revolver':
+				if(!mirror.children[0]){
+					mirror.children[0] = {children: []};
+				}
+				this.get_active_cells(branch.event, 
+				mirror.children[0], cells);
+			break;
+		}
 	}
-	//console.log('_____ got', res);
 	return cells;
 }
 
@@ -294,6 +303,10 @@ Chex.prototype.drip = function(cellname, val){
 	}
 	if(this.sleeping){
 		//console.log('No, I\'m sleeping!');
+		return;
+	}
+	if(!this.needed_events.has(cellname)){
+		//console.log('We are not interested in this event now', cellname);
 		return;
 	}
 	var res = this.absorb(this.struct, this.mirror, cellname, val);

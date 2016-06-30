@@ -74,7 +74,7 @@ describe('Che', function () {
 		);
 		
 	})
-	it('Testing che', function(){
+	it('Testing che 1', function(){
 		var res = 0;
 		var output = {};
 		var obj = che.create('> (|(> b, c)/ololo/,(> e, f))/zzz/, d/aaa/', {
@@ -116,7 +116,7 @@ describe('Che', function () {
 		assert.deepEqual(output, {res: 2});
 		assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
-	it('Testing che quantifiers: *', function(){
+	it('Testing che quantifiers: * 1', function(){
 		var output = {};
 		var obj = che.create('> a, b*, c', {
 			onOutput: function(key, val){
