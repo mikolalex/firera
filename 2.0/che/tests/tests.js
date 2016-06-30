@@ -264,9 +264,24 @@ describe('Testing & operator', function () {
 	})
 })
 
-describe('Testing plots', function(){
-	it('Simple plot', () => {
-		
+describe('Testing objects as calback', function(){
+	it('Test #1', () => {
+		var output = {};
+		var obj = che.create('> a, (& b, d|multiply_10), c', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, {
+			multiply_10: function(state, val){
+				state.ololo = val*10;
+				return state;
+			}
+		});
+		obj.drip("a", 1);
+		obj.drip("d", 1);
+		obj.drip("b", 1);
+		obj.drip("c", 1);
+		assert.deepEqual(obj.state, {a: 1, ololo: 10, b: 1, c: 1});
 	})
 })
 

@@ -48,6 +48,8 @@ var is_multiple = (quant) => {
 	return !!(quant && (quant.max !== quant.min));
 }
 
+var is_num = (a) => Number(a) == a;
+
 
 var Chex = function(struct, linking, callbacks){
 	this.struct = struct;
@@ -86,13 +88,23 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 						var lakmus = this.callbacks[cond](this.state, value);
 						if(!lakmus) return no_luck;
 					} 
-					var pipe = struct.children[i].pipe;
+					var cb, pipe = struct.children[i].pipe;
 					if(pipe){
-						--pipe; // because it's 1-based
-						if(!this.callbacks[pipe]){
-							console.error('No callback for pipe:', pipe);
+						if(is_num(pipe)){
+							// its number
+							--pipe; // because it's 1-based
+							cb = this.callbacks[pipe];
+						} else {
+							cb = this.callbacks[0][pipe];
 						}
-						this.state = this.callbacks[pipe](this.state, value);
+						if(!(cb instanceof Function)){
+							console.error('Callback should be a function!');
+							return value;
+						}
+						this.state = cb(this.state, value);
+						if(!this.state instanceof Object){
+							console.error('New state should be an object too!', this.state);
+						}
 					} else {
 						// regular join
 						var as_array = is_multiple(struct.children[i].quantifier);
