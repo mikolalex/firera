@@ -62,6 +62,7 @@ var Chex = function(struct, linking, callbacks){
 	};
 	this.refreshSubscriptions();
 	this.activate_needed_events();
+	this.mirror = this.mirror.children[0];
 };
 
 Chex.prototype.getStruct = function(struct){
@@ -124,9 +125,14 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				if(!mirror_struct.children[i]){
 					mirror_struct.children[i] = {
 						children: [],
+						//type: child.subtype,
+						//parent: mirror_struct,
 					}
 				}
 				return this.absorb(child, mirror_struct.children[i], cellname, value);
+			break;
+			case 'func':
+				console.log('CHEKC FUNC!', struct, mirror_struct, cellname, value);
 			break;
 		}
 		return no_luck;
@@ -143,6 +149,9 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 			}
 		}
 		this.onOutput(title, val);
+	}
+	if(!struct.subtype){
+		struct = struct.event;
 	}
 	switch(struct.subtype){
 		case '|':
@@ -186,7 +195,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					break;
 				}
 				res = check(i);
-				//console.log('Check', struct.children[i].event.name, cellname, is_luck(res));
 				if(is_luck(res)){
 					if(mirror_struct.counter === undefined){
 						mirror_struct.counter = 0;
@@ -258,35 +266,57 @@ Chex.prototype.awake = function(){
 }
 
 Chex.prototype.activate_needed_events = function(){
-	this.needed_events = this.get_active_cells(this.struct, this.mirror);
+	var cells_and_funcs = this.get_active_cells_and_funcs(this.struct, this.mirror);
+	this.needed_events = cells_and_funcs[0];
+	for(let fnc in cells_and_funcs[1]){
+		console.log('Run func!', fnc);
+	}
 	// @todo: check for linked chex' and activate them
 }
 
-Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
+Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new Set, funcs = new Set){
 	var res = [];
+	if(branch.type === 'func'){
+		funcs.add({
+			name: branch.name,
+			params: branch.params
+		})
+		//console.log('Found FUNC!', branch, funcs);
+		return [cells, funcs];
+	}
 	if(branch.type === 'revolver'){
 		if(!mirror.children){
 			mirror.children = [];
 		}
 		switch(branch.subtype){
 			case '>':
-				//console.log('Activate selected part of > revolver');
 				mirror.pos = mirror.pos || 0;
-				for(let p = mirror.pos; p < branch.children.length; p++){
-					if(!mirror.children[p]){
-						mirror.children[p] = {children: []};
-					}
-					this.get_active_cells(branch.children[p], 
-					mirror.children[p], cells);
+				if(!branch.children[mirror.pos]){
+					// revolver finished
+					return [cells, funcs];
 				}
+				
+				var p = mirror.pos;
+				do {
+					if(!mirror.children[p]) mirror.children[p] = {children: []};
+					//console.log('traversing >', branch.children, p);
+					this.get_active_cells_and_funcs(branch.children[p], mirror.children[p], cells, funcs);
+					p++;
+					//console.log('>>>', branch.children, p-1, branch.children[p - 1].quantifier, branch.children[p-1].max, !(!branch.children[p - 1].quantifier || branch.children[p-1].max));
+				} while(branch.children[p - 1] && !(!branch.children[p - 1].quantifier || branch.children[p-1].max));
 			break;
 			default:
 				for(let p in branch.children){
 					if(!mirror.children[p]){
-						mirror.children[p] = {children: []};
+						mirror.children[p] = {
+							children: [],
+							//parent: mirror,
+							//type: branch.subtype,
+							//id: ++mirids
+						};
 					}
-					this.get_active_cells(branch.children[p], 
-					mirror.children[p], cells);
+					this.get_active_cells_and_funcs(branch.children[p], 
+					mirror.children[p], cells, funcs);
 				}
 				//console.log('Activate each part of revolver');
 			break;
@@ -297,15 +327,21 @@ Chex.prototype.get_active_cells = function(branch, mirror, cells = new Set){
 				cells.add(branch.event.name);
 			break;
 			case 'revolver':
-				if(!mirror.children[0]){
-					mirror.children[0] = {children: []};
-				}
-				this.get_active_cells(branch.event, 
-				mirror.children[0], cells);
+				/*if(!mirror.children[0]){
+					console.log('~~~~~~~ ADD CHILD TO MIRROR___________', mirids+1, branch, mirror);
+					mirror.children[0] = {
+						children: [],
+						parent: mirror,
+						type: branch.event.subtype,
+						id: ++mirids
+					};
+				}*/
+				this.get_active_cells_and_funcs(branch.event, 
+				mirror, cells, funcs);
 			break;
 		}
 	}
-	return cells;
+	return [cells, funcs];
 }
 
 Chex.prototype.drip = function(cellname, val){
@@ -344,6 +380,7 @@ module.exports = {
 		} else {
 			struct = parsed_pool[che_expression] = parser(che_expression);
 		}
+		//console.log('Sem', struct.semantics);
 		var state = new Chex(struct.semantics, linking, callbacks);
 		return state;
 	},

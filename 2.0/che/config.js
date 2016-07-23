@@ -43,35 +43,42 @@ window.che_config = {
 		},
 		item: {
 			children: [
-				'>',
+				'|', 
+				{
+					type: 'func',
+					optional: true,
+				},
 				[
-					'|',
-					{ 
-						type: 'quoted_cellname'
-					},
-					{ 
-						type: 'cellname'
+					'>',
+					[
+						'|',
+						{ 
+							type: 'quoted_cellname'
+						},
+						{ 
+							type: 'cellname'
+						},
+						{
+							type: 'bracket'
+						},
+					],
+					{
+						type: 'cond',
+						optional: true,
+					}, 
+					{
+						type: 'pipe',
+						optional: true,
 					},
 					{
-						type: 'bracket'
+						type: 'output',
+						optional: true,
 					},
-				],
-				{
-					type: 'cond',
-					optional: true,
-				}, 
-				{
-					type: 'pipe',
-					optional: true,
-				},
-				{
-					type: 'output',
-					optional: true,
-				},
-				{
-					type: 'quantifier',
-					optional: true,
-				}
+					{
+						type: 'quantifier',
+						optional: true,
+					}
+				]
 			]
 		},
 		bracket: {
@@ -128,6 +135,22 @@ window.che_config = {
 		comma: {
 			free_chars: true,
 			regex: /^[\,]+$/,
+		},
+		func: {
+			children: [
+				'>',
+				{
+					type: 'cellname',
+				},
+				{
+					type: 'func_params',
+				}
+			]
+		}, 
+		func_params: {
+			start: '(',
+			free_chars: true,
+			end: ')'
 		},
 		quantifier_char: {
 			free_chars: true,
@@ -210,6 +233,16 @@ window.che_config = {
 					}
 				}
 				return self;
+			}
+		},
+		func: {
+			func: (struct, parser) => {
+				//console.log('analyzing func!', struct, parser);
+				return {
+					name: struct.children[0].chars,
+					params: struct.children[1].chars ? struct.children[1].chars : '',
+					type: 'func'
+				}
 			}
 		},
 		item: {

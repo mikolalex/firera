@@ -285,6 +285,27 @@ describe('Testing objects as calback', function(){
 	})
 })
 
+describe('Testing sync functions', function(){
+	it('Test #1', () => {
+		var output = {};
+		var obj = che.create('> a, (| b, c), check(), d', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, {
+			check: function(state){
+				if(state.a > 1){
+					state.done = true;
+				}
+			}
+		});
+		obj.drip("a", 1);
+		obj.drip("c", 1);
+		obj.drip("d", 1);
+		assert.equal(obj.state.done, true);
+	})
+})
+
 	var str11 = `
 			> 
 				".select_rect|click"/active_figure/, 

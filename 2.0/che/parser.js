@@ -136,7 +136,6 @@
 							var lag = 0;
 							while(++pos){
 								var char = str[pos - 1];
-								//console.log('Considering char', char);
 								if(char === undefined){
 									// we reached the end!
 									if(pos - start_pos > 1){
@@ -159,9 +158,9 @@
 								} else {
 									if(tk.regex){
 										var string_to_compare = str.substr(start_pos + lag, pos - start_pos - lag);
-										//console.log('matching regex', tk.regex, 'against', string_to_compare);
 										var a1 = !!char.match(tk.regex);
 										var a2 = !!string_to_compare.match(tk.regex);
+										//console.log('matching regex', tk.regex, 'against', string_to_compare, a1, started);
 										//if(a1 !== a2){
 										//console.log('Comparing', start_pos, a1, a2, tt, '"' + char + '"', 'vs.', '"' + string_to_compare + '".match(' + tk.regex + ')');
 										//}
@@ -209,7 +208,7 @@
 							multiple = true;
 						}
 						while(true){
-							//console.log('parsing multiple', struct_to_parse, 'as', tt);
+							//console.log('parsing multiple', struct_to_parse, 'as', tt, b);
 							var rz = parse_rec(struct_to_parse, str, p);
 							r = rz[0];
 							p = rz[1];
