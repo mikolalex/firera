@@ -294,9 +294,8 @@ describe('Testing sync functions', function(){
 			},
 		}, {
 			check: function(state){
-				if(state.a > 1){
-					state.done = true;
-				}
+				state.done = true;
+				return state;
 			}
 		});
 		obj.drip("a", 1);

@@ -62,7 +62,6 @@ var Chex = function(struct, linking, callbacks){
 	};
 	this.refreshSubscriptions();
 	this.activate_needed_events();
-	this.mirror = this.mirror.children[0];
 };
 
 Chex.prototype.getStruct = function(struct){
@@ -132,7 +131,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				return this.absorb(child, mirror_struct.children[i], cellname, value);
 			break;
 			case 'func':
-				console.log('CHEKC FUNC!', struct, mirror_struct, cellname, value);
 			break;
 		}
 		return no_luck;
@@ -268,8 +266,9 @@ Chex.prototype.awake = function(){
 Chex.prototype.activate_needed_events = function(){
 	var cells_and_funcs = this.get_active_cells_and_funcs(this.struct, this.mirror);
 	this.needed_events = cells_and_funcs[0];
-	for(let fnc in cells_and_funcs[1]){
-		console.log('Run func!', fnc);
+	for(let fnc of cells_and_funcs[1]){
+		//console.log('running func', fnc.name);
+		this.state = this.callbacks[0][fnc.name](this.state);
 	}
 	// @todo: check for linked chex' and activate them
 }
@@ -281,7 +280,6 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 			name: branch.name,
 			params: branch.params
 		})
-		//console.log('Found FUNC!', branch, funcs);
 		return [cells, funcs];
 	}
 	if(branch.type === 'revolver'){
@@ -302,8 +300,13 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 					//console.log('traversing >', branch.children, p);
 					this.get_active_cells_and_funcs(branch.children[p], mirror.children[p], cells, funcs);
 					p++;
-					//console.log('>>>', branch.children, p-1, branch.children[p - 1].quantifier, branch.children[p-1].max, !(!branch.children[p - 1].quantifier || branch.children[p-1].max));
-				} while(branch.children[p - 1] && !(!branch.children[p - 1].quantifier || branch.children[p-1].max));
+				} while(
+					(
+						branch.children[p - 1] && !(!branch.children[p - 1].quantifier || branch.children[p-1].max)
+					)
+					||
+					branch.children[p - 1].type === 'func'
+				)
 			break;
 			default:
 				for(let p in branch.children){
@@ -345,6 +348,7 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 }
 
 Chex.prototype.drip = function(cellname, val){
+	//console.log('dripping', cellname);
 	if(this.finished){
 		//console.log('No way, it\'s over!');
 		return;
@@ -359,6 +363,7 @@ Chex.prototype.drip = function(cellname, val){
 	}
 	var res = this.absorb(this.struct, this.mirror, cellname, val);
 	this.activate_needed_events();
+	//console.log('____dripped', this.needed_events);
 	if(res !== no_luck){
 		// pattern done
 		//console.log('________ FINISH!');
