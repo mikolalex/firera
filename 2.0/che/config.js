@@ -127,6 +127,9 @@ window.che_config = {
 			free_chars: true,
 			regex: /^([a-zA-Z0-9_\-])+$/
 		},
+		threedots: {
+			str: '...',
+		},
 		cond: {
 			start: '?',
 			free_chars: true,
@@ -144,6 +147,10 @@ window.che_config = {
 				},
 				{
 					type: 'func_params',
+				},
+				{
+					type: 'threedots',
+					optional: true,
 				},
 				{
 					type: 'pipe',
@@ -245,7 +252,8 @@ window.che_config = {
 				var self = {
 					name: struct.children[0].chars,
 					params: struct.children[1].chars ? struct.children[1].chars : '',
-					type: 'func'
+					type: 'func',
+					subtype: 'sync'
 				};
 				for(let child of struct.children){
 					if(child.type === 'output'){
@@ -256,6 +264,9 @@ window.che_config = {
 					}
 					if(child.type === 'cond'){
 						self.cond = parser(child).chars;
+					}
+					if(child.type === 'threedots'){
+						self.subtype = 'async';
 					}
 				}
 				return self;

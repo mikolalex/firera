@@ -264,8 +264,8 @@ describe('Testing & operator', function () {
 	})
 })
 
-describe('Testing objects as calback', function(){
-	it('Test #1', () => {
+describe('Other', function(){
+	it('Testing objects as calback', () => {
 		var output = {};
 		var obj = che.create('> a, (& b, d|multiply_10), c', {
 			onOutput: function(key, val){
@@ -283,10 +283,7 @@ describe('Testing objects as calback', function(){
 		obj.drip("c", 1);
 		assert.deepEqual(obj.state, {a: 1, ololo: 10, b: 1, c: 1});
 	})
-})
-
-describe('Testing sync functions', function(){
-	it('Test #1', () => {
+	it('Testing sync functions', () => {
 		var output = {};
 		var obj = che.create('> a, (| b, c), check()|merge, d', {
 			onOutput: function(key, val){
@@ -305,6 +302,30 @@ describe('Testing sync functions', function(){
 		obj.drip("c", 1);
 		obj.drip("d", 1);
 		assert.equal(obj.state.done, true);
+	})
+	it('Testing async functions', () => {
+		var output = {};
+		var obj = che.create('> str, (| b, c), make_request()...|merge, d', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, {
+			make_request: function(state, cb){
+				console.log('___________ making request...');
+				setTimeout(() => {
+					console.log('___________ running callback');
+					cb(true, 'some_test_data');
+				}, 1000)
+			},
+			merge: function(state, val){
+				state.res = val;
+				return state;
+			},
+		});
+		obj.drip("str", 'ololo');
+		obj.drip("c", 1);
+		obj.drip("d", 1);
+		//assert.equal(obj.state.done, true);
 	})
 })
 

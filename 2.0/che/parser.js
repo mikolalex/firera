@@ -182,6 +182,14 @@
 							console.warn('Could not parse free chars without end!');
 							return [false, pos];
 						}
+					} else if(tk.str){
+						// just exact string
+						var test_str = str.substr(pos, tk.str.length);
+						if(test_str === tk.str){
+							return [res, pos + tk.str.length];
+						} else {
+							return [false, pos];
+						}
 					} else {
 						console.warn('No chars and no tokens - what to do?', tk);
 					}

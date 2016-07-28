@@ -273,8 +273,7 @@ Chex.prototype.awake = function(){
 Chex.prototype.activate_needed_events = function(){
 	var cells_and_funcs = this.get_active_cells_and_funcs(null, this.struct, this.mirror);
 	this.needed_events = cells_and_funcs[0];
-	for(let fnc of cells_and_funcs[1]){
-		var value = this.callbacks[0][fnc.name](this.state);
+	var cb = function(fnc, done, value){
 		if(fnc.pipe){
 			this.__runCallback(fnc.pipe, value);
 		}
@@ -282,13 +281,29 @@ Chex.prototype.activate_needed_events = function(){
 			++fnc.parent_mirror.pos;
 		}
 	}
+	for(let fnc of cells_and_funcs[1]){
+		var subtype = fnc.subtype;
+		if(fnc.mirror.run){
+			// already run
+			continue;
+		}
+		//debugger;
+		if(subtype === 'sync'){
+			var value = this.callbacks[0][fnc.name](this.state);
+			cb.call(this, fnc, true, value);
+		} else {
+			this.callbacks[0][fnc.name](this.state, cb.bind(this, fnc));
+		}
+		fnc.mirror.run = true;
+	}
 	// @todo: check for linked chex' and activate them
 }
 
 Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirror, cells = new Set, funcs = new Set){
 	var res = [];
+	//if(!branch) debugger;
 	if(branch.type === 'func'){
-		funcs.add(Object.assign({parent_mirror: parent_mirror}, branch));
+		funcs.add(Object.assign({parent_mirror: parent_mirror, mirror: mirror}, branch));
 		return [cells, funcs];
 	}
 	if(branch.type === 'revolver'){
