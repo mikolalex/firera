@@ -68,6 +68,27 @@ Chex.prototype.getStruct = function(struct){
 	return this.struct;
 }
 
+Chex.prototype.__runCallback = function(pipe, value){
+	var cb;
+	if(is_num(pipe)){
+		// its number
+		--pipe; // because it's 1-based
+		cb = this.callbacks[pipe];
+	} else {
+		cb = this.callbacks[0][pipe];
+	}
+	if(!(cb instanceof Function)){
+		console.error('Callback should be a function!');
+		return;
+	}
+	var new_state = cb(this.state, value);
+	//console.log('Counting new state from', JSON.parse(JSON.stringify(this.state)), new_state);
+	this.state = new_state;
+	if(!this.state instanceof Object){
+		console.error('New state should be an object too!', this.state);
+	}
+}
+
 Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 	//console.log('checking children', struct.children);
 	var res;
@@ -88,23 +109,9 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 						var lakmus = this.callbacks[cond](this.state, value);
 						if(!lakmus) return no_luck;
 					} 
-					var cb, pipe = struct.children[i].pipe;
+					var pipe = struct.children[i].pipe;
 					if(pipe){
-						if(is_num(pipe)){
-							// its number
-							--pipe; // because it's 1-based
-							cb = this.callbacks[pipe];
-						} else {
-							cb = this.callbacks[0][pipe];
-						}
-						if(!(cb instanceof Function)){
-							console.error('Callback should be a function!');
-							return value;
-						}
-						this.state = cb(this.state, value);
-						if(!this.state instanceof Object){
-							console.error('New state should be an object too!', this.state);
-						}
+						this.__runCallback(pipe, value);
 					} else {
 						// regular join
 						var as_array = is_multiple(struct.children[i].quantifier);
@@ -264,22 +271,24 @@ Chex.prototype.awake = function(){
 }
 
 Chex.prototype.activate_needed_events = function(){
-	var cells_and_funcs = this.get_active_cells_and_funcs(this.struct, this.mirror);
+	var cells_and_funcs = this.get_active_cells_and_funcs(null, this.struct, this.mirror);
 	this.needed_events = cells_and_funcs[0];
 	for(let fnc of cells_and_funcs[1]){
-		//console.log('running func', fnc.name);
-		this.state = this.callbacks[0][fnc.name](this.state);
+		var value = this.callbacks[0][fnc.name](this.state);
+		if(fnc.pipe){
+			this.__runCallback(fnc.pipe, value);
+		}
+		if(fnc.parent_mirror.pos){
+			++fnc.parent_mirror.pos;
+		}
 	}
 	// @todo: check for linked chex' and activate them
 }
 
-Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new Set, funcs = new Set){
+Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirror, cells = new Set, funcs = new Set){
 	var res = [];
 	if(branch.type === 'func'){
-		funcs.add({
-			name: branch.name,
-			params: branch.params
-		})
+		funcs.add(Object.assign({parent_mirror: parent_mirror}, branch));
 		return [cells, funcs];
 	}
 	if(branch.type === 'revolver'){
@@ -298,7 +307,7 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 				do {
 					if(!mirror.children[p]) mirror.children[p] = {children: []};
 					//console.log('traversing >', branch.children, p);
-					this.get_active_cells_and_funcs(branch.children[p], mirror.children[p], cells, funcs);
+					this.get_active_cells_and_funcs(mirror, branch.children[p], mirror.children[p], cells, funcs);
 					p++;
 				} while(
 					(
@@ -318,7 +327,7 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 							//id: ++mirids
 						};
 					}
-					this.get_active_cells_and_funcs(branch.children[p], 
+					this.get_active_cells_and_funcs(mirror, branch.children[p], 
 					mirror.children[p], cells, funcs);
 				}
 				//console.log('Activate each part of revolver');
@@ -339,7 +348,7 @@ Chex.prototype.get_active_cells_and_funcs = function(branch, mirror, cells = new
 						id: ++mirids
 					};
 				}*/
-				this.get_active_cells_and_funcs(branch.event, 
+				this.get_active_cells_and_funcs(mirror, branch.event, 
 				mirror, cells, funcs);
 			break;
 		}

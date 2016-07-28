@@ -288,15 +288,18 @@ describe('Testing objects as calback', function(){
 describe('Testing sync functions', function(){
 	it('Test #1', () => {
 		var output = {};
-		var obj = che.create('> a, (| b, c), check(), d', {
+		var obj = che.create('> a, (| b, c), check()|merge, d', {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
 		}, {
 			check: function(state){
-				state.done = true;
+				return state.a > 0;
+			},
+			merge: function(state, val){
+				state.done = val;
 				return state;
-			}
+			},
 		});
 		obj.drip("a", 1);
 		obj.drip("c", 1);

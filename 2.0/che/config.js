@@ -144,7 +144,11 @@ window.che_config = {
 				},
 				{
 					type: 'func_params',
-				}
+				},
+				{
+					type: 'pipe',
+					optional: true,
+				},
 			]
 		}, 
 		func_params: {
@@ -238,11 +242,23 @@ window.che_config = {
 		func: {
 			func: (struct, parser) => {
 				//console.log('analyzing func!', struct, parser);
-				return {
+				var self = {
 					name: struct.children[0].chars,
 					params: struct.children[1].chars ? struct.children[1].chars : '',
 					type: 'func'
+				};
+				for(let child of struct.children){
+					if(child.type === 'output'){
+						self.output = parser(child);
+					}
+					if(child.type === 'pipe'){
+						self.pipe = parser(child).chars;
+					}
+					if(child.type === 'cond'){
+						self.cond = parser(child).chars;
+					}
 				}
+				return self;
 			}
 		},
 		item: {
