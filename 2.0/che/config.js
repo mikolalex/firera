@@ -59,7 +59,7 @@ window.che_config = {
 							type: 'cellname'
 						},
 						{
-							type: 'bracket'
+							type: 'bracket_extended'
 						},
 					],
 					{
@@ -80,6 +80,22 @@ window.che_config = {
 					}
 				]
 			]
+		},
+		bracket_extended: {
+			children: [
+				'>',
+				{
+					type: 'bracket',
+				},
+				{
+					type: 'output',
+					optional: true,
+				},
+				{
+					type: 'quantifier',
+					optional: true,
+				}
+			],
 		},
 		bracket: {
 			start: '(',
@@ -192,6 +208,36 @@ window.che_config = {
 		},
 		bracket: {
 			type: 'door',
+		},
+		bracket_extended: {
+			func: function(struct, parser){
+				//console.log('_________ parsing', struct, parser);
+				var revolver = parser(struct.children[0].children[0]);
+				var props = struct.children.slice(1);
+				if(!props.length){
+					return revolver;
+				}
+				if(revolver.subtype !== '|'){
+					console.log('Useless quant or output - wrong revolver type', props);
+					return revolver;
+				}
+				//console.log('OK, props' + revolver.subtype, props);
+				for(let child of props){
+					if(child.type === 'output'){
+						revolver.output = parser(child);
+					}
+					if(child.type === 'pipe'){
+						revolver.pipe = parser(child).chars;
+					}
+					if(child.type === 'quantifier'){
+						revolver.quantifier = parser(child).chars;
+					}
+				}
+				return revolver;
+			}
+			
+			/*type: 'door',
+			ret: 1,*/
 		},
 		quantifier: {
 			type: 'door',
@@ -318,12 +364,17 @@ window.che_config = {
 								res.min = 1;
 							break;
 							default:
-								var pieces = quant.chars.split(',');
-								if(pieces[0]){
-									res.min = Number(pieces[0]);
-								}
-								if(pieces[1]){
-									res.max = Number(pieces[1]);
+								if(quant.chars.indexOf(',') !== -1){
+									var pieces = quant.chars.split(',');
+									if(pieces[0]){
+										res.min = Number(pieces[0]);
+									}
+									if(pieces[1]){
+										res.max = Number(pieces[1]);
+									}
+								} else {
+									// just one number, like {42}
+									res.min = res.max = Number(pieces);
 								}
 							break;
 						}

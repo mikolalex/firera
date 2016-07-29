@@ -6,78 +6,11 @@ var always = (a) => {
 	return () => a;
 }
 
-var er = {
-	"type": "revolver",
-	"subtype": ">",
-	"children": [
-		{
-			"event": {
-				"name": ".select_rect|click",
-				"type": "cell"
-			},
-			"output": {
-				"title": "active_figure",
-				"pipes": []
-			}
-		}, {
-			"event": {
-				"name": ".map|click",
-				"type": "cell"
-			},
-			"output": {
-				"title": "points",
-				"pipes": []
-			},
-			"quantifier": {
-				"min": 0,
-			}
-		}, {
-			"event": {
-				"type": "revolver",
-				"subtype": "|",
-				"children": [{
-					"event": {
-						"name": ".save|click",
-						"type": "cell"
-					},
-					"output": {
-						"title": "rectangles",
-						"pipes": ["1"]
-					}
-				}, {
-					"event": {
-						"name": ".discard|click",
-						"type": "cell"
-					}
-				}]
-			},
-			"output": {
-				"title": "active_figure",
-				"pipes": ["false"]
-			}
-		}
-	]
-}
-
 describe('Che', function () {
-	//console.log = () => {};
-	it('Testing parser', function(){
-		var parser = che_parser.get_parser(che_config);
-		var res = parser(str11);
-		$(".test-parser").html(che_parser.dump(res.syntax));
-		/*console.log(JSON.stringify(
-			res.semantics));*/
-		
-		assert.deepEqual(
-			res.semantics, 
-			er
-		);
-		
-	})
 	it('Testing che 1', function(){
 		var res = 0;
 		var output = {};
-		var obj = che.create('> (|(> b, c)/ololo/,(> e, f))/zzz/, d/aaa/', {
+		var obj = che.create('> (|(> b, c),(> e, f))/zzz/, d/aaa/', {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
@@ -303,7 +236,7 @@ describe('Other', function(){
 		obj.drip("d", 1);
 		assert.equal(obj.state.done, true);
 	})
-	it('Testing async functions', () => {
+	it('Testing async functions', (done) => {
 		var output = {};
 		var obj = che.create('> str, (| b, c), make_request()...|merge, d', {
 			onOutput: function(key, val){
@@ -311,9 +244,9 @@ describe('Other', function(){
 			},
 		}, {
 			make_request: function(state, cb){
-				console.log('___________ making request...');
+				//console.log('making request...');
 				setTimeout(() => {
-					console.log('___________ running callback');
+					//console.log('running callback');
 					cb(true, 'some_test_data');
 				}, 1000)
 			},
@@ -325,7 +258,47 @@ describe('Other', function(){
 		obj.drip("str", 'ololo');
 		obj.drip("c", 1);
 		obj.drip("d", 1);
-		//assert.equal(obj.state.done, true);
+		setTimeout(()=>{
+			assert.equal(obj.state.res, 'some_test_data');
+			done();
+		}, 1100)
+	})
+	it('Testing async functions: parralel', (done) => {
+		var output = {};
+		var obj = che.create('> a, (| make_request1()..., make_request2()..., make_request3()...)|merge{2}, b', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, {
+			make_request1: function(state, cb){
+				setTimeout(() => {
+					cb(true, 'some_test_data_1');
+				}, 100)
+			},
+			make_request2: function(state, cb){
+				setTimeout(() => {
+					cb(true, 'some_test_data_2');
+				}, 120)
+			},
+			make_request3: function(state, cb){
+				setTimeout(() => {
+					cb(true, 'some_test_data_3');
+				}, 50)
+			},
+			merge: function(state, val){
+				state.res = state.res || [];
+				state.res.push(val);
+				return state;
+			},
+		});
+		obj.drip("a", 42);
+		obj.drip("c", 1);
+		obj.drip("d", 1);
+		setTimeout(() => {
+			console.log('GOT', obj.state);
+			//assert.equal(obj.state.res, ['some_test_data_3', 'some_test_data_2']);
+			done();
+		}, 500);
 	})
 })
 

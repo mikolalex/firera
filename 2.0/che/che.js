@@ -349,6 +349,9 @@ Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirr
 			break;
 		}
 	} else {
+		if(!branch.event){
+			console.log('So what is it?', branch);
+		}
 		switch(branch.event.type){
 			case 'cell':
 				cells.add(branch.event.name);
