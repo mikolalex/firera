@@ -45,7 +45,7 @@ var no_luck = new function NoLuck(){}
 var is_luck = (a) => a !== no_luck;
 
 var is_multiple = (quant) => {
-	return !!(quant && (quant.max !== quant.min));
+	return !!(quant && (quant.max !== 1));
 }
 
 var is_num = (a) => Number(a) == a;
@@ -109,12 +109,19 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 						var lakmus = this.callbacks[cond](this.state, value);
 						if(!lakmus) return no_luck;
 					} 
+					var state = mirror_struct.children[i];
+						state.counter = state.counter ? state.counter + 1 : 1;
 					var pipe = struct.children[i].pipe;
+					var quant = struct.children[i].quantifier;
+					if(quant && quant.max !== undefined && quant.max < state.counter){
+						// counter exceeded
+						return no_luck;
+					}
 					if(pipe){
 						this.__runCallback(pipe, value);
 					} else {
 						// regular join
-						var as_array = is_multiple(struct.children[i].quantifier);
+						var as_array = is_multiple(quant);
 						if(as_array){
 							if(!this.state[cellname]){
 								this.state[cellname] = [];
@@ -124,6 +131,13 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 							this.state[cellname] = value;
 						}
 					}
+					if(quant){
+						if(state.counter >= quant.min){
+							return value;
+						} else {
+							return no_luck;
+						}
+					} 
 					return value;
 				}
 			break;
@@ -194,12 +208,14 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		break;
 		case '>':
 			var pos = mirror_struct.pos || 0;
-			//console.log('________________________', cellname, pos);
+			//console.log(cellname, pos, mirror_struct);
 			for(let i = pos; ; i++){
 				if(!struct.children[i]){
 					break;
 				}
 				res = check(i);
+				var state = mirror_struct.children[i];
+					state.counter = state.counter || 0;
 				if(is_luck(res)){
 					if(mirror_struct.counter === undefined){
 						mirror_struct.counter = 0;
@@ -228,7 +244,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					if(
 							struct.children[i].quantifier 
 							&& struct.children[i].quantifier.min !== 0
-							//&& struct.children[i].quantifier.max !== undefined
+							&& state.counter < struct.children[i].quantifier.min
 					){
 						break;
 					}
@@ -271,7 +287,7 @@ Chex.prototype.awake = function(){
 }
 
 Chex.prototype.activate_needed_events = function(){
-	var cells_and_funcs = this.get_active_cells_and_funcs(null, this.struct, this.mirror);
+	var cells_and_funcs = this.get_active_cells_and_funcs(null, null, this.struct, this.mirror);
 	this.needed_events = cells_and_funcs[0];
 	var cb = function(fnc, done, value){
 		if(fnc.pipe){
@@ -299,11 +315,11 @@ Chex.prototype.activate_needed_events = function(){
 	// @todo: check for linked chex' and activate them
 }
 
-Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirror, cells = new Set, funcs = new Set){
+Chex.prototype.get_active_cells_and_funcs = function(parent, parent_mirror, branch, mirror, cells = new Set, funcs = new Set){
 	var res = [];
 	//if(!branch) debugger;
 	if(branch.type === 'func'){
-		funcs.add(Object.assign({parent_mirror: parent_mirror, mirror: mirror}, branch));
+		funcs.add(Object.assign({parent_mirror: parent_mirror, mirror: mirror, parent: parent}, branch));
 		return [cells, funcs];
 	}
 	if(branch.type === 'revolver'){
@@ -322,7 +338,7 @@ Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirr
 				do {
 					if(!mirror.children[p]) mirror.children[p] = {children: []};
 					//console.log('traversing >', branch.children, p);
-					this.get_active_cells_and_funcs(mirror, branch.children[p], mirror.children[p], cells, funcs);
+					this.get_active_cells_and_funcs(branch, mirror, branch.children[p], mirror.children[p], cells, funcs);
 					p++;
 				} while(
 					(
@@ -342,7 +358,7 @@ Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirr
 							//id: ++mirids
 						};
 					}
-					this.get_active_cells_and_funcs(mirror, branch.children[p], 
+					this.get_active_cells_and_funcs(branch, mirror, branch.children[p], 
 					mirror.children[p], cells, funcs);
 				}
 				//console.log('Activate each part of revolver');
@@ -366,7 +382,7 @@ Chex.prototype.get_active_cells_and_funcs = function(parent_mirror, branch, mirr
 						id: ++mirids
 					};
 				}*/
-				this.get_active_cells_and_funcs(mirror, branch.event, 
+				this.get_active_cells_and_funcs(branch, mirror, branch.event, 
 				mirror, cells, funcs);
 			break;
 		}

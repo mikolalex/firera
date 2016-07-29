@@ -105,7 +105,7 @@ describe('Che', function () {
 		assert.deepEqual(obj.state, {a: 1});
 		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
-	it('Testing che quantifiers: {}', function(){
+	it('Testing che quantifiers: {,}', function(){
 		var output = {};
 		var obj = che.create('> a, b{2,4}, c', {
 			onOutput: function(key, val){
@@ -126,6 +126,29 @@ describe('Che', function () {
 		obj.drip("b", 3);
 		obj.drip("c", 3);
 		assert.deepEqual(obj.state, {a: 1, b: [3, 3, 3, 3], c: 3});
+		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
+	})
+	it('Testing che quantifiers: {}', function(){
+		var output = {};
+		var obj = che.create('> a, (| b{2}, c{4}), d', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, function(state, val){
+			state.ololo = val;
+			return state;
+		}, function(state, val){
+			return state.ololo;
+		});
+		obj.drip("a", 1);
+		obj.drip("b", 3);
+		obj.drip("c", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("b", 3);
+		obj.drip("d", 3);
+		assert.deepEqual(obj.state, {"a":1,"b":[3,3],"c":[3],"d":3});
 		//assert.deepEqual(obj.state, {a: 1, ololo: 2, c: 3});
 	})
 	it('Testing conditional events', function(){
@@ -271,17 +294,23 @@ describe('Other', function(){
 			},
 		}, {
 			make_request1: function(state, cb){
+				console.log('mr1');
 				setTimeout(() => {
+					console.log('___ gr1');
 					cb(true, 'some_test_data_1');
 				}, 100)
 			},
 			make_request2: function(state, cb){
+				console.log('mr2');
 				setTimeout(() => {
+					console.log('___ gr2');
 					cb(true, 'some_test_data_2');
 				}, 120)
 			},
 			make_request3: function(state, cb){
+				console.log('mr3');
 				setTimeout(() => {
+					console.log('___ gr3');
 					cb(true, 'some_test_data_3');
 				}, 50)
 			},

@@ -88,6 +88,10 @@ window.che_config = {
 					type: 'bracket',
 				},
 				{
+					type: 'pipe',
+					optional: true,
+				},
+				{
 					type: 'output',
 					optional: true,
 				},
@@ -211,7 +215,6 @@ window.che_config = {
 		},
 		bracket_extended: {
 			func: function(struct, parser){
-				//console.log('_________ parsing', struct, parser);
 				var revolver = parser(struct.children[0].children[0]);
 				var props = struct.children.slice(1);
 				if(!props.length){
@@ -374,7 +377,7 @@ window.che_config = {
 									}
 								} else {
 									// just one number, like {42}
-									res.min = res.max = Number(pieces);
+									res.min = res.max = Number(quant.chars);
 								}
 							break;
 						}
