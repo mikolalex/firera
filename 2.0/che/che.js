@@ -7,7 +7,7 @@ var parsed_pool = {};
 var get_subscriptions = function(struct, cells_set){
 	if(struct.event) struct = struct.event;
 	if(!struct.type){
-		console.warn('No type', struct);debugger;
+		console.warn('No type', struct);
 	}
 	switch(struct.type){
 		case 'revolver':
@@ -99,6 +99,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		}
 		switch(child.type){
 			case 'cell':
+			case 'func':
 				if(child.name === cellname){
 					var cond = struct.children[i].cond;
 					if(cond){
@@ -150,8 +151,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					}
 				}
 				return this.absorb(child, mirror_struct.children[i], cellname, value);
-			break;
-			case 'func':
 			break;
 		}
 		return no_luck;
@@ -221,7 +220,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 						mirror_struct.counter = 0;
 					}
 					++mirror_struct.counter;
-
 					if(struct.children[i].output){
 						output(struct.children[i].output, res);
 					}
@@ -290,12 +288,7 @@ Chex.prototype.activate_needed_events = function(){
 	var cells_and_funcs = this.get_active_cells_and_funcs(null, null, this.struct, this.mirror);
 	this.needed_events = cells_and_funcs[0];
 	var cb = function(fnc, done, value){
-		if(fnc.pipe){
-			this.__runCallback(fnc.pipe, value);
-		}
-		if(fnc.parent_mirror.pos){
-			++fnc.parent_mirror.pos;
-		}
+		this.drip(fnc.name, value);
 	}
 	for(let fnc of cells_and_funcs[1]){
 		var subtype = fnc.subtype;
@@ -303,7 +296,6 @@ Chex.prototype.activate_needed_events = function(){
 			// already run
 			continue;
 		}
-		//debugger;
 		if(subtype === 'sync'){
 			var value = this.callbacks[0][fnc.name](this.state);
 			cb.call(this, fnc, true, value);
@@ -317,8 +309,8 @@ Chex.prototype.activate_needed_events = function(){
 
 Chex.prototype.get_active_cells_and_funcs = function(parent, parent_mirror, branch, mirror, cells = new Set, funcs = new Set){
 	var res = [];
-	//if(!branch) debugger;
 	if(branch.type === 'func'){
+		cells.add(branch.name);
 		funcs.add(Object.assign({parent_mirror: parent_mirror, mirror: mirror, parent: parent}, branch));
 		return [cells, funcs];
 	}

@@ -233,7 +233,31 @@ window.che_config = {
 						revolver.pipe = parser(child).chars;
 					}
 					if(child.type === 'quantifier'){
-						revolver.quantifier = parser(child).chars;
+						var res = {}, quant = parser(child);
+						//console.log('Found quantifier', quant);
+						switch(quant.chars){
+							case '*':
+								res.min = 0;
+							break;
+							case '+':
+								res.min = 1;
+							break;
+							default:
+								if(quant.chars.indexOf(',') !== -1){
+									var pieces = quant.chars.split(',');
+									if(pieces[0]){
+										res.min = Number(pieces[0]);
+									}
+									if(pieces[1]){
+										res.max = Number(pieces[1]);
+									}
+								} else {
+									// just one number, like {42}
+									res.min = res.max = Number(quant.chars);
+								}
+							break;
+						}
+						revolver.quantifier = res;
 					}
 				}
 				return revolver;

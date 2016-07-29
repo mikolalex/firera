@@ -288,29 +288,23 @@ describe('Other', function(){
 	})
 	it('Testing async functions: parralel', (done) => {
 		var output = {};
-		var obj = che.create('> a, (| make_request1()..., make_request2()..., make_request3()...)|merge{2}, b', {
+		var obj = che.create('> a, (| make_request1()...|merge, make_request2()...|merge, make_request3()...|merge){2}, b', {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
 		}, {
 			make_request1: function(state, cb){
-				console.log('mr1');
 				setTimeout(() => {
-					console.log('___ gr1');
 					cb(true, 'some_test_data_1');
 				}, 100)
 			},
 			make_request2: function(state, cb){
-				console.log('mr2');
 				setTimeout(() => {
-					console.log('___ gr2');
 					cb(true, 'some_test_data_2');
 				}, 120)
 			},
 			make_request3: function(state, cb){
-				console.log('mr3');
 				setTimeout(() => {
-					console.log('___ gr3');
 					cb(true, 'some_test_data_3');
 				}, 50)
 			},
@@ -324,8 +318,7 @@ describe('Other', function(){
 		obj.drip("c", 1);
 		obj.drip("d", 1);
 		setTimeout(() => {
-			console.log('GOT', obj.state);
-			//assert.equal(obj.state.res, ['some_test_data_3', 'some_test_data_2']);
+			assert.deepEqual(obj.state, {"a":42,"res":["some_test_data_3","some_test_data_1"]});
 			done();
 		}, 500);
 	})
