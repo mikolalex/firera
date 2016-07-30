@@ -1,0 +1,173 @@
+ 
+@font-face {font-family: 'ProbaPro-Regular';src: url('webfonts/2C7715_0_0.eot');src: url('webfonts/2C7715_0_0.eot?#iefix') format('embedded-opentype'),url('webfonts/2C7715_0_0.woff2') format('woff2'),url('webfonts/2C7715_0_0.woff') format('woff'),url('webfonts/2C7715_0_0.ttf') format('truetype');}
+
+
+.xml .javascript {
+	opacity: 1 !important;
+}
+
+nav {
+	margin: 10px;
+	margin-top: 30px;
+}
+
+nav a {
+	  border-color: rgb(255, 236, 42); 
+	  border-style: solid;
+	  border-width: 3px;
+	  background-color: rgb(255, 236, 42); 
+	font-size: 30px;
+	text-decoration: none;
+}
+
+.quote {
+	font-style: italic;
+	width: 80%;
+	margin: auto;
+	font-weight: bold;
+	text-align: justify;
+	padding: 10px 30px;
+}
+	
+	code {
+		font-family: monospace;
+		box-sizing: border-box;
+		font-size: 13px;
+		padding: 30px 5px 30px 30px !important;
+		font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+	}
+	
+	.block img {
+		max-width: 100%;
+	}
+	
+
+	h2, h3 {
+		font-weight: normal;
+		text-align: center;
+	}
+
+	.wrapper {
+	  max-width: 900px;
+	  margin: auto;
+	}
+
+	hr {
+	  height: 1px; 
+	  border: none;
+	  border-top: 2px solid rgb(75, 75, 75);
+	  border-bottom: 1px solid rgb(75, 75, 75);
+	  margin: 40px 70px;
+	}
+
+	h1 {
+	  font-weight: normal; 
+	  margin-top: 80px;
+	  margin-bottom: 30px;
+	  padding-left: 110px;
+	  padding-right: 80px;
+	  font-size: 30px;
+          text-align: center;
+	}
+	
+	h2 {
+		font-size: 26px;
+	}
+	h3 {
+		font-size: 19px;
+	}
+
+	body {
+	  font-family:  Georgia; 
+	  font-size: 16px;
+	  font-family: 'ProbaPro-Regular';
+	}
+
+	.block {
+	  border-style: solid;
+	  border-width: 35px 10px 20px 80px;
+	  padding: 50px 70px 40px 30px;
+	  text-align: justify;
+	  border-color: rgb(255, 247, 11);
+	  margin: 5px;
+	}
+
+	.block2 {
+	  border-color: rgb(247, 54, 20); 
+	}
+
+	.block3 {
+	  border-color: rgb(95, 118, 248);
+	}
+	
+	pre {
+		box-sizing: border-box;
+	}
+	
+	footer {
+		height: 150px;
+	}
+	
+	p {
+		text-indent: 20px;
+	}
+	
+	li.disabled, li.disabled a {
+		color: grey;
+		cursor: default;
+		text-decoration: none;
+	}
+	
+	a {
+		color: darkred;
+	}
+	
+	li {
+		margin: 15px;
+	}
+	
+	
+	@media screen and (max-width: 890px) {
+		.block {
+			margin: 0 auto;
+			border-width: 0px;
+			padding: 10px 5px;
+		}
+		
+		pre {
+			margin-left: -5px;
+			width: calc(100% + 10px);
+		}
+		
+		code {
+			padding: 10px !important;
+		}
+	
+		.example {
+				margin-left: -5px;
+				width: calc(100% + 10px);
+		}
+	}
+	
+	.example {
+		background-color: #f0f0f0;
+		margin-left: -30px;
+		width: calc(100% + 78px);
+		padding: 10px;
+		margin-bottom: 20px;
+	}
+	
+	.example > div {
+		background-color: whitesmoke;
+		padding: 5px;
+		border: 1px solid grey;
+		margin: 10px;
+	}
+	
+	h4 {
+		margin: 5px;
+		text-align: center;
+		margin-top: -25px;
+		
+	}
+
