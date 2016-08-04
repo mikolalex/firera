@@ -328,7 +328,6 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 	this.cell_values = Object.create(parsed_pb.plain_base.$init || {});
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
 	////////////////////////////////////////////////////////////////////////
-	var t1 = performance.now();
 	////////////////////////////////////////////////////////////////////////
 	// @todo: refactor, make this set in one step
 	this.init_values = Object.assign({}, parsed_pb.plain_base.$init, free_vals || {});
@@ -354,7 +353,11 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 }
 
 Hash.prototype.init = function(){
+	console.log('Set init values', this.init_values);
+	timer('Hash init');
+	this.setLevels();
 	this.set(this.init_values);
+	timer('Hash init').stop();
 }
 Hash.prototype.updateChildFreeValues = function(childName, values){
 	this.linked_hashes_provider.setCellValues(childName, values);
@@ -712,7 +715,26 @@ Hash.prototype.setLevels = function(){
 
 
 
-Hash.prototype.wiseSet = function(cells, val){
+Hash.prototype.set2 = function(cells, val, child){
+	if(child){
+		// setting value for some linked child hash
+		//log('Trying to set', child, cell, val);
+		var path = child.split('/');
+		var childname = path[0];
+		var child = this.linked_hashes_provider.get(childname);
+		if(!child){
+			console.warn('Cannot set - no such path', path);
+			return;
+		}
+		var child_path = path[1] ? path.slice(1).join('/') : undefined;
+		child.set(cell, val, child_path);
+		return;
+	}
+	if(!(cells instanceof Object)){
+		var a = {};
+		a[cells] = val;
+		cells = a;
+	}
 	var set = Object.keys(cells);
 	var already = new Set();
 	for(let cell in cells){
@@ -731,7 +753,7 @@ Hash.prototype.wiseSet = function(cells, val){
 				}
 				if(this.levels[child] === needed_lvl){
 					//console.log('computing', child);
-					this.simpleCompute(child);
+					this.compute(child);
 					new_set.push(child);
 					already.add(child);
 				} else {

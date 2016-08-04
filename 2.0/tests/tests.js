@@ -48,12 +48,14 @@ var always = (a) => {
 		}
 		this.stopped = true;
 		console.log(this.name, 'took', this.time, 'ms');
+		delete pool[this.name];
 	}
 
 	window.timer = function(name) {
 		if(name == 'stop_all'){
 			for(var i in pool){
 				pool[i].stop();
+				delete pool[i];
 			}
 			return;
 		}
@@ -1071,7 +1073,7 @@ describe('Basic Firera functionality', function () {
 			c0: 30,
 			d0: 42
 		}
-		for(var i = 1; i <= 15; i++){
+		for(var i = 1; i <= 100; i++){
 			var prev = i - 1;
 			grid['a' + i] = ['b' + prev];
 			grid['b' + i] = ['-', 'a' + prev, 'c' + prev];
@@ -1081,7 +1083,7 @@ describe('Basic Firera functionality', function () {
 		
 		timer('---');
 		var app = Firera({__root: grid});
-		timer('stop_all');
+		timer('---').stop();
 		
 		timer('---2');
 		app.set({'a0': 3, 'b0': 10, 'c0': 35, 'd0': 14});
@@ -1093,7 +1095,7 @@ describe('Basic Firera functionality', function () {
 		
 		root.setLevels();
 		timer('WISE set');
-		root.wiseSet({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
+		root.set({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
 		timer('WISE set').stop();
 		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
 	})
