@@ -7,6 +7,64 @@ var not = a => !a;
 var always = (a) => {
 	return () => a;
 }
+
+
+(function(){
+	window.performance = window.performance || {};
+	performance.now = (function() {
+	  return performance.now       ||
+			 performance.mozNow    ||
+			 performance.msNow     ||
+			 performance.oNow      ||
+			 performance.webkitNow ||
+			 function() { return new Date().getTime(); };
+	})();
+	var pool = {};
+	var Timer = function(name){
+		this.name = name;
+		this.start = performance.now();
+		this.time = 0;
+	};
+
+	Timer.prototype.pause = function(){
+		if(this.paused){
+			//console.log('already paused!');
+		}
+		var end  = performance.now();
+		this.time = this.time + (end - this.start);
+		this.paused = true;
+	}
+	Timer.prototype.resume = function(){
+		if(!this.paused){
+			//console.log('IS NOT paused!');
+		}
+		this.start = performance.now();
+		this.paused = false;
+	}
+	Timer.prototype.stop = function(){
+		if(!this.paused){
+			var end  = performance.now();
+			this.time = this.time + (end - this.start);
+		}
+		this.stopped = true;
+		console.log(this.name, 'took', this.time, 'ms');
+	}
+
+	window.timer = function(name) {
+		if(name == 'stop_all'){
+			for(var i in pool){
+				pool[i].stop();
+			}
+			return;
+		}
+		if(!pool[name] || (pool[name].stopped == true)){
+			//console.log('creating new timer', name);
+			pool[name] = new Timer(name);
+		}
+		return pool[name];
+	};
+	})()
+
 var prop = (key) => {
 	return (a) => {
 		return a instanceof Object ? a[key] : undefined;
@@ -1004,6 +1062,40 @@ describe('Basic Firera functionality', function () {
 		
 		assert.equal(Number($root.find('span.completed_number').html()), 0);
 		assert.equal(Number($root.find('span.all_number').html()), 2);
+	})
+	
+	it('Multi-layer grid benchmark', function(){
+		var grid = {
+			a0: 10,
+			b0: 20,
+			c0: 30,
+			d0: 42
+		}
+		for(var i = 1; i <= 15; i++){
+			var prev = i - 1;
+			grid['a' + i] = ['b' + prev];
+			grid['b' + i] = ['-', 'a' + prev, 'c' + prev];
+			grid['c' + i] = ['+', 'b' + prev, 'd' + prev];
+			grid['d' + i] = ['c' + prev];
+		}
+		
+		timer('---');
+		var app = Firera({__root: grid});
+		timer('stop_all');
+		
+		timer('---2');
+		app.set({'a0': 3, 'b0': 10, 'c0': 35, 'd0': 14});
+		timer('stop_all');
+		
+		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
+		
+		var root = app.root;
+		
+		root.setLevels();
+		timer('WISE set');
+		root.wiseSet({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
+		timer('WISE set').stop();
+		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
 	})
 })
 

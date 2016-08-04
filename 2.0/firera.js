@@ -2,6 +2,25 @@
 
 var Ozenfant = require('./ozenfant/ozenfant');
 
+/*
+ * 
+ * @todo: написати DOM abstractions. 
+ * Наприклад, для калькулятор, абстрація - це клавіша.
+ * key: {
+ *	   selector: (name) => {
+ *			// отримати реальний селектор із "імені"	
+ *	   },
+ *	   actions: (name) => {
+ *			// отримати із бізнес-назви івента подію дом
+ *	   },
+ *	   data: (e) => {
+ *			// отримати з ноди бізнес-дані
+ *			return e.target.attr('data-num');
+ *	   }
+ * }
+ * 
+ */
+
 var always = (a) => {
 	return () => a;
 }
@@ -478,20 +497,68 @@ var split_camelcase = (str) => {
 	return [first[1], ...others];
 }
 
+Hash.prototype.simpleCompute = function(cell){
+	var real_cell_name = this.real_cell_name(cell);
+	var args, arg_num = this.cell_arg_num(real_cell_name);
+	switch(arg_num){
+		case 1:
+			args = [this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0]))];
+		break;
+		case 2:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1]))
+			];
+		break;
+		case 3:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2]))
+			];
+		break;
+		case 4:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[3]))
+			];
+		break;
+		default:
+			var args = this.cell_parents(real_cell_name).map((parent_cell_name) => {
+				return this.cell_value(get_real_cell_name(parent_cell_name))
+			});
+		break;
+	}
+	var val,
+		func = this.cell_func(real_cell_name);
+	switch(args.num){
+		case 1:
+			val = func(args[0]);
+		break;
+		case 2:
+			val = func(args[0], args[1]);
+		break;
+		case 3:
+			val = func(args[0], args[1], args[2]);
+		break;
+		default: 
+			val = func.apply(null, args);
+		break;
+	}
+	//console.log(real_cell_name + ':', 'Func', func, 'args', args, 'val', val);
+	this.set_cell_value(real_cell_name, val);
+	//console.log('set_cell_value', real_cell_name, val);
+}
+
 Hash.prototype.compute = function(cell, parent_cell_name){
-	var [listening_type, real_cell_name] = cell_listening_type(cell);
+	var real_cell_name = this.real_cell_name(cell);
 	var val;
-	var real_cell_types = split_camelcase(this.cell_type(real_cell_name)) || []	;
-
-	var map = real_cell_types.indexOf('map') !== -1;
-	var closure = real_cell_types.indexOf('closure') !== -1;
-	var async = real_cell_types.indexOf('async') !== -1;
-	var nested = real_cell_types.indexOf('nested') !== -1;
-	var funnel = real_cell_types.indexOf('funnel') !== -1;
-
+	var props = this.cell_type_props(cell);
 	var func;
 	// getting func
-	if(map){
+	if(props.map){
 		if(!parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
@@ -500,7 +567,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
 		}
 		func = func[parent_cell_name];
-	} else if(closure){
+	} else if(props.closure){
 		if(!this.cell_funcs[real_cell_name]){
 			var new_func = this.cell_func(real_cell_name)();
 			//console.log('Setting closure function', new_func);
@@ -511,24 +578,53 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
 	}
 	// getting arguments
-	var args = this.cell_parents(real_cell_name).map((parent_cell_name) => {
-		return this.cell_value(get_real_cell_name(parent_cell_name))
-	});
-	if(funnel){
+	var args, arg_num = this.cell_arg_num(real_cell_name);
+	switch(arg_num){
+		case 1:
+			args = [this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0]))];
+		break;
+		case 2:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1]))
+			];
+		break;
+		case 3:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2]))
+			];
+		break;
+		case 4:
+			args = [
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2])),
+				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[3]))
+			];
+		break;
+		default:
+			var args = this.cell_parents(real_cell_name).map((parent_cell_name) => {
+				return this.cell_value(get_real_cell_name(parent_cell_name))
+			});
+		break;
+	}
+	if(props.funnel){
 		if(!parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
 		parent_cell_name = get_real_cell_name(parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];
 	}
-	if(nested){
+	if(props.nested){
 		args.unshift((cell, val) => {
 			//console.log('NESTED callback called!', cell, val, real_cell_name); 
 			var cell_to_update = real_cell_name + '.' + cell;
 			this.set_cell_value(cell_to_update, val);
 			this.doRecursive(this.compute.bind(this), cell_to_update, true);
 		});
-	} else if(async){
+	} else if(props.async){
 		args.unshift((val) => {
 			//console.log('ASYNC callback called!',val); 
 			this.set_cell_value(real_cell_name, val);
@@ -536,14 +632,28 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		});
 	}
 	// counting value
-	if(map){
+	if(props.map){
 		var val = func instanceof Function 
 					  ? func(this.cell_value(get_real_cell_name(parent_cell_name)))
 					  : func;
 	} else {
-		var val = func.apply(null, args);
+		var val;
+		switch(args.num){
+			case 1:
+				val = func(args[0]);
+			break;
+			case 2:
+				val = func(args[0], args[1]);
+			break;
+			case 3:
+				val = func(args[0], args[1], args[2]);
+			break;
+			default: 
+				val = func.apply(null, args);
+			break;
+		}
 	}
-	if(async || nested){
+	if(props.async || props.nested){
 
 	} else {
 		this.set_cell_value(real_cell_name, val);
@@ -567,6 +677,71 @@ Hash.prototype.get = function(cell, child){
 		return this.cell_values[cell];
 	}
 }
+
+
+Hash.prototype.setLevelsRec = function(cellname){
+	//console.log('setting level for', cellname);
+	var max_level = 1;
+	for(var cell of this.cell_parents(cellname)){
+		if(this.levels[cell] === undefined){
+			return;
+		}
+		if(this.levels[cell] > max_level){
+			max_level = this.levels[cell];
+		}
+	}
+	this.levels[cellname] = max_level + 1;
+	//console.log('New level for', cellname, 'is', max_level + 1);
+	for(var cell in this.cell_children(cellname)){
+		this.setLevelsRec(cell);
+	}
+}
+Hash.prototype.setLevels = function(){
+	var level = 1;
+	this.levels = {};
+	var max_level = 1;
+	for(let i in this.cell_types){
+		if(this.cell_types[i].parents.length === 0){
+			this.levels[i] = 1;
+			for(var j in this.cell_types[i].children){
+				this.setLevelsRec(j);
+			}
+		}
+	}
+}
+
+
+
+Hash.prototype.wiseSet = function(cells, val){
+	var set = Object.keys(cells);
+	var already = new Set();
+	for(let cell in cells){
+		this.set_cell_value(cell, cells[cell]);
+	}
+	while(set.length !== 0){
+		var new_set = [];
+		for(let cell of set){
+			var needed_lvl = this.levels[cell] + 1;
+			var children = this.cell_children(cell);
+			//console.log('considering', cell, children);
+			for(var child in children){
+				if(already.has(child)){
+					//console.log('skipping2', child);
+					continue;
+				}
+				if(this.levels[child] === needed_lvl){
+					//console.log('computing', child);
+					this.simpleCompute(child);
+					new_set.push(child);
+					already.add(child);
+				} else {
+					//console.log('skipping', child);
+				}
+			}
+		}
+		set = new_set;
+	}
+} 
 
 Hash.prototype.set = function(cell, val, child){
 	if(child){
@@ -601,8 +776,8 @@ Hash.prototype.set = function(cell, val, child){
 			if(--this.dirtyCounter[cell2] === 0 && cell[cell2] === undefined){
 				//console.log('Computing after batch change', cell2, cell);
 				this.compute(cell2, parent_cell_name);
-			} else {
-				//console.log('Cell ', cell, 'is not ready', this.dirtyCounter);
+			//} else {
+				//console.log('Cell ', cell2, 'is not ready', this.dirtyCounter[cell2]);
 			}
 		}));
 	} else {
@@ -625,8 +800,11 @@ Hash.prototype.force_set = function(cell, val, omit_updating_children){
 Hash.prototype.cell_parents = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].parents : [];
 }
+Hash.prototype.cell_arg_num = function(cell){
+	return this.cell_types[cell] ? this.cell_types[cell].arg_num : 0;
+}
 Hash.prototype.cell_children = function(cell){
-	return this.cell_types[cell] ? this.cell_types[cell].children : [];
+	return this.cell_types[cell] ? this.cell_types[cell].children : {};
 }
 Hash.prototype.all_cell_children = function(cell, arr){
 	if(!this.cell_types[cell]){
@@ -649,6 +827,12 @@ Hash.prototype.cell_func = function(cell){
 }
 Hash.prototype.cell_type = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].type : [];
+}
+Hash.prototype.cell_type_props = function(cell){
+	return this.cell_types[cell] ? this.cell_types[cell].props : {};
+}
+Hash.prototype.real_cell_name = function(cell){
+	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
 }
 Hash.prototype.cell_value = function(cell){
 	if(cell === '$real_keys'){
@@ -976,9 +1160,25 @@ var parse_fexpr = function(a, pool, key, packages){
 	pool.plain_base[key] = funcstring;
 }
 
-var get_cell_type = function(type, func, parents){
+var get_cell_type = function(cellname, type, func, parents){
 	//console.log('getting cell type', arguments);
-	return {type, func, parents: parents || [], children: []}
+	
+	var real_cell_types = split_camelcase(type) || [];
+
+	var map = real_cell_types.indexOf('map') !== -1;
+	var closure = real_cell_types.indexOf('closure') !== -1;
+	var async = real_cell_types.indexOf('async') !== -1;
+	var nested = real_cell_types.indexOf('nested') !== -1;
+	var funnel = real_cell_types.indexOf('funnel') !== -1;
+	return {
+		type, 
+		func, 
+		props: {map, closure, async, nested, funnel}, 
+		real_cell_name: cellname.replace(/^(\:|\-)/, ''),
+		parents: parents || [], 
+		arg_num: parents ? parents.length : 0,
+		children: []
+	}
 }
 
 var parse_cell_type = (i, row, pool, children) => {
@@ -990,13 +1190,13 @@ var parse_cell_type = (i, row, pool, children) => {
 	if(i === '$init'){
 		//console.log('parsing free variables', pbs[i]);
 		for(var j in row){
-			cell_types[j] = get_cell_type(type);
+			cell_types[j] = get_cell_type(i, type);
 		}
 		//console.log('now cell_types j looks like', cell_types);
 		return;
 	}
 	if(!(row instanceof Array)){
-		cell_types[i] = get_cell_type(type);
+		cell_types[i] = get_cell_type(i, type);
 		return;
 	}
 	var func = row[0];
@@ -1009,7 +1209,7 @@ var parse_cell_type = (i, row, pool, children) => {
 		type = func;
 		func = parents.shift();
 	}
-	cell_types[i] = get_cell_type(type, func, parents);
+	cell_types[i] = get_cell_type(i, type, func, parents);
 	for(var j in parents){
 		var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
 		if(listening_type !== 'passive'){
@@ -1028,12 +1228,11 @@ var parse_cell_types = function(pbs){
 	for(let i in pbs){
 		parse_cell_type(i, pbs[i], cell_types, children);
 	}
-	for(let i in children){
-		//console.log('resi', res, i);
-		if(!cell_types[i]){
-			cell_types[i] = get_cell_type('free');
+	for(let cellname in children){
+		if(!cell_types[cellname]){
+			cell_types[cellname] = get_cell_type(cellname, 'free');
 		}
-		cell_types[i].children = children[i];
+		cell_types[cellname].children = children[cellname];
 	}
 	//console.log('Parsed cell types', cell_types);
 	return cell_types;
@@ -1098,7 +1297,7 @@ var Firera = function(config){
 	// now we should instantiate each pb
 	if(!app.cbs.__root){
 		// no root hash
-		throw new Error('Cant find root app!', packages);
+		throw new Error('Cant find root app!');
 	}
 	//console.log(app);
 	var compilation_finished = performance.now();

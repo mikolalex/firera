@@ -324,6 +324,10 @@ describe('Other', function(){
 	})
 })
 
+// Calculator
+// | .cancel|click//, (> ".num|click|getval"|append(a)*, (".operation|click"|make_operation, ".num|click|getval"|append(b)*)) 
+
+
 	var str11 = `
 			> 
 				".select_rect|click"/active_figure/, 
