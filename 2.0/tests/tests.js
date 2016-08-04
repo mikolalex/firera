@@ -319,7 +319,7 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('foo.odd'), 13);
     });
     var add = (a, b) => a + b;
-    it('Testing curcular dependency', function () {
+    /*it('Testing curcular dependency', function () {
         var app = Firera({
             __root: {
                 a: [add.bind(null, 10), 'b'],
@@ -328,7 +328,7 @@ describe('Basic Firera functionality', function () {
                 d: 42,
             }
         });
-    });
+    });*/
     
     var get_by_selector = function(name, $el){
         //console.info("GBS", arguments);
@@ -1072,7 +1072,7 @@ describe('Basic Firera functionality', function () {
 			c0: 30,
 			d0: 42
 		}
-		for(var i = 1; i <= 500; i++){
+		for(var i = 1; i <= 1000; i++){
 			var prev = i - 1;
 			grid['a' + i] = ['b' + prev];
 			grid['b' + i] = ['-', 'a' + prev, 'c' + prev];
@@ -1092,7 +1092,6 @@ describe('Basic Firera functionality', function () {
 		
 		var root = app.root;
 		
-		root.setLevels();
 		timer('WISE set');
 		root.set({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
 		timer('WISE set').stop();
