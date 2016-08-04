@@ -236,7 +236,6 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 		pool: {},
 		create: function(self, type, link_as, free_vals){
 			var child = self.app.createHash(type, link_as, free_vals);
-					
 			/*new Hash(self.app, type, link_as, Object.assign({
 				$name: link_as
 			}, free_vals), true);*/
@@ -271,7 +270,8 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 		},
 		initChild: function(name){
 			if(!this.get(name).init){
-				console.log('strange', this.get(name));
+				console.log('strange', this, name);
+				debugger;
 			}
 			this.get(name).init();
 		},
@@ -474,6 +474,7 @@ Hash.prototype.unlinkCells = function(hash_name){
 }
 
 Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
+	//if(run_async) debugger;
 	var cb = this.doRecursive.bind(this, func);
 	if(!skip) {
 		//console.log('--Computing cell', this.cell_type(cell));
@@ -572,7 +573,6 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 	}
 	if(props.nested){
 		args.unshift((cell, val) => {
-			//console.log('NESTED callback called!', cell, val, real_cell_name); 
 			var cell_to_update = real_cell_name + '.' + cell;
 			this.set_cell_value(cell_to_update, val);
 			this.doRecursive(this.compute.bind(this), cell_to_update, true);
@@ -637,7 +637,7 @@ Hash.prototype.setLevelsRec = function(cellname, already_set){
 	var max_level = 1;
 	for(var cell of this.cell_parents(cellname)){
 		if(this.levels[cell] === undefined){
-			//return;
+			this.setLevelsRec(cell, already_set);
 		}
 		if(this.levels[cell] > max_level){
 			max_level = this.levels[cell];
@@ -645,6 +645,7 @@ Hash.prototype.setLevelsRec = function(cellname, already_set){
 	}
 	if(this.levels[cellname]){
 		if(max_level + 1 > this.levels[cellname]){
+			console.error('wat?');
 			this.levels[cellname] = max_level + 1;
 		}
 	} else {
@@ -692,6 +693,11 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		return;
 	}
 	if(!(cells instanceof Object)){
+		/*if(!this.cell_type(cells) === 'free'){
+			throw Exception('Cannot set dependent cell!');
+		}
+		this.force_set(cells, val);
+		return;*/
 		var a = {};
 		a[cells] = val;
 		cells = a;
@@ -734,6 +740,9 @@ Hash.prototype.set = function(cells, val, child, no_args){
 			){
 				this.compute(cell, parents[cell]);
 			}
+			if(ct === 'async') {
+				continue;
+			}
 			for(var child in children){
 				var lvl = this.levels[child];
 				//console.log('_______child', child, lvl);
@@ -751,31 +760,10 @@ Hash.prototype.set = function(cells, val, child, no_args){
 						levels[j] = new Set();
 					}
 				}
-				/*if(already.has(child)){
+				if(already.has(child)){
 					console.log('skipping2', child);
 					//continue;
 				}
-				if(this.levels[child] === needed_lvl){
-					console.log('computing', child);
-					this.compute(child, cell);
-					//new_set.push(child);
-					if(!levels[needed_lvl]){
-						levels[needed_lvl] = new Set();
-					}
-					levels[needed_lvl].add(child);
-					already.add(child);
-				} else {
-					for(var j = this.levels[child]; j >= needed_lvl; j--){
-						if(!levels[j]){
-							levels[j] = new Set();
-						}
-						if(j === this.levels[child]){
-							console.log('adding to next level', j, child);
-							levels[j].add(child);
-						}
-					}
-					//console.log('skipping', child);
-				}*/
 			}
 		}
 		//console.log('~~~', x);
@@ -1447,11 +1435,9 @@ var core = {
 					var arr = [];
 					//console.log('Returning closure');
 					return (cell, values) => {
-						console.log('Getting ad array', cell, values, arr);
 						if(cell === '$arr_data.changes'){
 							for(let i in values){
 								var [type, index, _, val] = values[i];
-								console.log('TYPE', type);
 								if(type === 'add'){
 									var added_obj = {};
 									for(let fieldname of fields){
@@ -1991,7 +1977,6 @@ var htmlCells = {
 	}
 }
 var get_ozenfant_template = (cb, str, $el, context) => {
-	//console.log('Creating Ozenfant template', str);
 	if(!$el || !str) return;
 	var template = new Ozenfant(str);
 	template.render($el.get(0), context);

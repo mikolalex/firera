@@ -145,7 +145,6 @@ describe('Basic Firera functionality', function () {
             'todo': {},
         });
         assert.equal(app.get('d'), 18);
-		console.log('_____________________ NOW SET');
         app.set('a', 20);
         assert.equal(app.get('d'), 28);
     });
@@ -472,16 +471,6 @@ describe('Basic Firera functionality', function () {
     }
     it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
-        var list_sources = {
-            add: ['map', {
-                    '../new_todo': as('text'),
-            }],
-            remove: {
-                '*/remove': function(a){
-                        if(a && a[0] !== undefined) return a[0];
-                }
-            },
-        }
         var app = Firera({
 			__packages: ['simpleHtmlTemplates', 'htmlCells'],
             __root: {
@@ -513,7 +502,9 @@ describe('Basic Firera functionality', function () {
 						<div class="clearfix"></div>
 					</div>
 				`,
-				remove: ['.remove|click'],
+				remove: [(e) => {
+					return e;
+				}, '.remove|click'],
                 completed: ['input[type=checkbox]|getval']
             }
         })
@@ -593,10 +584,8 @@ describe('Basic Firera functionality', function () {
 			}
 		})
 		add_item();
-		//add_item();
-		console.log('GOT', app.get('arr', 'trains'), app);
-		assert.equal(app.get('arr', 'trains').length, 1);
-		return;
+		add_item();
+		assert.equal(app.get('arr', 'trains').length, 2);
 		
 		$root.find('[data-fr=trains] > *:first-child .remove').click();
 		assert.equal(app.get('arr', 'trains').length, 1);
@@ -1049,7 +1038,7 @@ describe('Basic Firera functionality', function () {
 			},
 			__packages: ['ozenfant', 'htmlCells']
 		})
-		//console.log('app', app, $root.find('input[type=text]'));
+		console.log('app', app, $root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Do something useful');
 		triggerEnter($root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Have a rest');
@@ -1073,6 +1062,7 @@ describe('Basic Firera functionality', function () {
 		
 		assert.equal(Number($root.find('span.completed_number').html()), 0);
 		assert.equal(Number($root.find('span.all_number').html()), 2);
+		
 	})
 	
 	it('Multi-layer grid benchmark', function(){
@@ -1082,7 +1072,7 @@ describe('Basic Firera functionality', function () {
 			c0: 30,
 			d0: 42
 		}
-		for(var i = 1; i <= 20; i++){
+		for(var i = 1; i <= 500; i++){
 			var prev = i - 1;
 			grid['a' + i] = ['b' + prev];
 			grid['b' + i] = ['-', 'a' + prev, 'c' + prev];
