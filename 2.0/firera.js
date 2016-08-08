@@ -296,6 +296,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 					//console.log('creating cellname on the fly', parent_cell, other_hash);
 					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool);
 					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
+					other_hash.setLevels();
 					/*if(other_hash.cell_types[parent_cell]){
 						other_hash.compute(parent_cell);
 					}*/
