@@ -51,7 +51,7 @@ var is_multiple = (quant) => {
 var is_num = (a) => Number(a) == a;
 
 
-var Chex = function(struct, linking, callbacks){
+var Chex = function(struct, linking = {}, callbacks = []){
 	this.struct = struct;
 	this.onOutput = linking.onOutput;
 	this.onSuccess = linking.onSuccess;

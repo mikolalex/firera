@@ -1038,7 +1038,7 @@ describe('Basic Firera functionality', function () {
 			},
 			__packages: ['ozenfant', 'htmlCells']
 		})
-		console.log('app', app, $root.find('input[type=text]'));
+		//console.log('app', app, $root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Do something useful');
 		triggerEnter($root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Have a rest');
@@ -1080,22 +1080,36 @@ describe('Basic Firera functionality', function () {
 			grid['d' + i] = ['c' + prev];
 		}
 		
-		timer('---');
+		timer('Initing app');
 		var app = Firera({__root: grid});
-		timer('---').stop();
+		timer('Initing app').stop();
 		
-		timer('---2');
+		timer('Updating app');
 		app.set({'a0': 3, 'b0': 10, 'c0': 35, 'd0': 14});
 		timer('stop_all');
 		
+		timer('Updating app 2');
+		app.set({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
+		timer('Updating app 2').stop();
 		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
-		
-		var root = app.root;
-		
-		timer('WISE set');
-		root.set({'a0': 10, 'b0': -20, 'c0': 45, 'd0': 37});
-		timer('WISE set').stop();
-		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
+	})
+})
+describe('Che', function () {
+	
+	it('Simple example', function(){
+		var app = Firera({
+			__root: {
+				$el: $(".test-che"),
+				a: [always('A'), '.a|click'],
+				b: [always('B'), '.b|click'],
+				clicked_both: ['che', '& a, b']
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		//console.log('app', app);
+		$(".test-che .a").click();
+		$(".test-che .b").click();
+		assert.deepEqual(app.get('clicked_both'), {a: 'A', b: 'B'})
 	})
 })
 

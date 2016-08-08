@@ -1,6 +1,7 @@
 'use strict';
 
 var Ozenfant = require('./ozenfant/ozenfant');
+var che = require('./che/che');
 
 /*
  * 
@@ -2048,9 +2049,36 @@ var ozenfant = {
 	}
 }
 
+var che_package = {
+	predicates: {
+		che: function(expr){
+			var [expr, cbs] = expr;
+			cbs = cbs || [];
+			var succ_cb;
+			var obj = che.create(expr, {
+				onOutput: function(key, val){
+					//console.log('outputting from che', key, val);
+				},
+				onSuccess: function(){
+					//console.log('che scenario successfully finished', succ_cb, obj.state);
+					succ_cb(obj.state);
+				}
+			}, ...cbs);
+			var str = ['asyncClosureFunnel', () => {
+				return (cb, cell, val) => {
+					//console.log('something dripped', cb, cell, val);
+					succ_cb = cb;
+					obj.drip(cell, val);
+				}
+			}, ...obj.needed_events]
+			return str;
+		}
+	}
+}
 
 Firera.loadPackage(core);
-Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant};
+Firera.loadPackage(che_package);
+Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, che: che_package};
 //Firera.loadPackage(html);
 Firera.func_test_export = {parse_pb, parse_fexpr};
 
