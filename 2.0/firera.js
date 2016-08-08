@@ -1435,6 +1435,9 @@ var core = {
 		second: function(funcstring){
 			return [(a, b) => b, ...funcstring]
 		},
+		dynamic: function(funcstring){
+			// do something
+		},
 		firstDefined: function(funcstring){
 			return [function(){
 					for(var i in arguments){

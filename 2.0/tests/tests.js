@@ -1065,6 +1065,26 @@ describe('Basic Firera functionality', function () {
 		
 	})
 	
+	it('Dynamic dependency', () => {
+		// @tbd
+		var app = Firera({
+			__root: {
+				a1: 10,
+				a2: 20,
+				a3: 45,
+				b1: -10,
+				b2: 89,
+				b3: 93,
+				flag: 'a',
+				val: ['dynamic', (letter) => {
+					return [(a, b, c) => a + b + c, letter + '1', letter + '2', letter + '3']
+				}, 'flag']
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		//console.log('app', app);
+	})
+	
 	it('Multi-layer grid benchmark', function(){
 		var grid = {
 			a0: 10,
