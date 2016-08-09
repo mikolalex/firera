@@ -207,33 +207,8 @@ var show_performance = function(){
 	return res.join(', ');
 }
 
-var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
-	var self = this;
-	var id = ++app.hashIds;
-	app.setHash(id, this);
-	this.id = id;
-	////////////////////////////////////////////////////////////////////////
-	var t0 = performance.now();
-	////////////////////////////////////////////////////////////////////////
-	this.app = app;
-	this.name = name || '__root';
-	var parsed_pb = typeof parsed_pb_name === 'string' 
-					? app.cbs[parsed_pb_name]
-					: app.parse_cbs(parsed_pb_name);
-	//console.log('________________________________________________________');
-	//console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
-	// creating cell values obj
-	if(!parsed_pb){
-		console.error('Cannot find hash to parse:', parsed_pb_name);
-		return;
-	}
-	this.cell_types = parsed_pb.cell_types;
-	this.cell_links = parsed_pb.cell_links;
-	this.side_effects = parsed_pb.side_effects;
-	this.hashes_to_link = parsed_pb.hashes_to_link;
-	this.plain_base = parsed_pb.plain_base;
-	this.setLevels();
-	this.linked_hashes_provider = {
+var create_provider = (app, self) => {
+	return {
 		pool: {},
 		create: function(self, type, link_as, free_vals){
 			var child = self.app.createHash(type, link_as, free_vals);
@@ -313,7 +288,36 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 			});
 			//this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
 		}
-	};
+	}
+}
+
+var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
+	var self = this;
+	var id = ++app.hashIds;
+	app.setHash(id, this);
+	this.id = id;
+	////////////////////////////////////////////////////////////////////////
+	var t0 = performance.now();
+	////////////////////////////////////////////////////////////////////////
+	this.app = app;
+	this.name = name || '__root';
+	var parsed_pb = typeof parsed_pb_name === 'string' 
+					? app.cbs[parsed_pb_name]
+					: app.parse_cbs(parsed_pb_name);
+	//console.log('________________________________________________________');
+	//console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
+	// creating cell values obj
+	if(!parsed_pb){
+		console.error('Cannot find hash to parse:', parsed_pb_name);
+		return;
+	}
+	this.cell_types = parsed_pb.cell_types;
+	this.cell_links = parsed_pb.cell_links;
+	this.side_effects = parsed_pb.side_effects;
+	this.hashes_to_link = parsed_pb.hashes_to_link;
+	this.plain_base = parsed_pb.plain_base;
+	this.setLevels();
+	this.linked_hashes_provider = create_provider(app, self);
 	this.linked_hashes = {};
 	// for "closure" cell type
 	this.cell_funcs = {};
