@@ -34,6 +34,13 @@ var ids = function(){
 	return arguments;
 }
 
+var arr_remove = (arr, el) => {
+	var pos = arr.indexOf(el);
+	if(pos !== -1){
+		arr.splice(pos, 1);
+	}
+}
+
 var arr_different = function(arr1, arr2, cb){
 	for(var i in arr1){
 		if(arr2[i] === undefined){
@@ -111,6 +118,7 @@ function kcopy(from, to){
 	}
 }
 var cell_listening_type = function(str){
+	if(!str) debugger;
 	var m = str.match(/^(\:|\-)/);
 	return [{
 		//':': 'change', 
@@ -323,6 +331,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 	this.cell_funcs = {};
 	this.dirtyCounter = {};
 	this.dynamic_cell_links = {};
+	this.dynamic_cells_props = {};
 	if(parsed_pb.cell_types['*']){
 		var omit_list = this.all_cell_children('*');
 		for(let cell in this.cell_types){
@@ -514,52 +523,60 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 	var real_cell_name = this.real_cell_name(cell);
 	var val;
 	var props = this.cell_type_props(cell);
-	var func;
+	var parents = this.cell_parents(real_cell_name);
+	var dynamic = parents.indexOf(parent_cell_name) == -1;
+	var func = this.cell_func(real_cell_name);
+	var arg_num = this.cell_arg_num(real_cell_name);
+	if(props.dynamic && dynamic){
+		var real_props = this.dynamic_cells_props[cell];
+		func = real_props.func;
+		parents = real_props.parents;
+		props = {dynamic: true};
+		arg_num = parents.length;
+		//console.log('computing dynamic cell val', parents);
+	}
 	// getting func
-	if(props.map){
+	if(props.hasOwnProperty('map') && props.map){
 		if(!parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
-		var func = this.cell_func(real_cell_name);
 		if(func[parent_cell_name] === undefined){
 			throw new Error('Cannot compute MAP cell: parent cell func undefined or not function!');
 		}
 		func = func[parent_cell_name];
 	} else if(props.closure){
 		if(!this.cell_funcs[real_cell_name]){
-			var new_func = this.cell_func(real_cell_name)();
+			var new_func = func();
 			//console.log('Setting closure function', new_func);
 			this.cell_funcs[real_cell_name] = new_func;
 		}
 		func = this.cell_funcs[real_cell_name];
-	} else {
-		func = this.cell_func(real_cell_name);//this.cell_funcs[real_cell_name];
 	}
 	// getting arguments
-	var args, arg_num = this.cell_arg_num(real_cell_name);
+	var args;
 	switch(arg_num){
 		case 1:
-			args = [this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0]))];
+			args = [this.cell_value(get_real_cell_name(parents[0]))];
 		break;
 		case 2:
 			args = [
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1]))
+				this.cell_value(get_real_cell_name(parents[0])),
+				this.cell_value(get_real_cell_name(parents[1]))
 			];
 		break;
 		case 3:
 			args = [
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2]))
+				this.cell_value(get_real_cell_name(parents[0])),
+				this.cell_value(get_real_cell_name(parents[1])),
+				this.cell_value(get_real_cell_name(parents[2]))
 			];
 		break;
 		case 4:
 			args = [
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[0])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[1])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[2])),
-				this.cell_value(get_real_cell_name(this.cell_parents(real_cell_name)[3]))
+				this.cell_value(get_real_cell_name(parents[0])),
+				this.cell_value(get_real_cell_name(parents[1])),
+				this.cell_value(get_real_cell_name(parents[2])),
+				this.cell_value(get_real_cell_name(parents[3]))
 			];
 		break;
 		default:
@@ -589,7 +606,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		});
 	}
 	// counting value
-	if(props.map){
+	if(props.hasOwnProperty('map') && props.map){
 		var val = func instanceof Function 
 					  ? func(this.cell_value(get_real_cell_name(parent_cell_name)))
 					  : func;
@@ -611,7 +628,32 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		}
 	}
 	if(props.async || props.nested){
-
+		
+	} else if(props.dynamic && !dynamic) {
+		//console.log('changing the dependency structure of dynamic cells');
+		var old_parents = this.dynamic_cells_props[cell] ? this.dynamic_cells_props[cell].parents : false;
+		if(old_parents){
+			for(let prnt of old_parents){
+				for(let i in this.dynamic_cell_links[prnt].__self){
+					var lnk = this.dynamic_cell_links[prnt].__self[i];
+					if(lnk.cell_name === cell){
+						//console.log('remove old link');
+						delete this.dynamic_cell_links[prnt].__self[i];
+					}
+				} 
+			}
+		}
+		parse_cell_type(cell, val, this.dynamic_cells_props, []);
+		parents = this.dynamic_cells_props[cell].parents;
+		for(let parent_cell of parents){
+			init_if_empty(this.dynamic_cell_links, parent_cell, {}, '__self', []);
+			this.dynamic_cell_links[parent_cell].__self.push({
+				cell_name: cell,
+				type: 'dynamic'
+			});
+		}
+		this.setLevel(cell, parents.concat(this.cell_parents(real_cell_name)));
+		this.compute(cell);
 	} else {
 		this.set_cell_value(real_cell_name, val);
 	}
@@ -689,6 +731,19 @@ Hash.prototype.setLevelsIterable = function(cellname, pool){
 			//this.setLevelsRec(cell, already_set);
 		}
 	}
+}
+
+Hash.prototype.setLevel = function(cell, parents){
+	//console.log('got parents', parents);
+	var max_level = 0;
+	for(let prnt of parents){
+		var lvl = this.levels[prnt];
+		if(lvl > max_level){
+			max_level = lvl;
+		}
+	}
+	this.levels[cell] = max_level + 1;
+	//console.log('got max level', max_level);
 }
 
 Hash.prototype.setLevels = function(){
@@ -946,6 +1001,8 @@ Hash.prototype.set_cell_value = function(cell, val){
 					//console.log('Writing dynamic cell link ' + link.cell_name, link.type === 'val', this.name);
 					if(link.type === 'val'){
 						hsh.set(link.cell_name, val);
+					} else if(link.type === 'dynamic'){
+						hsh.compute(link.cell_name, cell);
 					} else {
 						//log('Updating links', hash_name, link.cell_name, [hash_name !== '__self' ? this.name : cell, val]);
 						hsh.set(link.cell_name, [own ? cell : this.name, val]);
@@ -963,6 +1020,7 @@ var system_predicates = new Set([
 	'funnel',
 	'map',
 	'hash',
+	'dynamic',
 	'nested'
 ]);
 var side_effects = {
@@ -1230,6 +1288,9 @@ var parse_fexpr = function(a, pool, key, packages){
 	//console.log('Got funcstring', funcstring);
 	pool.plain_base[key] = funcstring;
 }
+var parse_fexpr2 = function(pool, packages, key, a){
+	return parse_fexpr(a, pool, key, packages);
+}
 
 var get_cell_type = function(cellname, type, func, parents){
 	//console.log('getting cell type', arguments);
@@ -1241,10 +1302,11 @@ var get_cell_type = function(cellname, type, func, parents){
 	var async = real_cell_types.indexOf('async') !== -1;
 	var nested = real_cell_types.indexOf('nested') !== -1;
 	var funnel = real_cell_types.indexOf('funnel') !== -1;
+	var dynamic = real_cell_types.indexOf('dynamic') !== -1;
 	return {
 		type, 
 		func, 
-		props: {map, closure, async, nested, funnel}, 
+		props: {map, closure, async, nested, funnel, dynamic}, 
 		real_cell_name: cellname.replace(/^(\:|\-)/, ''),
 		parents: parents || [], 
 		arg_num: parents ? parents.length : 0,
@@ -1438,9 +1500,6 @@ var core = {
 		},
 		second: function(funcstring){
 			return [(a, b) => b, ...funcstring]
-		},
-		dynamic: function(funcstring){
-			// do something
 		},
 		firstDefined: function(funcstring){
 			return [function(){

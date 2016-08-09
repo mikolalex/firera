@@ -1072,17 +1072,24 @@ describe('Basic Firera functionality', function () {
 				a1: 10,
 				a2: 20,
 				a3: 45,
-				b1: -10,
-				b2: 89,
-				b3: 93,
+				b1: -1,
+				b2: 9,
+				b3: 3,
 				flag: 'a',
 				val: ['dynamic', (letter) => {
-					return [(a, b, c) => a + b + c, letter + '1', letter + '2', letter + '3']
+					return [(a, b, c) => {
+						//console.log('computing sum');
+						return a + b + c;
+					}, letter + '1', letter + '2', letter + '3']
 				}, 'flag']
 			},
 			__packages: ['ozenfant', 'htmlCells']
 		})
-		//console.log('app', app);
+		assert.equal(app.get('val'), 75);
+		app.set('a1', 12);
+		assert.equal(app.get('val'), 77);
+		app.set('flag', 'b');
+		assert.equal(app.get('val'), 11);
 	})
 	
 	it('Multi-layer grid benchmark', function(){
