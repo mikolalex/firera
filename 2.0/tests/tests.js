@@ -529,7 +529,6 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('completed_number', 'todos'), 1);
 		add_item();
         assert.equal(app.get('completed_number', 'todos'), 1);
-        
     });
     
     it('Testing async', function(done){
@@ -550,6 +549,8 @@ describe('Basic Firera functionality', function () {
             done();
         }, 10)
     })
+	
+	var arr_real_length = (a) => Object.keys(a).length;
 	
 	it('Casting list as array', function(){
         var $root = $(".test-trains");
@@ -588,7 +589,8 @@ describe('Basic Firera functionality', function () {
 		assert.equal(app.get('arr', 'trains').length, 2);
 		
 		$root.find('[data-fr=trains] > *:first-child .remove').click();
-		assert.equal(app.get('arr', 'trains').length, 1);
+		//console.log('TRAINS', app.get('arr', 'trains'));
+		assert.equal(arr_real_length(app.get('arr', 'trains')), 1);
 		
 		var inp = $root.find('[data-fr=trains] > *:first-child input');
 		inp.val('ololo').keyup();
@@ -1048,7 +1050,7 @@ describe('Basic Firera functionality', function () {
 		$root.find('ul > *:nth-child(2) .complete').click();
 		$root.find('input[type=text]').val('Listen to music');
 		triggerEnter($root.find('input[type=text]'));
-		$root.find('ul > *:nth-child(2) .complete').click();
+		$root.find('ul > *:nth-child(1) .complete').click();
 		
 		assert.equal(Number($root.find('span.completed_number').html()), 2);
 		assert.equal(Number($root.find('span.all_number').html()), 4);
@@ -1150,10 +1152,10 @@ describe('Basic Firera functionality', function () {
 			cell: {
 				$template: `
 					.
-						.
-							"Cell"
-						.$title
+						"Cell"
+					.$title
 				`,
+				'|hasClass(cell)': true,
 				'|css(float)': 'left',
 				val: 0,
 				formula: null

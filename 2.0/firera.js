@@ -73,6 +73,16 @@ var arr_deltas = (old_arr, new_arr) => {
 	return deltas;
 }
 
+var arr_fix_keys = (a) => {
+	var fixed_arr = [];
+	for(let i of a){
+		if(i !== undefined){
+			fixed_arr.push(i);
+		}
+	}
+	return fixed_arr;
+}
+
 var path_cellname = (a) => a.split('/').pop();
 
 Object.defineProperty(Object.prototype, 'map', {
@@ -1564,7 +1574,8 @@ var core = {
 									}
 									arr[index] = added_obj;
 								} else if(type === 'remove'){
-									arr.splice(index, 1);
+									delete arr[index];
+									//arr.splice(index, 1);
 								}
 							}
 						} else {
@@ -1576,7 +1587,7 @@ var core = {
 								}
 							}
 						}
-						return arr;
+						return arr_fix_keys(arr);
 					}
 			}, subscribe_to, '$arr_data.changes']
 		},
@@ -1757,6 +1768,7 @@ var core = {
 				}, '$datasource']
 			}
 			var all_lists_mixin = {
+				$no_auto_template: true,
 				$deltas: deltas_func,
 				/*$init: {
 					$template: "<div>Ololo</div>"
@@ -1794,7 +1806,7 @@ var core = {
 						var key = deltas[i][1];
 						switch(type){
 							case 'add':
-								$el.prepend('<div data-fr="' + key + '"></div>');
+								$el.append('<div data-fr="' + key + '"></div>');
 								// I domt know...
 							break
 							case 'remove':
@@ -1883,20 +1895,20 @@ var simpleHtmlTemplates = {
 			return str;
 		}, '$real_el'],
 		'$template_writer': [
-			function(real_templ, $html_template, keys, $el){
+			function(real_templ, $html_template, no_auto, keys, $el){
 				//console.log('Writing template', arguments);
 				if(real_templ && $el){
 						$el.html(real_templ);
 						return;
 				}	
-				if(!$html_template && $el && keys){
+				if(!$html_template && $el && keys && !no_auto){
 					var auto_template = keys.map((k) => {
 						return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
 					}).join(' ');
-					//console.info('generating auto template', auto_template);
+					console.info('generating auto template', auto_template);
 					$el.html(auto_template);
 				}
-			}, '$template', '$html_template', '-$real_keys', '-$real_el'
+			}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'
 		],
 		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
