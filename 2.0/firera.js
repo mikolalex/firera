@@ -56,6 +56,23 @@ var arr_common = function(arr1, arr2, cb){
 	}
 }
 
+var arr_deltas = (old_arr, new_arr) => {
+	var new_ones = arr_diff(new_arr, old_arr);
+	var remove_ones = arr_diff(old_arr, new_arr);
+	var changed_ones = new_arr.mapFilter((v, k) => {
+		if(old_arr[k] !== v && old_arr[k] !== undefined){
+			 return k;
+		}
+	})
+	//console.log('CHANGED ONES', changed_ones);
+	var deltas = [].concat(
+		 new_ones.map((key) => ['add', key, new_arr[key]]),
+		 remove_ones.map((key) => ['remove', key]),
+		 changed_ones.map((key) => ['change', key, new_arr[key]])
+	)
+	return deltas;
+}
+
 var path_cellname = (a) => a.split('/').pop();
 
 Object.defineProperty(Object.prototype, 'map', {
@@ -118,7 +135,6 @@ function kcopy(from, to){
 	}
 }
 var cell_listening_type = function(str){
-	if(!str) debugger;
 	var m = str.match(/^(\:|\-)/);
 	return [{
 		//':': 'change', 
@@ -201,7 +217,7 @@ App.prototype.setHash = function(id, hash){
 App.prototype.createHash = function(type, link_as, free_vals) {
 	var child = new Hash(this, type, link_as, Object.assign({
 				$name: link_as
-			}, free_vals), true);
+			}, free_vals), true); 
 	child.setLevels();
 	return child.id;
 }
@@ -255,7 +271,6 @@ var create_provider = (app, self) => {
 		initChild: function(name){
 			if(!this.get(name).init){
 				console.log('strange', this, name);
-				debugger;
 			}
 			this.get(name).init();
 		},
@@ -374,7 +389,9 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 }
 
 Hash.prototype.init = function(){
-	//console.log('Set init values', this.init_values);
+	for(let cell in this.init_values){
+		parse_cellname(cell, this, 'setter', this.app.packagePool);
+	}
 	this.set(this.init_values);
 }
 Hash.prototype.updateChildFreeValues = function(childName, values){
@@ -805,9 +822,6 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		if(!no_args){
 			this.set_cell_value(cell, cells[cell]);
 		}
-		if(!this.levels){
-			debugger;
-		}
 		var lvl = this.levels[cell];
 		if(lvl < start_level){
 			start_level = this.levels[cell];
@@ -826,7 +840,8 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		for(let cell of levels[x]){
 			var needed_lvl = x+1;
 			var children = this.cell_children(cell);
-			//console.log('______________ Looking at', cell);
+			//if(cell === '$real_el') debugger;
+			//console.log('______________ Looking at', cell, children);
 			var ct = this.cell_type(cell);
 			//console.log('CT',cell, ct);
 			if(
@@ -985,8 +1000,8 @@ Hash.prototype.cell_value = function(cell){
 Hash.prototype.set_cell_value = function(cell, val){
 	this.cell_values[cell] = val;
 	//log('_____Setting', cell, val, this.dynamic_cell_links[cell], this.side_effects[cell]);
-	if(this.side_effects[cell]){
-		//console.info('I SHOULD SET side-effect', val);
+	if(this.side_effects[cell]){	
+		if(!side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], side_effects);
 		side_effects[this.side_effects[cell]].func.call(this, cell, val);
 		//console.log('Child', real_cell_name, 'val is', val);
 	}
@@ -1174,10 +1189,11 @@ var parse_cellname = function(cellname, pool, context, packages){
 		if(matches){
 			//console.info('Cell', cellname, 'matches regexp', m.regexp, pool);
 			init_if_empty(pool, 'side_effects', {}, cellname, []);
-			pool.side_effects[cellname].push(n);
+			if(pool.side_effects[cellname].indexOf(n) === -1){
+				pool.side_effects[cellname].push(n);
+			}
 		}
 	}
-	//console.log('looking for matches', packages);
 	var matched = findMatcher(real_cellname, packages);
 	if(matched){
 		matched[0].func(matched[1], pool, context, packages);
@@ -1257,7 +1273,7 @@ var parse_fexpr = function(a, pool, key, packages){
 	} else {
 		// it's primitive value
 		init_if_empty(pool.plain_base, '$init', {});
-		parse_cellname(key, pool, null, packages);
+		parse_cellname(key, pool, 'setter', packages);
 		pool.plain_base.$init[key] = a;
 		return;
 	}
@@ -1688,49 +1704,58 @@ var core = {
 				console.error('List properties should be an object!');
 			}
 			var item_type = props.type;
-			if(!props.push && !props.datasource){
-				console.warn('No item source provided for list', props);
+			if(!props.push && !props.datasource && !props.deltas){
+				console.warn('No item source provided for list', props.deltas);
 			}
 			//console.log('List properties', props);
-			var deltas_func = props.push ? ['map', {
-				$push: (val) => {
-					if(val){
-						return [['add', null, val]];
-					}
-				},
-				$pop: (key) => {
-					if(key || key === 0 || key === '0'){
-						//console.log('remove', key);
-						if(key instanceof Array || key instanceof Set){
-							var arr = [];
-							for(let k of key){
-								arr.push(['remove', k]);
-							}
-							return arr;
+			var deltas_func;
+			if(props.push){ 
+				deltas_func = ['map', {
+					$push: (val) => {
+						if(val){
+							return [['add', null, val]];
 						}
-						return [['remove', key]];
+					},
+					$pop: (key) => {
+						if(key || key === 0 || key === '0'){
+							//console.log('remove', key);
+							if(key instanceof Array || key instanceof Set){
+								var arr = [];
+								for(let k of key){
+									arr.push(['remove', k]);
+								}
+								return arr;
+							}
+							return [['remove', key]];
+						}
 					}
-				}
-			}] : ['closure', () => {
-				var arr = [];
-				return (new_arr) => {
-					var changes = [];
-					arr_different(new_arr, arr, (key) => {
-						// create new element
-						changes.push(['add', key, new_arr[key]]);
-					})
-					//console.log('Computing changes between new an old arrays', new_arr, arr);
-					arr_diff(arr, new_arr, (key) => {
-						// create new element
-						changes.push(['remove', key]);
-					})
-					arr_common(arr, new_arr, (key) => {
-						changes.push(['change', key, new_arr[key]]);
-					})
-					arr = new_arr;
-					return changes;
-				}
-			}, '$datasource'];
+				}]
+			} else if(props.deltas) {
+				deltas_func = [(deltas) => {
+					return deltas;
+				}	, props.deltas];
+			} else {
+				deltas_func = ['closure', () => {
+					var arr = [];
+					return (new_arr) => {
+						var changes = [];
+						arr_different(new_arr, arr, (key) => {
+							// create new element
+							changes.push(['add', key, new_arr[key]]);
+						})
+						//console.log('Computing changes between new an old arrays', new_arr, arr);
+						arr_diff(arr, new_arr, (key) => {
+							// create new element
+							changes.push(['remove', key]);
+						})
+						arr_common(arr, new_arr, (key) => {
+							changes.push(['change', key, new_arr[key]]);
+						})
+						arr = new_arr;
+						return changes;
+					}
+				}, '$datasource']
+			}
 			var all_lists_mixin = {
 				$deltas: deltas_func,
 				/*$init: {
@@ -1798,20 +1823,8 @@ var core = {
 			return ['closure', function(){
 				var val = [];
 				return function(new_arr){
-					var new_ones = arr_diff(new_arr, val);
-					var remove_ones = arr_diff(val, new_arr);
-					var changed_ones = new_arr.mapFilter((v, k) => {
-						if(val[k] !== v && val[k] !== undefined){
-							 return k;
-						}
-					})
-					//console.log('CHANGED ONES', changed_ones);
+					var deltas = arr_deltas(val, new_arr);
 					val = new_arr;
-					var deltas = [].concat(
-						 new_ones.map((key) => ['add', key, new_arr[key]]),
-						 remove_ones.map((key) => ['remove', key]),
-						 changed_ones.map((key) => ['change', key, new_arr[key]])
-					)
 					//console.info('deltas are', deltas);
 					return deltas;
 				}
@@ -1934,9 +1947,10 @@ var htmlCells = {
 				}
 				var selector = matches[2];
 				var func, params;
-				var setters = new Set(['visibility', 'setval', 'hasClass']);
+				var setters = new Set(['visibility', 'setval', 'hasClass', 'css']);
                 [aspect, params] = get_params(aspect);
-				//console.info('Aspect:', aspect, params, matches[2]);
+				//console.info('Aspect:', aspect, context, params, matches[2]);
+				//if(context === null && setters.has(aspect)) context = 'setter';
 				if(
 					(context === 'setter' && !setters.has(aspect))
 					||
@@ -2048,6 +2062,13 @@ var htmlCells = {
 							}
 						}
 					break;
+					case 'css':
+						var [property] = params;
+						func = function($el, val){
+							//console.log('running css setter', $el);
+							$el.css(property, val);
+						}
+					break;
 					case 'display':
 						func = function($el, val){
 							if(val){
@@ -2071,6 +2092,7 @@ var htmlCells = {
 						if(!a) return $();
 						return selector ? a.find(selector) : a;
 					}, '$real_el'], cellname], pool, get_random_name(), packages);
+					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
 					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
 				}

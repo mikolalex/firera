@@ -1120,6 +1120,55 @@ describe('Basic Firera functionality', function () {
 		timer('Updating app 2').stop();
 		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
 	})
+	
+	it('Excel', () => {
+		var app = Firera({
+			__root: {
+				$el: $('.test-excel'),
+				'*|css(float)': 'left',
+				'*:nth-child(3)|css(clear)': ['just', 'left'],
+				$child_cells: ['list', {
+					type: 'cell',
+					deltas: '../cells_diff'
+				}],
+				sizeX: 3,
+				sizeY: 4,
+				cells_arr: [(x, y) => {
+					var res = [];
+					var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+					for(var i = 0; i < x; i++){
+						for(var j = 1; j <= y; j++){
+							res.push({
+								title: letters[i] + j
+							})
+						}
+					}
+					return res;
+				}, 'sizeX', 'sizeY'],
+				cells_diff: ['arr_deltas', 'cells_arr']
+			},
+			cell: {
+				$template: `
+					.
+						.
+							"Cell"
+						.$title
+				`,
+				'|css(float)': 'left',
+				val: 0,
+				formula: null
+				//$name: [() => { return 'A1' }, '../../sizeX', '../../sizeY', '$i']
+			},
+			__packages: ['ozenfant', 'htmlCells']
+		})
+		console.log('app', app);
+		//console.log('cells', app.get('cells_arr'));
+		//app.set('sizeX', 3);
+		//console.log('diff', app.get('cells_diff'));
+		
+		//app.set('[data-fr=cells] > *|css(float)', 'left');
+		
+	})
 })
 describe('Che', function () {
 	

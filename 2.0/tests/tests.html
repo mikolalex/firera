@@ -48,13 +48,13 @@
 		<script src="../jquery.js"></script>
 		<script src="assert.js"></script>
 		<script src="mocha.js"></script>
-                <script>
-                    mocha.setup('bdd');
-                    R('./tests', () => {
-			mocha.checkLeaks();
-			mocha.globals(['jQuery']);
-			mocha.run();
-                    })
+        <script>
+			mocha.setup('bdd');
+			R('./tests', () => {
+				mocha.checkLeaks();
+				mocha.globals(['jQuery']);
+				mocha.run();
+			})
 		</script>
                 <div class="tcases">
                     <div class="dummy">
@@ -115,6 +115,11 @@
                     <div class="test-che">
                         <button class="a">A</button>
                         <button class="b">B</button>
+                    </div>
+                    <div class="test-excel">
+						<div data-fr="cells">
+							
+						</div>
                     </div>
                 </div>
 	</body>
