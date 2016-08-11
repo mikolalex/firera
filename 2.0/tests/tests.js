@@ -1123,12 +1123,27 @@ describe('Basic Firera functionality', function () {
 		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
 	})
 	
+	it('Transist && accum', () => {
+		var app = Firera({
+			__root: {
+				a: 42,
+				b: [(val) => {
+					return val%2 ? val : Firera.noop;	
+				}, 'a'],
+				c: ['accum', 'b']
+			},
+		})
+		app.set('a', 3);
+		app.set('a', 4);
+		app.set('a', 5);
+		app.set('a', 6);
+		assert.deepEqual(app.get('c'), [3, 5]);
+	})
+	
 	it('Excel', () => {
 		var app = Firera({
 			__root: {
 				$el: $('.test-excel'),
-				'*|css(float)': 'left',
-				'*:nth-child(3)|css(clear)': ['just', 'left'],
 				$child_cells: ['list', {
 					type: 'cell',
 					deltas: '../cells_diff'
@@ -1151,9 +1166,8 @@ describe('Basic Firera functionality', function () {
 			},
 			cell: {
 				$template: `
-					.
-						"Cell"
 					.$title
+					.$val
 				`,
 				'|hasClass(cell)': true,
 				'|css(float)': 'left',

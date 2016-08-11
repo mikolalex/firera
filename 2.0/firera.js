@@ -654,6 +654,10 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			break;
 		}
 	}
+	if(val === Firera.noop){
+		//console.log('skipping update');
+		return Firera.noop;
+	}
 	if(props.async || props.nested){
 		
 	} else if(props.dynamic && !dynamic) {
@@ -848,6 +852,7 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		//var new_set = [];
 		//console.log('============================== LEVEL', x, levels[x]);
 		for(let cell of levels[x]){
+			var skip = false;
 			var needed_lvl = x+1;
 			var children = this.cell_children(cell);
 			//if(cell === '$real_el') debugger;
@@ -858,9 +863,12 @@ Hash.prototype.set = function(cells, val, child, no_args){
 				ct !== 'free' 
 				&& (cells[cell] === undefined || no_args)
 			){
-				this.compute(cell, parents[cell]);
+				var res = this.compute(cell, parents[cell]);
+				if(res === Firera.noop){
+					skip = true;
+				}
 			}
-			if(ct === 'async') {
+			if(ct === 'async' || skip) {
 				continue;
 			}
 			for(var child in children){
@@ -1469,6 +1477,7 @@ var Firera = function(config){
 	}
 	return app;
 };
+Firera.noop = new function(){};
 Firera.apps = apps;
 Firera.run = Firera,
 Firera.loadPackage = function(pack) {
@@ -1521,6 +1530,15 @@ var core = {
 		}
 	},
 	predicates: {
+		accum: (funcstring) => {
+			return ['closure', () => {
+				var arr = [];
+				return (a) => {
+					arr.push(a);
+					return arr;
+				}
+			}, funcstring[0]];
+		},
 		first: function(funcstring){
 			return [(a) => a, ...funcstring]
 		},
