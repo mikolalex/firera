@@ -6,7 +6,15 @@
         <link rel="stylesheet" href="mocha.css" />
         <style>
 
-                
+	.cell:nth-child(4n + 1) {
+		clear: left;
+	}
+	
+	.cell {
+		float: left;
+		border: 1px solid black;
+		padding: 5px;
+	}
                 
         </style>
 	</head>
@@ -25,7 +33,14 @@
                 })
             </script>
             <div class="tcases">
-               
+                <div class="test-excel">
+                    <div class="inputs">
+                            <input type="text" data-fr="formulas" />
+                    </div>
+                    <div data-fr="cells">
+
+                    </div>
+                </div>
             </div>
 	</body>
 </html>

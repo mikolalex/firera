@@ -7,6 +7,7 @@ var not = a => !a;
 var always = (a) => {
 	return () => a;
 }
+var first = (a) => { return a[0] };
 
 var excel_app = {
 	__root: {
@@ -16,6 +17,10 @@ var excel_app = {
 		}],
 		sizeX: 3,
 		sizeY: 4,
+		active_cell: [first, 'cells/*/become_active'],
+		zzz: [(a) => { 
+			console.log('active_cell', a);
+		}, 'active_cell'],
 		cells_arr: [(x, y) => {
 			var res = [];
 			var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
@@ -33,6 +38,14 @@ var excel_app = {
 	cell: {
 		'|hasClass(cell)': true,
 		'|css(float)': 'left',
+		become_active: ['join', '|click', '|focus'],
+		is_active: ['equal', '../../active_cell', '$name'],
+		zzz: [(a) => { 
+				console.log('im active?', a);
+			}, 'is_active'],
+		yyy: [(a) => { 
+				console.log('become_active', a);
+			}, 'become_active'],
 		val: 0,
 		formula: null
 	},

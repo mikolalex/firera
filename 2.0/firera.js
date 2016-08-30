@@ -1556,6 +1556,9 @@ var core = {
 		}
 	},
 	predicates: {
+		equal: (fs) => {
+			return [(a, b) => a === b].concat(fs);
+		},
 		accum: (funcstring) => {
 			return ['closure', () => {
 				var arr = [];
@@ -1748,10 +1751,7 @@ var core = {
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes']
 		},
 		join: function(funcstring){
-			var fnc = funcstring.slice();
-			fnc[0] = 'funnel';
-			fnc.splice(1, 0, second);
-			return fnc;
+			return ['funnel', second].concat(funcstring);
 		},
 		list: function(funcstring){
 			var props = funcstring[0];
@@ -2064,6 +2064,23 @@ var htmlCells = {
 								console.log('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('click', selector, (e) => {
+								make_resp(cb, e);
+								return false
+							});
+						}
+					break;
+					case 'focus':
+						func = function(cb, vals){
+							if(!vals) return;
+							var [$prev_el, $now_el] = vals;
+							if(!$now_el) return;
+							if($prev_el){
+								$prev_el.off('focus', selector);
+							}
+							if($now_el.length === 0){
+								console.log('Assigning handlers to nothing', $now_el);
+							}
+							$now_el.on('focus', selector, (e) => {
 								make_resp(cb, e);
 								return false
 							});
