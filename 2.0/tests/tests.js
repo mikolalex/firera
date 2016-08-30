@@ -1123,7 +1123,7 @@ describe('Basic Firera functionality', function () {
 		//console.log(i+':', app.get('a' + (i - 1)), app.get('b' + (i - 1)), app.get('c' + (i - 1)), app.get('d' + (i - 1)));
 	})
 	
-	it('Transist && accum', () => {
+	it('Accum', () => {
 		var app = Firera({
 			__root: {
 				a: 42,
@@ -1138,6 +1138,23 @@ describe('Basic Firera functionality', function () {
 		app.set('a', 5);
 		app.set('a', 6);
 		assert.deepEqual(app.get('c'), [3, 5]);
+	})
+	it('TransistA', () => {
+		var app = Firera({
+			__root: {
+				a: false,
+				b: 42,
+				c: ['transistA', 'a', 'b']
+			},
+		})
+		app.set('b', 35);
+		app.set('a', true);
+		assert.equal(app.get('c'), 35);
+		app.set('b', 42);
+		assert.equal(app.get('c'), 35);
+		app.set('a', false);
+		app.set('a', true);
+		assert.equal(app.get('c'), 42);
 	})
 })
 describe('Che', function () {

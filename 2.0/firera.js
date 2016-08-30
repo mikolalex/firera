@@ -241,6 +241,25 @@ var show_performance = function(){
 	return res.join(', ');
 }
 
+var add_dynamic_link = (pool, cell, grid, slave_cell, type) => {
+	init_if_empty(pool, cell, {}, grid, []);
+	var links = pool[cell][grid];
+	for(let lnk of links){
+		console.log('compare', lnk.cell_name, slave_cell);
+		if(lnk.cell_name === slave_cell && lnk.type === type){
+			// already exists
+			return;
+		}
+	}
+	if(slave_cell == "../../.formula|getval"){
+		console.log('add THAT links', links);
+	}
+	links.push({
+		cell_name: slave_cell,
+		type: type
+	})
+}
+
 var create_provider = (app, self) => {
 	return {
 		pool: {},
@@ -313,12 +332,7 @@ var create_provider = (app, self) => {
 					console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
 				}
 			}
-			init_if_empty(pool, parent_cell, {});
-			init_if_empty(pool[parent_cell], my_name_for_that_hash, []);
-			pool[parent_cell][my_name_for_that_hash].push({
-				cell_name: child_cell,
-				type: type
-			});
+			add_dynamic_link(pool, parent_cell, my_name_for_that_hash, child_cell, type);
 			//this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
 		}
 	}
@@ -361,11 +375,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 		var omit_list = this.all_cell_children('*');
 		for(let cell in this.cell_types){
 			if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell, this.app)){
-				init_if_empty(this.dynamic_cell_links, cell, {}, '__self', []);
-				this.dynamic_cell_links[cell].__self.push({
-					cell_name: '*',
-					type: ''
-				});
+				add_dynamic_link(this.dynamic_cell_links, cell, '__self', '*', '');
 			}
 		}
 		//console.log('Now dynamic links look like', this.dynamic_cell_links);
@@ -492,10 +502,13 @@ Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_
 	// ? maybe this.set(child_cell, undefined);
 }
 
-Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
+Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash, cell_name){
 	var links;
 	if(hash_name !== '*' && (links = this.cell_links[hash_name])){
 		links.each((parent_cell, child_cell) => { 
+			if(cell_name && (cell_name !== child_cell)){
+				return;
+			}
 			this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
 		});
 	}
@@ -650,6 +663,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 				val = func(args[0], args[1], args[2]);
 			break;
 			default: 
+				if(!func) debugger;
 				val = func.apply(null, args);
 			break;
 		}
@@ -677,11 +691,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		parse_cell_type(cell, val, this.dynamic_cells_props, []);
 		parents = this.dynamic_cells_props[cell].parents;
 		for(let parent_cell of parents){
-			init_if_empty(this.dynamic_cell_links, parent_cell, {}, '__self', []);
-			this.dynamic_cell_links[parent_cell].__self.push({
-				cell_name: cell,
-				type: 'dynamic'
-			});
+			add_dynamic_link(this.dynamic_cell_links, parent_cell, '__self', cell, 'dynamic')
 		}
 		this.setLevel(cell, parents.concat(this.cell_parents(real_cell_name)));
 		this.compute(cell);
@@ -1200,7 +1210,7 @@ var add_cell_link = (pool, grid, my_name, its_name, dynamic) => {
 	}
 	pool.cell_links[grid][my_name] = its_name;
 	if(dynamic) {
-		dynamic.linkCells(grid, dynamic.name);
+		dynamic.linkCells(grid, dynamic.name, my_name);
 	}
 }
 
@@ -1568,6 +1578,32 @@ var core = {
 		}
 	},
 	predicates: {
+		transistA: (fs) => {
+			return ['closure', () => {
+					var valA;
+					var valB;
+					return (cellA, cellB) => {
+						valB = cellB;
+						if(cellA && !valA){
+							valA = cellA;
+							return valB;
+						} else {
+							valA = cellA;
+							return Firera.noop;
+						}
+					}
+			}].concat(fs);
+		},
+		transistB: (fs) => {
+			return [(cellA, cellB) => {
+				console.log('transistB', cellA, cellB);
+				if(cellA){
+					return cellB;
+				} else {
+					return Firera.noop;
+				}
+			}].concat(fs);
+		},
 		equal: (fs) => {
 			return [(a, b) => a === b].concat(fs);
 		},
@@ -1799,8 +1835,10 @@ var core = {
 				}]
 			} else if(props.deltas) {
 				deltas_func = [(deltas) => {
+					console.log('got deltas');
+					debugger;
 					return deltas;
-				}	, props.deltas];
+				}, props.deltas];
 			} else {
 				deltas_func = ['closure', () => {
 					var arr = [];

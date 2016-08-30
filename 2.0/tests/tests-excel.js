@@ -8,6 +8,15 @@ var always = (a) => {
 	return () => a;
 }
 var first = (a) => { return a[0] };
+var second = (a) => { return a[1] };
+var first_arg = (a) => { return a; };
+var second_arg = (a, b) => { 
+	return b; 
+};
+
+var formula_parser = (formula) => {
+	return [always(formula)];
+}
 
 var excel_app = {
 	__root: {
@@ -21,6 +30,7 @@ var excel_app = {
 		zzz: [(a) => { 
 			console.log('active_cell', a);
 		}, 'active_cell'],
+		get_formula: ['.formula|getval'],
 		cells_arr: [(x, y) => {
 			var res = [];
 			var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
@@ -31,15 +41,18 @@ var excel_app = {
 					})
 				}
 			}
+			console.log('_)_______________________ ARR', res);
 			return res;
 		}, 'sizeX', 'sizeY'],
-		cells_diff: ['arr_deltas', 'cells_arr']
+		cells_diff: ['arr_deltas', 'cells_arr'],
+		'.formula|setval': [second, 'cells/*/set_formula']
 	},
 	cell: {
 		'|hasClass(cell)': true,
 		'|hasClass(active)': ['is_active'],
 		'|css(float)': 'left',
 		become_active: ['join', '|click', '|focus'],
+		set_formula: ['transistA', 'is_active', 'formula'],
 		is_active: ['equal', '../../active_cell', '$name'],
 		zzz: [(a) => { 
 				console.log('im active?', a);
@@ -47,8 +60,9 @@ var excel_app = {
 		yyy: [(a) => { 
 				console.log('become_active', a);
 			}, 'become_active'],
-		val: 0,
-		formula: null
+		val: ['dynamic', formula_parser, 'formula'],
+		$init: {formula: 42},
+		formula: ['transistB', 'is_active', '../../get_formula'],
 	},
 	$packages: ['ozenfant', 'htmlCells']
 }
