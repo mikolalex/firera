@@ -37,6 +37,7 @@ var excel_app = {
 	},
 	cell: {
 		'|hasClass(cell)': true,
+		'|hasClass(active)': ['is_active'],
 		'|css(float)': 'left',
 		become_active: ['join', '|click', '|focus'],
 		is_active: ['equal', '../../active_cell', '$name'],

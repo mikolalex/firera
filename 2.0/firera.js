@@ -303,7 +303,7 @@ var create_provider = (app, self) => {
 				if(unusual_cell(parent_cell)){
 					// try to init this cell in hash
 					//console.log('creating cellname on the fly', parent_cell, other_hash);
-					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool);
+					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool, other_hash);
 					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
 					other_hash.setLevels();
 					/*if(other_hash.cell_types[parent_cell]){
@@ -494,7 +494,7 @@ Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_
 
 Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash){
 	var links;
-	if(links = this.cell_links[hash_name]){
+	if(hash_name !== '*' && (links = this.cell_links[hash_name])){
 		links.each((parent_cell, child_cell) => { 
 			this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
 		});
@@ -1192,12 +1192,24 @@ var findMatcher = (cellname, packages) => {
 	}
 } 
 
-var parse_cellname = function(cellname, pool, context, packages){
+var add_cell_link = (pool, grid, my_name, its_name, dynamic) => {
+	if(pool.cell_links[grid][my_name]){
+		if(pool.cell_links[grid][my_name] === its_name){
+			return;
+		}
+	}
+	pool.cell_links[grid][my_name] = its_name;
+	if(dynamic) {
+		dynamic.linkCells(grid, dynamic.name);
+	}
+}
+
+var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
 		// it's a path - link to other hashes
 		var path = cellname.split('/');
 		init_if_empty(pool.cell_links, path[0], {});
-		pool.cell_links[path[0]][cellname] = path.slice(1).join('/');
+		add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic);
 		return;
 	}
 	var real_cellname = get_real_cell_name(cellname);
