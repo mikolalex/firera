@@ -1457,10 +1457,14 @@ var parse_external_links_and_$init = function(pool, key){
 
 
 var Firera = function(config){
+	if(arguments.length > 1){
+		// it's a set of grids we should join
+		config = Firera.join.apply(null, arguments);
+	}
 	var start = performance.now();
-	var app = get_app(config.__packages);
+	var app = get_app(config.$packages);
 	// getting real pbs
-	app.cbs = config.map(app.parse_cbs.bind(app), {except: ['__packages']});
+	app.cbs = config.map(app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
 	if(!app.cbs.__root){
 		// no root hash
@@ -1482,6 +1486,28 @@ Firera.apps = apps;
 Firera.run = Firera,
 Firera.loadPackage = function(pack) {
 	root_package_pool.load(pack);
+}
+Firera.join = function(...args){
+	var join = (a, b) => {
+		for(let i in b){
+			a[i] = b[i];
+		}
+	}
+	var res = Object.assign({}, args[0]);
+	for(let key in args){
+		var grid = args[key];
+		if(key === 0) continue;
+		for(let k in grid){
+			if(k === '$packages'){
+				init_if_empty(res, k, []);
+				res.$packages = res.$packages.concat(grid[k]);
+				continue;
+			}
+			init_if_empty(res, k, {});
+			join(res[k], grid[k]); 
+		}
+	}
+	return res;
 }
 
 var arr_diff = function(a, b){

@@ -226,7 +226,7 @@ describe('Basic Firera functionality', function () {
                 'someval': [id, 'input|getval'],
                 '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
             },
-			__packages: ['simpleHtmlTemplates', 'htmlCells']
+			$packages: ['simpleHtmlTemplates', 'htmlCells']
         });
         $('.test-html input').val('ololo').keyup();
         assert.equal(app.get('someval'), 'ololo');
@@ -342,7 +342,7 @@ describe('Basic Firera functionality', function () {
                 b: [add.bind(null, 20), 'a'],
                 $child_item: 'person',
             },
-			__packages: ['simpleHtmlTemplates', 'htmlCells'],
+			$packages: ['simpleHtmlTemplates', 'htmlCells'],
             person: {
 				'name': 'John',
 				'surname': 'Kovalenko',
@@ -472,7 +472,7 @@ describe('Basic Firera functionality', function () {
     it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
         var app = Firera({
-			__packages: ['simpleHtmlTemplates', 'htmlCells'],
+			$packages: ['simpleHtmlTemplates', 'htmlCells'],
             __root: {
                 $child_todos: ['list', {
 					type: 'item',
@@ -558,7 +558,7 @@ describe('Basic Firera functionality', function () {
 			$root.find('button').click();
 		}
 		var app = Firera({
-			__packages: ['simpleHtmlTemplates', 'htmlCells'],
+			$packages: ['simpleHtmlTemplates', 'htmlCells'],
 			__root: {
 				$el: $(".test-trains"),
 				$child_trains: ['list', {
@@ -712,7 +712,7 @@ describe('Basic Firera functionality', function () {
 
 				`
             },
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
         });
 		app.set('text', 'ololo');
 		assert.equal($('.test-ozenfant .text').html(), 'ololo');
@@ -741,7 +741,7 @@ describe('Basic Firera functionality', function () {
 					"!"
 					`
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
         });
 		app.set('text', 'ololo');
 		var res = `Hello,  
@@ -755,7 +755,7 @@ describe('Basic Firera functionality', function () {
 	it('Testing indices predicate', function(){
 		var $root = $(".test-indices");
 		var app = Firera({
-			__packages: ['ozenfant', 'htmlCells'],
+			$packages: ['ozenfant', 'htmlCells'],
 			__root: {
 				$init: {
 					undone_num: 0,
@@ -862,7 +862,7 @@ describe('Basic Firera functionality', function () {
 					`,
 				edit_train: ['second', '.edit|click', '-$real_values']
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('app', app);
 	})
@@ -946,7 +946,7 @@ describe('Basic Firera functionality', function () {
 						"todo"
 				`,
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		$(".test-new-children .add").click();
 		assert.equal($(".test-new-children .todosya").length, 1);
@@ -1038,7 +1038,7 @@ describe('Basic Firera functionality', function () {
 				complete: [always(true), '.complete|click'],
 				'c': ['+', 'a', 'b']
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
 		$root.find('input[type=text]').val('Do something useful');
@@ -1085,7 +1085,7 @@ describe('Basic Firera functionality', function () {
 					}, letter + '1', letter + '2', letter + '3']
 				}, 'flag']
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		assert.equal(app.get('val'), 75);
 		app.set('a1', 12);
@@ -1139,52 +1139,6 @@ describe('Basic Firera functionality', function () {
 		app.set('a', 6);
 		assert.deepEqual(app.get('c'), [3, 5]);
 	})
-	
-	it('Excel', () => {
-		var app = Firera({
-			__root: {
-				$el: $('.test-excel'),
-				$child_cells: ['list', {
-					type: 'cell',
-					deltas: '../cells_diff'
-				}],
-				sizeX: 3,
-				sizeY: 4,
-				cells_arr: [(x, y) => {
-					var res = [];
-					var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-					for(var i = 0; i < x; i++){
-						for(var j = 1; j <= y; j++){
-							res.push({
-								title: letters[i] + j
-							})
-						}
-					}
-					return res;
-				}, 'sizeX', 'sizeY'],
-				cells_diff: ['arr_deltas', 'cells_arr']
-			},
-			cell: {
-				$template: `
-					.$title
-					.$val
-				`,
-				'|hasClass(cell)': true,
-				'|css(float)': 'left',
-				val: 0,
-				formula: null
-				//$name: [() => { return 'A1' }, '../../sizeX', '../../sizeY', '$i']
-			},
-			__packages: ['ozenfant', 'htmlCells']
-		})
-		console.log('app', app);
-		//console.log('cells', app.get('cells_arr'));
-		//app.set('sizeX', 3);
-		//console.log('diff', app.get('cells_diff'));
-		
-		//app.set('[data-fr=cells] > *|css(float)', 'left');
-		
-	})
 })
 describe('Che', function () {
 	
@@ -1196,7 +1150,7 @@ describe('Che', function () {
 				b: [always('B'), '.b|click'],
 				clicked_both: ['che', '& a, b']
 			},
-			__packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('app', app);
 		$(".test-che .a").click();
