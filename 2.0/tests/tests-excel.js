@@ -62,7 +62,7 @@ var excel_app = {
 			}, 'become_active'],
 		val: ['dynamic', formula_parser, 'formula'],
 		$init: {formula: 42},
-		formula: ['transistB', 'is_active', '../../get_formula'],
+		formula: ['transistB', '-is_active', '../../get_formula'],
 	},
 	$packages: ['ozenfant', 'htmlCells']
 }
