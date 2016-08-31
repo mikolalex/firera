@@ -1144,7 +1144,7 @@ describe('Basic Firera functionality', function () {
 			__root: {
 				a: false,
 				b: 42,
-				c: ['transistA', 'a', 'b']
+				c: ['transist', 'a', '-b']
 			},
 		})
 		app.set('b', 35);

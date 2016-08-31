@@ -3,25 +3,6 @@
 var Ozenfant = require('./ozenfant/ozenfant');
 var che = require('./che/che');
 
-/*
- * 
- * @todo: написати DOM abstractions. 
- * Наприклад, для калькулятор, абстрація - це клавіша.
- * key: {
- *	   selector: (name) => {
- *			// отримати реальний селектор із "імені"	
- *	   },
- *	   actions: (name) => {
- *			// отримати із бізнес-назви івента подію дом
- *	   },
- *	   data: (e) => {
- *			// отримати з ноди бізнес-дані
- *			return e.target.attr('data-num');
- *	   }
- * }
- * 
- */
-
 var always = (a) => {
 	return () => a;
 }
@@ -158,9 +139,9 @@ var get_real_cell_name = function(str){
 
 
 var PackagePool = function(proto = {}){
-	this.cellMatchers = Object.create(proto.cellMatchers || {});
-	this.predicates = Object.create(proto.predicates || {});
-	this.eachHashMixin = Object.create(proto.eachHashMixin || {});
+	this.cellMatchers = Object.assign({}, proto.cellMatchers);
+	this.predicates = Object.assign({}, proto.predicates);
+	this.eachHashMixin = Object.assign({}, proto.eachHashMixin);
 }
 PackagePool.prototype.load = function(pack){
 	if(typeof pack === 'string'){
@@ -245,14 +226,10 @@ var add_dynamic_link = (pool, cell, grid, slave_cell, type) => {
 	init_if_empty(pool, cell, {}, grid, []);
 	var links = pool[cell][grid];
 	for(let lnk of links){
-		console.log('compare', lnk.cell_name, slave_cell);
 		if(lnk.cell_name === slave_cell && lnk.type === type){
 			// already exists
 			return;
 		}
-	}
-	if(slave_cell == "../../.formula|getval"){
-		console.log('add THAT links', links);
 	}
 	links.push({
 		cell_name: slave_cell,
@@ -314,6 +291,28 @@ var create_provider = (app, self) => {
 		},
 		getLinkedHashCellValue: function(hashname, cellname){
 			return this.get(hashname).cell_value(cellname);
+		},
+		linkAnyTwoCells: function(master, slave){
+			if(master.indexOf('/') !== -1){
+				// it's from another grid
+				var prts = master.split('/');
+				var other_hash = this.get(prts[0]);
+				var parent_cell = prts.slice(1).join('/');
+				//console.log('LINKING', other_hash, parent_cell, self.name);
+				var pool = other_hash.dynamic_cell_links;
+				if(!other_hash.cellExists(parent_cell)){
+					if(unusual_cell(parent_cell)){
+						parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool, other_hash);
+						other_hash.cell_types = parse_cell_types(other_hash.plain_base);
+						other_hash.setLevels();
+					} else {
+						console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
+					}
+				}
+				add_dynamic_link(pool, parent_cell, prts[0] == '..' ? self.name : '..', slave, 'dynamic');
+			} else {
+				add_dynamic_link(self.dynamic_cell_links, master, '__self', slave, 'dynamic');
+			}
 		},
 		linkTwoCells: function(name, self, parent_cell, child_cell, hash_name, my_name_for_that_hash, type){
 			var other_hash = this.get(name);
@@ -676,22 +675,24 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		
 	} else if(props.dynamic && !dynamic) {
 		//console.log('changing the dependency structure of dynamic cells');
-		var old_parents = this.dynamic_cells_props[cell] ? this.dynamic_cells_props[cell].parents : false;
+		/*var old_parents = this.dynamic_cells_props[cell] ? this.dynamic_cells_props[cell].parents : false;
 		if(old_parents){
 			for(let prnt of old_parents){
 				for(let i in this.dynamic_cell_links[prnt].__self){
 					var lnk = this.dynamic_cell_links[prnt].__self[i];
 					if(lnk.cell_name === cell){
 						//console.log('remove old link');
-						delete this.dynamic_cell_links[prnt].__self[i];
+						this.dynamic_cell_links[prnt].__self.splice(i, 1);
+						//delete this.dynamic_cell_links[prnt].__self[i];
 					}
 				} 
 			}
-		}
-		parse_cell_type(cell, val, this.dynamic_cells_props, []);
+		}*/
+		var fs = parse_arr_funcstring(val, cell, {plain_base:{}}, this.app.packagePool);
+		parse_cell_type(cell, fs, this.dynamic_cells_props, []);
 		parents = this.dynamic_cells_props[cell].parents;
 		for(let parent_cell of parents){
-			add_dynamic_link(this.dynamic_cell_links, parent_cell, '__self', cell, 'dynamic')
+			this.linked_hashes_provider.linkAnyTwoCells(parent_cell, cell);
 		}
 		this.setLevel(cell, parents.concat(this.cell_parents(real_cell_name)));
 		this.compute(cell);
@@ -1248,48 +1249,51 @@ var get_random_name = (function(){
 	}
 })()
 
-var parse_fexpr = function(a, pool, key, packages){
+var parse_arr_funcstring = (a, key, pool, packages) => {
 	var funcstring;
-	//console.log('Parse fexpr', a, key);
-	if(a instanceof Array){
+	a = a.slice();
+	var funcname = a[0];
+	if(packages.predicates.hasOwnProperty(funcname)){
+		a = packages.predicates[funcname](a.slice(1));
+		funcname = a[0];
 		a = a.slice();
-		var funcname = a[0];
-		var cc = split_camelcase(funcname);
-		if(a.length === 1 && (typeof a[0] === 'string')){
-			funcstring = ['is', id, a[0]];
-		} else {
-			if(funcname instanceof Function){
-				// it's "is" be default
-				funcstring = ['is'].concat(a);
-			} else if(system_predicates.has(cc[0])){
-				switch(funcname){
-					case 'nested':
-						var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
-						init_if_empty(pool.plain_base, '$init', {});
-						dependent_cells.each((name) => {
-							pool.plain_base.$init[name] = null;
-						})
-						a.splice(2, 1);
-						funcstring = a; 
-					break;
-					case 'map':
-						funcstring = ['map', a[1]].concat(Object.keys(a[1]));
-						if(a[2]){
-							// default value
-							init_if_empty(pool.plain_base, '$init', {});
-							pool.plain_base.$init[key] = a[2];
-						}
-					break;
-					default:
-						funcstring = a; 
-					break;
-				}
-			} else {
-				if(funcname === 'just'){
+	}
+	var cc = split_camelcase(funcname);
+	if(a.length === 1 && (typeof a[0] === 'string')){
+		funcstring = ['is', id, a[0]];
+	} else {
+		if(funcname instanceof Function){
+			// it's "is" be default
+			funcstring = ['is'].concat(a);
+		} else if(system_predicates.has(cc[0])){
+			switch(funcname){
+				case 'nested':
+					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
 					init_if_empty(pool.plain_base, '$init', {});
-					pool.plain_base.$init[key] = a[1];
-					return;
-				} 
+					dependent_cells.each((name) => {
+						pool.plain_base.$init[name] = null;
+					})
+					a.splice(2, 1);
+					funcstring = a; 
+				break;
+				case 'map':
+					funcstring = ['map', a[1]].concat(Object.keys(a[1]));
+					if(a[2]){
+						// default value
+						init_if_empty(pool.plain_base, '$init', {});
+						pool.plain_base.$init[key] = a[2];
+					}
+				break;
+				default:
+					funcstring = a; 
+				break;
+			}
+		} else {
+			if(funcname === 'just'){
+				init_if_empty(pool.plain_base, '$init', {});
+				pool.plain_base.$init[key] = a[1];
+				return;
+			} else {
 				if(predefined_functions[funcname]){
 					var fnc = predefined_functions[funcname];
 					switch(fnc.type){
@@ -1298,18 +1302,20 @@ var parse_fexpr = function(a, pool, key, packages){
 						break;
 					}
 				} else {
-					//console.log('Having predicates', predicates, funcname, pool);
-					if(packages.predicates[funcname]){
-						funcstring = packages.predicates[funcname](a.slice(1));
-						//console.log('Using package predicate', funcstring, key);
-						return parse_fexpr(funcstring, pool, key, packages);
-					} else {
-						//console.log('Error', arguments, a);
-						throw new Error('Cannot find predicate: ' + funcname, a);
-					}
+					throw new Error('Cannot find predicate: ' + funcname, a);
 				}
 			}
 		}
+	}
+	return funcstring;
+}
+
+var parse_fexpr = function(a, pool, key, packages){
+	var funcstring;
+	//console.log('Parse fexpr', a, key);
+	if(a instanceof Array){
+		funcstring = parse_arr_funcstring(a, key, pool, packages);
+		if(funcstring === undefined) return;
 	} else {
 		// it's primitive value
 		init_if_empty(pool.plain_base, '$init', {});
@@ -1578,25 +1584,8 @@ var core = {
 		}
 	},
 	predicates: {
-		transistA: (fs) => {
-			return ['closure', () => {
-					var valA;
-					var valB;
-					return (cellA, cellB) => {
-						valB = cellB;
-						if(cellA && !valA){
-							valA = cellA;
-							return valB;
-						} else {
-							valA = cellA;
-							return Firera.noop;
-						}
-					}
-			}].concat(fs);
-		},
-		transistB: (fs) => {
+		transist: (fs) => {
 			return [(cellA, cellB) => {
-				console.log('transistB', cellA, cellB);
 				if(cellA){
 					return cellB;
 				} else {
@@ -1834,11 +1823,7 @@ var core = {
 					}
 				}]
 			} else if(props.deltas) {
-				deltas_func = [(deltas) => {
-					console.log('got deltas');
-					debugger;
-					return deltas;
-				}, props.deltas];
+				deltas_func = [id, props.deltas];
 			} else {
 				deltas_func = ['closure', () => {
 					var arr = [];
