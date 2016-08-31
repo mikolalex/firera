@@ -837,9 +837,11 @@ describe('Basic Firera functionality', function () {
 						remove: 'edit_train_form/close'
 					}
 				},
-				edit_train: [function([num, data]){
-						console.log('Click!', num, data);
-				}, 'trains/*/edit_train']
+				edit_train: [
+					function(a) {
+						console.log('Click!', a);
+					}, 'trains/*/edit_train'
+				]
 			},
 			edit_train_form: {
 				$template: `

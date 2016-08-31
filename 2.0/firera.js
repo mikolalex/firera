@@ -290,12 +290,13 @@ var create_provider = (app, self) => {
 			this.remove(name);
 		},
 		getLinkedHashCellValue: function(hashname, cellname){
-			return this.get(hashname).cell_value(cellname);
+			var hash = this.get(hashname);
+			return hash ? hash.cell_value(cellname) : false;
 		},
-		linkAnyTwoCells: function(master, slave){
-			if(master.indexOf('/') !== -1){
+		linkAnyTwoCells: function(slave, master){
+			if(slave.indexOf('/') !== -1){
 				// it's from another grid
-				var prts = master.split('/');
+				var prts = slave.split('/');
 				var other_hash = this.get(prts[0]);
 				var parent_cell = prts.slice(1).join('/');
 				//console.log('LINKING', other_hash, parent_cell, self.name);
@@ -309,14 +310,16 @@ var create_provider = (app, self) => {
 						console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
 					}
 				}
-				add_dynamic_link(pool, parent_cell, prts[0] == '..' ? self.name : '..', slave, 'dynamic');
+				add_dynamic_link(pool, parent_cell, prts[0] == '..' ? self.name : '..', master, 'dynamic');
+				self.set(slave, other_hash.get(parent_cell));
 			} else {
-				add_dynamic_link(self.dynamic_cell_links, master, '__self', slave, 'dynamic');
+				add_dynamic_link(self.dynamic_cell_links, slave, '__self', master, 'dynamic');
 			}
 		},
 		linkTwoCells: function(name, self, parent_cell, child_cell, hash_name, my_name_for_that_hash, type){
 			var other_hash = this.get(name);
 			var pool = other_hash.dynamic_cell_links;
+			if(!other_hash) return; // huinya
 			if(!other_hash.cellExists(parent_cell)){
 				if(unusual_cell(parent_cell)){
 					// try to init this cell in hash
@@ -1203,7 +1206,7 @@ var findMatcher = (cellname, packages) => {
 	}
 } 
 
-var add_cell_link = (pool, grid, my_name, its_name, dynamic) => {
+var add_cell_link = (pool, grid, my_name, its_name, dynamic, other_hash_name) => {
 	if(pool.cell_links[grid][my_name]){
 		if(pool.cell_links[grid][my_name] === its_name){
 			return;
@@ -1211,7 +1214,7 @@ var add_cell_link = (pool, grid, my_name, its_name, dynamic) => {
 	}
 	pool.cell_links[grid][my_name] = its_name;
 	if(dynamic) {
-		dynamic.linkCells(grid, dynamic.name, my_name);
+		dynamic.linkCells(grid, other_hash_name == '..' ? dynamic.name : '..', my_name);
 	}
 }
 
@@ -1220,7 +1223,7 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 		// it's a path - link to other hashes
 		var path = cellname.split('/');
 		init_if_empty(pool.cell_links, path[0], {});
-		add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic);
+		add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic, path[0]);
 		return;
 	}
 	var real_cellname = get_real_cell_name(cellname);
