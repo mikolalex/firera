@@ -159,6 +159,23 @@ PackagePool.prototype.load = function(pack){
 	}
 }
 
+var LinkManager = function(app){
+	this.app = app;
+	this.links = {};
+};
+
+LinkManager.prototype.initLink = function(hash_id, link){
+	console.log('Initing link', hash_id, link);
+	var path = link.split('/');
+	init_if_empty(this.links, hash_id, []).push({
+		path: path,
+		target: path[path.length - 1],
+		status: null,
+	}) 
+}
+
+
+
 var root_package_pool = new PackagePool();
 
 var apps = [];
@@ -171,6 +188,7 @@ var App = function(packages){
 	}
 	this.hashes = {};
 	this.hashIds = 0;
+	this.linkManager = new LinkManager(this);
 };
 var noop = function(){
 	console.log('Noop is called!');
@@ -419,6 +437,10 @@ Hash.prototype.init = function(){
 Hash.prototype.updateChildFreeValues = function(childName, values){
 	this.linked_hashes_provider.setCellValues(childName, values);
 	//this.linked_hashes[childName].set(values);
+}
+
+Hash.prototype.initLinkChain = function(link){
+	this.app.linkManager.initLink(this.id, link);
 }
 
 Hash.prototype.linkHash = function(cellname, val){
@@ -1177,6 +1199,7 @@ var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
 		}
 		obj = obj[key];
 	}
+	return obj;
 }
 var set_listening_type = function(cell, type){
 	return {
@@ -1222,6 +1245,12 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
 		// it's a path - link to other hashes
 		var path = cellname.split('/');
+		console.log('link found', cellname, pool.initLinkChain);
+		if(!pool.initLinkChain){
+			init_if_empty(pool, 'link_chains', {}, cellname, {path, inited: false});
+		} else {
+			pool.initLinkChain(cellname);
+		}
 		init_if_empty(pool.cell_links, path[0], {});
 		add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic, path[0]);
 		return;
@@ -1502,14 +1531,14 @@ var Firera = function(config){
 		throw new Error('Cant find root app!');
 	}
 	//console.log(app);
-	var compilation_finished = performance.now();
+	//var compilation_finished = performance.now();
 	app.root = new Hash(app, '__root');
-	var init_finished = performance.now();
+	/*var init_finished = performance.now();
 	if(1 < 0){
 		console.info('App run', packages.root
 			//, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 		);
-	}
+	}*/
 	return app;
 };
 Firera.noop = new function(){};
