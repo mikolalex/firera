@@ -162,16 +162,70 @@ PackagePool.prototype.load = function(pack){
 var LinkManager = function(app){
 	this.app = app;
 	this.links = {};
+	this.workingLinks = {};
 };
 
+LinkManager.prototype.actualizeLink = function(hash_id, lnk){
+	var gridname;
+	var curr_hash_id = hash_id, curr_hash;
+	//console.log('___________ start', hash_id, lnk);
+	for(var pointer_pos in this.links[hash_id][lnk].pointers){
+		var current_pointer = this.links[hash_id][lnk].pointers[pointer_pos].pos;
+		for(var i = current_pointer; gridname = this.links[hash_id][lnk].path[i]; i++){
+			if(!this.links[hash_id][lnk].path[i + 1]){
+				// its cellname
+				//console.log('reached end!');
+				if(!this.links[hash_id][lnk].pointers[pointer_pos].fixed){
+					this.links[hash_id][lnk].pointers.splice(pointer_pos, 1);
+				}
+				init_if_empty(this.workingLinks, curr_hash_id, {}, hash_id, {}, gridname, lnk);
+				break;
+			}
+
+			curr_hash = this.app.getGrid(curr_hash_id);
+			if(gridname === '..'){
+				// looking for parent
+				curr_hash_id = curr_hash.parent;
+			} else if(gridname === '*'){
+				// all children
+				//console.log('need to add constant pointer');
+				this.links[hash_id][lnk].pointers.push({
+					pos: i,
+					fixed: true
+				})
+				// remove old pointer
+				if(!this.links[hash_id][lnk].pointers[pointer_pos].fixed){
+					this.links[hash_id][lnk].pointers.splice(pointer_pos, 1);
+				}
+				break;
+			} else {
+				if(curr_hash.linked_hashes && (curr_hash.linked_hashes[gridname] !== undefined)){
+					curr_hash_id = curr_hash.linked_hashes[gridname];
+				} else {
+					break;
+				}
+			}
+			//console.log('linl', lnk, hash_id, 'next hash', curr_hash_id);
+		}
+	}
+	//console.log('_____	 end', i - current_pointer);
+}
+
 LinkManager.prototype.initLink = function(hash_id, link){
-	console.log('Initing link', hash_id, link);
 	var path = link.split('/');
-	init_if_empty(this.links, hash_id, []).push({
+	var link_id = init_if_empty(this.links, hash_id, {}, link, {
 		path: path,
 		target: path[path.length - 1],
+		pointers: [{
+			pos: 0,
+			fixed: false,
+		}],
 		status: null,
-	}) 
+	})
+	this.actualizeLink(hash_id, link);
+	
+	
+	//console.log('Initing link', hash_id, link_id);
 }
 
 
@@ -195,6 +249,9 @@ var noop = function(){
 };
 App.prototype.get = function(cell, path){
 	return this.root.get(cell, path);
+}
+App.prototype.getGrid = function(id){
+	return this.hashes[id];
 }
 App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
@@ -223,10 +280,10 @@ App.prototype.setHash = function(id, hash){
 	this.hashes[id] = hash;
 }
 
-App.prototype.createHash = function(type, link_as, free_vals) {
+App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
 	var child = new Hash(this, type, link_as, Object.assign({
 				$name: link_as
-			}, free_vals), true); 
+			}, free_vals), true, parent_id); 
 	child.setLevels();
 	return child.id;
 }
@@ -259,12 +316,11 @@ var create_provider = (app, self) => {
 	return {
 		pool: {},
 		create: function(self, type, link_as, free_vals){
-			var child = self.app.createHash(type, link_as, free_vals);
-			/*new Hash(self.app, type, link_as, Object.assign({
-				$name: link_as
-			}, free_vals), true);*/
+			var child = self.app.createHash(type, link_as, free_vals, self.id);
+			init_if_empty(self, 'linked_hashes', {}, link_as, child);
 			this.set(link_as, child);
 			this.get(link_as).linked_hashes_provider.set('..', self.id);
+			return child;
 		},
 		set: function(name, hash_id){
 			this.pool[name] = hash_id;
@@ -358,11 +414,12 @@ var create_provider = (app, self) => {
 	}
 }
 
-var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
+var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id){
 	var self = this;
 	var id = ++app.hashIds;
 	app.setHash(id, this);
 	this.id = id;
+	this.parent = parent_id;
 	////////////////////////////////////////////////////////////////////////
 	var t0 = performance.now();
 	////////////////////////////////////////////////////////////////////////
@@ -422,11 +479,20 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, id){
 			}, cellname)
 		})
 	}
+	if(parsed_pb.link_chains){
+		for(let link in parsed_pb.link_chains){
+			this.initLinkChain(link);
+		}
+	}
 	////////////////////////////////////////////////////////////////////////
 	var t2 = performance.now();
 	////////////////////////////////////////////////////////////////////////
 	//console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
 }
+
+Hash.prototype.hasChild = function(name){
+	return this.linked_hashes && this.linked_hashes[name];
+} 
 
 Hash.prototype.init = function(){
 	for(let cell in this.init_values){
@@ -1245,9 +1311,9 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
 		// it's a path - link to other hashes
 		var path = cellname.split('/');
-		console.log('link found', cellname, pool.initLinkChain);
+		//console.log('Found', cellname, 'in', pool);
 		if(!pool.initLinkChain){
-			init_if_empty(pool, 'link_chains', {}, cellname, {path, inited: false});
+			init_if_empty(pool, 'link_chains', {}, cellname, path);
 		} else {
 			pool.initLinkChain(cellname);
 		}

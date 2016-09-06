@@ -102,11 +102,8 @@ describe('Excel', ()=>{
 			},
 		});
 		console.log('________________________________________________app', app);
-		//console.log('cells', app.get('cells_arr'));
-		console.log('________________________________________________________');
-		console.log('________________________________________________________');
-		console.log('________________________________________________________');
 		app.set('formula', 'C1+C3', 'cells/2/');
+		console.log('________________________________________________Links', app.linkManager);
 		//console.log('diff', app.get('cells_diff'));
 		
 		//app.set('[data-fr=cells] > *|css(float)', 'left');
