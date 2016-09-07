@@ -190,21 +190,67 @@ LinkManager.prototype.refreshPointers = function(link_id){
 	}
 }
 
+LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
+	if(this.workingLinks[master_hash_id] && this.workingLinks[master_hash_id][master_cell]){
+		if(val === undefined){
+			val = this.app.getGrid(master_hash_id).get(master_cell);
+		}
+		if(val === undefined){
+			return;
+		}
+		var lnks = this.workingLinks[master_hash_id][master_cell];
+		for(var slave_hash_id in lnks){
+			for(var slave_cellname in lnks[slave_hash_id]){
+				var cell_val = val;
+				var link_data = lnks[slave_hash_id][slave_cellname];
+				//console.log('lnk id', link_id);
+				var data = this.links[link_data.link_id];
+				for(var i = data.path.length - 1; i > -1; i--){
+					if(data.path[i] === '*'){
+						//console.log('A', i, data.path, link_data.path[i+1]);
+						cell_val = [link_data.path[i+1], cell_val];
+					}
+				}
+				//console.log('SET', slave_hash_id, slave_cellname, cell_val);
+				// the very meaning of this method
+				var slave_grid = this.app.getGrid(slave_hash_id);
+				if(!slave_grid){
+					log('obsolete link!');
+				} else {
+					//log('set', slave_cellname);
+					slave_grid.set(slave_cellname, cell_val);
+				}
+			}
+		}
+	}
+	
+	
+}
+
+LinkManager.prototype.addWorkingLink = function(master_hash_id, master_cellname, slave_hash_id, slave_cellname, link_id, path){
+	init_if_empty(this.workingLinks, master_hash_id, {}, master_cellname, {}, slave_hash_id, {}, slave_cellname, {link_id, path});
+	//this.app.getGrid(slave_hash_id).set(slave_cellname, val);
+	this.checkUpdate(master_hash_id, master_cellname);
+}
+
 LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 	var gridname;
 	var data = this.links[link_id];
 	var curr_hash_id = data.hash_id, curr_hash;
 	
-	var move_further = (curr_hash_id, i, start_pos) => {
+	var move_further = (curr_hash_id, i, start_pos, path) => {
+		if(!path) debugger;
+		path = path.slice();
+		path.push(this.app.getGrid(curr_hash_id).name);
 		var gridname = data.path[i];
 		var next_hash_id;
 		if(!data.path[i + 1]){
-			//log('~~~ success!', data.str);
+			//log('~~~ success!', data.str, path);
 			// its cellname
 			if(!data.pointers[start_pos].fixed){
 				data.pointers.splice(start_pos, 1);
 			}
-			init_if_empty(this.workingLinks, curr_hash_id, {}, gridname, {}, data.hash_id, {}, data.str, true);
+			this.addWorkingLink(curr_hash_id, gridname, data.hash_id, data.str, link_id, path);
 			return;
 		}
 
@@ -217,14 +263,14 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 			if(i === current_pointer){
 				if(first_child_id !== undefined) {
 					//log('--- checking first child', data.str, link_id, first_child_id);
-					move_further(first_child_id, i+1, start_pos);
+					move_further(first_child_id, i+1, start_pos, path);
 				} else {
 					data.pointers[start_pos].fixed = true;
 					data.pointers[start_pos].hash_id = curr_hash_id;
 					//log('--- what to do then?', link_id, 1, curr_hash.linked_hashes);
 					for(var child_name in curr_hash.linked_hashes){
 						var child_id = curr_hash.linked_hashes[child_name];
-						move_further(child_id, i+1, start_pos);
+						move_further(child_id, i+1, start_pos, path);
 					}
 				}
 			} else {
@@ -236,11 +282,12 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 				data.pointers.push({
 					pos: i,
 					hash_id: curr_hash_id,
-					fixed: true
+					fixed: true,
+					path
 				})
 				for(var child_name in curr_hash.linked_hashes){
 					var child_id = curr_hash.linked_hashes[child_name];
-					move_further(child_id, i+1, start_pos);
+					move_further(child_id, i+1, start_pos, path);
 				}
 				return;
 			}
@@ -248,17 +295,18 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 			if(curr_hash.linked_hashes && (curr_hash.linked_hashes[gridname] !== undefined)){
 				next_hash_id = curr_hash.linked_hashes[gridname];
 			} else {
+				console.log('_____________ NOT FOUND');
 				return;
 			}
 		}
 		if(next_hash_id !== undefined){
-			move_further(next_hash_id, i+1, start_pos);
+			move_further(next_hash_id, i+1, start_pos, path);
 		}
 	}
 	
 	for(var pointer_pos in data.pointers){
 		var current_pointer = data.pointers[pointer_pos].pos;
-		move_further(curr_hash_id, current_pointer, pointer_pos);
+		move_further(curr_hash_id, current_pointer, pointer_pos, data.pointers[pointer_pos].path);
 	}
 	this.refreshPointers(link_id);
 }
@@ -270,6 +318,7 @@ LinkManager.prototype.initLink = function(hash_id, link){
 		target: path[path.length - 1],
 		pointers: [{
 			pos: 0,
+			path: [],
 			fixed: false,
 		}],
 		str: link,
@@ -279,8 +328,8 @@ LinkManager.prototype.initLink = function(hash_id, link){
 	init_if_empty(this.linkStruct, hash_id, {});
 	if(this.linkStruct[hash_id][link] == undefined){
 		var link_id = this.links.push(obj) - 1;
-		this.actualizeLink(link_id);
 		this.linkStruct[hash_id][link] = link_id;
+		this.actualizeLink(link_id);
 	} else {
 		this.actualizeLink(this.linkStruct[hash_id][link]);
 	}
@@ -428,8 +477,9 @@ var create_provider = (app, self) => {
 		},
 		linkAnyTwoCells: function(slave, master){
 			if(slave.indexOf('/') !== -1){
+				app.linkManager.initLink(self.id, slave);
 				// it's from another grid
-				var prts = slave.split('/');
+				/*var prts = slave.split('/');
 				var other_hash = this.get(prts[0]);
 				var parent_cell = prts.slice(1).join('/');
 				//console.log('LINKING', other_hash, parent_cell, self.name);
@@ -444,7 +494,7 @@ var create_provider = (app, self) => {
 					}
 				}
 				add_dynamic_link(pool, parent_cell, prts[0] == '..' ? self.name : '..', master, 'dynamic');
-				self.set(slave, other_hash.get(parent_cell));
+				self.set(slave, other_hash.get(parent_cell));*/
 			} else {
 				add_dynamic_link(self.dynamic_cell_links, slave, '__self', master, 'dynamic');
 			}
@@ -1178,7 +1228,6 @@ Hash.prototype.cell_value = function(cell){
 }
 Hash.prototype.set_cell_value = function(cell, val){
 	this.cell_values[cell] = val;
-	//log('_____Setting', cell, val, this.dynamic_cell_links[cell], this.side_effects[cell]);
 	if(this.side_effects[cell]){	
 		if(!side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], side_effects);
 		side_effects[this.side_effects[cell]].func.call(this, cell, val);
@@ -1205,6 +1254,7 @@ Hash.prototype.set_cell_value = function(cell, val){
 			}
 		})
 	}
+	this.app.linkManager.checkUpdate(this.id, cell, val);
 }
 
 var system_predicates = new Set([
@@ -1368,6 +1418,7 @@ var add_cell_link = (pool, grid, my_name, its_name, dynamic, other_hash_name) =>
 
 var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
+		//console.log('Found cellname', cellname);
 		// it's a path - link to other hashes
 		var path = cellname.split('/');
 		//console.log('Found', cellname, 'in', pool);
@@ -1376,8 +1427,8 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 		} else {
 			pool.initLinkChain(cellname);
 		}
-		init_if_empty(pool.cell_links, path[0], {});
-		add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic, path[0]);
+		//init_if_empty(pool.cell_links, path[0], {});
+		//add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic, path[0]);
 		return;
 	}
 	var real_cellname = get_real_cell_name(cellname);
@@ -2050,6 +2101,7 @@ var core = {
 							break
 						}
 					}
+					return true;
 				}, '$arr_data.changes', '$real_el'],
 				$children: ['$arr_data.changes']
 			};
@@ -2088,7 +2140,7 @@ var get_by_selector = function(name, $el){
 	var res=$el 
 			? $el.find('[data-fr=' + name + ']')
 			: null;
-	//console.info("GBS", res ? res.length : null, $el ? $el.html() : '');
+	//console.info("GBS", '[data-fr=' + name + ']', res ? res.length : null, $el ? $el.html() : '');
 	return res;''
 }
 var search_fr_bindings = function($el){
