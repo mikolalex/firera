@@ -161,71 +161,129 @@ PackagePool.prototype.load = function(pack){
 
 var LinkManager = function(app){
 	this.app = app;
-	this.links = {};
+	this.links = [];
+	this.linkStruct = {};
 	this.workingLinks = {};
+	this.pointers = {};
 };
 
-LinkManager.prototype.actualizeLink = function(hash_id, lnk){
-	var gridname;
-	var curr_hash_id = hash_id, curr_hash;
-	//console.log('___________ start', hash_id, lnk);
-	for(var pointer_pos in this.links[hash_id][lnk].pointers){
-		var current_pointer = this.links[hash_id][lnk].pointers[pointer_pos].pos;
-		for(var i = current_pointer; gridname = this.links[hash_id][lnk].path[i]; i++){
-			if(!this.links[hash_id][lnk].path[i + 1]){
-				// its cellname
-				//console.log('reached end!');
-				if(!this.links[hash_id][lnk].pointers[pointer_pos].fixed){
-					this.links[hash_id][lnk].pointers.splice(pointer_pos, 1);
-				}
-				init_if_empty(this.workingLinks, curr_hash_id, {}, hash_id, {}, gridname, lnk);
-				break;
-			}
+LinkManager.prototype.onNewHashAdded = function(parent_hash_id, child_id){
+	//console.log('new hash added to', parent_hash_id, 'as', child_id, this.pointers[parent_hash_id]);
+	for(var link_id in this.pointers[parent_hash_id]){
+		this.actualizeLink(link_id, child_id);
+	}
+}
 
-			curr_hash = this.app.getGrid(curr_hash_id);
-			if(gridname === '..'){
-				// looking for parent
-				curr_hash_id = curr_hash.parent;
-			} else if(gridname === '*'){
-				// all children
-				//console.log('need to add constant pointer');
-				this.links[hash_id][lnk].pointers.push({
-					pos: i,
-					fixed: true
-				})
-				// remove old pointer
-				if(!this.links[hash_id][lnk].pointers[pointer_pos].fixed){
-					this.links[hash_id][lnk].pointers.splice(pointer_pos, 1);
-				}
-				break;
-			} else {
-				if(curr_hash.linked_hashes && (curr_hash.linked_hashes[gridname] !== undefined)){
-					curr_hash_id = curr_hash.linked_hashes[gridname];
-				} else {
-					break;
-				}
+LinkManager.prototype.refreshPointers = function(link_id){
+	for(let hash_id in this.pointers){
+		var links = this.pointers[hash_id];
+		for(let i in links){
+			if(links[i] == link_id){
+				links.splice(i, 1);
 			}
-			//console.log('linl', lnk, hash_id, 'next hash', curr_hash_id);
 		}
 	}
-	//console.log('_____	 end', i - current_pointer);
+	var data = this.links[link_id];
+	for(let pointer of data.pointers){
+		init_if_empty(this.pointers, pointer.hash_id, {}, link_id, data.path[pointer.pos]);
+		//log('considering pointer', link_id, data.str, pointer);
+	}
+}
+
+LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
+	var gridname;
+	var data = this.links[link_id];
+	var curr_hash_id = data.hash_id, curr_hash;
+	
+	var move_further = (curr_hash_id, i, start_pos) => {
+		var gridname = data.path[i];
+		var next_hash_id;
+		if(!data.path[i + 1]){
+			//log('~~~ success!', data.str);
+			// its cellname
+			if(!data.pointers[start_pos].fixed){
+				data.pointers.splice(start_pos, 1);
+			}
+			init_if_empty(this.workingLinks, curr_hash_id, {}, gridname, {}, data.hash_id, {}, data.str, true);
+			return;
+		}
+
+		curr_hash = this.app.getGrid(curr_hash_id);
+		if(gridname === '..'){
+			// looking for parent
+			next_hash_id = curr_hash.parent;
+		} else if(gridname === '*'){
+			// all children
+			if(i === current_pointer){
+				if(first_child_id !== undefined) {
+					//log('--- checking first child', data.str, link_id, first_child_id);
+					move_further(first_child_id, i+1, start_pos);
+				} else {
+					data.pointers[start_pos].fixed = true;
+					data.pointers[start_pos].hash_id = curr_hash_id;
+					//log('--- what to do then?', link_id, 1, curr_hash.linked_hashes);
+					for(var child_name in curr_hash.linked_hashes){
+						var child_id = curr_hash.linked_hashes[child_name];
+						move_further(child_id, i+1, start_pos);
+					}
+				}
+			} else {
+				//log('--- remove old pointer', link_id, data.str, i, data.pointers[start_pos].fixed);
+				// remove old pointer
+				if(!data.pointers[start_pos].fixed){
+					data.pointers.splice(start_pos, 1);
+				}
+				data.pointers.push({
+					pos: i,
+					hash_id: curr_hash_id,
+					fixed: true
+				})
+				for(var child_name in curr_hash.linked_hashes){
+					var child_id = curr_hash.linked_hashes[child_name];
+					move_further(child_id, i+1, start_pos);
+				}
+				return;
+			}
+		} else {
+			if(curr_hash.linked_hashes && (curr_hash.linked_hashes[gridname] !== undefined)){
+				next_hash_id = curr_hash.linked_hashes[gridname];
+			} else {
+				return;
+			}
+		}
+		if(next_hash_id !== undefined){
+			move_further(next_hash_id, i+1, start_pos);
+		}
+	}
+	
+	for(var pointer_pos in data.pointers){
+		var current_pointer = data.pointers[pointer_pos].pos;
+		move_further(curr_hash_id, current_pointer, pointer_pos);
+	}
+	this.refreshPointers(link_id);
 }
 
 LinkManager.prototype.initLink = function(hash_id, link){
 	var path = link.split('/');
-	var link_id = init_if_empty(this.links, hash_id, {}, link, {
+	var obj = {
 		path: path,
 		target: path[path.length - 1],
 		pointers: [{
 			pos: 0,
 			fixed: false,
 		}],
+		str: link,
+		hash_id: hash_id,
 		status: null,
-	})
-	this.actualizeLink(hash_id, link);
-	
-	
-	//console.log('Initing link', hash_id, link_id);
+	};
+	init_if_empty(this.linkStruct, hash_id, {});
+	if(this.linkStruct[hash_id][link] == undefined){
+		var link_id = this.links.push(obj) - 1;
+		this.actualizeLink(link_id);
+		this.linkStruct[hash_id][link] = link_id;
+	} else {
+		this.actualizeLink(this.linkStruct[hash_id][link]);
+	}
 }
 
 
@@ -316,11 +374,12 @@ var create_provider = (app, self) => {
 	return {
 		pool: {},
 		create: function(self, type, link_as, free_vals){
-			var child = self.app.createHash(type, link_as, free_vals, self.id);
-			init_if_empty(self, 'linked_hashes', {}, link_as, child);
-			this.set(link_as, child);
+			var child_id = self.app.createHash(type, link_as, free_vals, self.id);
+			init_if_empty(self, 'linked_hashes', {}, link_as, child_id);
+			this.set(link_as, child_id);
 			this.get(link_as).linked_hashes_provider.set('..', self.id);
-			return child;
+			app.linkManager.onNewHashAdded(self.id, child_id);
+			return child_id;
 		},
 		set: function(name, hash_id){
 			this.pool[name] = hash_id;
