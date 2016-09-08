@@ -495,25 +495,20 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	app.setHash(id, this);
 	this.id = id;
 	this.parent = parent_id;
-	////////////////////////////////////////////////////////////////////////
-	var t0 = performance.now();
-	////////////////////////////////////////////////////////////////////////
 	this.app = app;
 	this.name = name || '__root';
 	var parsed_pb = typeof parsed_pb_name === 'string' 
 					? app.cbs[parsed_pb_name]
 					: app.parse_cbs(parsed_pb_name);
-	//console.log('________________________________________________________');
-	//console.log('CREATING HASH ' + parsed_pb_name, parsed_pb);
-	// creating cell values obj
 	if(!parsed_pb){
 		console.error('Cannot find hash to parse:', parsed_pb_name);
 		return;
 	}
-	this.cell_types = parsed_pb.cell_types;
+	this.cell_types = Object.create(parsed_pb.cell_types);
 	this.side_effects = parsed_pb.side_effects;
 	this.hashes_to_link = parsed_pb.hashes_to_link;
-	this.plain_base = parsed_pb.plain_base;
+	this.plain_base = Object.create(parsed_pb.plain_base);
+	this.link_chains = Object.create(parsed_pb.link_chains || {});
 	this.setLevels();
 	this.linked_hashes_provider = create_provider(app, self);
 	this.linked_hashes = {};
@@ -522,27 +517,23 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	this.dirtyCounter = {};
 	this.dynamic_cell_links = {};
 	this.dynamic_cells_props = {};
-	if(parsed_pb.cell_types['*']){
+	if(this.cell_types['*']){
 		var omit_list = this.all_cell_children('*');
 		for(let cell in this.cell_types){
 			if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell, this.app)){
 				add_dynamic_link(this.dynamic_cell_links, cell, '__self', '*', '');
 			}
 		}
-		//console.log('Now dynamic links look like', this.dynamic_cell_links);
 	}
-	this.cell_values = Object.create(parsed_pb.plain_base.$init || {});
+	this.cell_values = Object.create(this.plain_base.$init || {});
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
-	////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////
 	// @todo: refactor, make this set in one step
-	this.init_values = Object.assign({}, parsed_pb.plain_base.$init, free_vals || {});
+	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
 	//console.log('Setting $init values', this.init_values);
 	if(parsed_pb_name === '__root'){
 		this.init_values.$name = '__root';
 	}
-	if(parsed_pb.plain_base.$init && !init_later){
-		//console.log('Setting init', parsed_pb.plain_base.$init, Object.keys(this.dynamic_cell_links.completed || {}));
+	if(this.plain_base.$init && !init_later){
 		this.init();
 	}
 	if(parsed_pb.no_args_cells){
@@ -553,20 +544,15 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 			}, cellname)
 		})
 	}
-	if(parsed_pb.link_chains){
-		for(let link in parsed_pb.link_chains){
+	if(this.link_chains){
+		for(let link in this.link_chains){
 			this.initLinkChain(link);
 		}
 	}
-	////////////////////////////////////////////////////////////////////////
-	var t2 = performance.now();
-	////////////////////////////////////////////////////////////////////////
-	//console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
 }
 
 Hash.prototype.initIfSideEffectCell = function(cell){
 	if(!this.cellExists(cell) && unusual_cell(cell)){
-		//console.log('Init unexisting unusual cell', cell, 'in', this.id);
 		parse_cellname(cell, this, 'getter', this.app.packagePool, this);
 		this.cell_types = parse_cell_types(this.plain_base);
 		this.setLevels();
@@ -585,7 +571,6 @@ Hash.prototype.init = function(){
 }
 Hash.prototype.updateChildFreeValues = function(childName, values){
 	this.linked_hashes_provider.setCellValues(childName, values);
-	//this.linked_hashes[childName].set(values);
 }
 
 Hash.prototype.initLinkChain = function(link){
@@ -593,7 +578,7 @@ Hash.prototype.initLinkChain = function(link){
 }
 
 Hash.prototype.linkHash = function(cellname, val){
-	//console.log('RUNNING SIDE EFFECT', this, val); 
+	//log('RUNNING SIDE EFFECT', this, val); 
 	var hash, link1, link2, free_vals;
 	cellname = cellname.replace("$child_", "");
 	if(val instanceof Array){
