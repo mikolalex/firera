@@ -256,7 +256,7 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 			if(!data.pointers[start_pos].fixed){
 				data.pointers.splice(start_pos, 1);
 			}
-			this.addWorkingLink(curr_hash_id, gridname, data.hash_id, data.str, link_id, path);
+			this.addWorkingLink(curr_hash_id, gridname, data.hash_id, data.slave_cellname, link_id, path);
 			return;
 		}
 
@@ -321,7 +321,7 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 	this.refreshPointers(link_id);
 }
 
-LinkManager.prototype.initLink = function(hash_id, link){
+LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 	var path = link.split('/');
 	var obj = {
 		path: path,
@@ -333,6 +333,7 @@ LinkManager.prototype.initLink = function(hash_id, link){
 			fixed: false,
 		}],
 		str: link,
+		slave_cellname: slave_cellname || link,
 		hash_id: hash_id,
 		status: null,
 	};
@@ -378,7 +379,6 @@ App.prototype.parse_cbs = function(a){
 	var eachMixin = Object.assign({}, this.packagePool.eachHashMixin);
 	var res = {
 		plain_base: Object.assign(eachMixin, a), 
-		cell_links: {},
 		side_effects: {},
 		hashes_to_link: {},
 		no_args_cells: {},
@@ -461,12 +461,6 @@ var create_provider = (app, self) => {
 		setCellValues: function(childName, values){
 			this.get(childName).set(values);
 		},
-		linkChildCells: function(his_cell, my_cell, cellname){
-			this.get(cellname).linkTwoCells(his_cell, my_cell, '..', cellname, 'val')
-		},
-		initLinkChildCells: function(name){
-			this.get(name).linkCells('..', name);
-		},
 		initChild: function(name){
 			if(!this.get(name).init){
 				console.log('strange', this, name);
@@ -479,7 +473,6 @@ var create_provider = (app, self) => {
 				console.warn('removing unexisting hash!', name);
 				return;
 			}
-			hsh.unlinkCells('..');
 			this.remove(name);
 		},
 		getLinkedHashCellValue: function(hashname, cellname){
@@ -489,48 +482,10 @@ var create_provider = (app, self) => {
 		linkAnyTwoCells: function(slave, master){
 			if(slave.indexOf('/') !== -1){
 				app.linkManager.initLink(self.id, slave);
-				// it's from another grid
-				/*var prts = slave.split('/');
-				var other_hash = this.get(prts[0]);
-				var parent_cell = prts.slice(1).join('/');
-				//console.log('LINKING', other_hash, parent_cell, self.name);
-				var pool = other_hash.dynamic_cell_links;
-				if(!other_hash.cellExists(parent_cell)){
-					if(unusual_cell(parent_cell)){
-						parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool, other_hash);
-						other_hash.cell_types = parse_cell_types(other_hash.plain_base);
-						other_hash.setLevels();
-					} else {
-						console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
-					}
-				}
-				add_dynamic_link(pool, parent_cell, prts[0] == '..' ? self.name : '..', master, 'dynamic');
-				self.set(slave, other_hash.get(parent_cell));*/
 			} else {
 				add_dynamic_link(self.dynamic_cell_links, slave, '__self', master, 'dynamic');
 			}
 		},
-		linkTwoCells: function(name, self, parent_cell, child_cell, hash_name, my_name_for_that_hash, type){
-			var other_hash = this.get(name);
-			var pool = other_hash.dynamic_cell_links;
-			if(!other_hash) return; // huinya
-			if(!other_hash.cellExists(parent_cell)){
-				if(unusual_cell(parent_cell)){
-					// try to init this cell in hash
-					//console.log('creating cellname on the fly', parent_cell, other_hash);
-					parse_cellname(parent_cell, other_hash, 'getter', self.app.packagePool, other_hash);
-					other_hash.cell_types = parse_cell_types(other_hash.plain_base);
-					other_hash.setLevels();
-					/*if(other_hash.cell_types[parent_cell]){
-						other_hash.compute(parent_cell);
-					}*/
-				} else {
-					console.warn('Linking to unexisting cell:', parent_cell, ', trying to link to', child_cell);
-				}
-			}
-			add_dynamic_link(pool, parent_cell, my_name_for_that_hash, child_cell, type);
-			//this.set(child_cell, this.linked_hashes[hash_name].cell_value(parent_cell));
-		}
 	}
 }
 
@@ -556,7 +511,6 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 		return;
 	}
 	this.cell_types = parsed_pb.cell_types;
-	this.cell_links = parsed_pb.cell_links;
 	this.side_effects = parsed_pb.side_effects;
 	this.hashes_to_link = parsed_pb.hashes_to_link;
 	this.plain_base = parsed_pb.plain_base;
@@ -655,18 +609,17 @@ Hash.prototype.linkHash = function(cellname, val){
 		console.warn('Trying to link undefined hash:', hash);
 		return;
 	}
-	this.linkChild(hash, cellname, free_vals);
+	var child_id = this.linkChild(hash, cellname, free_vals);
 	if(link1){
 		//console.info('Linking by link1 hash', link1);
 		link1.each((his_cell, my_cell) => {
-			this.linkTwoCells(his_cell, my_cell, cellname, '..', 'val');
+			this.app.linkManager.initLink(this.id, cellname + '/' + his_cell, my_cell);
 		})
 	}
 	if(link2){
 		//console.info('Linking by link2 hash', link2);
 		link2.each((his_cell, my_cell) => {
-			this.linked_hashes_provider.linkChildCells(his_cell, my_cell, cellname)
-			//linked_hashes[cellname].linkTwoCells(his_cell, my_cell, '..', cellname, 'val');
+			this.app.linkManager.initLink(child_id, '../' + his_cell, my_cell);
 		})
 	}
 }
@@ -675,74 +628,17 @@ Hash.prototype.linkChild = function(type, link_as, free_vals){
 	if(this.linked_hashes_provider.isLinked(link_as)){
 		this.unlinkChild(link_as);
 	}
-	/*var child = new Hash(this.app, type, link_as, Object.assign({
-		$name: link_as
-	}, free_vals), true);
-	this.linked_hashes[link_as] = child;
-	child.linked_hashes['..'] = this;*/
-	this.linked_hashes_provider.create(this, type, link_as, free_vals);
-	
-	this.linkCells(link_as, '..');
-	this.linked_hashes_provider.initLinkChildCells(link_as);
-	//child.linkCells('..', link_as);
+	var id = this.linked_hashes_provider.create(this, type, link_as, free_vals);
 	this.linked_hashes_provider.initChild(link_as);
-	//child.init();
-	//console.info('Successfully linked ', type, 'as', link_as);
+	return id;
 }
+
 Hash.prototype.cellExists = function(cellname){
 	return this.cell_types[cellname] !== undefined;
 }
+
 Hash.prototype.unlinkChild = function(link_as){
-	this.unlinkCells(link_as);
 	this.linked_hashes_provider.unlinkChildCells(link_as);
-	/*var child = this.linked_hashes[link_as];
-	child.unlinkCells('..');
-	delete this.linked_hashes[link_as];*/
-	//console.info('Successfully linked ', type, 'as', link_as);
-}
-
-Hash.prototype.linkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash, type = 'val'){
-	this.linked_hashes_provider.linkTwoCells(hash_name, this, parent_cell, child_cell, hash_name, my_name_for_that_hash, type);
-	var other_val = this.linked_hashes_provider.getLinkedHashCellValue(hash_name, parent_cell);
-	if(other_val !== undefined){
-		this.set(child_cell, other_val);
-	}
-}
-Hash.prototype.unlinkTwoCells = function(parent_cell, child_cell, hash_name, my_name_for_that_hash){
-	var other_hash = this.linked_hashes_provider.get(hash_name);
-	var pool = other_hash.dynamic_cell_links;
-	pool[parent_cell][my_name_for_that_hash].forEach((lnk, key) => {
-		//console.log('Searching links...', lnk, child_cell);
-		if(lnk.cell_name === child_cell){
-			delete pool[parent_cell][my_name_for_that_hash][key];
-			//console.log('Deleting', child_cell);
-		}
-	});
-	// ? maybe this.set(child_cell, undefined);
-}
-
-Hash.prototype.linkCells = function(hash_name, my_name_for_that_hash, cell_name){
-	var links;
-	if(hash_name !== '*' && (links = this.cell_links[hash_name])){
-		links.each((parent_cell, child_cell) => { 
-			if(cell_name && (cell_name !== child_cell)){
-				return;
-			}
-			this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash); 
-		});
-	}
-	if(links = this.cell_links['*']){
-		links.each((parent_cell, child_cell) => { 
-			if(my_name_for_that_hash === '..'){
-				this.linkTwoCells(parent_cell, child_cell, hash_name, my_name_for_that_hash, 'val_and_hashname');
-			} 
-		});
-	}
-}
-Hash.prototype.unlinkCells = function(hash_name){
-	this.dynamic_cell_links.each((hashes) => {
-		delete hashes[hash_name];
-	})
 }
 
 Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
@@ -894,20 +790,6 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 	if(props.async || props.nested){
 		
 	} else if(props.dynamic && !dynamic) {
-		//console.log('changing the dependency structure of dynamic cells');
-		/*var old_parents = this.dynamic_cells_props[cell] ? this.dynamic_cells_props[cell].parents : false;
-		if(old_parents){
-			for(let prnt of old_parents){
-				for(let i in this.dynamic_cell_links[prnt].__self){
-					var lnk = this.dynamic_cell_links[prnt].__self[i];
-					if(lnk.cell_name === cell){
-						//console.log('remove old link');
-						this.dynamic_cell_links[prnt].__self.splice(i, 1);
-						//delete this.dynamic_cell_links[prnt].__self[i];
-					}
-				} 
-			}
-		}*/
 		var fs = parse_arr_funcstring(val, cell, {plain_base:{}}, this.app.packagePool);
 		parse_cell_type(cell, fs, this.dynamic_cells_props, []);
 		parents = this.dynamic_cells_props[cell].parents;
@@ -1422,18 +1304,6 @@ var findMatcher = (cellname, packages) => {
 			return [m, matches];
 		}
 	}
-} 
-
-var add_cell_link = (pool, grid, my_name, its_name, dynamic, other_hash_name) => {
-	if(pool.cell_links[grid][my_name]){
-		if(pool.cell_links[grid][my_name] === its_name){
-			return;
-		}
-	}
-	pool.cell_links[grid][my_name] = its_name;
-	if(dynamic) {
-		dynamic.linkCells(grid, other_hash_name == '..' ? dynamic.name : '..', my_name);
-	}
 }
 
 var parse_cellname = function(cellname, pool, context, packages, isDynamic){
@@ -1447,8 +1317,6 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 		} else {
 			pool.initLinkChain(cellname);
 		}
-		//init_if_empty(pool.cell_links, path[0], {});
-		//add_cell_link(pool, path[0], cellname, path.slice(1).join('/'), isDynamic, path[0]);
 		return;
 	}
 	var real_cellname = get_real_cell_name(cellname);
