@@ -230,18 +230,24 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 LinkManager.prototype.addWorkingLink = function(master_hash_id, master_cellname, slave_hash_id, slave_cellname, link_id, path){
 	init_if_empty(this.workingLinks, master_hash_id, {}, master_cellname, {}, slave_hash_id, {}, slave_cellname, {link_id, path});
 	//this.app.getGrid(slave_hash_id).set(slave_cellname, val);
+	this.app.getGrid(master_hash_id).initIfSideEffectCell(master_cellname);
 	this.checkUpdate(master_hash_id, master_cellname);
 }
 
 LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
-	var gridname;
+	var gridname, current_pointer;
 	var data = this.links[link_id];
 	var curr_hash_id = data.hash_id, curr_hash;
 	
 	var move_further = (curr_hash_id, i, start_pos, path) => {
 		if(!path) debugger;
 		path = path.slice();
-		path.push(this.app.getGrid(curr_hash_id).name);
+		var curr_hash = this.app.getGrid(curr_hash_id);
+		if(path.indexOf(curr_hash.name) !== -1){
+			//console.log('hm', path, curr_hash.name);
+		} else {
+			path.push(curr_hash.name);
+		}
 		var gridname = data.path[i];
 		var next_hash_id;
 		if(!data.path[i + 1]){
@@ -254,13 +260,12 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 			return;
 		}
 
-		curr_hash = this.app.getGrid(curr_hash_id);
 		if(gridname === '..'){
 			// looking for parent
 			next_hash_id = curr_hash.parent;
 		} else if(gridname === '*'){
 			// all children
-			if(i === current_pointer){
+			if(i === current_pointer.pos){
 				if(first_child_id !== undefined) {
 					//log('--- checking first child', data.str, link_id, first_child_id);
 					move_further(first_child_id, i+1, start_pos, path);
@@ -295,7 +300,7 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 			if(curr_hash.linked_hashes && (curr_hash.linked_hashes[gridname] !== undefined)){
 				next_hash_id = curr_hash.linked_hashes[gridname];
 			} else {
-				console.log('_____________ NOT FOUND');
+				//console.log('_____________ NOT FOUND');
 				return;
 			}
 		}
@@ -304,9 +309,14 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 		}
 	}
 	
-	for(var pointer_pos in data.pointers){
-		var current_pointer = data.pointers[pointer_pos].pos;
-		move_further(curr_hash_id, current_pointer, pointer_pos, data.pointers[pointer_pos].path);
+	for(var pointer_index in data.pointers){
+		var current_pointer = data.pointers[pointer_index];
+		move_further(
+				current_pointer.hash_id, 
+				current_pointer.pos, 
+				pointer_index, 
+				current_pointer.path
+		);
 	}
 	this.refreshPointers(link_id);
 }
@@ -319,6 +329,7 @@ LinkManager.prototype.initLink = function(hash_id, link){
 		pointers: [{
 			pos: 0,
 			path: [],
+			hash_id,
 			fixed: false,
 		}],
 		str: link,
@@ -597,6 +608,15 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	var t2 = performance.now();
 	////////////////////////////////////////////////////////////////////////
 	//console.log('Initings hash: ', show_performance(t0, t1, t2, t3));
+}
+
+Hash.prototype.initIfSideEffectCell = function(cell){
+	if(!this.cellExists(cell) && unusual_cell(cell)){
+		//console.log('Init unexisting unusual cell', cell, 'in', this.id);
+		parse_cellname(cell, this, 'getter', this.app.packagePool, this);
+		this.cell_types = parse_cell_types(this.plain_base);
+		this.setLevels();
+	}
 }
 
 Hash.prototype.hasChild = function(name){
@@ -1973,7 +1993,7 @@ var core = {
 							}
 							delete vals[a[1]];
 						})
-						return count;;
+						return count;
 					}
 					if(!chng) return count;
 					var [key, val] = chng;
