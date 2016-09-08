@@ -4,5 +4,8 @@
   "version": "0.1",
 
   "description": "A tool for Firera discovery",
+  "background": {
+    "scripts": ["background.js"]
+  },
   "devtools_page": "devtools.html"
 }

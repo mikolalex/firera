@@ -504,7 +504,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 		console.error('Cannot find hash to parse:', parsed_pb_name);
 		return;
 	}
-	this.cell_types = Object.create(parsed_pb.cell_types);
+	this.cell_types = parsed_pb.cell_types;
 	this.side_effects = parsed_pb.side_effects;
 	this.hashes_to_link = parsed_pb.hashes_to_link;
 	this.plain_base = Object.create(parsed_pb.plain_base);
@@ -1565,7 +1565,7 @@ var parse_external_links_and_$init = function(pool, key){
 }
 
 
-var Firera = function(config){
+window.Firera = function(config){
 	if(arguments.length > 1){
 		// it's a set of grids we should join
 		config = Firera.join.apply(null, arguments);
@@ -1590,9 +1590,23 @@ var Firera = function(config){
 	}*/
 	return app;
 };
+
+var get_grid_struct = (grid) => {
+	return {
+		cells: Object.keys(grid.cell_types),
+	};
+}
+
+var get_app_struct = (app) => {
+	return get_grid_struct(app.root);
+}
+
 Firera.noop = new function(){};
 Firera.apps = apps;
-Firera.run = Firera,
+Firera.run = Firera;
+Firera.getAppStruct = function() {
+	return Firera.apps.map(get_app_struct);
+}
 Firera.loadPackage = function(pack) {
 	root_package_pool.load(pack);
 }
