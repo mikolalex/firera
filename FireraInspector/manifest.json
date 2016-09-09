@@ -7,5 +7,11 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "devtools_page": "devtools.html"
+  "devtools_page": "devtools.html",
+  "permissions": [
+    "tabs",
+    "notifications",
+    "http://*/",
+    "https://*/"
+  ]
 }
