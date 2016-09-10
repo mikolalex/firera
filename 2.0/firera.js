@@ -140,16 +140,20 @@ function kcopy(from, to){
 	}
 }
 var cell_listening_type = function(str){
-	var m = str.match(/^(\:|\-)/);
+	if(!str.match) debugger;
+	var m = str.match(/^(\:|\-|\=)/);
 	return [{
 		//':': 'change', 
+		'=': 'skip_same', 
 		'-': 'passive', 
 		'val': 'normal'
-	}[m ? m[1] : 'val'], str.replace(/^(\:|\-)/, '')];
+	}[m ? m[1] : 'val'], str.replace(/^(\:|\-|\=)/, '')];
 }
 var get_real_cell_name = function(str){
 	return cell_listening_type(str)[1];
 }
+
+var real_cell_name = (str) => str.replace(/^(\:|\-|\=)/, '');
 
 
 var PackagePool = function(proto = {}){
@@ -826,6 +830,8 @@ Hash.prototype.get = function(cell, child){
 Hash.prototype.setLevelsRec = function(cellname, already_set){
 	var max_level = 1;
 	for(var cell of this.cell_parents(cellname)){
+		cell = real_cell_name(cell);
+		if(cell[0] === '-') debugger;
 		if(this.levels[cell] === undefined){
 			//this.setLevelsRec(cell, already_set);
 		}
@@ -861,6 +867,7 @@ Hash.prototype.setLevelsRec = function(cellname, already_set){
 Hash.prototype.setLevelsIterable = function(cellname, pool){
 	var max_level = 1;
 	for(var cell of this.cell_parents(cellname)){
+		cell = real_cell_name(cell);
 		if(this.levels[cell] === undefined){
 			if(pool.indexOf(cell) === -1){
 				this.setLevelsIterable(cell, pool);
@@ -1001,7 +1008,6 @@ Hash.prototype.set = function(cells, val, child, no_args){
 					levels[lvl].add(child);
 				}
 				parents[child] = cell;
-				//console.log('setting parent', cell, 'for', child);
 				for(var j = lvl - 1; j > x; j--){
 					//console.log('add intermediate level', j);
 					if(!levels[j]){
@@ -1144,6 +1150,7 @@ Hash.prototype.cell_value = function(cell){
 	return this.cell_values[cell];
 }
 Hash.prototype.set_cell_value = function(cell, val){
+	var same_song = val === this.cell_values[cell];
 	this.cell_values[cell] = val;
 	if(this.side_effects[cell]){	
 		if(!side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], side_effects);
@@ -1294,9 +1301,11 @@ var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
 	return obj;
 }
 var set_listening_type = function(cell, type){
+	console.log('_______________ SLT', cell, type);
 	return {
 		//'change': ':', 
-		'passive': '-', 
+		'skip_same': '=',
+		'passive': '-',
 		'normal': ''
 	}[type] + cell;
 }
@@ -1523,7 +1532,7 @@ var parse_cell_type = (i, row, pool, children) => {
 		var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
 		if(listening_type !== 'passive'){
 			init_if_empty(children, parent_cell_name, {});
-			children[parent_cell_name][set_listening_type(i, listening_type)] = true;
+			children[parent_cell_name][i] = true;
 		} else {
 			//console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
 		}
@@ -1795,6 +1804,7 @@ var core = {
 								let [fieldname, val] = values;
 								fieldname = fieldname.replace("*/", "");
 								if(val){
+									//console.log('?', val, arr, fieldname, arr[val[0]]);
 									arr[val[0]][fieldname] = val[1];
 								}
 							}
@@ -1938,7 +1948,6 @@ var core = {
 					},
 					$pop: (key) => {
 						if(key || key === 0 || key === '0'){
-							//console.log('remove', key);
 							if(key instanceof Array || key instanceof Set){
 								var arr = [];
 								for(let k of key){
@@ -2005,23 +2014,29 @@ var core = {
 					},
 					'$deltas'
 				],
-				$list_template_writer: [function(deltas, $el){
-					//console.log('Delta come', deltas, $el);
-					if(!$el) return;
-					for(var i in deltas){
-						var type = deltas[i][0];
-						var key = deltas[i][1];
-						switch(type){
-							case 'add':
-								$el.append('<div data-fr="' + key + '"></div>');
-								// I domt know...
-							break
-							case 'remove':
-								$el.children('[data-fr=' + key + ']').remove();
-							break
+				$list_template_writer: ['nestedClosure', () => {
+					var index_c = 0;
+					var index_map = {};
+					return function(cb, deltas, $el){
+						if(!$el) return;
+						for(var i in deltas){
+							var type = deltas[i][0];
+							var key = deltas[i][1];
+							switch(type){
+								case 'add':
+									$el.append('<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
+									index_map[key] = index_c;
+									// I domt know...
+								break
+								case 'remove':
+									$el.children('[data-fr=' + index_map[key] + ']').remove();
+								break
+							}
 						}
+						cb('dummy', true);
+						cb('index_map', index_map);
+						return true;
 					}
-					return true;
 				}, '$arr_data.changes', '$real_el'],
 				$children: ['$arr_data.changes']
 			};
@@ -2057,7 +2072,7 @@ var core = {
 var get_by_selector = function(name, $el){
 	if(name === null) return null;
 	if(name === '__root') return $('body');
-	var res=$el 
+	var res = $el 
 			? $el.find('[data-fr=' + name + ']')
 			: null;
 	//console.info("GBS", '[data-fr=' + name + ']', res ? res.length : null, $el ? $el.html() : '');
@@ -2067,7 +2082,7 @@ var search_fr_bindings = function($el){
 	var res = {};
 	if(!$el) return res;
 	$el.find('[data-fr]').each(function(){
-		var name = $(this).attr('data-fr');
+		var name = $(this).attr('data-fr-name');
 		res[name] = $(this);
 	})
 	//console.log('Found HTML bindings', res);
@@ -2092,7 +2107,15 @@ var write_changes = function(){
 
 var simpleHtmlTemplates = {
 	eachHashMixin: {
-		'$el': [get_by_selector, '$name', '../$real_el'],
+		$el: ['closure', () => {
+			var prev_el
+			return (name, $el, map) => {
+					if(name === null || name === undefined) return;
+					var num = map ? map[name] : name;
+					return get_by_selector(num, $el);
+			}
+		}, '$name', '../$real_el', '-../$list_template_writer.index_map'],
+		//'$el': [get_by_selector, '$name', '../$real_el'],
 		'$real_el': ['firstDefined', '$el'],
 		'$html_template': [function($el){
 			var str = '';
@@ -2101,7 +2124,7 @@ var simpleHtmlTemplates = {
 				if(str) str = str.trim();
 			}
 			return str;
-		}, '$real_el'],
+		}, '=$real_el'],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
 				if(real_templ && $el){
@@ -2225,7 +2248,7 @@ var htmlCells = {
 								$prev_el.off('click', selector);
 							}
 							if($now_el.length === 0){
-								console.log('Assigning handlers to nothing', $now_el);
+								console.warn('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('click', selector, (e) => {
 								make_resp(cb, e);
@@ -2371,7 +2394,11 @@ var ozenfant = {
 				//console.log('counting ozenfant el', searcher, name, res);
 				return res ? $(res) : false;
 		}, '../$ozenfant.bindings_search', '$name'],
-		'$list_el': [get_by_selector, '$name', '../$real_el', '../$list_template_writer'],
+		'$list_el': [(name, $el, map) => {
+				if(name === null || name === undefined || !map) return;
+				var num = map[name];
+				return get_by_selector(num, $el);
+		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
 		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
