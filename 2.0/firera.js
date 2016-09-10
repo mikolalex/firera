@@ -6,7 +6,21 @@ var che = require('./che/che');
 var always = (a) => {
 	return () => a;
 }
-var log = console.log.bind(console);
+var log = () => {};// console.log.bind(console);
+
+var decorate = (fnc, msg) => {
+	return function(){
+		console.log("@", msg, arguments);
+		return fnc.apply(null, arguments);
+	}
+}
+
+var mk_logger = (a) => {
+	return (b) => {
+		console.log(a, b);
+		return b;
+	}
+}
 
 var frozen = (a) => JSON.parse(JSON.stringify(a));
 
@@ -215,9 +229,10 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 				// the very meaning of this method
 				var slave_grid = this.app.getGrid(slave_hash_id);
 				if(!slave_grid){
-					log('obsolete link!');
+					var lnk = this.links[link_data.link_id];
+					log('obsolete link!', lnk);
 				} else {
-					//log('set', slave_cellname);
+					//log('!set', slave_cellname, cell_val);
 					slave_grid.set(slave_cellname, cell_val);
 				}
 			}
@@ -636,7 +651,7 @@ Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_cou
 	} else {
 		//throw new Error('Skipping!', arguments);
 	}
-	if(this.cell_type(cell) === 'async' && !run_async) {
+	if(this.cell_has_type(cell, 'async') && !run_async) {
 		//console.log('Skipping counting children of async');
 		return;
 	}
@@ -660,6 +675,7 @@ var split_camelcase = (str) => {
 }
 
 Hash.prototype.compute = function(cell, parent_cell_name){
+	log('compute', cell);
 	var real_cell_name = this.real_cell_name(cell);
 	var val;
 	var props = this.cell_type_props(cell);
@@ -821,6 +837,15 @@ Hash.prototype.setLevelsRec = function(cellname, already_set){
 		if(max_level + 1 > this.levels[cellname]){
 			this.levels[cellname] = max_level + 1;
 		}
+		for(var cell in this.cell_children(cellname)){
+			if(this.levels[cell] <= this.levels[cellname]){
+				already_set.add(cell);
+				this.setLevelsRec(cell, already_set);
+			}
+			/*if(!(already_set.has(cell))){
+				log('REC 112');
+			}*/
+		}
 		return;
 	} else {
 		this.levels[cellname] = max_level + 1;
@@ -853,7 +878,6 @@ Hash.prototype.setLevelsIterable = function(cellname, pool){
 	} else {
 		this.levels[cellname] = max_level + 1;
 	}
-	//console.log('New level for', cellname, 'is', max_level + 1);
 	for(var cell in this.cell_children(cellname)){
 		if(pool.indexOf(cell) === -1){
 			pool.push(cell);
@@ -892,7 +916,6 @@ Hash.prototype.setLevels = function(){
 	}
 	var c = 0;
 	while(pool[c]){
-		//console.log('considering', pool[c]);
 		this.setLevelsIterable(pool[c], pool);
 		c++;
 	}
@@ -948,7 +971,6 @@ Hash.prototype.set = function(cells, val, child, no_args){
 	var parents = {};
 	while(levels[x] !== undefined){
 		//var new_set = [];
-		//console.log('============================== LEVEL', x, levels[x]);
 		for(let cell of levels[x]){
 			var skip = false;
 			var needed_lvl = x+1;
@@ -1084,6 +1106,14 @@ Hash.prototype.cell_func = function(cell){
 }
 Hash.prototype.cell_type = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].type : [];
+}
+Hash.prototype.cell_has_type = function(cell, type){
+	var types = this.cell_types[cell];
+	if(types){
+		return types.props[type];
+	} else {
+		return false;
+	}
 }
 Hash.prototype.cell_type_props = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].props : {};
@@ -1338,6 +1368,9 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 		a = packages.predicates[funcname](a.slice(1));
 		funcname = a[0];
 		a = a.slice();
+	}
+	if(!funcname) {
+		console.error('wrong func:', funcname);
 	}
 	var cc = split_camelcase(funcname);
 	if(a.length === 1 && (typeof a[0] === 'string')){
@@ -2071,10 +2104,9 @@ var simpleHtmlTemplates = {
 		}, '$real_el'],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
-				//console.log('Writing template', arguments);
 				if(real_templ && $el){
 						$el.html(real_templ);
-						return;
+						return true;
 				}	
 				if(!$html_template && $el && keys && !no_auto){
 					var auto_template = keys.map((k) => {
@@ -2085,6 +2117,7 @@ var simpleHtmlTemplates = {
 				}
 			}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'
 		],
+		'$html_skeleton_changes': [id, '$template_writer'],
 		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
@@ -2259,6 +2292,9 @@ var htmlCells = {
 					break;
 					case 'visibility':
 						func = function($el, val){
+							if(val === undefined){
+								return;
+							}
 							if(val){
 								$el.css('visibility', 'visible');
 							} else {
@@ -2295,10 +2331,16 @@ var htmlCells = {
 					parse_fexpr([func, [(a) => {
 						if(!a) return $();
 						return selector ? a.find(selector) : a;
-					}, '$real_el'], cellname], pool, get_random_name(), packages);
+					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
-					parse_fexpr(['async', func, '^$real_el'], pool, cellname, packages);
+					parse_fexpr(['asyncClosure', () => {
+						var el;
+						return (cb, val) => {
+							func(cb, [el, val]);
+							el = val;
+						}
+					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);
 				}
 			}
 		}
@@ -2333,6 +2375,7 @@ var ozenfant = {
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
 		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
+		'$html_skeleton_changes': ['$ozenfant.template'],
 		'$ozenfant_remove': [function(_, $el){
 			if($el){
 				$el.html('');
