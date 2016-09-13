@@ -236,7 +236,7 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 					var lnk = this.links[link_data.link_id];
 					log('obsolete link!', lnk);
 				} else {
-					//log('!set', slave_cellname, cell_val);
+					log('!set', slave_cellname, cell_val);
 					slave_grid.set(slave_cellname, cell_val);
 				}
 			}
@@ -982,12 +982,10 @@ Hash.prototype.set = function(cells, val, child, no_args){
 			var skip = false;
 			var needed_lvl = x+1;
 			var children = this.cell_children(cell);
-			//if(cell === '$real_el') debugger;
-			//console.log('______________ Looking at', cell, children);
 			var ct = this.cell_type(cell);
 			//console.log('CT',cell, ct);
 			if(
-				ct !== 'free' 
+				!this.cell_has_type(cell, 'free')
 				&& (cells[cell] === undefined || no_args)
 			){
 				var res = this.compute(cell, parents[cell]);
@@ -995,7 +993,7 @@ Hash.prototype.set = function(cells, val, child, no_args){
 					skip = true;
 				}
 			}
-			if(ct === 'async' || skip) {
+			if(this.cell_has_type(cell, 'async') || skip) {
 				continue;
 			}
 			for(var child in children){
@@ -1194,7 +1192,6 @@ var system_predicates = new Set([
 var side_effects = {
 	'child': {
 		func: function(cellname, val, type){
-			//console.log('_____________________________ Linking child as', cellname, val);
 			if(val){
 				this.linkHash(cellname, val);
 			}
@@ -2015,7 +2012,7 @@ var core = {
 					'$deltas'
 				],
 				$list_template_writer: ['nestedClosure', () => {
-					var index_c = 0;
+					var index_c = 3;
 					var index_map = {};
 					return function(cb, deltas, $el){
 						if(!$el) return;
@@ -2038,6 +2035,15 @@ var core = {
 						return true;
 					}
 				}, '$arr_data.changes', '$real_el'],
+				$htmlbindings: ['closure', () => {
+					return ($el, map) => {
+						if(!$el || !map) return;
+						var res = map.map((n, i) => {
+							return get_by_selector(map[i], $el);
+						})
+						return res;
+					}
+				}, '$real_el', '$list_template_writer.index_map'],
 				$children: ['$arr_data.changes']
 			};
 			if(props.push){
@@ -2083,9 +2089,11 @@ var search_fr_bindings = function($el){
 	if(!$el) return res;
 	$el.find('[data-fr]').each(function(){
 		var name = $(this).attr('data-fr-name');
+		if(!name){
+			name = $(this).attr('data-fr');
+		}
 		res[name] = $(this);
 	})
-	//console.log('Found HTML bindings', res);
 	return res;
 }
 
@@ -2108,23 +2116,21 @@ var write_changes = function(){
 var simpleHtmlTemplates = {
 	eachHashMixin: {
 		$el: ['closure', () => {
-			var prev_el
-			return (name, $el, map) => {
-					if(name === null || name === undefined) return;
-					var num = map ? map[name] : name;
-					return get_by_selector(num, $el);
+			var prev_el;
+			return (name, map) => {
+				return map ? map[name] : null;
 			}
-		}, '$name', '../$real_el', '-../$list_template_writer.index_map'],
-		//'$el': [get_by_selector, '$name', '../$real_el'],
-		'$real_el': ['firstDefined', '$el'],
+		}, '$name', '../$htmlbindings'],
+		'$real_el': ['firstDefined', '=$el'],
 		'$html_template': [function($el){
+			console.log('generate template');
 			var str = '';
 			if($el){
 				str = $el.html();
 				if(str) str = str.trim();
 			}
 			return str;
-		}, '=$real_el'],
+		}, '$real_el'],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
 				if(real_templ && $el){
@@ -2248,6 +2254,7 @@ var htmlCells = {
 								$prev_el.off('click', selector);
 							}
 							if($now_el.length === 0){
+								//debugger;
 								console.warn('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('click', selector, (e) => {
