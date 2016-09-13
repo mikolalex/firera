@@ -1718,6 +1718,19 @@ var core = {
 		}
 	},
 	predicates: {
+		skipSame: (fs) => {
+			var [func, ...args] = fs;
+			return ['asyncClosure', () => {
+				var prev;
+				return function(cb, ...inner_args){
+					var res = func.apply(null, inner_args);
+					if(res !== prev){
+						cb(res);
+					}
+					prev = res;
+				}
+			}, ...args];
+		},
 		transist: (fs) => {
 			return [(cellA, cellB) => {
 				if(cellA){
@@ -2121,16 +2134,19 @@ var simpleHtmlTemplates = {
 				return map ? map[name] : null;
 			}
 		}, '$name', '../$htmlbindings'],
-		'$real_el': ['firstDefined', '=$el'],
-		'$html_template': [function($el){
-			console.log('generate template');
-			var str = '';
-			if($el){
-				str = $el.html();
-				if(str) str = str.trim();
-			}
-			return str;
-		}, '$real_el'],
+		'$real_el': ['firstDefined', '$el'],
+		'$html_template': [
+			'skipSame', 
+			function($el){
+				var str = '';
+				if($el){
+					str = $el.html();
+					if(str) str = str.trim();
+				}
+				return str;
+			}, 
+			'$real_el'
+		],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
 				if(real_templ && $el){

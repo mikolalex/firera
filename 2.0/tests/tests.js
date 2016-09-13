@@ -8,6 +8,12 @@ var always = (a) => {
 	return () => a;
 }
 
+var decorate = (fnc, msg) => {
+	return function(){
+		console.log("@", msg, arguments);
+		return fnc.apply(null, arguments);
+	}
+}
 
 (function(){
 	window.performance = window.performance || {};
@@ -335,7 +341,7 @@ describe('Basic Firera functionality', function () {
         return $el ? $el.find('[data-fr=' + name + ']') : null;
     }
     
-    it('Testing HTML package', function () {
+    /*it('Testing HTML package', function () {
         var app = Firera({
             __root: {
                 a: 42,
@@ -353,14 +359,17 @@ describe('Basic Firera functionality', function () {
             }
         });
         // if $el in root is empty, it's <body> by default
-        assert.equal(app.get('$el').get()[0], $('body').get()[0]);
+        assert.equal(
+			app.get('$el').get()[0], 
+			$('body').get()[0]
+		);
         assert.equal(
             app.get('$el', 'item').get()[0], 
             $('div[data-fr=item]').get()[0]
         );
 
         app.set('name', 'Mykola', 'item');
-    });
+    });*/
 
     it('Testing dynamic $children members', function () {
         var app = Firera({
@@ -512,6 +521,7 @@ describe('Basic Firera functionality', function () {
 			$root.find('input[type=text]').val(str).change();
 			$root.find('button').click();
 		}
+		console.log('app', app);
 		add_item();
         assert.equal(app.get('$arr_data.length', 'todos'), 1);
         assert.equal(app.get('completed_number', 'todos'), 0);
@@ -957,6 +967,12 @@ describe('Basic Firera functionality', function () {
 	})
 	it('Test todo mvc', function(){
 		var $root = $(".test-todo-mvc");
+		var type = (str) => {
+			$root.find('input[type=text]').val(str);
+		}
+		var enter = () => {
+			triggerEnter($root.find('input[type=text]'));
+		}
 		var main_template = `
 			h1 
 				"Todo MVC"
@@ -1037,21 +1053,27 @@ describe('Basic Firera functionality', function () {
 				'|visibility': ['!=', '../display', 'complete'],
 				'|hasClass(completed)': ['complete'],
 				$template: todo_template,
-				complete: [always(true), '.complete|click'],
+				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
-		//console.log('app', app, $root.find('input[type=text]'));
-		$root.find('input[type=text]').val('Do something useful');
-		triggerEnter($root.find('input[type=text]'));
-		$root.find('input[type=text]').val('Have a rest');
-		triggerEnter($root.find('input[type=text]'));
-		$root.find('input[type=text]').val('Write some tests');
-		triggerEnter($root.find('input[type=text]'));
+		console.log('app', app, $root.find('input[type=text]'));
+		
+		type('Do something useful');
+		enter();
+		
+		type('Have a rest');
+		enter();
+		
+		type('Write some tests');
+		enter();
+		
 		$root.find('ul > *:nth-child(2) .complete').click();
-		$root.find('input[type=text]').val('Listen to music');
-		triggerEnter($root.find('input[type=text]'));
+		
+		type('Listen to music');
+		enter();
+		
 		$root.find('ul > *:nth-child(1) .complete').click();
 		
 		assert.equal(Number($root.find('span.completed_number').html()), 2);
