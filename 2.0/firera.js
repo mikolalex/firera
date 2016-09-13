@@ -1718,16 +1718,16 @@ var core = {
 		}
 	},
 	predicates: {
-		skipSame: (fs) => {
-			var [func, ...args] = fs;
+		skipIf: (fs) => {
+			var [compare_func, func, ...args] = fs;
 			return ['asyncClosure', () => {
-				var prev;
+				var prev = [];
 				return function(cb, ...inner_args){
-					var res = func.apply(null, inner_args);
-					if(res !== prev){
+					if(compare_func(prev, inner_args)){
+						var res = func.apply(null, inner_args);
+						prev = inner_args;
 						cb(res);
 					}
-					prev = res;
 				}
 			}, ...args];
 		},
@@ -2136,7 +2136,14 @@ var simpleHtmlTemplates = {
 		}, '$name', '../$htmlbindings'],
 		'$real_el': ['firstDefined', '$el'],
 		'$html_template': [
-			'skipSame', 
+			'skipIf',
+			([$prev_el], [$el]) => {
+				if($prev_el && $el && $prev_el[0] && $el[0] && $prev_el[0] === $el[0]){
+					return false;
+				} else {
+					return true;
+				}
+			},
 			function($el){
 				var str = '';
 				if($el){
@@ -2157,7 +2164,6 @@ var simpleHtmlTemplates = {
 					var auto_template = keys.map((k) => {
 						return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
 					}).join(' ');
-					console.info('generating auto template', auto_template);
 					$el.html(auto_template);
 				}
 			}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'

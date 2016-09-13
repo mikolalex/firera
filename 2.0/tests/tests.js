@@ -521,7 +521,7 @@ describe('Basic Firera functionality', function () {
 			$root.find('input[type=text]').val(str).change();
 			$root.find('button').click();
 		}
-		console.log('app', app);
+		//console.log('app', app);
 		add_item();
         assert.equal(app.get('$arr_data.length', 'todos'), 1);
         assert.equal(app.get('completed_number', 'todos'), 0);
@@ -534,11 +534,14 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('completed_number', 'todos'), 3);
 		
 		$root.find('[data-fr=todos] > *:first-child .remove').click();
+        assert.equal($root.find('input[type=checkbox]:checked').length, 2);
         assert.equal(app.get('completed_number', 'todos'), 2);
 		$root.find('[data-fr=todos] > *:first-child .remove').click();
         assert.equal(app.get('completed_number', 'todos'), 1);
+        assert.equal($root.find('input[type=checkbox]:checked').length, 1);
 		add_item();
         assert.equal(app.get('completed_number', 'todos'), 1);
+        assert.equal($root.find('input[type=checkbox]:checked').length, 1);
     });
     
     it('Testing async', function(done){
@@ -1058,7 +1061,7 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
-		console.log('app', app, $root.find('input[type=text]'));
+		//console.log('app', app, $root.find('input[type=text]'));
 		
 		type('Do something useful');
 		enter();
