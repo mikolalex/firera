@@ -181,8 +181,10 @@ describe('Testing / operator', function () {
 		var output = {};
 		var obj = che.create('> a, (/ (wait500()..., b), (wait200()..., c)), d', {
 			onOutput: function(key, val){
-				output[key] = val;
-			},
+				if(val !== undefined){
+					output[key] = val;
+				}
+			}
 		}, {
 			wait500: function(state, cb){
 				setTimeout(() => {

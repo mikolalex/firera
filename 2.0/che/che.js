@@ -61,11 +61,19 @@ var is_multiple = (quant) => {
 
 var is_num = (a) => Number(a) == a;
 
+var defaultStateMutator = function(state, key, val){
+	if(val !== undefined){
+		state[key] = val;
+	}
+	return state;
+}
+
 
 var Chex = function(struct, linking = {}, callbacks = []){
 	this.struct = struct;
 	this.onOutput = linking.onOutput;
 	this.onSuccess = linking.onSuccess;
+	this.stateMutator = linking.stateMutator ? linking.stateMutator : defaultStateMutator;
 	this.callbacks = callbacks;
 	this.state = {};
 	this.mirror = {
@@ -140,7 +148,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 							}
 							this.state[cellname].push(value);
 						} else {
-							this.state[cellname] = value;
+							this.stateMutator(this.state, cellname, value);
 						}
 					}
 					if(quant){
@@ -199,11 +207,11 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		case '/':
 			for(let i in struct.children){
 				if(mirror_struct.successful_branch !== undefined && mirror_struct.successful_branch !== i){
-					console.log('now we skip it!', i);
+					//console.log('now we skip it!', i);
+					continue;
 				}
 				res = check(i);
 				if(has_particular_success(res)){
-					console.log('has_particular_success!', struct.children[i]);
 					mirror_struct.successful_branch = i;
 				}
 				if(is_luck(res)){
@@ -301,7 +309,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 			console.log('Unknown revolver type:', struct.subtype);
 		break;
 	}
-	console.log('dripping', cellname, luck_hapenned);
 	return dripres(false, luck_hapenned);
 }
 
