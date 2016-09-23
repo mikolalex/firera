@@ -200,7 +200,8 @@ describe('Testing / operator', function () {
 			obj.drip("d", 1);
 			obj.drip("b", 1);
 			obj.drip("c", 1);
-			assert.deepEqual(obj.state, {a: 1, c: 1, d: 1});
+			obj.drip("d", 2);
+			assert.deepEqual(obj.state, {a: 1, c: 1, d: 2});
 			assert.equal(obj.finished, true);
 			done();
 		}, 600);

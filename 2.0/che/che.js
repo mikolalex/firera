@@ -41,8 +41,16 @@ var output = function(){
 
 }
 
-var no_luck = new function NoLuck(){}
-var is_luck = (a) => a !== no_luck;
+function dripres(full_success = false, particular_success = false, value){
+	return {full_success, particular_success, value};
+}
+
+var is_luck = (a) => {
+	return a.full_success;
+}
+var get_value = (a) => {
+	return a.value;
+}
 
 var is_multiple = (quant) => {
 	return !!(quant && (quant.max !== 1));
@@ -108,7 +116,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 							console.error('No callback for cond:', cond);
 						}
 						var lakmus = this.callbacks[cond](this.state, value);
-						if(!lakmus) return no_luck;
+						if(!lakmus) return dripres();
 					} 
 					var state = mirror_struct.children[i];
 						state.counter = state.counter ? state.counter + 1 : 1;
@@ -116,7 +124,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					var quant = struct.children[i].quantifier;
 					if(quant && quant.max !== undefined && quant.max < state.counter){
 						// counter exceeded
-						return no_luck;
+						return dripres();
 					}
 					if(pipe){
 						this.__runCallback(pipe, value);
@@ -134,12 +142,12 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					}
 					if(quant){
 						if(state.counter >= quant.min){
-							return value;
+							return dripres(true, true, value);
 						} else {
-							return no_luck;
+							return dripres();
 						}
 					} 
-					return value;
+					return dripres(true, true, value);
 				}
 			break;
 			case 'revolver':
@@ -153,7 +161,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				return this.absorb(child, mirror_struct.children[i], cellname, value);
 			break;
 		}
-		return no_luck;
+		return dripres();
 	}
 	var output = (output, val) => {
 		var title = output.title;
@@ -178,9 +186,24 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				res = check(i);
 				if(is_luck(res)){
 					if(struct.children[i].output){
-						output(struct.children[i].output, res);
+						output(struct.children[i].output, get_value(res));
 					}
-					return value;
+					return dripres(true, true, value);;
+				}
+			}
+		break;
+		case '/':
+			mirror_struct.successful_drippings = mirror_struct.successful_drippings || {};
+			for(let i in struct.children){
+				res = check(i);
+				if(is_luck(res)){
+					mirror_struct.successful_drippings[i] = mirror_struct.successful_drippings[i] 
+															? mirror_struct.successful_drippings[i] + 1 
+															: 1;
+					if(struct.children[i].output){
+						output(struct.children[i].output, get_value(res));
+					}
+					return dripres(true, true, value);
 				}
 			}
 		break;
@@ -192,13 +215,13 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				res = check(i);
 				if(is_luck(res)){
 					if(struct.children[i].output){
-						output(struct.children[i].output, res);
+						output(struct.children[i].output, get_value(res));
 					}
 					if(!mirror_struct.count_all_each_event[i]){
 						mirror_struct.count_all_counter++;
 						if(mirror_struct.count_all_counter === struct.children.length){
 							//console.log('Full success!');
-							return value;
+							return dripres(true, true, value);
 						}
 					}
 					mirror_struct.count_all_each_event[i] = true;
@@ -207,7 +230,6 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 		break;
 		case '>':
 			var pos = mirror_struct.pos || 0;
-			//console.log(cellname, pos, mirror_struct);
 			for(let i = pos; ; i++){
 				if(!struct.children[i]){
 					break;
@@ -221,13 +243,13 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 					}
 					++mirror_struct.counter;
 					if(struct.children[i].output){
-						output(struct.children[i].output, res);
+						output(struct.children[i].output, get_value(res));
 					}
 					var next_pos = pos + 1;
 					if(!struct.children[next_pos]){
 						// revolver finished
 						//console.log(struct.children, next_pos, '> REVOLVER SUCCESS!');
-						return value;
+						return dripres(true, true, value);;
 					} else {
 						if(!struct.children[i].quantifier 
 								|| mirror_struct.counter > struct.children[i].quantifier.max){
@@ -263,8 +285,11 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				}
 			}
 		break;
+		default:
+			console.log('Unknown revolver type:', struct.subtype);
+		break;
 	}
-	return no_luck;
+	return dripres();
 }
 
 Chex.prototype.refreshSubscriptions = function(){
@@ -405,7 +430,7 @@ Chex.prototype.drip = function(cellname, val){
 	var res = this.absorb(this.struct, this.mirror, cellname, val);
 	this.activate_needed_events();
 	//console.log('____dripped', this.needed_events);
-	if(res !== no_luck){
+	if(is_luck(res)){
 		// pattern done
 		//console.log('________ FINISH!');
 		this.finished = true;
