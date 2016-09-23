@@ -48,6 +48,9 @@ function dripres(full_success = false, particular_success = false, value){
 var is_luck = (a) => {
 	return a.full_success;
 }
+var has_particular_success = (a) => {
+	return a.particular_success;
+}
 var get_value = (a) => {
 	return a.value;
 }
@@ -179,6 +182,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 	if(!struct.subtype){
 		struct = struct.event;
 	}
+	var luck_hapenned = false;
 	switch(struct.subtype){
 		case '|':
 			for(let i in struct.children){
@@ -193,17 +197,23 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 			}
 		break;
 		case '/':
-			mirror_struct.successful_drippings = mirror_struct.successful_drippings || {};
 			for(let i in struct.children){
+				if(mirror_struct.successful_branch !== undefined && mirror_struct.successful_branch !== i){
+					console.log('now we skip it!', i);
+				}
 				res = check(i);
+				if(has_particular_success(res)){
+					console.log('has_particular_success!', struct.children[i]);
+					mirror_struct.successful_branch = i;
+				}
 				if(is_luck(res)){
-					mirror_struct.successful_drippings[i] = mirror_struct.successful_drippings[i] 
-															? mirror_struct.successful_drippings[i] + 1 
-															: 1;
 					if(struct.children[i].output){
 						output(struct.children[i].output, get_value(res));
 					}
 					return dripres(true, true, value);
+				}
+				if(mirror_struct.successful_branch === i){
+					break;
 				}
 			}
 		break;
@@ -214,6 +224,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				//console.log('checking', struct.children[i], i, mirror_struct.count_all_counter);
 				res = check(i);
 				if(is_luck(res)){
+					luck_hapenned = true;
 					if(struct.children[i].output){
 						output(struct.children[i].output, get_value(res));
 					}
@@ -238,6 +249,7 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 				var state = mirror_struct.children[i];
 					state.counter = state.counter || 0;
 				if(is_luck(res)){
+					luck_hapenned = true;
 					if(mirror_struct.counter === undefined){
 						mirror_struct.counter = 0;
 					}
@@ -289,7 +301,8 @@ Chex.prototype.absorb = function(struct, mirror_struct, cellname, value){
 			console.log('Unknown revolver type:', struct.subtype);
 		break;
 	}
-	return dripres();
+	console.log('dripping', cellname, luck_hapenned);
+	return dripres(false, luck_hapenned);
 }
 
 Chex.prototype.refreshSubscriptions = function(){
