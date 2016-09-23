@@ -300,6 +300,12 @@ Chex.prototype.activate_needed_events = function(){
 			var value = this.callbacks[0][fnc.name](this.state);
 			cb.call(this, fnc, true, value);
 		} else {
+			if(!this.callbacks[0]){
+				console.error('You should provide a callback object with "' + fnc.name + '" key!');
+			}
+			if(!(this.callbacks[0][fnc.name] instanceof Function)){
+				console.error('Expecting ' + fnc.name + ' to be a function, given', typeof this.callbacks[0][fnc.name], 'instead!');
+			}
 			this.callbacks[0][fnc.name](this.state, cb.bind(this, fnc));
 		}
 		fnc.mirror.run = true;

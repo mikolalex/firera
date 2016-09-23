@@ -28,7 +28,7 @@ window.che_config = {
 		},
 		operator: {
 			free_chars: true,
-			regex: /^([\>\|\&])+$/,
+			regex: /^([\>\|\&|\/])+$/,
 		},
 		item_with_comma: {
 			children: [
@@ -292,7 +292,12 @@ window.che_config = {
 					}
 				} else {
 					if(children.length > 1){
-						console.log('Wrong semantics: set without operator');
+						// ">" be default
+						return {
+							type: 'revolver',
+							subtype: '>',
+							children: parser(children),
+						}
 					} else {
 						return parser(children[0]);
 					}

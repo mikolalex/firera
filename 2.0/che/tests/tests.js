@@ -32,7 +32,7 @@ describe('Che', function () {
 			onOutput: function(key, val){
 				output[key] = val;
 			},
-			onSuccess: function(){
+			onSuccess: function(){	
 				++res;
 			}
 		}, function(state, val){
@@ -173,6 +173,37 @@ describe('Che', function () {
 		obj.drip("c", 3);
 		//console.log(JSON.stringify(obj.state));
 		assert.deepEqual(obj.state, {a: 1, b: 13, c: 3});
+	})
+})
+
+describe('Testing / operator', function () {
+	it('1.', function(done){
+		var output = {};
+		var obj = che.create('> a, (/ (wait500()..., b), (wait200()..., c)), d', {
+			onOutput: function(key, val){
+				output[key] = val;
+			},
+		}, {
+			wait500: function(state, cb){
+				setTimeout(() => {
+					cb(true);
+				}, 500)
+			},
+			wait200: function(state, cb){
+				setTimeout(() => {
+					cb(true);
+				}, 200)
+			},
+		});
+		obj.drip("a", 1);
+		setTimeout(() => {
+			obj.drip("d", 1);
+			obj.drip("b", 1);
+			obj.drip("c", 1);
+			assert.deepEqual(obj.state, {a: 1, c: 1, d: 1});
+			assert.equal(obj.finished, true);
+			done();
+		}, 600);
 	})
 })
 
