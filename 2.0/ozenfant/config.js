@@ -19,33 +19,42 @@ module.exports = {
 					type: 'indent',
 					optional: true,
 				},
-				{
-					type: 'tagname',
-					optional: true,
-				},
-				{
-					type: 'classnames',
-					optional: true,
-				},
 				[
-					'|', 
+					'|',
 					{
-						type: 'quoted_str',
-						optional: true,
-					}, {
-						type: 'variable',
-						optional: true,
+						type: 'ternary_else',
 					},
-					'optional'
+					[
+						'>',
+						{
+							type: 'tagname',
+							optional: true,
+						},
+						{
+							type: 'classnames',
+							optional: true,
+						},
+						[
+							'|', 
+							{
+								type: 'quoted_str',
+								optional: true,
+							}, {
+								type: 'variable',
+								optional: true,
+							},
+							'optional'
+						],
+						{
+							type: 'bracket',
+							optional: true,
+						},
+						{
+							type: 'str',
+							optional: true,
+						},
+					],
 				],
-				{
-					type: 'bracket',
-					optional: true,
-				},
-				{
-					type: 'str',
-					optional: true,
-				},
 				{
 					type: 'lineend',
 				}
@@ -93,13 +102,17 @@ module.exports = {
 					type: 'varname',
 				},
 				{
-					type: 'ternary',
+					type: 'ternary_if',
 					optional: true,
 				}
 			]
 		},
-		ternary: {
+		ternary_if: {
 			regex: /^\?$/,
+			free_chars: true,
+		},
+		ternary_else: {
+			regex: /^\:$/,
 			free_chars: true,
 		},
 		varname: {
@@ -128,9 +141,6 @@ module.exports = {
 		},
 	},
 	semantics: {
-		variable: {
-			type: 'door',
-		},
 		root_token: {
 			func: (struct, parser) => {
 
@@ -141,9 +151,18 @@ module.exports = {
 				var che_results = parser(struct.children);
 				//console.log('Results', che_results);
 				var max_level = 0;
+				var last_if;
 				for(let i in che_results){
 					let child = che_results[i];
-					if(!child.tagname && !child.classnames && !child.quoted_str && !child.variable) continue;
+					if(!child.tagname && !child.classnames && !child.quoted_str && !child.variable && !child.type) {
+						continue;
+					}
+					if(child.type === 'IF'){
+						last_if = child;
+					}
+					if(child.type === 'ELSE'){
+						last_if.else_children = child;
+					}
 					var lvl = child.level || 0;
 					if(lvl > max_level){
 						max_level = lvl;
@@ -158,7 +177,7 @@ module.exports = {
 							continue;
 						}
 					}
-					//console.log('putting', child, 'to', last_of_level[put_to]);
+					//console.log('putting', child, put_to, 'to', last_of_level[put_to]);
 					last_of_level[put_to].children.push(child);
 					last_of_level[lvl] = child;
 					if(lvl + 1 < max_level){
@@ -180,7 +199,14 @@ module.exports = {
 				for(let child of struct.children){
 					switch(child.type){
 						case 'variable':
-							res.variable = child.children[0].chars;
+							res.varname = child.children[0].chars.slice(1);
+							if(child.children[1]){
+								res.type = "IF";
+							}
+							return res;
+						break;
+						case 'ternary_else':
+							res.type = "ELSE";
 						break;
 						case 'indent':
 							res.level = child.chars.length;

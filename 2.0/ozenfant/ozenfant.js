@@ -8,7 +8,7 @@
 		get_vars({children: this.struct.semantics}, this.node_vars_paths, this.text_vars_paths, this.nodes_vars, '.');
 	};
 	var get_varname = (node) => {
-		var key = node.variable.substr(1);
+		var key = node.varname;
 		if(!key.length){
 			if(node.classnames){
 				key = node.classnames.substr(1).split('.')[0];
@@ -24,28 +24,31 @@
 			var nodes_lag = 0;
 			var text_lag = 0;
 			for(var i in node.children){
-				if(!node.children[i].tagname && !node.children[i].classnames){
+				var zild = node.children[i];
+				if(!zild.tagname && !zild.classnames){
 					//console.log('text node!', node.children[i]);
-					++nodes_lag;
+						++nodes_lag;
 				} else {
-					++text_lag;
+						++text_lag;
 				}
 				var new_path = path + '/*[' + (Number(i) + 1 - nodes_lag) + ']';
-				if(node.children[i].variable){
-					node_pool[get_varname(node.children[i])] = new_path;
+				if(zild.type){
+					get_vars(zild, node_pool, text_pool, path_pool, new_path);
+				} else if(zild.varname !== undefined){
+					node_pool[get_varname(zild)] = new_path;
 					//console.log('Found var!', get_varname(node.children[i]), new_path);
-				} else if(node.children[i].quoted_str){
+				} else if(zild.quoted_str){
 					//console.log('str!', node.children[i].quoted_str);
-					node.children[i].quoted_str.replace(/\$([a-zA-Z0-9]*)/g, (_, key) => {
+					zild.quoted_str.replace(/\$([a-zA-Z0-9]*)/g, (_, key) => {
 						var text_path = path + '/text()[' + (Number(i) + 1 - text_lag) + ']';
 						if(!path_pool[text_path]){
-							path_pool[text_path] = node.children[i].quoted_str;
+							path_pool[text_path] = zild.quoted_str;
 						}
 						text_pool[key] = text_path;
 						//console.log('text key found', key, text_path);
 					})
 				} else {
-					get_vars(node.children[i], node_pool, text_pool, path_pool, new_path);
+					get_vars(zild, node_pool, text_pool, path_pool, new_path);
 				}
 			}
 		}
@@ -58,6 +61,16 @@
 		var indent = `
 ` + new Array(node.level).join('	');
 		var res1 = [], res2 = [], after = '';
+		if(node.type === 'ELSE'){
+			return '';
+		}
+		var childs = node.children;
+		if(node.type === 'IF'){
+			if(!context[node.varname]){
+				// "ELSE" part
+				childs = node.else_children.children;
+			}
+		}
 		if(node.tagname || node.classnames || !parent_tag){
 			// it's a node
 			var tag;
@@ -83,7 +96,7 @@
 					break;
 				}
 			}
-			for(let child of node.children){
+			for(let child of childs){
 				res1.push(toHTML(child, context, tag));
 			}
 			if(parent_tag){
@@ -108,7 +121,7 @@
 					}
 				}
 				res2.push('>');
-				if(node.variable){
+				if(node.varname !== undefined && !node.type){
 					var key = get_varname(node);
 					res2.push(indent + '	' + (context[key] !== undefined ? context[key] : ''));
 				} else {

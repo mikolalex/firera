@@ -145,5 +145,25 @@ describe('Amadee Ozenfant', function () {
 		assert.equal($(".test-variables footer").html(), 'Some info. Copyright (c) 2011');
 		
 	})
+	it('Testing if/else expression', function(){
+		var tmpl = `
+			
+				.$logged_in?
+					"Hello, mr."
+					span$username
+					"!"
+				:
+					"Please, log in!"
+		`;
+		var ctx = {logged_in: true, username: 'Mikolalex'};
+		var tmpl = new Ozenfant(tmpl);
+		tmpl.render($(".test-if").get(0), ctx);
+		console.log('tmpl', tmpl, tmpl.struct.syntax, tmpl.struct.semantics);
+		
+		
+		tmpl.set('logged_in', false);
+		tmpl.set('username', 'Antin');
+		
+	})
 })
 
