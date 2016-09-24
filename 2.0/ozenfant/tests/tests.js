@@ -109,46 +109,6 @@ describe('Amadee Ozenfant', function () {
 		var fnc = (a) => { return a[k] };
 		return fnc;
 	}
-	it('Testing simple example', function(){
-		console.log('CONFIG', ozenfant_config);
-		var parser = che_parser.get_parser(ozenfant_config);
-		var res = parser(example);
-		//console.log('Got', res.semantics);
-		//$(".test-parser > *:nth-child(1)").html(che_parser.dump(res.syntax));
-	})
-	it('Testing Ozenfant tag structure', function(){
-		var tmpl = `
-		
-		body
-			menu
-				li
-					a(href: index.html, target: _blank)
-				li
-					a(href: index.html)
-				li
-					a(href: index.html)
-				li
-					a(href: index.html)
-			section
-				header.ololo
-						.user
-							.name
-								"Your name:"
-								span$name
-								". Welcome, mr. $name!"
-							.surname$
-			footer
-				"(c) Mikolalex"
-		`;
-		var tmpl = new Ozenfant(tmpl);
-		//$(".test-parser > *:nth-child(2)").html(che_parser.dump(tmpl.struct.syntax));
-		var html = tmpl.toHTML();
-		//$(".test-html > *:nth-child(1)").text(html);
-		var struct = do_in_tree(tmpl.struct.semantics[0], (a) => {
-			return {tag: a.tagname};
-		})
-		//assert.equal(JSON.stringify(struct), JSON.stringify(exp_struct));
-	})
 	
 	it('Testing variables', function(){
 		var context = {
@@ -175,7 +135,7 @@ describe('Amadee Ozenfant', function () {
 		tmpl.render($(".test-variables").get(0), context);
 		var html = tmpl.toHTML(context);
 		//console.log('Semantics', tmpl.struct.semantics[0]);
-		console.log('HTML', html);
+		//console.log('HTML', html);
 		//console.log('bindings', tmpl.bindings);
 		
 		tmpl.set('login', 'Ed1do');

@@ -1,4 +1,4 @@
-var fields = ['classnames', 'tagname', 'str', 'quoted_str', 'variable'];
+var fields = ['classnames', 'tagname', 'str', 'quoted_str'];
 module.exports = {
 	empty_chars: [' '],
 	syntax: {
@@ -87,6 +87,22 @@ module.exports = {
 			free_chars: true,
 		},
 		variable: {
+			children: [
+				'>',
+				{
+					type: 'varname',
+				},
+				{
+					type: 'ternary',
+					optional: true,
+				}
+			]
+		},
+		ternary: {
+			regex: /^\?$/,
+			free_chars: true,
+		},
+		varname: {
 			regex: /^\$[a-zA-Z0-9\-\_]*$/,
 			free_chars: true,
 		},
@@ -112,6 +128,9 @@ module.exports = {
 		},
 	},
 	semantics: {
+		variable: {
+			type: 'door',
+		},
 		root_token: {
 			func: (struct, parser) => {
 
@@ -160,6 +179,9 @@ module.exports = {
 				var res = {};
 				for(let child of struct.children){
 					switch(child.type){
+						case 'variable':
+							res.variable = child.children[0].chars;
+						break;
 						case 'indent':
 							res.level = child.chars.length;
 							//console.log('INDEX', res.level);
