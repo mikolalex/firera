@@ -154,8 +154,9 @@ describe('Amadee Ozenfant', function () {
 					"!"
 				:
 					"Please, log in!"
+					.$no_luck
 		`;
-		var ctx = {logged_in: true, username: 'Mikolalex'};
+		var ctx = {logged_in: true, username: 'Mikolalex', no_luck: 'Looser!'};
 		var tmpl = new Ozenfant(tmpl);
 		tmpl.render($(".test-if").get(0), ctx);
 		console.log('tmpl', tmpl, tmpl.struct.syntax, tmpl.struct.semantics);

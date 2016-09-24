@@ -5,7 +5,8 @@
 		this.node_vars_paths = {};
 		this.text_vars_paths = {};
 		this.nodes_vars = {};
-		get_vars({children: this.struct.semantics}, this.node_vars_paths, this.text_vars_paths, this.nodes_vars, '.');
+		this.var_types = {};
+		get_vars({children: this.struct.semantics}, this.node_vars_paths, this.text_vars_paths, this.nodes_vars, '.', this.var_types);
 	};
 	var get_varname = (node) => {
 		var key = node.varname;
@@ -19,7 +20,7 @@
 		return key;
 	}
 	
-	var get_vars = (node, node_pool, text_pool, path_pool, path) => {
+	var get_vars = (node, node_pool, text_pool, path_pool, path, types) => {
 		if(node.children){
 			var nodes_lag = 0;
 			var text_lag = 0;
@@ -33,7 +34,14 @@
 				}
 				var new_path = path + '/*[' + (Number(i) + 1 - nodes_lag) + ']';
 				if(zild.type){
-					get_vars(zild, node_pool, text_pool, path_pool, new_path);
+					if(zild.type === 'IF'){
+						node_pool[get_varname(zild)] = new_path;
+						types[get_varname(zild)] = {
+							type: 'IF',
+							struct: zild,
+						};
+					}
+					get_vars(zild, node_pool, text_pool, path_pool, new_path, types);
 				} else if(zild.varname !== undefined){
 					node_pool[get_varname(zild)] = new_path;
 					//console.log('Found var!', get_varname(node.children[i]), new_path);
@@ -48,7 +56,7 @@
 						//console.log('text key found', key, text_path);
 					})
 				} else {
-					get_vars(zild, node_pool, text_pool, path_pool, new_path);
+					get_vars(zild, node_pool, text_pool, path_pool, new_path, types);
 				}
 			}
 		}
@@ -190,7 +198,15 @@
 			});
 			this.bindings[key].textContent = new_str;
 		} else {
-			this.bindings[key].textContent = val;
+			if(this.var_types[key] && this.var_types[key].type === 'IF'){
+				var struct = val 
+				? this.var_types[key].struct.children 
+				: this.var_types[key].struct.else_children.children;
+				var html = toHTML({children: struct}, this.state);
+				this.bindings[key].innerHTML = html;
+			} else {
+				this.bindings[key].textContent = val;
+			}
 		}
 	}
 	Ozenfant.xpOne = (path, node = document) => {
