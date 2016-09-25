@@ -150,20 +150,31 @@ describe('Amadee Ozenfant', function () {
 			
 				.$logged_in?
 					"Hello, mr."
-					span$username
+					span.username$
 					"!"
 				:
 					"Please, log in!"
-					.$no_luck
+					.no_luck$
 		`;
 		var ctx = {logged_in: true, username: 'Mikolalex', no_luck: 'Looser!'};
 		var tmpl = new Ozenfant(tmpl);
 		tmpl.render($(".test-if").get(0), ctx);
-		console.log('tmpl', tmpl, tmpl.struct.syntax, tmpl.struct.semantics);
+		//console.log('tmpl', tmpl, tmpl.struct.syntax, tmpl.struct.semantics);
 		
 		
 		tmpl.set('logged_in', false);
 		tmpl.set('username', 'Antin');
+		assert.equal($(".test-if .username").length, 0);
+		assert.equal($(".test-if .no_luck").length, 1);
+		tmpl.set('no_luck', 'Please log in!2');
+		assert.equal($(".test-if .no_luck").html(), 'Please log in!2');
+		tmpl.set('logged_in', true);
+		assert.equal($(".test-if .username").length, 1);
+		assert.equal($(".test-if .no_luck").length, 0);
+		assert.equal($(".test-if .username").html().trim(), 'Antin');
+		tmpl.set('logged_in', false);
+		tmpl.set('no_luck', 'Looser!');
+		assert.equal($(".test-if .no_luck").html(), 'Looser!');
 		
 	})
 })
