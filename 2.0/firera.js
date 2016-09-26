@@ -22,6 +22,14 @@ var mk_logger = (a) => {
 	}
 }
 
+var group_by = (arr, prop_or_func) => {
+	var res = {};
+	for(let obj of arr){
+		init_if_empty(res, prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func], []).push(obj);
+	}
+	return res;
+}
+
 var frozen = (a) => JSON.parse(JSON.stringify(a));
 
 var id = (a) => a;
@@ -82,6 +90,7 @@ var path_cellname = (a) => a.split('/').pop();
 
 Object.defineProperty(Object.prototype, 'map', {
 	enumerable: false,
+	writable: true,
 	value: function(func, conf){
 		var res = {};
 		var self = this;
@@ -97,6 +106,8 @@ Object.defineProperty(Object.prototype, 'map', {
 });
 Object.defineProperty(Object.prototype, 'each', {
 	enumerable: false,
+    configurable: false,
+	writable: true,
 	value: function(func){
 		for(var key in this){
 			if(func(this[key], key) === false){
@@ -107,6 +118,8 @@ Object.defineProperty(Object.prototype, 'each', {
 });
 Object.defineProperty(Object.prototype, 'eachKey', {
 	enumerable: false,
+    configurable: false,
+	writable: true,
 	value: function(func){
 		for(var key in this){
 			if(func(key) === false){
@@ -117,6 +130,8 @@ Object.defineProperty(Object.prototype, 'eachKey', {
 });
 Object.defineProperty(Array.prototype, 'mapFilter', {
 	enumerable: false,
+    configurable: false,
+	writable: true,
 	value: function(func){
 		var res = [];
 		for(var key in this){
@@ -127,6 +142,21 @@ Object.defineProperty(Array.prototype, 'mapFilter', {
 		}
 		return res;
 	}
+});
+Object.defineProperty(Array.prototype, 'unique', {
+    enumerable: false,
+    configurable: false,
+    writable: true,
+    value: function() {
+        var a = this.concat();
+        for(var i=0; i<a.length; ++i) {
+            for(var j=i+1; j<a.length; ++j) {
+                if(a[i] === a[j])
+                    a.splice(j--, 1);
+            }
+        }
+        return a;
+    }
 });
 
 function copy(from, to){
@@ -1630,9 +1660,87 @@ window.Firera = function(config){
 	return app;
 };
 
+var type_map = {
+	'is': 'formula',
+	'free': 'free',
+}
+
 var get_grid_struct = (grid) => {
+	var cells_1 = Object.keys(grid.cell_types);
+	var cells_2 = Object.keys(grid.cell_values);
+	var cells_3 = cells_1.concat(cells_2).unique();
+	var cells = [];
+	for(let cell of cells_3){
+		let types, type;
+		if(!grid.cell_types[cell]){
+			// probably, nested cell child
+		    types = ['free'];
+		    type = 'free';
+		} else {
+		    types = split_camelcase(grid.cell_types[cell].type);
+		    type = grid.cell_types[cell].type;
+		}
+		var props = {};
+		var once = false;
+		for(let subtype of types){
+			if(system_predicates.has(subtype) && subtype !== 'is'){
+				props[subtype] = true;
+				once = true;
+			}
+		}
+		if(once){
+			type = 'is';
+		}
+		if(!type_map[type]){
+			console.log('unmapped type!', type);
+		}
+		type = type_map[type];
+		var obj = {
+			name: cell,
+			type,
+			props,
+		};
+		if(once){
+			obj.subtype = grid.cell_types[cell].type;
+		}
+		cells.push(obj)
+	}
+	var by_types = group_by(cells, (obj) => {
+		if(obj.name.indexOf('/') !== -1){
+			return 'linked';
+		}
+		if(obj.name.indexOf('$child') === 0){
+			return 'children';
+		}
+		if(obj.name.indexOf('|') !== -1){
+			return 'DOM';
+		}
+		if(obj.name[0] === '$'){
+			return 'system';
+		}
+		if(obj.props.funnel){
+			return 'funnel';
+		}
+		return obj.type;
+		
+	});
+	
+	var childs = grid.linked_hashes_provider.pool;
+	var children = {};
+	for(let child_name in childs){
+		if(child_name === '..') continue;
+		let child_id = childs[child_name];
+		let child = grid.app.getGrid(child_id);
+		children[child_name] = get_grid_struct(child);
+	}
+	for(let celltype in by_types){
+		by_types[celltype].sort((a, b) => {
+			return a.name > b.name ? 1 : -1;
+		});
+	}
 	return {
-		cells: Object.keys(grid.cell_types),
+		children,
+		cells: by_types,
 	};
 }
 

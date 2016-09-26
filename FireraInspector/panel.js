@@ -10,8 +10,10 @@ var request_data = () => {
 }
 request_data();
 
+/*
 var data = {
 	tabId: chrome.devtools.inspectedWindow.tabId,
 	scriptToInject: "content_script.js"
 };
 chrome.runtime.sendMessage(data);
+*/
