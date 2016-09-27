@@ -1,0 +1,15 @@
+{
+  "name": "firera",
+  "version": "1.0.0",
+  "description": "Declarative, functional, frp, JS",
+  "main": "firera.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mykola Oleksiienko",
+  "license": "MIT",
+  "devDependencies": {
+    "ozenfant": "^1.0.0",
+    "shche": "^1.0.0"
+  }
+}
