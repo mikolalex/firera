@@ -2,6 +2,7 @@
 
 var Ozenfant = require('ozenfant');
 var che = require('shche');
+var $ = require('jquery');
 
 var always = (a) => {
 	return () => a;

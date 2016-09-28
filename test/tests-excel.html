@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+	<head>
+        <meta charset="utf-8">
+        <title>Mocha Tests</title>
+        <link rel="stylesheet" href="mocha.css" />
+        <style>
+
+	.cell:nth-child(4n + 1) {
+		clear: left;
+	}
+	
+	.cell.active {
+            background-color: #fffedc;
+        }
+	
+	.cell {
+		float: left;
+		border: 1px solid black;
+		padding: 5px;
+	}
+                
+        </style>
+	</head>
+	<body>
+            <div id="mocha"></div>
+            <script src="../require1k.min.js"></script>
+            <script src="../jquery.js"></script>
+            <script src="assert.js"></script>
+            <script src="mocha.js"></script>
+            <script>
+                mocha.setup('bdd');
+                R('./tests-excel', () => {
+                    mocha.checkLeaks();
+                    mocha.globals(['jQuery']);
+                    mocha.run();
+                })
+            </script>
+            <div class="tcases">
+                <div class="test-excel">
+                    <div class="inputs">
+                            <input type="text" class="formula" />
+                    </div>
+                    <div data-fr="cells">
+
+                    </div>
+                </div>
+            </div>
+	</body>
+</html>

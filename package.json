@@ -8,8 +8,12 @@
   },
   "author": "Mykola Oleksiienko",
   "license": "MIT",
-  "devDependencies": {
+  "dependencies": {
+    "jquery": "^3.1.1",
     "ozenfant": "^1.0.0",
     "shche": "^1.0.0"
+  },
+  "devDependencies": {
+    "assert": "^1.4.1"
   }
 }

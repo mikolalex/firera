@@ -1,2 +1,4 @@
 /dist/
 /node_modules/
+/test.br.js
+/test/test.br.js
