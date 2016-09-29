@@ -1711,7 +1711,7 @@ var get_grid_struct = (grid) => {
 		if(obj.name.indexOf('/') !== -1){
 			return 'linked';
 		}
-		if(obj.name.indexOf('$child') === 0){
+		if(obj.name.indexOf('$child') === 0 || obj.name === '$all_children'){
 			return 'children';
 		}
 		if(obj.name.indexOf('|') !== -1){
@@ -2198,11 +2198,12 @@ var core = {
 }
 
 
-var get_by_selector = function(name, $el){
+var get_by_selector = function(name, $el, children = false){
 	if(name === null) return null;
 	if(name === '__root') return $('body');
+	var method = children ? 'children' : 'find';
 	var res = $el 
-			? $el.find('[data-fr=' + name + ']')
+			? $el[method]('[data-fr=' + name + ']')
 			: null;
 	//console.info("GBS", '[data-fr=' + name + ']', res ? res.length : null, $el ? $el.html() : '');
 	return res;''
@@ -2511,7 +2512,15 @@ var htmlCells = {
 var get_ozenfant_template = (cb, str, $el, context) => {
 	if(!$el || !str) return;
 	var template = new Ozenfant(str);
-	template.render($el.get(0), context);
+	var filtered_context = {};
+	for(let k in context){
+		if(context[k] instanceof Object){
+			// dont write objects to html!
+		} else {
+			filtered_context[k] = context[k];
+		}
+	}
+	template.render($el.get(0), filtered_context);
 	cb('template', template);
 	cb('bindings_search', (str) => {
 		return template.bindings[str];
@@ -2521,6 +2530,10 @@ var write_changes = function(change, template){
 	if(!template) return;
 	var [k, v] = change;
 	if(unusual_cell(k)) return;
+	if(v instanceof Object){
+		// lol dont write objects to html!
+		return;
+	}
 	template.set(...change);
 }
 var ozenfant = {
@@ -2536,7 +2549,7 @@ var ozenfant = {
 		'$list_el': [(name, $el, map) => {
 				if(name === null || name === undefined || !map) return;
 				var num = map[name];
-				return get_by_selector(num, $el);
+				return get_by_selector(num, $el, true);
 		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
