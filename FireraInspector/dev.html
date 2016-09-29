@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="../dist/firera.js"></script>
+        <script src="jquery.js"></script>
+        <style>
+            .grid {
+                border: 1px dotted #1ba8fb;
+                padding: 1em;
+                margin: 1em;
+            }
+            .cell {
+                border: 1px dotted #87da01;
+                padding: 0.5em;
+                margin: 0.5em;
+            }
+			
+			body {
+					font-size: 12px;
+					font-family: courier;
+			}
+			
+			h1 {
+					font-family: courier;
+					text-align: center;
+					font-weight: normal;
+			}
+        </style>
+    </head>
+    <body>
+        <div id="content"></div>
+        <script>
+            var app = Firera({
+                __root: {
+                    url: 'mock.json',
+                    $el: $("#content"),
+                    $template: `
+							h1 
+								"FireraInspector"
+							.$grids
+                    `,
+                    data: ['async', (cb, url) => {
+                            $.get(url, (data) => {
+                                console.log('got data', data);
+                                cb(data);
+                            })
+                    }, 'url'],
+                    'a': [(a) => { console.log(a)}, 'data'],
+                    $child_grids: ['list', {
+                        type: 'grid',
+                        datasource: ['../data'], 
+                        self: {
+                            'log': [(a) => { console.log(a); }, '$deltas'],
+                        }
+                    }],
+                },
+                grid: {
+                    $template: `
+						.grid
+							h2.$f_name
+							.cells$
+							.grids$
+                    `,
+					r_name: ['$name'],
+                    $child_grids: ['list', {
+                            type: 'grid',
+                            datasource: [(data) => {
+                                var res = [];
+                                for(var key in data){
+                                    res.push(Object.assign({f_name: key}, data[key]));
+                                }
+                                console.log('res', res);
+                                return res;
+                            }, '../children']
+                    }],
+                    $child_cells: ['list', {
+                            type: 'cell',
+                            datasource: [(data) => {
+                                var res = [];
+                                for(var key in data){
+                                    res.push(Object.assign({f_name: key}, data[key]));
+                                }
+                                console.log('res CELLS', res);
+                                return res;
+                            }, '../cells']
+                    }],
+                },
+				cell: {
+                    $template: `
+						.cell
+							.$f_name
+                    `,
+				},
+		$packages: ['ozenfant', 'htmlCells']
+            })
+            console.log('app', app);
+        </script>
+    </body>
+</html>
