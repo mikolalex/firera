@@ -1,6 +1,6 @@
 'use strict';
 
-var Ozenfant = require('ozenfant');
+var Ozenfant = require('../ozenfant/ozenfant');
 var che = require('shche');
 var $ = require('jquery');
 
@@ -1164,7 +1164,7 @@ Hash.prototype.cell_value = function(cell){
 	}
 	if(cell === '$real_values'){
 		var res = {};
-		[...(new Set(Object.keys(this.plain_base)
+		[...(new Set(Object.keys(this.cell_values)
 					.concat(Object.keys(this.init_values))))].filter((k) => {
 			return k.match(/^(\w|\d|\_|\-)*$/);
 		}).each((k, v) => {
@@ -1652,12 +1652,11 @@ window.Firera = function(config){
 	//console.log(app);
 	//var compilation_finished = performance.now();
 	app.root = new Hash(app, '__root');
-	/*var init_finished = performance.now();
-	if(1 < 0){
-		console.info('App run', packages.root
-			//, 'it took ' + (compilation_finished - start).toFixed(3) + '/' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
-		);
-	}*/
+	//var init_finished = performance.now();
+	//if(1 > 0){
+	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
+	//	);
+	//}
 	return app;
 };
 

@@ -73,7 +73,7 @@ var decorate = (fnc, msg) => {
 		}
 		return pool[name];
 	};
-	})()
+})()
 
 var prop = (key) => {
 	return (a) => {

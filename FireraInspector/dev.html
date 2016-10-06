@@ -13,14 +13,11 @@ and open the template in the editor.
         <script src="jquery.js"></script>
         <style>
             .grid {
-                border: 1px dotted #1ba8fb;
-                padding: 1em;
-                margin: 1em;
+                border-left: 1px dotted black;
+                padding: 0px 1em;
             }
             .cell {
-                border: 1px dotted #87da01;
-                padding: 0.5em;
-                margin: 0.5em;
+				padding: 0px 1em;
             }
 			
 			body {
@@ -33,11 +30,89 @@ and open the template in the editor.
 					text-align: center;
 					font-weight: normal;
 			}
+			
+			
+			[data-type] h3 {
+				float: right;
+				margin: 0px;
+				padding: 0px 10px;
+				/* color: white; */
+				text-transform: uppercase;
+				/* font-family: sans-serif; */
+				font-weight: normal;
+				background-color: white;
+				color: black;
+				font-size: 16px;
+				margin-top: -10px;
+				border: 1px solid #cacaca;
+			}
+			
+			
+			[data-type] {
+					padding: 10px 0px;
+					border: 7px solid white;
+			}
+			
+			[data-type=system] {
+					border-left-color: #cccccc;
+			}
+			[data-type=children] {
+					border-left-color: #fd380c;
+			}
+			[data-type=formula] {
+					border-left-color: #089bf1;
+			}
+			[data-type=funnel] {
+					border-left-color: #912ffd;
+			}
+			[data-type=free] {
+					border-left-color: white;
+			}
+			[data-type=linked] {
+					border-left-color: #ffff9d;
+			}
+			[data-type=DOM] {
+					border-left-color: #ff8d00;
+			}
+			
+			.cellname {
+					display: inline-block;
+					width: 200px;
+			}
         </style>
     </head>
     <body>
         <div id="content"></div>
-        <script>
+		<script>
+				
+			var timer = (function(){
+				var start = performance.now();
+				var pool = [];
+				window.timer_results = () => {
+						for(let a of pool){
+								console.log(a[0], a[1]);
+						}
+				}
+				return (str) => {
+						var time = performance.now() - start;
+						//console.log('str', str, time);
+						pool.push([str, time]);
+				}
+			})()
+				
+				
+			var order_obj = function(order, obj){
+					var new_obj = {};
+					for(var k of order){
+							if(obj[k] !== undefined){
+								new_obj[k] = obj[k];
+							}
+					}
+					return new_obj;
+			}
+			
+			var cell_types_order = ['free', 'linked', 'system', 'formula', 'funnel', 'DOM', 'children'];
+			
             var app = Firera({
                 __root: {
                     url: 'mock.json',
@@ -49,24 +124,23 @@ and open the template in the editor.
                     `,
                     data: ['async', (cb, url) => {
                             $.get(url, (data) => {
-                                console.log('got data', data);
+								console.log('data finished', data, performance.now() - window.start);
+								for(var d of data){
+										d.cells = order_obj(cell_types_order, d.cells);
+								}
                                 cb(data);
                             })
                     }, 'url'],
-                    'a': [(a) => { console.log(a)}, 'data'],
                     $child_grids: ['list', {
                         type: 'grid',
-                        datasource: ['../data'], 
-                        self: {
-                            'log': [(a) => { console.log(a); }, '$deltas'],
-                        }
+                        datasource: ['../data']
                     }],
                 },
                 grid: {
                     $template: `
 						.grid
 							h2.$f_name
-							.cells$
+							.cell_types$
 							.grids$
                     `,
 					r_name: ['$name'],
@@ -75,31 +149,60 @@ and open the template in the editor.
                             datasource: [(data) => {
                                 var res = [];
                                 for(var key in data){
-                                    res.push(Object.assign({f_name: key}, data[key]));
+                                    res.push(Object.assign({f_name: key}, data[key], {cells: order_obj(cell_types_order, data[key].cells)}));
                                 }
-                                console.log('res', res);
                                 return res;
                             }, '../children']
                     }],
-                    $child_cells: ['list', {
-                            type: 'cell',
+                    $child_cell_types: ['list', {
+                            type: 'cell_type',
                             datasource: [(data) => {
                                 var res = [];
                                 for(var key in data){
-                                    res.push(Object.assign({f_name: key}, data[key]));
+                                    res.push(Object.assign({f_name: key, cells: data[key]}));
                                 }
-                                console.log('res CELLS', res);
                                 return res;
                             }, '../cells']
                     }],
                 },
-				cell: {
+				cell_type: {
                     $template: `
-						.cell
-							.$f_name
+						.cell_type(data-type: $f_name)
+							h3$f_name
+							.$cells
                     `,
+					$child_cells: ['list', {
+						type: 'cell',
+						datasource: ['../cells']
+					}]
 				},
-		$packages: ['ozenfant', 'htmlCells']
+				cell: {
+						$template: `
+								.cell
+										div.cellname$name
+										.$isObj?(display: inline-block)
+												"Object"
+										:
+												input.val(type: text)
+						`,
+						'isObj': [(a) => { 
+										return a instanceof Object
+								}, 'val'],
+						'input|setval': [(val) => {
+							var vl = val;
+							switch(val){
+									case null:
+										vl = 'null';
+									break;
+									case undefined:
+										vl = 'undefined';
+									break;
+							}
+							vl  = vl.toString();
+							return vl;
+						}, 'val']
+				},
+				$packages: ['ozenfant', 'htmlCells']
             })
             console.log('app', app);
         </script>
