@@ -6,7 +6,7 @@ var $ = require('jquery');
 
 var id = a => a;
 var not = a => !a;
-var always = (a) => {
+var always = (a) => 
 	return () => a;
 }
 

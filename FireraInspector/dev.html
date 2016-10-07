@@ -31,6 +31,13 @@ and open the template in the editor.
 					font-weight: normal;
 			}
 			
+			h2 {
+				margin-left: -13px;
+				background-color: black;
+				color: white;
+				padding: 5px 20px;
+			}
+			
 			
 			[data-type] h3 {
 				float: right;
@@ -49,7 +56,6 @@ and open the template in the editor.
 			
 			
 			[data-type] {
-					padding: 10px 0px;
 					border: 7px solid white;
 			}
 			
@@ -77,7 +83,7 @@ and open the template in the editor.
 			
 			.cellname {
 					display: inline-block;
-					width: 200px;
+					width: 300px;
 			}
         </style>
     </head>
@@ -113,6 +119,10 @@ and open the template in the editor.
 			
 			var cell_types_order = ['free', 'linked', 'system', 'formula', 'funnel', 'DOM', 'children'];
 			
+				var always = (a) => {
+					return () => a;
+				}
+			
             var app = Firera({
                 __root: {
                     url: 'mock.json',
@@ -124,7 +134,7 @@ and open the template in the editor.
                     `,
                     data: ['async', (cb, url) => {
                             $.get(url, (data) => {
-								console.log('data finished', data, performance.now() - window.start);
+								//console.log('data finished', data, performance.now() - window.start);
 								for(var d of data){
 										d.cells = order_obj(cell_types_order, d.cells);
 								}
@@ -180,27 +190,71 @@ and open the template in the editor.
 						$template: `
 								.cell
 										div.cellname$name
-										.$isObj?(display: inline-block)
-												"Object"
-										:
-												input.val(type: text)
+										.obj$
 						`,
-						'isObj': [(a) => { 
-										return a instanceof Object
-								}, 'val'],
-						'input|setval': [(val) => {
-							var vl = val;
-							switch(val){
-									case null:
-										vl = 'null';
-									break;
-									case undefined:
-										vl = 'undefined';
-									break;
+						$child_obj: [() => {  
+								//console.log('creating obj or scalar');
+								return ['obj_or_scalar', {}, {val: 'val'}]
+						}, 'val'],
+				},
+				obj_or_scalar: {
+						$template: `
+								.$isObj?
+										.
+												"OBJ"
+										.$isOpened?
+												.keys$
+												a.close
+														"close"
+										:
+												a.open
+														"Open"
+								:
+										.
+												"Scalar"
+										.val$
+						
+						`,
+						'isObj': [a => { 
+								var res = a instanceof Object
+								//console.log('A', a, res);
+								return res;
+						}, 'val'],
+						'$child_keys': [(o) => {
+							console.log('child keys', o);
+							if(o){
+									return ['keys', {}, {val: 'val'}]
+							} else {
+									return false;
 							}
-							vl  = vl.toString();
-							return vl;
-						}, 'val']
+						}, 'isOpened'],
+						'isOpened': ['funnel', (cell, val) => {
+							console.log('clc');
+							return cell === '.open|click';
+						}, '.open|click', '.close|click'],
+				},
+				'keys': {
+						$template: `
+								.keys$
+						`,
+						'a': [(v) => {
+							console.log('VAL', v)
+						}, '../val'],
+						'b': [(v) => {
+							console.log('___VAL', v)
+						}, 'val'],
+						'val': [(keys) => {
+								var res = [];
+								for(var i in keys){
+										res.push(Object.assign({name: i, val: keys[i]}));
+								}
+								console.log('res', res);
+								return res;
+							}, '../val'],
+						'$child_keys': ['list', {
+							type: 'obj_or_scalar',
+							datasource: ['../val'],
+						}]
 				},
 				$packages: ['ozenfant', 'htmlCells']
             })
