@@ -520,7 +520,7 @@ var create_provider = (app, self) => {
 		unlinkChildCells: function(name){
 			var hsh = this.get(name);
 			if(!hsh){
-				console.warn('removing unexisting hash!', name);
+				//console.warn('removing unexisting hash!', name);
 				return;
 			}
 			this.remove(name);
@@ -781,6 +781,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
 		parent_cell_name = get_real_cell_name(parent_cell_name);
+		console.log('FUNNNEL ARGS', this.cell_parents, parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];
 	}
 	if(props.nested){
@@ -2177,9 +2178,20 @@ var core = {
 			if(props.datasource){
 				all_lists_mixin.$datasource = props.datasource;
 			}
+			var fnc;
 			var list_own_type = Object.assign(all_lists_mixin, props.self || {});
-			//console.log('List looks like', list_own_type);
-			return [always(list_own_type)];
+			if(props.create_destroy){
+				fnc = [(a) => { 
+					if(a){ 
+						return list_own_type;
+					} else {
+						return false;
+					}
+				}, props.create_destroy];
+			} else {
+				fnc = [always(list_own_type)];
+			}
+			return fnc;
 		},
 		arr_deltas: function(funcstring){
 			var cell = funcstring[0];
