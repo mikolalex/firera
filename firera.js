@@ -89,6 +89,10 @@ var arr_fix_keys = (a) => {
 
 var path_cellname = (a) => a.split('/').pop();
 
+var is_special = (a) => {
+	return ((a.indexOf('/') !== -1) || (a.indexOf('|') !== -1) || a === '*' || a[0] === '$'); 
+}
+
 Object.defineProperty(Object.prototype, 'map', {
 	enumerable: false,
 	writable: true,
@@ -418,6 +422,9 @@ var noop = function(){
 };
 App.prototype.get = function(cell, path){
 	return this.root.get(cell, path);
+}
+App.prototype.getStruct = function(){
+	return get_app_struct(this);
 }
 App.prototype.getGrid = function(id){
 	return this.hashes[id];
@@ -781,7 +788,6 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
 		parent_cell_name = get_real_cell_name(parent_cell_name);
-		console.log('FUNNNEL ARGS', this.cell_parents, parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];
 	}
 	if(props.nested){
@@ -863,7 +869,7 @@ Hash.prototype.setLevelsRec = function(cellname, already_set){
 	var max_level = 1;
 	for(var cell of this.cell_parents(cellname)){
 		cell = real_cell_name(cell);
-		if(cell[0] === '-') debugger;
+		//if(cell[0] === '-') debugger;
 		if(this.levels[cell] === undefined){
 			//this.setLevelsRec(cell, already_set);
 		}
@@ -1577,8 +1583,9 @@ var parse_cell_types = function(pbs){
 	}
 	for(let cellname in children){
 		if(!cell_types[cellname]){
-			cell_types[cellname] = get_cell_type(cellname, 'free');
-		}
+			var r_type = is_special(cellname) ? 'free' : 'fake';
+			cell_types[cellname] = get_cell_type(cellname, r_type);
+		} 
 		cell_types[cellname].children = children[cellname];
 	}
 	//console.log('Parsed cell types', cell_types);
@@ -1664,6 +1671,7 @@ window.Firera = function(config){
 var type_map = {
 	'is': 'formula',
 	'free': 'free',
+	'fake': 'fake',
 }
 
 var get_grid_struct = (grid) => {

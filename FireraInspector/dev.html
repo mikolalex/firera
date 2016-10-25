@@ -112,6 +112,12 @@ and open the template in the editor.
 			.close {    
 				border-top: 5px solid grey;
 			}
+			
+			.type {
+				padding: 5px;
+				color: red;
+				text-transform: capitalize;
+			}
         </style>
     </head>
     <body>
@@ -153,8 +159,10 @@ and open the template in the editor.
 			var cell_types_order = ['free', 'linked', 'system', 'formula', 'funnel', 'DOM', 'children'];
 			
 				var always = (a) => {
-					return () => a;
+				return () => a;
 				}
+			
+			var typf = a => typeof a;
 				
 			var get_data = (cb, url) => {
 				$.get(url, (data) => {
@@ -247,6 +255,7 @@ and open the template in the editor.
 						$template: `
 								.level
 										span.name$(font-weight: bold)
+										span.type$(font-weight: bold)
 										span
 												": "
 										span.$isObj?
@@ -262,6 +271,7 @@ and open the template in the editor.
 						
 						`,
 						'isObj': [a => a instanceof Object, 'val'],
+						'type': [typf, 'val'],
 						'$child_keys': ['list', {
 							self: {
 								level: ['../level'],

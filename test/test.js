@@ -6,8 +6,10 @@ var $ = require('jquery');
 
 var id = a => a;
 var not = a => !a;
-var always = (a) => 
-	return () => a;
+var always = function(a){ 
+	return function(){
+		return a;
+	}
 }
 
 var decorate = (fnc, msg) => {
@@ -1184,6 +1186,21 @@ describe('Basic Firera functionality', function () {
 		app.set('a', false);
 		app.set('a', true);
 		assert.equal(app.get('c'), 42);
+	})
+	
+	it('Wrong linking', () => {
+		var app = Firera({
+			__root: {
+				a: 42,
+				$child_foo: 'bar'
+			},
+			bar: {
+				b: ['z']
+			}
+		})
+		var st = app.getStruct();
+		console.log('ST', st); 
+		console.log('app', app); 
 	})
 })
 describe('Che', function () {
