@@ -1665,6 +1665,7 @@ window.Firera = function(config){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 	//	);
 	//}
+	app.root.set('$inited', true);
 	return app;
 };
 
@@ -1811,6 +1812,27 @@ var arr_changes_to_child_changes = function(item_hash, arr_change){
 		new_val[2] = item_hash;
 		return new_val;
 	});
+}
+
+var get_arr_changes = () => {
+	var arr = [];
+	return (new_arr) => {
+		var changes = [];
+		arr_different(new_arr, arr, (key) => {
+			// create new element
+			changes.push(['add', key, new_arr[key]]);
+		})
+		//console.log('Computing changes between new an old arrays', new_arr, arr);
+		arr_diff(arr, new_arr, (key) => {
+			// create new element
+			changes.push(['remove', key]);
+		})
+		arr_common(arr, new_arr, (key) => {
+			changes.push(['change', key, new_arr[key]]);
+		})
+		arr = new_arr;
+		return changes;
+	}
 }
 
 var core = {
@@ -2062,7 +2084,7 @@ var core = {
 				console.error('List properties should be an object!');
 			}
 			var item_type = props.type;
-			if(!props.push && !props.datasource && !props.deltas){
+			if(!props.push && !props.datasource && !props.deltas && !props.data){
 				console.warn('No item source provided for list', props.deltas);
 			}
 			//console.log('List properties', props);
@@ -2089,27 +2111,10 @@ var core = {
 				}]
 			} else if(props.deltas) {
 				deltas_func = [id, props.deltas];
+			} else if(props.data) {
+				deltas_func = ['closure', get_arr_changes, ['just', props.data]];
 			} else {
-				deltas_func = ['closure', () => {
-					var arr = [];
-					return (new_arr) => {
-						var changes = [];
-						arr_different(new_arr, arr, (key) => {
-							// create new element
-							changes.push(['add', key, new_arr[key]]);
-						})
-						//console.log('Computing changes between new an old arrays', new_arr, arr);
-						arr_diff(arr, new_arr, (key) => {
-							// create new element
-							changes.push(['remove', key]);
-						})
-						arr_common(arr, new_arr, (key) => {
-							changes.push(['change', key, new_arr[key]]);
-						})
-						arr = new_arr;
-						return changes;
-					}
-				}, '$datasource']
+				deltas_func = ['closure', get_arr_changes, '$datasource']
 			}
 			var all_lists_mixin = {
 				$no_auto_template: true,
@@ -2529,22 +2534,35 @@ var htmlCells = {
 	}
 }
 var get_ozenfant_template = (cb, str, $el, context) => {
-	if(!$el || !str) return;
-	var template = new Ozenfant(str);
-	var filtered_context = {};
-	for(let k in context){
-		if(context[k] instanceof Object){
-			// dont write objects to html!
-		} else {
-			filtered_context[k] = context[k];
+	if(str){
+		var template = new Ozenfant(str);
+		if(!template || !$el) return;
+		var filtered_context = {};
+		for(let k in context){
+			if(context[k] instanceof Object){
+				// dont write objects to html!
+			} else {
+				filtered_context[k] = context[k];
+			}
 		}
+		if($el){
+			template.render($el.get(0), filtered_context);
+		}
+		cb('template', template);
+		cb('bindings_search', (str) => {
+			return template.bindings ? template.bindings[str] : false;
+		})
 	}
-	template.render($el.get(0), filtered_context);
-	cb('template', template);
-	cb('bindings_search', (str) => {
-		return template.bindings[str];
-	})
 }
+
+var get_fields_map = function(){
+	var map = {};
+	return ([key, val]) => {
+		map[key] = val;
+		return val;
+	}
+} 
+
 var write_changes = function(change, template){
 	if(!template) return;
 	var [k, v] = change;
@@ -2572,6 +2590,7 @@ var ozenfant = {
 		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
+		//'$ozenfant_nested_templates': ['closure', get_fields_map, '*/$ozenfant.template'],
 		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
 		'$html_skeleton_changes': ['$ozenfant.template'],
 		'$ozenfant_remove': [function(_, $el){
@@ -2607,7 +2626,7 @@ var che_package = {
 			return str;
 		}
 	}
-}
+} 
 
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);

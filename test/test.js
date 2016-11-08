@@ -98,7 +98,7 @@ var as = (propName, defValues = {}) => {
 	}
 }
 
-var ind = (index = 0) => {
+var ind = function(index = 0){
 	return (arr) => {
 		return arr instanceof Object ? arr[index] : null;
 	}
@@ -521,7 +521,7 @@ describe('Basic Firera functionality', function () {
                 completed: ['input[type=checkbox]|getval']
             }
         })
-		var add_item = (str = 'ololo') => {
+		var add_item = function(str = 'ololo'){
 			$root.find('input[type=text]').val(str).change();
 			$root.find('button').click();
 		}
@@ -1200,7 +1200,43 @@ describe('Basic Firera functionality', function () {
 		})
 		var st = app.getStruct();
 		console.log('ST', st); 
-		console.log('app', app); 
+	})
+	it('"data" for list', () => {    
+		var get_fields_map = function(){
+			var map = {};
+			return ([key, val]) => {
+				map[key] = val;
+				return val;
+			}
+		} 
+		var app = Firera({
+			__root: {
+				$template: `
+				
+						.
+							"Blocks"
+						.blocks$   
+				`,
+				$el: $(".test-nested-template-rendering"), 
+				$child_blocks: ['list', {
+						type: 'block',
+						data: [{}, {}, {}],
+						self: {
+							templs: ['closure', get_fields_map, '*/$ozenfant.template']
+						}
+				}]
+			},
+			block: {
+				$template: `
+				
+						.
+							"Hello!"
+				
+				`
+			},
+			$packages: ['ozenfant', 'htmlCells']
+		})
+		console.log('app', app);  
 	})
 })
 describe('Che', function () {
