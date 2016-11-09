@@ -1222,7 +1222,7 @@ describe('Basic Firera functionality', function () {
 						type: 'block',
 						data: [{}, {}, {}],
 						self: {
-							templs: ['closure', get_fields_map, '*/$ozenfant.template']
+							templs: ['closure', get_fields_map, '*/$ozenfant_render']
 						}
 				}]
 			},

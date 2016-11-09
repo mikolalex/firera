@@ -2242,6 +2242,7 @@ var search_fr_bindings = function($el){
 		}
 		res[name] = $(this);
 	})
+	console.log('Found bindings', res);
 	return res;
 }
 
@@ -2533,25 +2534,10 @@ var htmlCells = {
 		}
 	}
 }
-var get_ozenfant_template = (cb, str, $el, context) => {
+var get_ozenfant_template = (str) => {
 	if(str){
 		var template = new Ozenfant(str);
-		if(!template || !$el) return;
-		var filtered_context = {};
-		for(let k in context){
-			if(context[k] instanceof Object){
-				// dont write objects to html!
-			} else {
-				filtered_context[k] = context[k];
-			}
-		}
-		if($el){
-			template.render($el.get(0), filtered_context);
-		}
-		cb('template', template);
-		cb('bindings_search', (str) => {
-			return template.bindings ? template.bindings[str] : false;
-		})
+		return template;
 	}
 }
 
@@ -2563,7 +2549,7 @@ var get_fields_map = function(){
 	}
 } 
 
-var write_changes = function(change, template){
+var write_ozenfant_changes = function(change, template){
 	if(!template) return;
 	var [k, v] = change;
 	if(unusual_cell(k)) return;
@@ -2580,7 +2566,6 @@ var ozenfant = {
 				if(searcher instanceof Function){
 					res = searcher(name);
 				}
-				//console.log('counting ozenfant el', searcher, name, res);
 				return res ? $(res) : false;
 		}, '../$ozenfant.bindings_search', '$name'],
 		'$list_el': [(name, $el, map) => {
@@ -2589,10 +2574,28 @@ var ozenfant = {
 				return get_by_selector(num, $el, true);
 		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
-		'$ozenfant': ['nested', get_ozenfant_template, ['template', 'bindings_search'], '$template', '$real_el', '-$real_values'],
+		'$ozenfant_template2': [get_ozenfant_template, '$template'],
+		'$ozenfant': ['nested', (cb, template, $el, context) => {
+				if(!template || !$el) return;
+				var filtered_context = {};
+				for(let k in context){
+					if(context[k] instanceof Object){
+						// dont write objects to html!
+					} else {
+						filtered_context[k] = context[k];
+					}
+				}
+				if($el){
+					template.render($el.get(0), filtered_context);
+				}
+				cb('bindings_search', (str) => {
+					return template.bindings ? template.bindings[str] : false;
+				})
+				cb('html', template);
+		}, ['html', 'bindings_search'], '$ozenfant_template2', '$real_el', '-$real_values'],
 		//'$ozenfant_nested_templates': ['closure', get_fields_map, '*/$ozenfant.template'],
-		'$ozenfant_writer': [write_changes, '*', '-$ozenfant.template'],
-		'$html_skeleton_changes': ['$ozenfant.template'],
+		'$ozenfant_writer': [write_ozenfant_changes, '*', '-$ozenfant_template2'],
+		'$html_skeleton_changes': ['$ozenfant.html'],
 		'$ozenfant_remove': [function(_, $el){
 			if($el){
 				$el.html('');

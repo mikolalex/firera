@@ -1,0 +1,32 @@
+[{
+	"children": {},
+	"cells": {
+		"DOM": [{
+				"name": ".complete|click",
+				"type": "formula",
+				"props": {
+					"async": true,
+					"closure": true
+				},
+				"subtype": "asyncClosure"
+			}, {
+				"name": ".remove|click",
+				"type": "formula",
+				"props": {
+					"async": true,
+					"closure": true
+				},
+				"subtype": "asyncClosure"
+			}, {
+				"name": "|hasClass(completed)",
+				"val": false,
+				"type": "formula",
+				"props": {}
+			}, {
+				"name": "|visibility",
+				"val": true,
+				"type": "formula",
+				"props": {}
+			}]
+	}
+}]
