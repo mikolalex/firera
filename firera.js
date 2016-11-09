@@ -185,7 +185,7 @@ var cell_listening_type = function(str){
 	}[m ? m[1] : 'val'], str.replace(/^(\:|\-|\=)/, '')];
 }
 var get_real_cell_name = function(str){
-	return cell_listening_type(str)[1];
+	return str[0] === '-' ? str.slice(1) : str;
 }
 
 var real_cell_name = (str) => str.replace(/^(\:|\-|\=)/, '');
@@ -255,16 +255,19 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 		for(var slave_hash_id in lnks){
 			for(var slave_cellname in lnks[slave_hash_id]){
 				var cell_val = val;
-				var link_data = lnks[slave_hash_id][slave_cellname];
-				//console.log('lnk id', link_id);
-				var data = this.links[link_data.link_id];
-				for(var i = data.path.length - 1; i > -1; i--){
-					if(data.path[i] === '*'){
-						//console.log('A', i, data.path, link_data.path[i+1]);
-						cell_val = [link_data.path[i+1], cell_val];
+				if(lnks[slave_hash_id] && lnks[slave_hash_id][slave_cellname]){
+					var link_data = lnks[slave_hash_id][slave_cellname];
+					//console.log('lnk id', link_id);
+					var data = this.links[link_data.link_id];
+					if(data){
+						for(var i = data.path.length - 1; i > -1; i--){
+							if(data.path[i] === '*'){
+								//console.log('A', i, data.path, link_data.path[i+1]);
+								cell_val = [link_data.path[i+1], cell_val];
+							}
+						}
 					}
 				}
-				//console.log('SET', slave_hash_id, slave_cellname, cell_val);
 				// the very meaning of this method
 				var slave_grid = this.app.getGrid(slave_hash_id);
 				if(!slave_grid){
@@ -377,6 +380,18 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 
 LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 	var path = link.split('/');
+	if(path.length == 2 && path[0] === '..'){
+		/*var curr_hash = this.app.getGrid(hash_id);
+		var parent = curr_hash.parent;
+		if(parent === undefined) {
+			console.log('parent undefined! child', curr_hash);
+			return;
+		}
+		this.addWorkingLink(parent, path[1], curr_hash.id, link);
+		//console.log('Simple!', link, parent);
+		//ttimer.stop('ilc');
+		return;*/
+	}
 	var obj = {
 		path: path,
 		target: path[path.length - 1],
@@ -399,6 +414,7 @@ LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 	} else {
 		this.actualizeLink(this.linkStruct[hash_id][link]);
 	}
+	//ttimer.stop('ilc');
 }
 
 
@@ -432,18 +448,114 @@ App.prototype.getGrid = function(id){
 App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
 }
+
+var cb_prot = {
+	cell_parents: function(cell){
+		return this.cell_types[cell] ? this.cell_types[cell].parents : [];
+	},
+	cell_children: function(cell){
+		return this.cell_types[cell] ? this.cell_types[cell].children : {};
+	}, 
+	setLevels: function(){
+		var level = 1;
+		this.levels = {};
+		var max_level = 1;
+		var already_set = new Set();
+		var pool = [];
+		for(let i in this.cell_types){
+			if(this.cell_types[i].parents.length === 0){
+				this.levels[i] = 1;
+				for(var j in this.cell_types[i].children){
+					pool.push(j);
+					this.setLevelsRec(j, already_set);
+				}
+			}
+		}
+		var c = 0;
+		while(pool[c]){
+			this.setLevelsIterable(pool[c], pool);
+			c++;
+		}
+	},
+	setLevelsIterable: function(cellname, pool){
+		var max_level = 1;
+		for(var cell of this.cell_parents(cellname)){
+			cell = real_cell_name(cell);
+			if(this.levels[cell] === undefined){
+				if(pool.indexOf(cell) === -1){
+					this.setLevelsIterable(cell, pool);
+				}
+			}
+			if(this.levels[cell] > max_level){
+				max_level = this.levels[cell];
+			}
+		}
+		if(this.levels[cellname]){
+			if(max_level + 1 > this.levels[cellname]){
+				this.levels[cellname] = max_level + 1;
+			}
+			return;
+		} else {
+			this.levels[cellname] = max_level + 1;
+		}
+		for(var cell in this.cell_children(cellname)){
+			if(pool.indexOf(cell) === -1){
+				pool.push(cell);
+				//this.setLevelsRec(cell, already_set);
+			}
+		}
+	},
+	setLevelsRec: function(cellname, already_set){
+		var max_level = 1;
+		for(var cell of this.cell_parents(cellname)){
+			cell = real_cell_name(cell);
+			//if(cell[0] === '-') debugger;
+			if(this.levels[cell] === undefined){
+				//this.setLevelsRec(cell, already_set);
+			}
+			if(this.levels[cell] > max_level){
+				max_level = this.levels[cell];
+			}
+		}
+		if(this.levels[cellname]){
+			if(max_level + 1 > this.levels[cellname]){
+				this.levels[cellname] = max_level + 1;
+			}
+			for(var cell in this.cell_children(cellname)){
+				if(this.levels[cell] <= this.levels[cellname]){
+					already_set.add(cell);
+					this.setLevelsRec(cell, already_set);
+				}
+				/*if(!(already_set.has(cell))){
+					log('REC 112');
+				}*/
+			}
+			return;
+		} else {
+			this.levels[cellname] = max_level + 1;
+		}
+		//console.log('New level for', cellname, 'is', max_level + 1);
+		for(var cell in this.cell_children(cellname)){
+			if(!(already_set.has(cell))){
+				already_set.add(cell);
+				this.setLevelsRec(cell, already_set);
+			}
+		}
+	}
+}
+
 App.prototype.parse_cbs = function(a){
 	var eachMixin = Object.assign({}, this.packagePool.eachHashMixin);
-	var res = {
-		plain_base: Object.assign(eachMixin, a), 
-		side_effects: {},
-		hashes_to_link: {},
-		no_args_cells: {},
-	}
+	var res = Object.create(cb_prot);
+	res.plain_base = Object.assign(eachMixin, a); 
+	res.side_effects = {};
+	res.hashes_to_link = {};
+	res.no_args_cells = {};
+	
 	parse_pb(res, this.packagePool);
 	init_if_empty(res.plain_base, '$init', {}, '$name', null);
-	//res.plain_base.$init['$name'] = null;
 	res.cell_types = parse_cell_types(res.plain_base);
+	res.setLevels();
 	return res;
 }
 
@@ -459,7 +571,7 @@ App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
 	var child = new Hash(this, type, link_as, Object.assign({
 				$name: link_as
 			}, free_vals), true, parent_id); 
-	child.setLevels();
+	//child.setLevels();
 	return child.id;
 }
 
@@ -554,9 +666,18 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	this.parent = parent_id;
 	this.app = app;
 	this.name = name || '__root';
-	var parsed_pb = typeof parsed_pb_name === 'string' 
-					? app.cbs[parsed_pb_name]
-					: app.parse_cbs(parsed_pb_name);
+	var parsed_pb;
+	if(typeof parsed_pb_name === 'string'){
+		parsed_pb = app.cbs[parsed_pb_name];
+	} else {
+		var key = '$$$_@@@_tag';
+		if(parsed_pb_name[key]){
+			parsed_pb = parsed_pb_name[key];
+		} else {
+			parsed_pb = app.parse_cbs(parsed_pb_name);
+			parsed_pb_name[key] = parsed_pb;
+		}
+	}
 	if(!parsed_pb){
 		console.error('Cannot find hash to parse:', parsed_pb_name);
 		return;
@@ -566,7 +687,8 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	this.hashes_to_link = parsed_pb.hashes_to_link;
 	this.plain_base = Object.create(parsed_pb.plain_base);
 	this.link_chains = Object.create(parsed_pb.link_chains || {});
-	this.setLevels();
+	this.levels = Object.create(parsed_pb.levels);
+	//this.setLevels();
 	this.linked_hashes_provider = create_provider(app, self);
 	this.linked_hashes = {};
 	// for "closure" cell type
@@ -612,7 +734,7 @@ Hash.prototype.initIfSideEffectCell = function(cell){
 	if(!this.cellExists(cell) && unusual_cell(cell)){
 		parse_cellname(cell, this, 'getter', this.app.packagePool, this);
 		this.cell_types = parse_cell_types(this.plain_base);
-		this.setLevels();
+		//this.setLevels();
 	}
 }
 
@@ -684,7 +806,6 @@ Hash.prototype.unlinkChild = function(link_as){
 }
 
 Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
-	//if(run_async) debugger;
 	var cb = this.doRecursive.bind(this, func);
 	if(!skip) {
 		//console.log('--Computing cell', this.cell_type(cell));
@@ -821,7 +942,6 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 				val = func(args[0], args[1], args[2]);
 			break;
 			default: 
-				if(!func) debugger;
 				val = func.apply(null, args);
 			break;
 		}
@@ -864,73 +984,6 @@ Hash.prototype.get = function(cell, child){
 	}
 }
 
-
-Hash.prototype.setLevelsRec = function(cellname, already_set){
-	var max_level = 1;
-	for(var cell of this.cell_parents(cellname)){
-		cell = real_cell_name(cell);
-		//if(cell[0] === '-') debugger;
-		if(this.levels[cell] === undefined){
-			//this.setLevelsRec(cell, already_set);
-		}
-		if(this.levels[cell] > max_level){
-			max_level = this.levels[cell];
-		}
-	}
-	if(this.levels[cellname]){
-		if(max_level + 1 > this.levels[cellname]){
-			this.levels[cellname] = max_level + 1;
-		}
-		for(var cell in this.cell_children(cellname)){
-			if(this.levels[cell] <= this.levels[cellname]){
-				already_set.add(cell);
-				this.setLevelsRec(cell, already_set);
-			}
-			/*if(!(already_set.has(cell))){
-				log('REC 112');
-			}*/
-		}
-		return;
-	} else {
-		this.levels[cellname] = max_level + 1;
-	}
-	//console.log('New level for', cellname, 'is', max_level + 1);
-	for(var cell in this.cell_children(cellname)){
-		if(!(already_set.has(cell))){
-			already_set.add(cell);
-			this.setLevelsRec(cell, already_set);
-		}
-	}
-}
-Hash.prototype.setLevelsIterable = function(cellname, pool){
-	var max_level = 1;
-	for(var cell of this.cell_parents(cellname)){
-		cell = real_cell_name(cell);
-		if(this.levels[cell] === undefined){
-			if(pool.indexOf(cell) === -1){
-				this.setLevelsIterable(cell, pool);
-			}
-		}
-		if(this.levels[cell] > max_level){
-			max_level = this.levels[cell];
-		}
-	}
-	if(this.levels[cellname]){
-		if(max_level + 1 > this.levels[cellname]){
-			this.levels[cellname] = max_level + 1;
-		}
-		return;
-	} else {
-		this.levels[cellname] = max_level + 1;
-	}
-	for(var cell in this.cell_children(cellname)){
-		if(pool.indexOf(cell) === -1){
-			pool.push(cell);
-			//this.setLevelsRec(cell, already_set);
-		}
-	}
-}
-
 Hash.prototype.setLevel = function(cell, parents){
 	//console.log('got parents', parents);
 	var max_level = 0;
@@ -943,30 +996,6 @@ Hash.prototype.setLevel = function(cell, parents){
 	this.levels[cell] = max_level + 1;
 	//console.log('got max level', max_level);
 }
-
-Hash.prototype.setLevels = function(){
-	var level = 1;
-	this.levels = {};
-	var max_level = 1;
-	var already_set = new Set();
-	var pool = [];
-	for(let i in this.cell_types){
-		if(this.cell_types[i].parents.length === 0){
-			this.levels[i] = 1;
-			for(var j in this.cell_types[i].children){
-				pool.push(j);
-				this.setLevelsRec(j, already_set);
-			}
-		}
-	}
-	var c = 0;
-	while(pool[c]){
-		this.setLevelsIterable(pool[c], pool);
-		c++;
-	}
-}
-
-
 
 Hash.prototype.set = function(cells, val, child, no_args){
 	//console.log('levels', this.levels, this.cell_types);
@@ -1177,7 +1206,8 @@ Hash.prototype.cell_value = function(cell){
 		}).each((k, v) => {
 			res[k] = this.cell_value(k);
 		})
-		return res;
+		//return res;
+		return Object.assign({}, this.cell_values, this.init_values || {});
 	}
 	/*if(cell === '$vals'){
 		return Object.create(this.cell_values);
@@ -2534,6 +2564,9 @@ var htmlCells = {
 		}
 	}
 }
+
+Firera.Ozenfant = Ozenfant;
+
 var get_ozenfant_template = (str, context) => {
 	if(str){
 		var template = new Ozenfant(str);
@@ -2635,18 +2668,18 @@ var ozenfant = {
 		}, ['html', 'bindings_search'], '$ozenfant_template2', '$real_el', '-$real_values'],
 		//'$ozenfant_nested_templates': ['closure', get_fields_map, '*/$ozenfant.template'],
 		'$ozenfant_writer': [write_ozenfant_changes, '*', '-$ozenfant_template2'],
-		'$ozenfant_something': [(a, b) => {
+		/*'$ozenfant_something': [(a, b) => {
 			return {
 				template: a,
 				children: b,
 			}
-		}, '$ozenfant_template2', '$templates_map'],
+		}, '$ozenfant_template2', '$templates_map'],*/
 		'$ozenfant_first_render': [(_, struct, $el) => {
 				//var html = ozenfant_to_html_rec(struct);
 				//console.log('First render!', struct, $el, html);
 				//$el.html(html);				
 		}, '$inited', '-$ozenfant_something', '-$real_el'],
-		'$templates_map': ['closure', collect_map, '*/$ozenfant_something'],
+		//'$templates_map': ['closure', collect_map, '*/$ozenfant_something'],
 		'$html_skeleton_changes': ['$ozenfant.html'],
 		'$ozenfant_remove': [function(_, $el){
 			if($el){

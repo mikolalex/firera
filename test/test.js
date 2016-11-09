@@ -12,6 +12,22 @@ var always = function(a){
 	}
 }
 
+
+	var ttimer_pool = {};
+	var ttimer = {
+			start: function(key){
+					if(!ttimer_pool[key]){
+							ttimer_pool[key] = {
+									sum: 0,
+							}
+					}
+					ttimer_pool[key].current = performance.now();
+			},
+			stop: function(key){
+					ttimer_pool[key].sum += performance.now() - ttimer_pool[key].current;
+			},
+	}
+
 var decorate = (fnc, msg) => {
 	return function(){
 		console.log("@", msg, arguments);
