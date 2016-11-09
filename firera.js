@@ -1665,7 +1665,7 @@ window.Firera = function(config){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 	//	);
 	//}
-	app.root.set('$inited', true);
+	setTimeout(() => { app.root.set('$inited', true); }, 1);
 	return app;
 };
 
@@ -2534,9 +2534,18 @@ var htmlCells = {
 		}
 	}
 }
-var get_ozenfant_template = (str) => {
+var get_ozenfant_template = (str, context) => {
 	if(str){
 		var template = new Ozenfant(str);
+		var filtered_context = {};
+		for(let k in context){
+			if(context[k] instanceof Object){
+				// dont write objects to html!
+			} else {
+				filtered_context[k] = context[k];
+			}
+		}
+		//template.state = filtered_context;
 		return template;
 	}
 }
@@ -2559,6 +2568,36 @@ var write_ozenfant_changes = function(change, template){
 	}
 	template.set(...change);
 }
+
+var collect_map = () => {
+	var map = {};
+	return ([key, val]) => {
+		map[key] = val;
+		return map;
+	} 
+}
+
+var ozenfant_to_html_rec = (struct) => {
+	if(!struct) return '';
+	if(struct.template){
+		var template = struct.template;
+		if(struct.children){
+			for(var key in struct.children){
+				template.set(key, ozenfant_to_html_rec(struct.children[key]));
+			}
+		}
+		return template.getHTML();
+	} else {
+		var res = [];
+		for(var key in struct.children){
+			res.push('<div data-fr="' + key + '" data-fr-name="' + key + '">' 
+					+ ozenfant_to_html_rec(struct.children[key])
+					+ '</div>');
+		}
+		return res.join(' ');
+	}
+}
+
 var ozenfant = {
 	eachHashMixin: {
 		'$ozenfant_el': [(searcher, name) => {
@@ -2569,12 +2608,13 @@ var ozenfant = {
 				return res ? $(res) : false;
 		}, '../$ozenfant.bindings_search', '$name'],
 		'$list_el': [(name, $el, map) => {
+				//console.log('search list', name, $el, map);
 				if(name === null || name === undefined || !map) return;
 				var num = map[name];
 				return get_by_selector(num, $el, true);
 		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
-		'$ozenfant_template2': [get_ozenfant_template, '$template'],
+		'$ozenfant_template2': [get_ozenfant_template, '$template', '-$real_values'],
 		'$ozenfant': ['nested', (cb, template, $el, context) => {
 				if(!template || !$el) return;
 				var filtered_context = {};
@@ -2595,6 +2635,18 @@ var ozenfant = {
 		}, ['html', 'bindings_search'], '$ozenfant_template2', '$real_el', '-$real_values'],
 		//'$ozenfant_nested_templates': ['closure', get_fields_map, '*/$ozenfant.template'],
 		'$ozenfant_writer': [write_ozenfant_changes, '*', '-$ozenfant_template2'],
+		'$ozenfant_something': [(a, b) => {
+			return {
+				template: a,
+				children: b,
+			}
+		}, '$ozenfant_template2', '$templates_map'],
+		'$ozenfant_first_render': [(_, struct, $el) => {
+				//var html = ozenfant_to_html_rec(struct);
+				//console.log('First render!', struct, $el, html);
+				//$el.html(html);				
+		}, '$inited', '-$ozenfant_something', '-$real_el'],
+		'$templates_map': ['closure', collect_map, '*/$ozenfant_something'],
 		'$html_skeleton_changes': ['$ozenfant.html'],
 		'$ozenfant_remove': [function(_, $el){
 			if($el){
