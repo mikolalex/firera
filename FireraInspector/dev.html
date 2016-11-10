@@ -289,7 +289,9 @@ and open the template in the editor.
 												span.val$
 						
 						`),
-						'isObj': [a => a instanceof Object, 'val'],
+						'isObj': [a => {
+							return a instanceof Object;
+						}, 'val'],
 						'type': [typf, 'val'],
 						'$child_keys': ['list', {
 							self: {
@@ -312,7 +314,7 @@ and open the template in the editor.
 							return cell === '.open|click';
 						}, '.open|click', '.close|click'],
 				},
-				$packages: ['ozenfant', 'htmlCells']
+				$packages: ['ozenfant_new', 'htmlCells']
             })
             console.log('app', app);
 			setTimeout(() => {

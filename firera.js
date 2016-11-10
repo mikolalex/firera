@@ -422,6 +422,7 @@ LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 var root_package_pool = new PackagePool();
 
 var apps = [];
+var appIds = 0;
 var App = function(packages){
 	this.packagePool = new PackagePool(root_package_pool);
 	if(packages){
@@ -429,6 +430,7 @@ var App = function(packages){
 			this.packagePool.load(pack);
 		}
 	}
+	this.id = ++appIds;
 	this.hashes = {};
 	this.hashIds = 0;
 	this.linkManager = new LinkManager(this);
@@ -568,9 +570,13 @@ App.prototype.setHash = function(id, hash){
 }
 
 App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
+	var parent_path = this.getGrid(parent_id).path;
+	var path = (parent_path || '') + '/' + link_as;
 	var child = new Hash(this, type, link_as, Object.assign({
-				$name: link_as
-			}, free_vals), true, parent_id); 
+				$name: link_as,
+				$path: path,
+				$app_id: this.id,
+			}, free_vals), true, parent_id, path); 
 	//child.setLevels();
 	return child.id;
 }
@@ -658,9 +664,10 @@ var create_provider = (app, self) => {
 	}
 }
 
-var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id){
+var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id, path){
 	var self = this;
 	var id = ++app.hashIds;
+	this.path = path;
 	app.setHash(id, this);
 	this.id = id;
 	this.parent = parent_id;
@@ -697,12 +704,12 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id)
 	this.dynamic_cell_links = {};
 	this.dynamic_cells_props = {};
 	if(this.cell_types['*']){
-		var omit_list = this.all_cell_children('*');
+		/*var omit_list = this.all_cell_children('*');
 		for(let cell in this.cell_types){
 			if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell, this.app)){
 				add_dynamic_link(this.dynamic_cell_links, cell, '__self', '*', '');
 			}
-		}
+		}*/
 	}
 	this.cell_values = Object.create(this.plain_base.$init || {});
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
@@ -1206,8 +1213,8 @@ Hash.prototype.cell_value = function(cell){
 		}).each((k, v) => {
 			res[k] = this.cell_value(k);
 		})
-		//return res;
-		return Object.assign({}, this.cell_values, this.init_values || {});
+		return res;
+		//return Object.assign({}, this.cell_values, this.init_values || {});
 	}
 	/*if(cell === '$vals'){
 		return Object.create(this.cell_values);
@@ -1224,6 +1231,10 @@ Hash.prototype.set_cell_value = function(cell, val){
 		//console.log('Child', real_cell_name, 'val is', val);
 	}
 	//if(cell === 'text' || cell === '*') console.log('Set cell value', cell, val, this.dynamic_cell_links[cell]);
+	var omit_list = this.all_cell_children('*');
+	if(this.cell_types['*'] && cell !== '*' && omit_list.indexOf(cell) === -1){
+		this.set('*', [cell, val]);
+	}
 	if(this.dynamic_cell_links[cell]){
 		this.dynamic_cell_links[cell].each((links, hash_name) => {
 			var own = hash_name === '__self';
@@ -1364,6 +1375,23 @@ var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
 		obj = obj[key];
 	}
 	return obj;
+}
+var init_from_path = function(obj, path, val) {
+	if(!(path instanceof Array)){
+		path = path.split('/');
+	}
+	for(let k in path){
+		let key = path[k];
+		if(key === '') continue;
+		if(obj[key] === undefined){
+			if(path[Number(k) + 1]){
+				obj[key] = {};
+			} else {
+				obj[key] = val;
+			}
+		}
+		obj = obj[key];
+	}
 }
 var set_listening_type = function(cell, type){
 	console.log('_______________ SLT', cell, type);
@@ -1689,7 +1717,7 @@ window.Firera = function(config){
 	}
 	//console.log(app);
 	//var compilation_finished = performance.now();
-	app.root = new Hash(app, '__root');
+	app.root = new Hash(app, '__root', false, {$app_id: app.id, $path: '/'});
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -2249,7 +2277,7 @@ var core = {
 			}, cell]
 		}
 	}
-}
+} 
 
 
 var get_by_selector = function(name, $el, children = false){
@@ -2631,6 +2659,69 @@ var ozenfant_to_html_rec = (struct) => {
 	}
 }
 
+
+var render_rec = (path, node, app_id) => {
+	//console.log('RR', path, node);
+	if(node instanceof Object){
+		if(ozenfant_templates[app_id][path]){
+			// its object
+			var template = ozenfant_templates[app_id][path];
+			for(let key in node){
+				template.set(key, render_rec(path + '/' + key, node[key], app_id));
+			}
+			return template.getHTML();
+		} else {
+			// its array
+			var res = [];
+			for(let key in node){
+				res.push('<div data-fr="' + key + '" data-fr-name="' + key + '">'
+						+ render_rec(path + '/' + key, node[key], app_id)
+						+ '</div>'
+						)
+			}
+			return res.join(' ');
+		}
+	} else {
+		// its final template
+		return ozenfant_templates[app_id][path].getHTML();
+	}
+}
+
+var ozenfant_templates = {};
+var ozenfant_apps = {};
+var ozenfant_callbacks = {};
+
+var ozenfant_new = {
+	eachHashMixin: {
+		'$ozenfant': ['asyncClosure', () => {
+			var hashname, template;
+			return (cb, template, path, app_id, context) => {
+				if(!app_id) return;
+				init_if_empty(ozenfant_templates, app_id, {});
+				init_if_empty(ozenfant_callbacks, app_id, {}, path, cb);
+				if(!ozenfant_templates[app_id][path]){
+					ozenfant_templates[app_id][path] = new Ozenfant(template);
+					ozenfant_templates[app_id][path].state = context;
+				}
+				init_if_empty(ozenfant_apps, app_id, {});
+				init_from_path(ozenfant_apps[app_id], path, path);
+			}
+		}, '$template', '-$path', '-$app_id', '-$real_values'],
+		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
+				if(!template_path || !app_id || !ozenfant_templates[app_id]) return;
+				var template = ozenfant_templates[app_id][template_path];
+				if(!template) return;
+				template.set(cell, val);
+		}, '*', '-$path', '-$app_id'],
+		'$render_all': [(_, app_id, $el) => {
+				var pool = ozenfant_templates[app_id];
+				var root_template = pool['/'];
+				var html = render_rec('', ozenfant_apps[app_id], app_id);
+				$el.html(html);
+		}, '$inited', '-$app_id', '-$el']
+	}
+}
+
 var ozenfant = {
 	eachHashMixin: {
 		'$ozenfant_el': [(searcher, name) => {
@@ -2718,7 +2809,7 @@ var che_package = {
 
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);
-Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, che: che_package};
+Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, che: che_package};
 //Firera.loadPackage(html);
 Firera.func_test_export = {parse_pb, parse_fexpr};
 
