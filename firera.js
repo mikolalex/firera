@@ -2661,7 +2661,6 @@ var ozenfant_to_html_rec = (struct) => {
 
 
 var render_rec = (path, node, app_id) => {
-	//console.log('RR', path, node);
 	if(node instanceof Object){
 		if(ozenfant_templates[app_id][path]){
 			// its object
@@ -2690,21 +2689,59 @@ var render_rec = (path, node, app_id) => {
 var ozenfant_templates = {};
 var ozenfant_apps = {};
 var ozenfant_callbacks = {};
+var ozenfant_app_status = {};
+																																			
+var update_bindings_rec = function(el, path, struct, app_id){
+	var template = ozenfant_templates[app_id][path];
+	if(!template){
+		//console.log('AS list', path);
+		// its list
+		for(var child of el.children){
+			var num = child.getAttribute('data-fr-name');
+			if(struct[num]){
+				update_bindings_rec(child, path + '/' + num, struct[num], app_id);
+			}
+		}
+		return;
+	}
+	template.setRoot(el);
+	template.updateBindings();
+	ozenfant_callbacks[app_id][path]($(el));
+	//console.log('bindings', template.bindings, struct);
+	if(!(struct instanceof Object)){
+		//console.log('FINISH!', struct);
+		return;
+	}
+	for(let key in struct){
+		var new_path = path + '/' + key;
+		if(template.bindings[key]){
+			//console.log('rec', key, template.bindings[key], struct[key]);
+			update_bindings_rec(template.bindings[key], new_path, struct[key], app_id);
+		} else {
+			console.log('bindings not found!', new_path, struct[key]);
+		}
+	}
+}
 
 var ozenfant_new = {
 	eachHashMixin: {
-		'$ozenfant': ['asyncClosure', () => {
+		'$real_el': ['asyncClosure', () => {
 			var hashname, template;
 			return (cb, template, path, app_id, context) => {
 				if(!app_id) return;
-				init_if_empty(ozenfant_templates, app_id, {});
-				init_if_empty(ozenfant_callbacks, app_id, {}, path, cb);
-				if(!ozenfant_templates[app_id][path]){
-					ozenfant_templates[app_id][path] = new Ozenfant(template);
-					ozenfant_templates[app_id][path].state = context;
+				if(!ozenfant_app_status[app_id]){
+					// not rendered yet
+					init_if_empty(ozenfant_templates, app_id, {});
+					init_if_empty(ozenfant_callbacks, app_id, {}, path, cb);
+					if(!ozenfant_templates[app_id][path]){
+						ozenfant_templates[app_id][path] = new Ozenfant(template);
+						ozenfant_templates[app_id][path].state = context;
+					}
+					init_if_empty(ozenfant_apps, app_id, {});
+					init_from_path(ozenfant_apps[app_id], path, path);
+				} else {
+					console.log('should render...');
 				}
-				init_if_empty(ozenfant_apps, app_id, {});
-				init_from_path(ozenfant_apps[app_id], path, path);
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values'],
 		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
@@ -2713,11 +2750,19 @@ var ozenfant_new = {
 				if(!template) return;
 				template.set(cell, val);
 		}, '*', '-$path', '-$app_id'],
+		'$html_skeleton_changes': ['$real_el'],
 		'$render_all': [(_, app_id, $el) => {
 				var pool = ozenfant_templates[app_id];
 				var root_template = pool['/'];
+				ozenfant_templates[app_id][''] = ozenfant_templates[app_id]['/'];
+				ozenfant_callbacks[app_id][''] = ozenfant_callbacks[app_id]['/'];
 				var html = render_rec('', ozenfant_apps[app_id], app_id);
 				$el.html(html);
+				//console.log('callbacks', ozenfant_callbacks, ozenfant_apps);
+				//search_nested_templates($el.get()[0], ozenfant_apps[app_id]);
+				update_bindings_rec($el.get()[0], '', ozenfant_apps[app_id], app_id);
+				ozenfant_app_status[app_id] = true;
+				console.log('templates', ozenfant_templates);
 		}, '$inited', '-$app_id', '-$el']
 	}
 }
