@@ -897,7 +897,7 @@ describe('Basic Firera functionality', function () {
 					`,
 				edit_train: ['second', '.edit|click', '-$real_values']
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		//console.log('app', app);
 	})
@@ -981,9 +981,10 @@ describe('Basic Firera functionality', function () {
 						"todo"
 				`,
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		$(".test-new-children .add").click();
+		console.log('app', app);
 		assert.equal($(".test-new-children .todosya").length, 1);
 		$(".test-new-children .remove").click();
 		assert.equal($(".test-new-children .todosya").length, 0);

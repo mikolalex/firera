@@ -135,7 +135,7 @@ and open the template in the editor.
 				return (str, force) => {
 						var time = performance.now() - start;
 						//if(force){
-								console.log('str', str, time);
+								console.log('___________________', str, new Array(30 - str.length).join('_'), time);
 						//}
 						pool.push([str, time]);
 				}
