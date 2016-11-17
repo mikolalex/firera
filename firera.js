@@ -2302,7 +2302,6 @@ var search_fr_bindings = function($el){
 		}
 		res[name] = $(this);
 	})
-	console.log('Found bindings', res);
 	return res;
 }
 
@@ -2640,104 +2639,148 @@ var collect_map = () => {
 	} 
 }
 
-var ozenfant_to_html_rec = (struct) => {
-	if(!struct) return '';
-	if(struct.template){
-		var template = struct.template;
-		if(struct.children){
-			for(var key in struct.children){
-				template.set(key, ozenfant_to_html_rec(struct.children[key]));
-			}
-		}
-		return template.getHTML();
-	} else {
-		var res = [];
-		for(var key in struct.children){
-			res.push('<div data-fr="' + key + '" data-fr-name="' + key + '">' 
-					+ ozenfant_to_html_rec(struct.children[key])
-					+ '</div>');
-		}
-		return res.join(' ');
-	}
+var Tree = function(){
+	this.template_hash = {};
+	this.template_tree = {};
+	this.bindings = {};
+	this.onUpdateBindingsCbs = {};
 }
 
-
-var render_rec = (path, node, app_id) => {
+Tree.prototype.render = function(path, node){
 	if(!node) return;
-	if(node instanceof Object){
-		if(ozenfant_templates[app_id][path]){
+	if(node instanceof Ozenfant){
+		// its final template
+		return this.template_hash[path].getHTML();
+	} else {
+		var template;
+		if(template = this.template_hash[path]){
 			// its object
-			var template = ozenfant_templates[app_id][path];
 			for(let key in node){
-				template.set(key, render_rec(path + '/' + key, node[key], app_id));
+				var new_path = path == '/' ? path + key : path + '/' + key;
+				template.set(key, this.render(new_path, node[key]));
 			}
 			return template.getHTML();
 		} else {
 			// its array
 			var res = [];
 			for(let key in node){
+				var new_path = path == '/' ? path + key : path + '/' + key;
 				res.push('<div data-fr="' + key + '" data-fr-name="' + key + '">'
-						+ render_rec(path + '/' + key, node[key], app_id)
+						+ this.render(new_path, node[key])
 						+ '</div>'
 						)
 			}
 			return res.join(' ');
 		}
-	} else {
-		// its final template
-		return ozenfant_templates[app_id][path].getHTML();
 	}
 }
 
-var ozenfant_templates = {};
-var ozenfant_template_tree = {};
-var ozenfant_callbacks = {};
-var ozenfant_bindings = {};
-																																			
-var update_bindings_rec = function(el, path, struct, app_id){
-	var template = ozenfant_templates[app_id][path];
-	ozenfant_bindings[app_id][path] = el;
+Tree.prototype.onUpdateBinding = function(path, cb){
+	this.onUpdateBindingsCbs[path] = cb;
+}
+
+Tree.prototype.updateBindings = function(path, struct, el = false){
+	var template = this.template_hash[path];
+	if(el){
+		this.bindings[path] = el;
+	}
 	if(!template){
 		// its list
 		for(var child of el.children){
 			var num = child.getAttribute('data-fr-name');
 			if(struct[num]){
-				update_bindings_rec(child, path + '/' + num, struct[num], app_id);
+				var new_path = path == '/' ? path + num : path + '/' + num;
+				this.updateBindings(new_path, struct[num], child);
 			}
 		}
 		return;
 	}
-	template.setRoot(el);
+	if(el){
+		template.setRoot(el);
+	}
 	template.updateBindings();
-	ozenfant_callbacks[app_id][path]($(el));
-	if(!(struct instanceof Object)){
+	if(this.onUpdateBindingsCbs[path]){
+		this.onUpdateBindingsCbs[path]($(this.template_hash[path].root));
+	}
+	if(!(struct instanceof Object) || (struct instanceof Ozenfant)){
 		return;
 	}
 	for(let key in struct){
-		var new_path = path + '/' + key;
+		var new_path = path == '/' ? path + key : path + '/' + key;
 		if(template.bindings[key]){
-			update_bindings_rec(template.bindings[key], new_path, struct[key], app_id);
+			this.updateBindings(new_path, struct[key], template.bindings[key]);
 		} else {
-			console.log('bindings not found!', new_path, struct[key]);
+			console.log('bindings not found!', template.bindings, key);
 		}
 	}
 }
 
-var parent_path = (str, step = 1) => {
-	var arr = str.split('/');
-	return arr.slice(0, (arr.length - step)).join('/');
-}
-var last_of_path = (str) => {
-	var arr = str.split('/');
-	return arr[arr.length - 1];
+Tree.prototype.refresh = function(){
+	this.refreshPending = false;
+	var root_path = this.refreshPrefixPath.join('/');
+	this.refreshPrefixPath = false;
+	root_path = root_path == '' ? '/' : root_path;
+	if(root_path[0] !== '/'){
+		root_path = '/' + root_path;
+	}
+	var branch = get_branch(this.template_tree, root_path);
+	var res = this.render(root_path, branch);
+	var root_el = this.template_hash[root_path] ? this.template_hash[root_path].root : false;
+	if(!root_el){
+		root_el = this.bindings[root_path]
+	}
+	if(!root_el){
+		var parent = root_path.split('/');
+		var key = parent.pop();
+		root_el = this.template_hash[parent.join('/')].bindings[key];
+	}
+	if(!root_el){
+		// oh god...
+	}
+	root_el.innerHTML = res;
+	this.updateBindings(root_path, branch, root_el);
 }
 
-var get_binding = (app_id, path, child) => {
-	var template = ozenfant_templates[app_id][path];
-	if(template){
-		return template.bindings[child];
+Tree.prototype.addToRefreshPool = function(path, pth){
+	if(!this.refreshPrefixPath){
+		this.refreshPrefixPath = pth;
+	} else {
+		for(var key in pth){
+			if(this.refreshPrefixPath[key] !== pth[key]){
+				break;
+			}
+		}
+		this.refreshPrefixPath = this.refreshPrefixPath.slice(0, key);
 	}
 }
+
+Tree.prototype.setBinding = function(path, el){
+	this.template_hash[path].root = el;
+}
+
+Tree.prototype.setTemplate = function(path, template, context){
+	var pth = path.split('/');
+	if(pth[0] === ''){
+		pth = pth.slice(1);
+	}
+	if(pth[0] === ''){
+		pth = pth.slice(1);
+	}
+	var tmpl = new Ozenfant(template);
+	tmpl.state = context;
+	this.template_hash[path] = tmpl
+	init_from_path(this.template_tree, path, {});
+	this.addToRefreshPool(path, pth);
+	if(!this.refreshPending){
+		this.refreshPending = true;
+		setTimeout(() => {
+			this.refresh();
+		}, 1)
+	}
+	
+}
+
+var ozenfant_trees = {};
 
 var get_branch = (tree, path) => {
 	var pth = path.split('/');
@@ -2751,16 +2794,6 @@ var get_branch = (tree, path) => {
 	return tree;
 }
 
-var render_tree = (path, $el, app_id) => {
-	var branch = get_branch(ozenfant_template_tree[app_id], path);
-	var html = render_rec(path, branch, app_id);
-	
-	timer('before paste', true);
-	$el.html(html);
-	timer('after paste', true);
-	update_bindings_rec($el.get()[0], path, branch, app_id);
-}
-
 var ozenfant_new = {
 	eachHashMixin: {
 		'$real_el': ['asyncClosure', () => {
@@ -2768,48 +2801,26 @@ var ozenfant_new = {
 			return (cb, template, path, app_id, context, el) => {
 				if(!app_id) return;
 				var pth = path === '/' ? '' : path;
-				init_if_empty(ozenfant_templates, app_id, {});
-				init_if_empty(ozenfant_bindings, app_id, {});
-				init_if_empty(ozenfant_callbacks, app_id, {})
-				ozenfant_callbacks[app_id][pth] = cb;
-				init_if_empty(ozenfant_template_tree, app_id, {});
-				init_from_path(ozenfant_template_tree[app_id], pth, pth);
-				ozenfant_templates[app_id][pth] = new Ozenfant(template);
-				ozenfant_templates[app_id][pth].state = context;
-				
-				var parentparent = ozenfant_templates[app_id][parent_path(path, 2)];
-				
-				if(!parentparent && path !== '/'){
-					
+				var tree;
+				if(!ozenfant_trees[app_id]){
+					ozenfant_trees[app_id] = tree = new Tree();
 				} else {
-					var new_binding;
-					if(path === '/'){
-						// root
-						new_binding = el;
-					} else {
-						var pp = parent_path(path);
-						var parent_template = ozenfant_templates[app_id][pp];
-						var name = last_of_path(path);
-						if(!parent_template){
-							var parent_binding = ozenfant_bindings[app_id][pp];
-							if(!parent_binding){
-								parent_binding = get_binding(app_id, parent_path(path, 2), last_of_path(pp));
-							}
-							new_binding = $("<div/>")
-								.attr('data-fr', name)
-								.attr('data-fr-name', name).appendTo(parent_binding);
-						} else {
-							new_binding = $(parent_template.bindings[name]);
-						}
-					}
-					render_tree(pth, new_binding, app_id);
+					tree = ozenfant_trees[app_id];
+				}
+				tree.setTemplate(path, template, context);
+				tree.onUpdateBinding(path, cb);
+				if(el){
+					tree.setBinding(path, el.get()[0]);
 				}
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
-				if(!template_path || !app_id || !ozenfant_templates[app_id]) return;
-				var template = ozenfant_templates[app_id][template_path];
-				if(!template) return;
+				if(!template_path || !app_id || !ozenfant_trees[app_id]) return;
+				var pth = template_path;
+				var template = ozenfant_trees[app_id].template_hash[pth];
+				if(!template) {
+					return;
+				}
 				template.set(cell, val);
 		}, '*', '-$path', '-$app_id'],
 		'$html_skeleton_changes': ['$real_el'],

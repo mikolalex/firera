@@ -730,7 +730,7 @@ describe('Basic Firera functionality', function () {
 		assert.equal(app.get('sum_age', 'people'), 220);
 	})
 	
-	it('Simple templates with Ozenfant', function(){
+	it('Simple templates with Ozenfant', function(done){
         var app = Firera({
             __root: {
 				$el: $(".test-ozenfant"),
@@ -745,10 +745,13 @@ describe('Basic Firera functionality', function () {
 
 				`
             },
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
         });
-		app.set('text', 'ololo');
-		assert.equal($('.test-ozenfant .text').html(), 'ololo');
+		setTimeout(() => {
+			app.set('text', 'ololo');
+			assert.equal($('.test-ozenfant .text').html(), 'ololo');
+			done();
+		}, 10)
 	})
 	it('Nested templates with Ozenfant', function(){
         var app = Firera({
@@ -774,7 +777,7 @@ describe('Basic Firera functionality', function () {
 					"!"
 					`
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
         });
 		app.set('text', 'ololo');
 		var res = `Hello,  
@@ -788,7 +791,7 @@ describe('Basic Firera functionality', function () {
 	it('Testing indices predicate', function(){
 		var $root = $(".test-indices");
 		var app = Firera({
-			$packages: ['ozenfant', 'htmlCells'],
+			$packages: ['ozenfant_new', 'htmlCells'],
 			__root: {
 				$init: {
 					undone_num: 0,
@@ -1080,7 +1083,7 @@ describe('Basic Firera functionality', function () {
 				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
 		
@@ -1133,7 +1136,7 @@ describe('Basic Firera functionality', function () {
 					}, letter + '1', letter + '2', letter + '3']
 				}, 'flag']
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		assert.equal(app.get('val'), 75);
 		app.set('a1', 12);
@@ -1251,7 +1254,7 @@ describe('Basic Firera functionality', function () {
 				
 				`
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		console.log('app', app);  
 	})
@@ -1266,7 +1269,7 @@ describe('Che', function () {
 				b: [always('B'), '.b|click'],
 				clicked_both: ['che', '& a, b']
 			},
-			$packages: ['ozenfant', 'htmlCells']
+			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		//console.log('app', app);
 		$(".test-che .a").click();
