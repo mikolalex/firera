@@ -992,7 +992,7 @@ describe('Basic Firera functionality', function () {
 		$(".test-new-children .remove").click();
 		assert.equal($(".test-new-children .todosya").length, 0);
 	})
-	it('Test todo mvc', function(){
+	it('Test todo mvc', function(done){
 		var $root = $(".test-todo-mvc");
 		var type = (str) => {
 			$root.find('input[type=text]').val(str);
@@ -1086,35 +1086,36 @@ describe('Basic Firera functionality', function () {
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
-		
-		type('Do something useful');
-		enter();
-		
-		type('Have a rest');
-		enter();
-		
-		type('Write some tests');
-		enter();
-		
-		$root.find('ul > *:nth-child(2) .complete').click();
-		
-		type('Listen to music');
-		enter();
-		
-		$root.find('ul > *:nth-child(1) .complete').click();
-		
-		assert.equal(Number($root.find('span.completed_number').html()), 2);
-		assert.equal(Number($root.find('span.all_number').html()), 4);
-		
-		$root.find('.clear-completed').click();
-		
-		assert.equal(Number($root.find('span.completed_number').html()), 0);
-		assert.equal(Number($root.find('span.all_number').html()), 2);
-		
-		$root.find('.clear-completed').click();
-		
-		assert.equal(Number($root.find('span.completed_number').html()), 0);
-		assert.equal(Number($root.find('span.all_number').html()), 2);
+		setTimeout(() => {
+			type('Do something useful');
+			enter();
+
+			type('Have a rest');
+			enter();
+
+			type('Write some tests');
+			enter();
+
+			$root.find('ul > *:nth-child(2) .complete').click();
+
+			type('Listen to music');
+			enter();
+
+			$root.find('ul > *:nth-child(1) .complete').click();
+
+			assert.equal(Number($root.find('span.completed_number').html()), 2);
+			assert.equal(Number($root.find('span.all_number').html()), 4);
+
+			$root.find('.clear-completed').click();
+
+			assert.equal(Number($root.find('span.completed_number').html()), 0);
+			assert.equal(Number($root.find('span.all_number').html()), 2);
+
+			$root.find('.clear-completed').click();
+
+			assert.equal(Number($root.find('span.completed_number').html()), 0);
+			assert.equal(Number($root.find('span.all_number').html()), 2);
+		}, 10)
 		
 	})
 	

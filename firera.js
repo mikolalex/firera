@@ -2715,26 +2715,57 @@ Tree.prototype.updateBindings = function(path, struct, el = false){
 	}
 }
 
+
+
+Tree.prototype.getBindingsRec = function(path){
+	//console.log('Look for bindings!', path);
+	var parent = path.split('/');
+	var key = parent.pop();
+	var parent = parent.join('/');
+	if(parent === ''){
+		parent = '/';
+	}
+	var template = this.template_hash[parent];
+	if(template){
+		return template.bindings[key];
+	} else {
+		var bnd = this.bindings[parent];
+		if(!bnd){
+			if(parent){
+				bnd = this.getBindingsRec(parent);
+			}
+		}
+		var bv = $(bnd).children('[data-fr=' + key + ']');
+		if(!bv.length){
+			bv = $("<div/>").attr('data-fr', key).appendTo(bnd);
+		}
+		return bv.get()[0];
+	}
+}
+
 Tree.prototype.refresh = function(){
-	this.refreshPending = false;
-	var root_path = this.refreshPrefixPath.join('/');
-	this.refreshPrefixPath = false;
-	root_path = root_path == '' ? '/' : root_path;
-	if(root_path[0] !== '/'){
-		root_path = '/' + root_path;
+	var root_path;
+	if(this.refreshPrefixPath){
+		root_path = this.refreshPrefixPath.join('/');
+		this.refreshPrefixPath = false;
+		root_path = root_path == '' ? '/' : root_path;
+		if(root_path[0] !== '/'){
+			root_path = '/' + root_path;
+		}
+	} else {
+		root_path = '/';
 	}
 	var branch = get_branch(this.template_tree, root_path);
 	var res = this.render(root_path, branch);
 	var root_el = this.template_hash[root_path] ? this.template_hash[root_path].root : false;
 	if(!root_el){
-		root_el = this.bindings[root_path]
+		root_el = this.bindings[root_path];
 	}
 	if(!root_el){
-		var parent = root_path.split('/');
-		var key = parent.pop();
-		root_el = this.template_hash[parent.join('/')].bindings[key];
+		root_el = this.getBindingsRec(root_path);
 	}
 	if(!root_el){
+		debugger;
 		// oh god...
 	}
 	root_el.innerHTML = res;
@@ -2754,12 +2785,8 @@ Tree.prototype.addToRefreshPool = function(path, pth){
 	}
 }
 
-Tree.prototype.setBinding = function(path, el){
-	this.template_hash[path].root = el;
-}
-
-Tree.prototype.setTemplate = function(path, template, context){
-	var pth = path.split('/');
+Tree.prototype.setTemplate = function(path, template, context, el){
+	var pth = path.split('/'); 
 	if(pth[0] === ''){
 		pth = pth.slice(1);
 	}
@@ -2768,16 +2795,25 @@ Tree.prototype.setTemplate = function(path, template, context){
 	}
 	var tmpl = new Ozenfant(template);
 	tmpl.state = context;
-	this.template_hash[path] = tmpl
+	if(el){
+		tmpl.root = el;
+	}
+	this.template_hash[path] = tmpl;
 	init_from_path(this.template_tree, path, {});
 	this.addToRefreshPool(path, pth);
-	if(!this.refreshPending){
-		this.refreshPending = true;
-		setTimeout(() => {
-			this.refresh();
-		}, 1)
+	var p = path.split('/');
+	var name = p.pop();
+	if(Number(name) == name){
+		p.pop();
 	}
-	
+	var parent = p.join('/');
+	if(parent == ''){
+		parent = '/';
+	}
+	//console.log('and parent now is', parent, this.template_hash[parent]);
+	if(this.template_hash[parent]){
+		this.refresh(); 
+	}
 }
 
 var ozenfant_trees = {};
@@ -2807,11 +2843,8 @@ var ozenfant_new = {
 				} else {
 					tree = ozenfant_trees[app_id];
 				}
-				tree.setTemplate(path, template, context);
+				tree.setTemplate(path, template, context, el? el.get()[0] : false);
 				tree.onUpdateBinding(path, cb);
-				if(el){
-					tree.setBinding(path, el.get()[0]);
-				}
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
