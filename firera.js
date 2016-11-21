@@ -1918,6 +1918,20 @@ var core = {
 		}
 	},
 	predicates: {
+		toggle: (fs) => {
+			var [cell, def] = fs;
+			return ['closure', () => {
+				var now = def !== undefined ? def : true;
+				return function(cb){
+					if(now){
+						now = false
+					} else {
+						now = true;
+					}
+					return now;
+				}
+			}, cell];
+		},
 		skipIf: (fs) => {
 			var [compare_func, func, ...args] = fs;
 			return ['asyncClosure', () => {
@@ -2539,9 +2553,13 @@ var htmlCells = {
 					break;
 					case 'visibility':
 						func = function($el, val){
+							if(!$el){
+								return;
+							}
 							if(val === undefined){
 								return;
 							}
+							console.log('visibility', $el, val);
 							if(val){
 								$el.css('visibility', 'visible');
 							} else {
@@ -2785,6 +2803,24 @@ Tree.prototype.addToRefreshPool = function(path, pth){
 	}
 }
 
+Tree.prototype.removeLeaf = function(path, skip_remove_node){
+	var skip_further = true;
+	if(!skip_remove_node){
+		if(this.template_hash[path]){
+			this.template_hash[path].root.remove();
+		} else {
+			skip_further = false;
+		}
+	}
+	delete this.template_hash[path];
+	delete this.bindings[path];
+	var struct = get_branch(this.template_tree, path);
+	for(var key in struct){
+		var new_path = path + '/' + key;
+		this.removeLeaf(new_path, skip_further);
+	}
+} 
+
 Tree.prototype.setTemplate = function(path, template, context, el){
 	var pth = path.split('/'); 
 	if(pth[0] === ''){
@@ -2810,7 +2846,7 @@ Tree.prototype.setTemplate = function(path, template, context, el){
 	if(parent == ''){
 		parent = '/';
 	}
-	//console.log('and parent now is', parent, this.template_hash[parent]);
+	//console.log('and parent now is', parent, template, path);
 	if(this.template_hash[parent]){
 		this.refresh(); 
 	}
@@ -2843,8 +2879,8 @@ var ozenfant_new = {
 				} else {
 					tree = ozenfant_trees[app_id];
 				}
-				tree.setTemplate(path, template, context, el? el.get()[0] : false);
 				tree.onUpdateBinding(path, cb);
+				tree.setTemplate(path, template, context, el? el.get()[0] : false);
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
@@ -2857,6 +2893,9 @@ var ozenfant_new = {
 				template.set(cell, val);
 		}, '*', '-$path', '-$app_id'],
 		'$html_skeleton_changes': ['$real_el'],
+		'$ozenfant_remover': [(_, path, app_id) => {
+				ozenfant_trees[app_id].removeLeaf(path);
+		}, '$remove', '-$path', '-$app_id']
 	}
 }
 

@@ -12,13 +12,22 @@ and open the template in the editor.
         <script src="../dist/firera.js"></script>
         <script src="jquery.js"></script>
         <style>
+				* {
+					margin: 0px;
+					padding: 0px;
+					box-sizing: border-box;
+				}
+				.expandable {
+					clear: both;
+					margin-top: 12px;
+				}
             .grid {
                 border-left: 1px dotted black;
-                padding: 0px 1em;
+                padding-left: 0.5em;
             }
             .cell {
-				padding: 3px 1em;
-				border-top: 1px solid grey;
+				padding: 1px 5px 1px;
+				border-top: 1px solid gainsboro;
 				clear: left;
             }
 			
@@ -38,6 +47,7 @@ and open the template in the editor.
 				background-color: black;
 				color: white;
 				padding: 5px 20px;
+				min-height: 1.7em;
 			}
 			
 			
@@ -54,11 +64,13 @@ and open the template in the editor.
 				font-size: 16px;
 				margin-top: -10px;
 				border: 1px solid #cacaca;
+				opacity: 0.99;
+				box-shadow: 1px 1px 1px #848484;
 			}
 			
 			
 			[data-type] {
-					border: 7px solid white;
+					border-left: 9px solid white;
 			}
 			
 			[data-type=system] {
@@ -88,11 +100,12 @@ and open the template in the editor.
 				margin-left: -2em;
 			}
 			
-			.cellname {   
+			.cellname {       
 				text-align: right;
-				float: left;
 				color: #99189a;
 				font-weight: bold;
+				display: inline-block;
+				vertical-align: top;
 			}
 			
 			.level {
@@ -117,6 +130,17 @@ and open the template in the editor.
 				padding: 5px;
 				color: red;
 				text-transform: capitalize;
+			}
+			
+			.expand-collapse {
+				float: right;
+				border: 1px solid white;
+				padding: 0.3em 0.6em;
+				margin: 0.3em;
+				/* width: 1em; */
+				/* content: "+"; */
+				color: white;
+				cursor: pointer;
 			}
         </style>
     </head>
@@ -216,9 +240,12 @@ and open the template in the editor.
 				`),
 				grid: prep(`
 						.grid
+							.expand-collapse
+								"+"
 							h2.$f_name
-							.cell_types$
-							.grids$
+							.expandable
+								.cell_types$
+								.grids$
 					`),
 				
 			}
@@ -237,6 +264,10 @@ and open the template in the editor.
                 grid: {
                     $template: templates.grid,
 					r_name: ['$name'],
+					$init: {
+						'.expandable|visibility': true,
+					},
+					'.expandable|visibility': ['toggle', '.expand-collapse|click'],
                     $child_grids: ['list', {
                             type: 'grid',
                             datasource: [grids_from_data, '../children']
