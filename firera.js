@@ -2388,6 +2388,19 @@ var htmlPipeAspects = {
 		return $(el).attr(attr);
 	}
 }
+var filter_attr_in_path = (e) => {
+	return true;
+}
+var filter_attr_in_parents = (parent_node, index, el) => {
+	for(;;){
+		el = el.parentElement;
+		if(!el) return true;
+		if(el.hasAttribute('data-fr')){
+			return el === parent_node;
+		}
+	}
+}
+
 var htmlCells = {
 	cellMatchers: {
 		HTMLAspects: {
@@ -2427,7 +2440,7 @@ var htmlCells = {
 				}
 				var selector = matches[2];
 				var func, params;
-				var setters = new Set(['visibility', 'setval', 'hasClass', 'css']);
+				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
                 [aspect, params] = get_params(aspect);
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
@@ -2441,7 +2454,10 @@ var htmlCells = {
 				switch(aspect){
 					case 'getval':
 						func = function(cb, vals){
-							var onChange = function(){
+							var onChange = function(e){
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								var el = $(this);
 								var type = el.attr('type');
 								var val;
@@ -2453,7 +2469,10 @@ var htmlCells = {
 								//console.log('CHange', el, val, selector);
 								make_resp(cb, val);
 							};
-							var onKeyup = function(){
+							var onKeyup = function(e){
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								var el = $(this);
 								var type = el.attr('type');
 								var val;
@@ -2489,6 +2508,9 @@ var htmlCells = {
 								console.warn('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('click', selector, (e) => {
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								make_resp(cb, e);
 								return false
 							});
@@ -2506,8 +2528,11 @@ var htmlCells = {
 								console.log('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('focus', selector, (e) => {
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								make_resp(cb, e);
-								return false
+								return false;
 							});
 						}
 					break;
@@ -2520,6 +2545,9 @@ var htmlCells = {
 								$prev_el.off('keyup', selector);
 							}
 							$now_el.on('keyup', selector, function(e){
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								var btn_map = {
 									'13': 'Enter',
 									'27': 'Esc',
@@ -2545,6 +2573,9 @@ var htmlCells = {
 								$prev_el.off('keyup', selector);
 							}
 							$now_el.on('keyup', selector, function(e){
+								if(!filter_attr_in_path(e)){
+									return;
+								}
 								if(e.keyCode == 13){
 									make_resp(cb, e.target.value);
 								}
@@ -2559,7 +2590,6 @@ var htmlCells = {
 							if(val === undefined){
 								return;
 							}
-							console.log('visibility', $el, val);
 							if(val){
 								$el.css('visibility', 'visible');
 							} else {
@@ -2576,10 +2606,13 @@ var htmlCells = {
 					break;
 					case 'display':
 						func = function($el, val){
+							if(!$el || val === undefined){
+								return;
+							}
 							if(val){
-								$el.show();
+								$el.css('display', 'block');
 							} else {
-								$el.hide();
+								$el.css('display', 'none');
 							}
 						}
 					break;
@@ -2595,7 +2628,9 @@ var htmlCells = {
 				if(context === 'setter'){
 					parse_fexpr([func, [(a) => {
 						if(!a) return $();
-						return selector ? a.find(selector) : a;
+						if(!selector) return a;
+						return a.find(selector)
+								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {

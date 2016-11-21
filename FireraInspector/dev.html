@@ -265,9 +265,9 @@ and open the template in the editor.
                     $template: templates.grid,
 					r_name: ['$name'],
 					$init: {
-						'.expandable|visibility': true,
+						'.expandable|display': true,
 					},
-					'.expandable|visibility': ['toggle', '.expand-collapse|click'],
+					'.expandable|display': ['toggle', '.expand-collapse|click'],
                     $child_grids: ['list', {
                             type: 'grid',
                             datasource: [grids_from_data, '../children']
