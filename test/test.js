@@ -120,7 +120,7 @@ var ind = function(index = 0){
 	}
 }
 
-var triggerEnter = (el) => {
+window.triggerEnter = (el) => {
 	var e = $.Event("keyup");
 	e.which = 13; //choose the one you want
 	e.keyCode = 13;
@@ -1256,6 +1256,41 @@ describe('Basic Firera functionality', function () {
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		console.log('app', app);  
+	})
+	it('Nested $init', () => {   
+		var app = Firera({
+			__root: {
+				$init: {
+					a: 10,
+					b: 30,
+					foo: 'bar',
+					aaa: {
+						bar: 'baz',
+						c: 42,
+						bbb: {
+							city: 'New Tsynglok',
+						}
+					},
+				},
+				$child_aaa: 'nst',
+				c: ['+', 'a', 'b']
+			},
+			nst: {
+				$init: {
+					a: 12,
+					b: 30,
+				},
+				$child_bbb: 'nst2',
+			},
+			nst2: {
+				
+			}
+		})
+		assert.equal(app.get('c'), '40');
+		assert.equal(app.get('foo'), 'bar');
+		assert.equal(app.get('bar', 'aaa'), 'baz');
+		assert.equal(app.get('city', 'aaa/bbb'), 'New Tsynglok');
+		console.log('C = ', app.get('c'));
 	})
 })
 describe('Che', function () {

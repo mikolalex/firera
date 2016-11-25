@@ -11,346 +11,44 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="../dist/firera.js"></script>
         <script src="jquery.js"></script>
-        <style>
-				* {
-					margin: 0px;
-					padding: 0px;
-					box-sizing: border-box;
-				}
-				.expandable {
-					clear: both;
-					margin-top: 12px;
-				}
-            .grid {
-                border-left: 1px dotted black;
-                padding-left: 0.5em;
-            }
-            .cell {
-				padding: 1px 5px 1px;
-				border-top: 1px solid gainsboro;
-				clear: left;
-            }
-			
-			body {
-					font-size: 12px;
-					font-family: courier;
-			}
-			
-			h1 {
-					font-family: courier;
-					text-align: center;
-					font-weight: normal;
-			}
-			
-			h2 {
-				margin-left: -13px;
-				background-color: black;
-				color: white;
-				padding: 5px 20px;
-				min-height: 1.7em;
-			}
-			
-			
-			[data-type] h3 {
-				float: right;
-				margin: 0px;
-				padding: 0px 10px;
-				/* color: white; */
-				text-transform: uppercase;
-				/* font-family: sans-serif; */
-				font-weight: normal;
-				background-color: white;
-				color: black;
-				font-size: 16px;
-				margin-top: -10px;
-				border: 1px solid #cacaca;
-				opacity: 0.99;
-				box-shadow: 1px 1px 1px #848484;
-			}
-			
-			
-			[data-type] {
-					border-left: 9px solid white;
-			}
-			
-			[data-type=system] {
-					border-left-color: #cccccc;
-			}
-			[data-type=children] {
-					border-left-color: #fd380c;
-			}
-			[data-type=formula] {
-					border-left-color: #089bf1;
-			}
-			[data-type=funnel] {
-					border-left-color: #912ffd;
-			}
-			[data-type=free] {
-					border-left-color: white;
-			}
-			[data-type=linked] {
-					border-left-color: #ffff9d;
-			}
-			[data-type=DOM] {
-					border-left-color: #ff8d00;
-			}
-			
-			.obj {
-				display: inline-block;
-				margin-left: -2em;
-			}
-			
-			.cellname {       
-				text-align: right;
-				color: #99189a;
-				font-weight: bold;
-				display: inline-block;
-				vertical-align: top;
-			}
-			
-			.level {
-				padding-left: 2em;
-			}
-			
-			.close, .open {    
-				border: 5px solid white;
-				width: 0px;
-				height: 0px;
-				display: inline-block;
-				cursor: pointer;
-			}
-			.open {    
-				border-left: 5px solid grey;
-			}
-			.close {    
-				border-top: 5px solid grey;
-			}
-			
-			.type {
-				padding: 5px;
-				color: red;
-				text-transform: capitalize;
-			}
-			
-			.expand-collapse {
-				float: right;
-				border: 1px solid white;
-				padding: 0.3em 0.6em;
-				margin: 0.3em;
-				/* width: 1em; */
-				/* content: "+"; */
-				color: white;
-				cursor: pointer;
-			}
-        </style>
+        <link rel="stylesheet" href="mik.css" />
     </head>
     <body>
-        <div id="content"></div>
+        <div id="content" class="test-todo-mvc"></div>
+        <div id="content-devtool"></div>
+		<script src="testapp.js"></script>
+		<script src="inspector.js"></script>
 		<script>
-				
-			var timer = (function(){
-				var start = performance.now();
-				var pool = [];
-				window.timer_results = () => {
-						for(let a of pool){
-								console.log(a[0], a[1]);
-						}
-				}
-				return (str, force) => {
-						var time = performance.now() - start;
-						//if(force){
-								console.log('___________________', str, new Array(30 - str.length).join('_'), time);
-						//}
-						pool.push([str, time]);
-				}
-			})()
-			
-			var ttimer_pool = {};
-			var ttimer = {
-					start: function(key){
-							if(!ttimer_pool[key]){
-									ttimer_pool[key] = {
-											sum: 0,
-									}
-							}
-							ttimer_pool[key].current = performance.now();
-					},
-					stop: function(key){
-							ttimer_pool[key].sum += performance.now() - ttimer_pool[key].current;
-					},
-			}
+		$(function(){
+				var app = Firera(app_struct);
 				
 				
-			var order_obj = function(order, obj){
-					var new_obj = {};
-					for(var k of order){
-							if(obj[k] !== undefined){
-								new_obj[k] = obj[k];
-							}
-					}
-					return new_obj;
-			}
-			
-			var adder = (a) => {
-					return (b) => {
-							return b + a;
-					}
-			}
-			
-			var cell_types_order = ['free', 'linked', 'system', 'formula', 'funnel', 'DOM', 'children'];
-			
-				var always = (a) => {
-				return () => a;
-				}
-			
-			var typf = a => typeof a;
+				console.log('test app', app);
 				
-			var get_data = (cb, url) => {
-				$.get(url, (data) => {
-					for(var d of data){
-							d.cells = order_obj(cell_types_order, d.cells);
-					}
-					cb(data);
-				})
-			}
-			
-			var grids_from_data = (data) => {
-				var res = [];
-				for(var key in data){
-					res.push(Object.assign({f_name: key}, data[key], {cells: order_obj(cell_types_order, data[key].cells)}));
-				}
-				return res;
-			}
-			
-			var cell_types_from_data = (data) => {
-				var res = [];
-				for(var key in data){
-					res.push(Object.assign({f_name: key, cells: data[key]}));
-				}
-				return res;
-			}
-			
-			var prep = Firera.Ozenfant.prepare;
-			
-			var templates = {
-				main: prep(`
-						h1 
-							"FireraInspector"
-						.$grids
-				`),
-				grid: prep(`
-						.grid
-							.expand-collapse
-								"+"
-							h2.$f_name
-							.expandable
-								.cell_types$
-								.grids$
-					`),
 				
-			}
-			
-            var app = Firera({
-                __root: {
-                    url: 'mock.json',
-                    $el: $("#content"),
-                    $template: templates.main,
-                    data: ['async', get_data, 'url'],
-                    $child_grids: ['list', {
-                        type: 'grid',
-                        datasource: ['../data']
-                    }],
-                },
-                grid: {
-                    $template: templates.grid,
-					r_name: ['$name'],
-					$init: {
-						'.expandable|display': true,
-					},
-					'.expandable|display': ['toggle', '.expand-collapse|click'],
-                    $child_grids: ['list', {
-                            type: 'grid',
-                            datasource: [grids_from_data, '../children']
-                    }],
-                    $child_cell_types: ['list', {
-                            type: 'cell_type',
-                            datasource: [cell_types_from_data, '../cells']
-                    }],
-                },
-				cell_type: {
-                    $template: prep(`
-						.cell_type(data-type: $f_name)
-							h3$f_name
-							.$cells
-                    `),
-					$child_cells: ['list', {
-						type: 'cell',
-						datasource: ['../cells']
-					}]
-				},
-				cell: {
-						$template: prep(`
-								.cell
-										div.cellname$name
-										.obj$
-						`),
-						$child_obj: [() => {  
-								return ['obj_or_scalar', {}, {val: 'val'}]
-						}, 'val'],
-				},
-				obj_or_scalar: {
-						$init: {
-								isOpened: false,
-						},
-						$template: prep(`
-								.level
-										span.name$(font-weight: bold)
-										span.type$(font-weight: bold)
-										span
-												": "
-										span.$isObj?
-												span.$isOpened?
-														span.close(href: #)
-																""
-														.keys$
-												:
-														span.open(href: #)
-																""
-										:
-												span.val$
-						
-						`),
-						'isObj': [a => {
-							return a instanceof Object;
-						}, 'val'],
-						'type': [typf, 'val'],
-						'$child_keys': ['list', {
-							self: {
-								level: ['../level'],
-							},
-							type: 'obj_or_scalar',
-							datasource: [
-									(a) => {
-											var res = [];
-											for(var i in a){
-													res.push({name: i, val: a[i]});
-											}
-											return res;
-									}, 
-									'../val'],
-							create_destroy: ['isOpened']
-						}],
-						'isOpened': ['funnel', (cell, val) => {
-							console.log('clc');
-							return cell === '.open|click';
-						}, '.open|click', '.close|click'],
-				},
-				$packages: ['ozenfant_new', 'htmlCells']
-            })
-            console.log('app', app);
-			setTimeout(() => {
+				type('Do something useful');
+				enter();
+				type('Have a rest');
+				enter();
+				type('Write some tests');
+				enter();
+
+				type('Listen to music');
+				enter();
+
+				$root.find('ul > *:nth-child(1) .complete').click();
+				$root.find('.clear-completed').click();
+				$root.find('.clear-completed').click();
+				
+				var app_devtool = Firera(app_struct_devtool);
+				console.log('dev app', app_devtool);
+				app_devtool.set('data', [Firera.getAppStruct()[0]]);
+				setTimeout(() => {
 					timer('FINISH', true);
-			}, 10)
-        </script>
+				}, 1)	
+		})
+
+
+		</script>
     </body>
 </html>

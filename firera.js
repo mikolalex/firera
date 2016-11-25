@@ -570,7 +570,11 @@ App.prototype.setHash = function(id, hash){
 }
 
 App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
-	var parent_path = this.getGrid(parent_id).path;
+	var parent = this.getGrid(parent_id);
+	free_vals = parent.init_values[link_as] 
+				? Object.assign({}, parent.init_values[link_as], free_vals || {}) 
+				: free_vals;
+	var parent_path = parent.path;
 	var path = (parent_path || '') + '/' + link_as;
 	var child = new Hash(this, type, link_as, Object.assign({
 				$name: link_as,
@@ -712,9 +716,9 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 		}*/
 	}
 	this.cell_values = Object.create(this.plain_base.$init || {});
+	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
 	// @todo: refactor, make this set in one step
-	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
 	//console.log('Setting $init values', this.init_values);
 	if(parsed_pb_name === '__root'){
 		this.init_values.$name = '__root';
@@ -1057,10 +1061,11 @@ Hash.prototype.set = function(cells, val, child, no_args){
 			var needed_lvl = x+1;
 			var children = this.cell_children(cell);
 			var ct = this.cell_type(cell);
-			//console.log('CT',cell, ct);
+			//console.log('CT',cell,this.cell_type(cell) === 'free', !(this.cell_has_type(cell, 'free') || (this.cell_type(cell) === 'free')));
 			if(
 				!this.cell_has_type(cell, 'free')
 				&& (cells[cell] === undefined || no_args)
+				&& this.cell_types[cell].func
 			){
 				var res = this.compute(cell, parents[cell]);
 				if(res === Firera.noop){
@@ -2199,6 +2204,7 @@ var core = {
 				'$arr_data': [
 					'nestedClosure',
 					() => {
+						var id = -1;
 						var length = 0;
 						return (cb, changes) => {
 							if(!changes || !changes.length) return;
@@ -2207,7 +2213,7 @@ var core = {
 							chngs.forEach((one) => {
 								switch(one[0]){
 									case 'add':
-										one[1] = String(length);
+										one[1] = String(id < 1000000 ? ++id : -1);
 										++length;
 									break;
 									case 'remove': 
@@ -2504,7 +2510,6 @@ var htmlCells = {
 								$prev_el.off('click', selector);
 							}
 							if($now_el.length === 0){
-								//debugger;
 								console.warn('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('click', selector, (e) => {
@@ -2572,14 +2577,19 @@ var htmlCells = {
 							if($prev_el){
 								$prev_el.off('keyup', selector);
 							}
-							$now_el.on('keyup', selector, function(e){
-								if(!filter_attr_in_path(e)){
-									return;
+							//$now_el.on('keyup', selector, function(e){
+							//});
+							var el = $now_el[0];
+							el.onkeyup = function(e) {
+								if(e.target === $now_el.find(selector)[0]){
+									if(!filter_attr_in_path(e)){
+										return;
+									}
+									if(e.keyCode == 13){
+										make_resp(cb, e.target.value);
+									}
 								}
-								if(e.keyCode == 13){
-									make_resp(cb, e.target.value);
-								}
-							});
+							};
 						}
 					break;
 					case 'visibility':
@@ -2818,7 +2828,6 @@ Tree.prototype.refresh = function(){
 		root_el = this.getBindingsRec(root_path);
 	}
 	if(!root_el){
-		debugger;
 		// oh god...
 	}
 	root_el.innerHTML = res;
@@ -2918,7 +2927,7 @@ var ozenfant_new = {
 				tree.setTemplate(path, template, context, el? el.get()[0] : false);
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
-		'$ozenfant_writer': [([cell, val], template_path, app_id) => {
+		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
 				if(!template_path || !app_id || !ozenfant_trees[app_id]) return;
 				var pth = template_path;
 				var template = ozenfant_trees[app_id].template_hash[pth];
@@ -2928,7 +2937,7 @@ var ozenfant_new = {
 				template.set(cell, val);
 		}, '*', '-$path', '-$app_id'],
 		'$html_skeleton_changes': ['$real_el'],
-		'$ozenfant_remover': [(_, path, app_id) => {
+		'$ozenfant.remover': [(_, path, app_id) => {
 				ozenfant_trees[app_id].removeLeaf(path);
 		}, '$remove', '-$path', '-$app_id']
 	}

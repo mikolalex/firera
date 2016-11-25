@@ -1,0 +1,144 @@
+			* {
+					margin: 0px;
+					padding: 0px;
+					box-sizing: border-box;
+				}
+				.expandable {
+					clear: both;
+					margin-top: 12px;
+				}
+            .grid {
+                border-left: 1px dotted black;
+                padding-left: 0.5em;
+            }
+            .cell {
+				padding: 1px 5px 1px;
+				border-top: 1px solid gainsboro;
+				clear: left;
+            }
+			
+			body {
+					font-size: 12px;
+					font-family: courier;
+			}
+			
+			h1 {
+					font-family: courier;
+					text-align: center;
+					font-weight: normal;
+			}
+			
+			h2 {
+				margin-left: -13px;
+				background-color: black;
+				color: white;
+				padding: 5px 20px;
+				min-height: 1.7em;
+			}
+			
+			
+			[data-type] h3 {
+				float: right;
+				margin: 0px;
+				padding: 0px 10px;
+				/* color: white; */
+				text-transform: uppercase;
+				/* font-family: sans-serif; */
+				font-weight: normal;
+				background-color: white;
+				color: black;
+				font-size: 16px;
+				margin-top: -10px;
+				border: 1px solid #cacaca;
+				opacity: 0.99;
+				box-shadow: 1px 1px 1px #848484;
+			}
+			
+			
+			[data-type] {
+					border-left: 9px solid white;
+			}
+			
+			[data-type=system] {
+					border-left-color: #cccccc;
+			}
+			[data-type=children] {
+					border-left-color: #fd380c;
+			}
+			[data-type=formula] {
+					border-left-color: #089bf1;
+			}
+			[data-type=funnel] {
+					border-left-color: #912ffd;
+			}
+			[data-type=free] {
+					border-left-color: white;
+			}
+			[data-type=linked] {
+					border-left-color: #ffff9d;
+			}
+			[data-type=DOM] {
+					border-left-color: #ff8d00;
+			}
+			
+			.obj {
+				display: inline-block;
+				margin-left: -2em;
+			}
+			
+			.cellname {       
+				text-align: right;
+				color: #99189a;
+				font-weight: bold;
+				display: inline-block;
+				vertical-align: top;
+				min-width: 250px;
+			}
+			
+			.level {
+				padding-left: 2em;
+			}
+			
+			.close, .open {    
+				border: 5px solid white;
+				width: 0px;
+				height: 0px;
+				display: inline-block;
+				cursor: pointer;
+			}
+			.open {    
+				border-left: 5px solid grey;
+			}
+			.close {    
+				border-top: 5px solid grey;
+			}
+			
+			.type {
+				padding: 5px;
+				color: red;
+				text-transform: capitalize;
+			}
+			
+			.expand-collapse {
+				float: right;
+				border: 1px solid white;
+				padding: 0.3em 0.6em;
+				margin: 0.3em;
+				/* width: 1em; */
+				/* content: "+"; */
+				color: white;
+				cursor: pointer;
+			}
+			
+			#content {
+				float: left;
+				width: 50%;
+			}
+			#content-devtool {
+				float: right;
+				width: 50%;
+			}
+    
+    .test-todo-mvc .completed {
+        border: 1px solid green;
+    }
