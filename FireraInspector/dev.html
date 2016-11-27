@@ -20,32 +20,42 @@ and open the template in the editor.
 		<script src="inspector.js"></script>
 		<script>
 		$(function(){
+				var _F = Firera._F;
+				var make_changes = () => {
+						type('Do something useful');
+						enter();
+						type('Have a rest');
+						enter();
+						type('Write some tests');
+						enter();
+
+						type('Listen to music');
+						enter();
+
+						$root.find('ul > *:nth-child(1) .complete').click();
+						$root.find('.clear-completed').click();
+						$root.find('.clear-completed').click();
+				}
+				window.set_data = () => {
+						var dt = [Firera.getAppStruct()[0]];
+						app_devtool.set('data', dt);
+						console.log('app', app_devtool);
+				}
+				//var update_editor = _F.throttle(set_data, 300);
+				
 				var app = Firera(app_struct);
 				
-				
-				console.log('test app', app);
-				
-				
-				type('Do something useful');
-				enter();
-				type('Have a rest');
-				enter();
-				type('Write some tests');
-				enter();
-
-				type('Listen to music');
-				enter();
-
-				$root.find('ul > *:nth-child(1) .complete').click();
-				$root.find('.clear-completed').click();
-				$root.find('.clear-completed').click();
-				
 				var app_devtool = Firera(app_struct_devtool);
-				console.log('dev app', app_devtool);
-				app_devtool.set('data', [Firera.getAppStruct()[0]]);
 				setTimeout(() => {
 					timer('FINISH', true);
 				}, 1)	
+				setTimeout(() => {
+					set_data();
+				}, 10)	
+				
+				//app.onChangeFinished(update_editor);
+				
+				make_changes();
 		})
 
 

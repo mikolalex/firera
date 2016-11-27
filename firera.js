@@ -4,9 +4,50 @@ var Ozenfant = require('../ozenfant/ozenfant');
 var che = require('shche');
 var $ = require('jquery');
 
-var always = (a) => {
+var _F = {};
+
+var always = _F.always = (a) => {
 	return () => a;
 }
+
+var init_if_empty = _F.init_if_empty = function(obj/*key, val, key1, val1, ... */) {
+	for(let i  = 1; ;i = i + 2){
+		var key = arguments[i];
+		var val = arguments[i + 1];
+		if(!key) break;
+
+		if(obj[key] === undefined){
+			obj[key] = val;
+		}
+		obj = obj[key];
+	}
+	return obj;
+}
+
+
+var throttle = _F.throttle = function(thunk, time){
+	var is_throttled = false;
+	var pending = false;
+	return () => {
+		if(!is_throttled){
+			console.log('run!');
+			thunk();
+			is_throttled = true;
+			setTimeout(() => {
+				is_throttled = false;
+				if(pending){
+					console.log('run pending!');
+					thunk();
+					pending = false;
+				}
+			}, time);
+		} else {
+			console.log('skip!');
+			pending = true;
+		}
+	}
+}
+
 var log = () => {};// console.log.bind(console);
 
 var decorate = (fnc, msg) => {
@@ -23,7 +64,7 @@ var mk_logger = (a) => {
 	}
 }
 
-var group_by = (arr, prop_or_func) => {
+var group_by = _F.group_by =  (arr, prop_or_func) => {
 	var res = {};
 	for(let obj of arr){
 		init_if_empty(res, prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func], []).push(obj);
@@ -31,28 +72,28 @@ var group_by = (arr, prop_or_func) => {
 	return res;
 }
 
-var frozen = (a) => JSON.parse(JSON.stringify(a));
+var frozen = _F.frozen =  (a) => JSON.parse(JSON.stringify(a));
 
-var id = (a) => a;
-var ids = function(){
+var id = _F.id = (a) => a;
+var ids = _F.ids = function(){
 	return arguments;
 }
 
-var arr_remove = (arr, el) => {
+var arr_remove = _F.arr_remove = (arr, el) => {
 	var pos = arr.indexOf(el);
 	if(pos !== -1){
 		arr.splice(pos, 1);
 	}
 }
 
-var arr_different = function(arr1, arr2, cb){
+var arr_different = _F.arr_different = function(arr1, arr2, cb){
 	for(var i in arr1){
 		if(arr2[i] === undefined){
 			cb(i);
 		}
 	}
 }
-var arr_common = function(arr1, arr2, cb){
+var arr_common = _F.arr_common = function(arr1, arr2, cb){
 	for(var i in arr1){
 		if(arr2[i] !== undefined){
 			cb(i);
@@ -60,7 +101,7 @@ var arr_common = function(arr1, arr2, cb){
 	}
 }
 
-var arr_deltas = (old_arr, new_arr) => {
+var arr_deltas = _F.arr_deltas = (old_arr, new_arr) => {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = new_arr.mapFilter((v, k) => {
@@ -77,7 +118,7 @@ var arr_deltas = (old_arr, new_arr) => {
 	return deltas;
 }
 
-var arr_fix_keys = (a) => {
+var arr_fix_keys = _F.arr_fix_keys = (a) => {
 	var fixed_arr = [];
 	for(let i of a){
 		if(i !== undefined){
@@ -86,6 +127,16 @@ var arr_fix_keys = (a) => {
 	}
 	return fixed_arr;
 }
+
+var arr_diff = _F.arr_diff = function(a, b){
+	var diff = [];
+	for(var i in a){
+		if(!b[i]) diff.push(i);
+	}
+	return diff;
+}
+
+var second = _F.second = (__, a) => a;
 
 var path_cellname = (a) => a.split('/').pop();
 
@@ -164,12 +215,12 @@ Object.defineProperty(Array.prototype, 'unique', {
     }
 });
 
-function copy(from, to){
+var copy = _F.copy = function(from, to){
 	for(var i in from){
 		to.push(from[i]);
 	}
 }
-function kcopy(from, to){
+var kcopy = _F.kcopy = function(from, to){
 	for(let i in from){
 		to[i] = from[i];
 	}
@@ -435,6 +486,21 @@ var App = function(packages){
 	this.hashIds = 0;
 	this.linkManager = new LinkManager(this);
 };
+
+App.prototype.onChangeFinished = function(cb){
+	if(!this.onChangeFinishedStack){
+		this.onChangeFinishedStack = [];
+	}
+	this.onChangeFinishedStack.push(cb);
+}
+App.prototype.changeFinished = function(cb){
+	if(this.onChangeFinishedStack){
+		for(let cb of this.onChangeFinishedStack){
+			cb();
+		}
+	}
+}
+
 var noop = function(){
 	console.log('Noop is called!');
 };
@@ -678,6 +744,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	this.app = app;
 	this.name = name || '__root';
 	var parsed_pb;
+	this.parsed_pb_name = parsed_pb_name;
 	if(typeof parsed_pb_name === 'string'){
 		parsed_pb = app.cbs[parsed_pb_name];
 	} else {
@@ -741,6 +808,10 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	}
 }
 
+Hash.prototype.changesFinished = function(){
+	this.app.changeFinished();
+}
+
 Hash.prototype.initIfSideEffectCell = function(cell){
 	if(!this.cellExists(cell) && unusual_cell(cell)){
 		parse_cellname(cell, this, 'getter', this.app.packagePool, this);
@@ -799,9 +870,19 @@ Hash.prototype.linkHash = function(cellname, val){
 	}
 }
 
+Hash.prototype.getChild = function(link_as){
+	return this.app.getGrid(this.linked_hashes_provider.pool[link_as]);
+} 
+
 Hash.prototype.linkChild = function(type, link_as, free_vals){
 	if(this.linked_hashes_provider.isLinked(link_as)){
-		this.unlinkChild(link_as);
+		var pb = this.getChild(link_as).parsed_pb_name;
+		if(pb === type){
+			this.getChild(link_as).set(free_vals);
+			return this.linked_hashes_provider.pool[link_as];
+		} else {
+			this.unlinkChild(link_as);
+		}
 	}
 	var id = this.linked_hashes_provider.create(this, type, link_as, free_vals);
 	this.linked_hashes_provider.initChild(link_as);
@@ -933,6 +1014,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			//console.log('ASYNC callback called!',val); 
 			this.set_cell_value(real_cell_name, val);
 			this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
+			this.changesFinished();
 		});
 	}
 	// counting value
@@ -1368,19 +1450,6 @@ var get_app = function(packages){
 	return app;
 }
 
-var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
-	for(let i  = 1; ;i = i + 2){
-		var key = arguments[i];
-		var val = arguments[i + 1];
-		if(!key) break;
-
-		if(obj[key] === undefined){
-			obj[key] = val;
-		}
-		obj = obj[key];
-	}
-	return obj;
-}
 var init_from_path = function(obj, path, val) {
 	if(!(path instanceof Array)){
 		path = path.split('/');
@@ -1856,16 +1925,6 @@ Firera.join = function(...args){
 	return res;
 }
 
-var arr_diff = function(a, b){
-	var diff = [];
-	for(var i in a){
-		if(!b[i]) diff.push(i);
-	}
-	return diff;
-}
-
-var second = (__, a) => a;
-
 var arr_changes_to_child_changes = function(item_hash, arr_change){
 	//console.log('beyond the reals of death', item_hash, arr_change);
 	if(!arr_change){
@@ -1888,7 +1947,7 @@ var get_arr_changes = () => {
 			changes.push(['add', key, new_arr[key]]);
 		})
 		//console.log('Computing changes between new an old arrays', new_arr, arr);
-		arr_diff(arr, new_arr, (key) => {
+		arr_different(arr, new_arr, (key) => {
 			// create new element
 			changes.push(['remove', key]);
 		})
@@ -2282,7 +2341,7 @@ var core = {
 					}
 				}, props.create_destroy];
 			} else {
-				fnc = [always(list_own_type)];
+				fnc = [_F.always(list_own_type)];
 			}
 			return fnc;
 		},
@@ -3033,5 +3092,6 @@ Firera.loadPackage(che_package);
 Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, che: che_package};
 //Firera.loadPackage(html);
 Firera.func_test_export = {parse_pb, parse_fexpr};
+Firera._F = _F;
 
 module.exports = Firera;
