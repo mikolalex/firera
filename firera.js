@@ -1379,11 +1379,9 @@ var side_effects = {
 				var [type, key, hashname, free_vals] = deltas[k];
 				switch(type){
 					case 'remove':
-						//console.log('Removing hash', key);
 						this.unlinkChild(key);
 					break;
 					case 'add':
-						//console.log('Adding hash', deltas[k]);
 						this.linkHash(key, [hashname, null, null, free_vals]);
 					break;
 					case 'change':
@@ -1940,19 +1938,23 @@ var arr_changes_to_child_changes = function(item_hash, arr_change){
 
 var get_arr_changes = () => {
 	var arr = [];
+	var id = -1;
+	var map = {};
 	return (new_arr) => {
 		var changes = [];
 		arr_different(new_arr, arr, (key) => {
 			// create new element
-			changes.push(['add', key, new_arr[key]]);
+			map[key] = ++id;
+			changes.push(['add', id, new_arr[key]]);
 		})
 		//console.log('Computing changes between new an old arrays', new_arr, arr);
 		arr_different(arr, new_arr, (key) => {
 			// create new element
-			changes.push(['remove', key]);
+			changes.push(['remove', map[key]]);
+			delete map[key];
 		})
 		arr_common(arr, new_arr, (key) => {
-			changes.push(['change', key, new_arr[key]]);
+			changes.push(['change', map[key], new_arr[key]]);
 		})
 		arr = new_arr;
 		return changes;

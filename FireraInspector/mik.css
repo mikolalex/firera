@@ -10,6 +10,8 @@
             .grid {
                 border-left: 1px dotted black;
                 padding-left: 0.5em;
+				clear: both;
+				border-top: 1px solid white;
             }
             .cell {
 				padding: 1px 5px 1px;

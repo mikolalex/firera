@@ -39,21 +39,19 @@ and open the template in the editor.
 				window.set_data = () => {
 						var dt = [Firera.getAppStruct()[0]];
 						app_devtool.set('data', dt);
-						console.log('app', app_devtool);
 				}
-				//var update_editor = _F.throttle(set_data, 300);
 				
 				var app = Firera(app_struct);
-				
 				var app_devtool = Firera(app_struct_devtool);
-				setTimeout(() => {
+				
+				/*setTimeout(() => {
 					timer('FINISH', true);
 				}, 1)	
 				setTimeout(() => {
 					set_data();
-				}, 10)	
+				}, 10)	*/
 				
-				//app.onChangeFinished(update_editor);
+				app.onChangeFinished(_F.throttle(set_data, 300));
 				
 				make_changes();
 		})
