@@ -779,6 +779,7 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
         });
+		console.log('app', app);
 		app.set('text', 'ololo');
 		var res = `Hello,  
 				

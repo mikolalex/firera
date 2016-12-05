@@ -641,10 +641,9 @@ App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
 				? Object.assign({}, parent.init_values[link_as], free_vals || {}) 
 				: free_vals;
 	var parent_path = parent.path;
-	var path = (parent_path || '') + '/' + link_as;
+	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
 	var child = new Hash(this, type, link_as, Object.assign({
 				$name: link_as,
-				$path: path,
 				$app_id: this.id,
 			}, free_vals), true, parent_id, path); 
 	//child.setLevels();
@@ -1287,27 +1286,28 @@ Hash.prototype.real_cell_name = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
 }
 Hash.prototype.cell_value = function(cell){
-	if(cell === '$real_keys'){
-		return [...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
-			return k.match(/^(\w|\d|\_|\-)*$/);
-		})
+	switch(cell){
+		case '$real_keys':
+			return [...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			})
+		break;
+		case '$real_values':
+			var res = {};
+			[...(new Set(Object.keys(this.cell_values)
+						.concat(Object.keys(this.init_values))))].filter((k) => {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			}).each((k, v) => {
+				res[k] = this.cell_value(k);
+			})
+			return res;
+		break;
+		case '$path':
+			return this.path;
+		break;
+		default:
+			return this.cell_values[cell];
 	}
-	if(cell === '$real_values'){
-		var res = {};
-		[...(new Set(Object.keys(this.cell_values)
-					.concat(Object.keys(this.init_values))))].filter((k) => {
-			return k.match(/^(\w|\d|\_|\-)*$/);
-		}).each((k, v) => {
-			res[k] = this.cell_value(k);
-		})
-		return res;
-		//return Object.assign({}, this.cell_values, this.init_values || {});
-	}
-	/*if(cell === '$vals'){
-		return Object.create(this.cell_values);
-	}*/
-	//console.log('Getting cell value', cell, this.cell_values, this.cell_values[cell]);
-	return this.cell_values[cell];
 }
 Hash.prototype.set_cell_value = function(cell, val){
 	var same_song = val === this.cell_values[cell];
@@ -1792,7 +1792,7 @@ window.Firera = function(config){
 	}
 	//console.log(app);
 	//var compilation_finished = performance.now();
-	app.root = new Hash(app, '__root', false, {$app_id: app.id, $path: '/'});
+	app.root = new Hash(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -2770,7 +2770,7 @@ var Tree = function(){
 	this.onUpdateBindingsCbs = {};
 }
 
-Tree.prototype.render = function(path, node){
+Tree.prototype.getHTML = function(path, node){
 	if(!node) return;
 	if(node instanceof Ozenfant){
 		// its final template
@@ -2781,7 +2781,7 @@ Tree.prototype.render = function(path, node){
 			// its object
 			for(let key in node){
 				var new_path = path == '/' ? path + key : path + '/' + key;
-				template.set(key, this.render(new_path, node[key]));
+				template.set(key, this.getHTML(new_path, node[key]));
 			}
 			return template.getHTML();
 		} else {
@@ -2790,7 +2790,7 @@ Tree.prototype.render = function(path, node){
 			for(let key in node){
 				var new_path = path == '/' ? path + key : path + '/' + key;
 				res.push('<div data-fr="' + key + '" data-fr-name="' + key + '">'
-						+ this.render(new_path, node[key])
+						+ this.getHTML(new_path, node[key])
 						+ '</div>'
 						)
 			}
@@ -2867,6 +2867,26 @@ Tree.prototype.getBindingsRec = function(path){
 	}
 }
 
+Tree.prototype.render = function(root_path){
+	//timer('render', root_path);
+	var branch = get_branch(this.template_tree, root_path);
+	var res = this.getHTML(root_path, branch);
+	var root_el = this.template_hash[root_path] ? this.template_hash[root_path].root : false;
+	if(!root_el){
+		root_el = this.bindings[root_path];
+	}
+	if(!root_el){
+		root_el = this.getBindingsRec(root_path);
+	}
+	if(!root_el){
+		// oh god...
+	}
+	root_el.innerHTML = res;
+	//timer('update Bindings', root_path);
+	this.updateBindings(root_path, branch, root_el);
+	//timer('--- render finished', root_path);
+}
+
 Tree.prototype.refresh = function(){
 	var root_path;
 	if(this.refreshPrefixPath){
@@ -2879,20 +2899,7 @@ Tree.prototype.refresh = function(){
 	} else {
 		root_path = '/';
 	}
-	var branch = get_branch(this.template_tree, root_path);
-	var res = this.render(root_path, branch);
-	var root_el = this.template_hash[root_path] ? this.template_hash[root_path].root : false;
-	if(!root_el){
-		root_el = this.bindings[root_path];
-	}
-	if(!root_el){
-		root_el = this.getBindingsRec(root_path);
-	}
-	if(!root_el){
-		// oh god...
-	}
-	root_el.innerHTML = res;
-	this.updateBindings(root_path, branch, root_el);
+	this.render(root_path);
 }
 
 Tree.prototype.addToRefreshPool = function(path, pth){
@@ -2926,6 +2933,19 @@ Tree.prototype.removeLeaf = function(path, skip_remove_node){
 	}
 } 
 
+var get_parent_path = (path) => {
+	var p = path.split('/');
+	var name = p.pop();
+	if(Number(name) == name){
+		p.pop();
+	}
+	var parent = p.join('/');
+	if(parent == ''){
+		parent = '/';
+	}
+	return [name, parent];
+}
+
 Tree.prototype.setTemplate = function(path, template, context, el){
 	var pth = path.split('/'); 
 	if(pth[0] === ''){
@@ -2942,17 +2962,8 @@ Tree.prototype.setTemplate = function(path, template, context, el){
 	this.template_hash[path] = tmpl;
 	init_from_path(this.template_tree, path, {});
 	this.addToRefreshPool(path, pth);
-	var p = path.split('/');
-	var name = p.pop();
-	if(Number(name) == name){
-		p.pop();
-	}
-	var parent = p.join('/');
-	if(parent == ''){
-		parent = '/';
-	}
-	//console.log('and parent now is', parent, template, path);
-	if(this.template_hash[parent]){
+	var [name, parent] = get_parent_path(path);
+	if(this.template_hash[parent] && !((Number(name) == name) && name.length)){
 		this.refresh(); 
 	}
 }
@@ -2971,6 +2982,16 @@ var get_branch = (tree, path) => {
 	return tree;
 }
 
+var get_tree = (app_id) => {
+	var tree;
+	if(!ozenfant_trees[app_id]){
+		ozenfant_trees[app_id] = tree = new Tree();
+	} else {
+		tree = ozenfant_trees[app_id];
+	}
+	return tree;
+}
+
 var ozenfant_new = {
 	eachHashMixin: {
 		'$real_el': ['asyncClosure', () => {
@@ -2978,20 +2999,25 @@ var ozenfant_new = {
 			return (cb, template, path, app_id, context, el) => {
 				if(!app_id) return;
 				var pth = path === '/' ? '' : path;
-				var tree;
-				if(!ozenfant_trees[app_id]){
-					ozenfant_trees[app_id] = tree = new Tree();
-				} else {
-					tree = ozenfant_trees[app_id];
-				}
+				var tree = get_tree(app_id);
 				tree.onUpdateBinding(path, cb);
 				tree.setTemplate(path, template, context, el? el.get()[0] : false);
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
+		'$ozenfant.list_render': [
+			(_, path, app_id) => { 
+				if(path === undefined) return;
+				var parent = get_parent_path(path)[1];
+				var tree = get_tree(app_id);
+				if(tree.bindings[parent]){
+					tree.render(parent);
+				}				
+			}, 
+			'$all_children', '-$path', '-$app_id'],
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
 				if(!template_path || !app_id || !ozenfant_trees[app_id]) return;
 				var pth = template_path;
-				var template = ozenfant_trees[app_id].template_hash[pth];
+				var template = get_tree(app_id).template_hash[pth];
 				if(!template) {
 					return;
 				}
