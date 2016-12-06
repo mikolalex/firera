@@ -642,10 +642,7 @@ App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
 				: free_vals;
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
-	var child = new Hash(this, type, link_as, Object.assign({
-				$name: link_as,
-				$app_id: this.id,
-			}, free_vals), true, parent_id, path); 
+	var child = new Hash(this, type, link_as, free_vals, true, parent_id, path); 
 	//child.setLevels();
 	return child.id;
 }
@@ -786,9 +783,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
 	// @todo: refactor, make this set in one step
 	//console.log('Setting $init values', this.init_values);
-	if(parsed_pb_name === '__root'){
-		this.init_values.$name = '__root';
-	}
+
 	if(this.plain_base.$init && !init_later){
 		this.init();
 	}
@@ -815,6 +810,10 @@ Hash.prototype.initIfSideEffectCell = function(cell){
 	if(!this.cellExists(cell) && unusual_cell(cell)){
 		parse_cellname(cell, this, 'getter', this.app.packagePool, this);
 		this.cell_types = parse_cell_types(this.plain_base);
+		var matched = findMatcher(cell, this.app.packagePool);
+		if(matched){
+			this.compute(cell);
+		}
 		//this.setLevels();
 	}
 }
@@ -1305,6 +1304,12 @@ Hash.prototype.cell_value = function(cell){
 		case '$path':
 			return this.path;
 		break;
+		case '$app_id':
+			return this.app.id;
+		break;
+		case '$name':
+			return this.name;
+		break;
 		default:
 			return this.cell_values[cell];
 	}
@@ -1516,7 +1521,6 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 		var m = side_effects[n];
 		var matches = real_cellname.match(m.regexp);
 		if(matches){
-			//console.info('Cell', cellname, 'matches regexp', m.regexp, pool);
 			init_if_empty(pool, 'side_effects', {}, cellname, []);
 			if(pool.side_effects[cellname].indexOf(n) === -1){
 				pool.side_effects[cellname].push(n);
@@ -3005,8 +3009,7 @@ var ozenfant_new = {
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant.list_render': [
-			(_, path, app_id) => { 
-				if(path === undefined) return;
+			(_, path, app_id) => {
 				var parent = get_parent_path(path)[1];
 				var tree = get_tree(app_id);
 				if(tree.bindings[parent]){

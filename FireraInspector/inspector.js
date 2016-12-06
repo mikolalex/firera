@@ -152,24 +152,27 @@ var app_struct_devtool = {
 			},
 			$template: prep(`
 					.level
-							span.name$(font-weight: bold)
-							span.type$(font-weight: bold)
-							span
-									": "
-							span.$isObj?
-									span.$isOpened?
-											span.close(href: #)
-													""
-											.keys$
-									:
-											span.open(href: #)
-													""
-							:
-									span.val$
+						span.name$(font-weight: bold)
+						span.type$(font-weight: bold)
+						span
+								": "
+						span.$isObj?
+								span.$isOpened?
+										span.close(href: #)
+												""
+										.keys$
+								:
+										span.open(href: #)
+												""
+						:
+								span.val$
 
 			`),
 			'isObj': [a => {
 				return a instanceof Object;
+			}, 'val'],
+			'isString': [a => {
+				return typeof a === 'string';
 			}, 'val'],
 			'type': [typf, 'val'],
 			'$child_keys': ['list', {
