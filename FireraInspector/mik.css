@@ -90,7 +90,7 @@
 			
 			.cellname {       
 				text-align: right;
-				color: #99189a;
+				color: #504b50;
 				font-weight: bold;
 				display: inline-block;
 				vertical-align: top;
@@ -117,7 +117,7 @@
 			
 			.type {
 				padding: 5px;
-				color: red;
+				color: #99189a;
 				text-transform: capitalize;
 			}
 			
@@ -139,6 +139,14 @@
 			#content-devtool {
 				float: right;
 				width: 50%;
+			}
+			
+			.stringval {
+				color: red;
+			}
+			
+			.numberval {
+				color: blue;
 			}
     
     .test-todo-mvc .completed {
