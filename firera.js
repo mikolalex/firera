@@ -143,6 +143,38 @@ var path_cellname = (a) => a.split('/').pop();
 var is_special = (a) => {
 	return ((a.indexOf('/') !== -1) || (a.indexOf('|') !== -1) || a === '*' || a[0] === '$'); 
 }
+var bms = {};
+window.bm = {
+	start: (branch, tag, id) => {
+		init_if_empty(bms, branch, {}, tag, {sum: 0}, 'ids', {}, id, performance.now());
+	},
+	stop: (branch, tag, id) => {
+		bms[branch][tag].ids[id] = performance.now() - bms[branch][tag].ids[id];
+	},
+	report: function(logger = false){
+		if(!logger){
+			logger = console.log.bind(console);
+		}
+		for(let b in bms){
+			var branch = bms[b];
+			var branch_sum = 0;
+			for(let t in branch){
+				var tag = branch[t];
+				for(var tt in tag.ids){
+					var time = tag.ids[tt];
+					tag.sum += time;
+				}
+				branch_sum += tag.sum;
+			}
+			for(let t in branch){
+				var tag = branch[t];
+				tag.perc = 100*(tag.sum/branch_sum);
+				console.log(t, 'tag sum', tag.sum, 'branch sum', branch_sum, '%', tag.perc);
+			}
+		}
+		console.log(bms);
+	}
+}
 
 Object.defineProperty(Object.prototype, 'map', {
 	enumerable: false,
@@ -733,6 +765,8 @@ var create_provider = (app, self) => {
 var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id, path){
 	var self = this;
 	var id = ++app.hashIds;
+	//////////////////////////
+	//bm.start('init', '2', id);
 	this.path = path;
 	app.setHash(id, this);
 	this.id = id;
@@ -780,26 +814,38 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	}
 	this.cell_values = Object.create(this.plain_base.$init || {});
 	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
+	//////////////////////////
+	//bm.stop('init', '2', id);
+	//bm.start('init', '1', id);
 	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
 	// @todo: refactor, make this set in one step
 	//console.log('Setting $init values', this.init_values);
+	//////////////////////////
+	//bm.stop('init', '1', id);
+	//bm.start('init', '3', id);
 
 	if(this.plain_base.$init && !init_later){
 		this.init();
 	}
+	//////////////////////////
+	//bm.stop('init', '3', id);
+	//bm.start('init', '4', id);
 	if(parsed_pb.no_args_cells){
 		//this.set(parsed_pb.no_args_cells);
-		parsed_pb.no_args_cells.eachKey((cellname) => {
-			this.doRecursive((cell, parent_cell_name) => {
-				this.compute(cell, parent_cell_name);
-			}, cellname)
-		})
+		var min_level = Number.POSITIVE_INFINITY;
+		var cell_vals = {};
+		this.updateTree(parsed_pb.no_args_cells, false, true);
 	}
+	//////////////////////////
+	//bm.stop('init', '4', id);
+	//bm.start('init', '5', id);
 	if(this.link_chains){
 		for(let link in this.link_chains){
 			this.initLinkChain(link);
 		}
 	}
+	//////////////////////////
+	//bm.stop('init', '5', id);
 }
 
 Hash.prototype.changesFinished = function(){
@@ -1088,39 +1134,17 @@ Hash.prototype.setLevel = function(cell, parents){
 	//console.log('got max level', max_level);
 }
 
-Hash.prototype.set = function(cells, val, child, no_args){
-	//console.log('levels', this.levels, this.cell_types);
-	if(child){
-		// setting value for some linked child hash
-		//log('Trying to set', child, cell, val);
-		var path = child.split('/');
-		var childname = path[0];
-		var child = this.linked_hashes_provider.get(childname);
-		if(!child){
-			console.warn('Cannot set - no such path', path);
-			return;
-		}
-		var child_path = path[1] ? path.slice(1).join('/') : undefined;
-		child.set(cells, val, child_path);
-		return;
-	}
-	if(!(cells instanceof Object)){
-		/*if(!this.cell_type(cells) === 'free'){
-			throw Exception('Cannot set dependent cell!');
-		}
-		this.force_set(cells, val);
-		return;*/
-		var a = {};
-		a[cells] = val;
-		cells = a;
-	}
+Hash.prototype.updateTree = function(cells, no_args = false, compute = false){
 	var set = Object.keys(cells);
-	var already = new Set();
-	var start_level = 100000;
+	var start_level = Number.POSITIVE_INFINITY;
 	var levels = {};
 	for(let cell in cells){
+		if(compute){
+			this.compute(cell);
+		}
 		if(!no_args){
-			this.set_cell_value(cell, cells[cell]);
+			var val1 = compute ? this.cell_values[cell] : cells[cell];
+			this.set_cell_value(cell, val1);
 		}
 		var lvl = this.levels[cell];
 		if(lvl < start_level){
@@ -1131,17 +1155,15 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		}
 		levels[lvl].add(cell);
 	}
-	//console.log('!!!!!!!!!!!!!!!!!!!!!! start level', start_level, levels);
+	var already = new Set();
 	var x = start_level;
 	var parents = {};
 	while(levels[x] !== undefined){
-		//var new_set = [];
 		for(let cell of levels[x]){
 			var skip = false;
 			var needed_lvl = x+1;
 			var children = this.cell_children(cell);
 			var ct = this.cell_type(cell);
-			//console.log('CT',cell,this.cell_type(cell) === 'free', !(this.cell_has_type(cell, 'free') || (this.cell_type(cell) === 'free')));
 			if(
 				!this.cell_has_type(cell, 'free')
 				&& (cells[cell] === undefined || no_args)
@@ -1157,7 +1179,6 @@ Hash.prototype.set = function(cells, val, child, no_args){
 			}
 			for(var child in children){
 				var lvl = this.levels[child];
-				//console.log('_______child', child, lvl);
 				if(!levels[lvl]){
 					levels[lvl] = new Set();
 				}
@@ -1166,7 +1187,6 @@ Hash.prototype.set = function(cells, val, child, no_args){
 				}
 				parents[child] = cell;
 				for(var j = lvl - 1; j > x; j--){
-					//console.log('add intermediate level', j);
 					if(!levels[j]){
 						levels[j] = new Set();
 					}
@@ -1177,11 +1197,30 @@ Hash.prototype.set = function(cells, val, child, no_args){
 				}
 			}
 		}
-		//console.log('~~~', x);
 		x++;
-		//set = new_set;
 	}
-	//console.log('levels was', levels);
+}
+
+Hash.prototype.set = function(cells, val, child, no_args){
+	if(child){
+		// setting value for some linked child hash
+		var path = child.split('/');
+		var childname = path[0];
+		var child = this.linked_hashes_provider.get(childname);
+		if(!child){
+			console.warn('Cannot set - no such path', path);
+			return;
+		}
+		var child_path = path[1] ? path.slice(1).join('/') : undefined;
+		child.set(cells, val, child_path);
+		return;
+	}
+	if(!(cells instanceof Object)){
+		var a = {};
+		a[cells] = val;
+		cells = a;
+	}
+	this.updateTree(cells, no_args);
 } 
 
 Hash.prototype.set2 = function(cell, val, child){
