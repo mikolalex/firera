@@ -20,6 +20,7 @@ var timer = (function(){
 })()
 
 var template = `
+			li	
 				.
 					"This is list element"
 				.
@@ -34,17 +35,17 @@ var app = Firera({
 				type: 'someName',
 				data: list,
 		}],
-		$template: `
+		$template: Firera.Ozenfant.prepare(`
 			h1
 				"Testing list"
-			.$names
+			ul.$names
 		
-		`
+		`)
 	},
 	someName: {
 		$template: template,
 	},
-	$packages: ['ozenfant_new', 'htmlCells']
+	$packages: ['neu_ozenfant', 'htmlCells']
 })
 
 console.log('app', app);

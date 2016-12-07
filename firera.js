@@ -274,7 +274,8 @@ var get_real_cell_name = function(str){
 var real_cell_name = (str) => str.replace(/^(\:|\-|\=)/, '');
 
 
-var PackagePool = function(proto = {}){
+var PackagePool = function(proto = {}, app_id){
+	this.app_id = app_id;
 	this.cellMatchers = Object.assign({}, proto.cellMatchers);
 	this.predicates = Object.assign({}, proto.predicates);
 	this.eachHashMixin = Object.assign({}, proto.eachHashMixin);
@@ -292,6 +293,10 @@ PackagePool.prototype.load = function(pack){
 	if(pack.eachHashMixin){
 		// update the mixin for each hash created
 		Object.assign(this.eachHashMixin, pack.eachHashMixin);
+	}
+	if(pack.onHashCreated){
+		init_if_empty(onHashCreatedStack, this.app_id, []);
+		onHashCreatedStack[this.app_id].push(pack.onHashCreated);
 	}
 }
 
@@ -507,13 +512,13 @@ var root_package_pool = new PackagePool();
 var apps = [];
 var appIds = 0;
 var App = function(packages){
-	this.packagePool = new PackagePool(root_package_pool);
+	this.id = ++appIds;
+	this.packagePool = new PackagePool(root_package_pool, this.id);
 	if(packages){
 		for(let pack of packages){
 			this.packagePool.load(pack);
 		}
 	}
-	this.id = ++appIds;
 	this.hashes = {};
 	this.hashIds = 0;
 	this.linkManager = new LinkManager(this);
@@ -525,7 +530,7 @@ App.prototype.onChangeFinished = function(cb){
 	}
 	this.onChangeFinishedStack.push(cb);
 }
-App.prototype.changeFinished = function(cb){
+App.prototype.changeFinished = function(){
 	if(this.onChangeFinishedStack){
 		for(let cb of this.onChangeFinishedStack){
 			cb();
@@ -675,6 +680,7 @@ App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
 	var child = new Hash(this, type, link_as, free_vals, true, parent_id, path); 
+	Firera.hashCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;
 }
@@ -1836,6 +1842,7 @@ window.Firera = function(config){
 	//console.log(app);
 	//var compilation_finished = performance.now();
 	app.root = new Hash(app, '__root', false, {$app_id: app.id}, null, null, '/');
+	Firera.hashCreated(app, app.root.id, app.root.path, null);
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -1843,6 +1850,15 @@ window.Firera = function(config){
 	//}
 	return app;
 };
+
+var onHashCreatedStack = {};
+Firera.hashCreated = function(app, grid_id, path, parent){
+	if(onHashCreatedStack[app.id]){
+		for(let cb of onHashCreatedStack[app.id]){
+			cb(app, grid_id, path, parent);
+		}
+	}
+}
 
 var type_map = {
 	'is': 'formula',
@@ -3157,9 +3173,92 @@ var che_package = {
 	}
 } 
 
+var rendered = {};
+var templates = {};
+
+var parse_rec = (app, grid_id, cell) => {
+	var grid = app.getGrid(grid_id);
+	var res = {
+		val: grid.cell_values[cell],
+		grid_id,
+		children: {},
+	};
+	for(let gridname in grid.linked_hashes){
+			var gr_id = grid.linked_hashes[gridname];
+			res.children[gridname] = parse_rec(app, gr_id, cell);
+	}
+	return res;
+
+}
+var render_rec = (app, struct) => {
+	var grid = app.getGrid(struct.grid_id);
+	init_if_empty(rendered, app.id, {}, grid.id, true);
+	if(struct.val){
+		var context = Object.create(grid.cell_values);
+		for(let key in struct.children){
+				context[key] = render_rec(app, struct.children[key])
+		}
+		init_if_empty(templates, app.id, {});
+		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
+		return struct.tmpl.getHTML(context);
+	} else {
+		var res = [];
+		for(let key in struct.children){
+				res.push(render_rec(app, struct.children[key]));
+		}
+		return res.join('');
+	}
+}
+var set_bindings_rec = (app, struct, el) => {
+	if(!struct) debugger;
+	var grid = app.getGrid(struct.grid_id);
+	if(struct.tmpl){
+		grid.set('$el', $(el));
+		struct.tmpl.setRoot(el).updateBindings();
+		for(let key in struct.children){
+			let el = struct.tmpl.bindings[key];
+			console.log('consider', key, el);
+			set_bindings_rec(app, struct.children[key], el);
+		}
+	} else {
+		el.children.each((node, key) => {
+			if(el.children.hasOwnProperty(key)){
+				set_bindings_rec(app, struct.children[key], node);
+			}
+		})
+	}
+}
+var render = function(app, start, node){
+		var struct = parse_rec(app, start.id, '$template');
+		var html = render_rec(app, struct);
+		if(!node) debugger; 
+		node.innerHTML = html;
+		set_bindings_rec(app, struct, node);
+		//console.log('html', html);
+}
+
+var neu_ozenfant = {
+	onHashCreated: (app, grid_id, path, parent) => {
+		if(!parent){
+			var self = app.getGrid(grid_id);
+			var node = self.cell_values.$el.get()[0];
+			render(app, self, node);
+		}
+		if(rendered[app.id] && rendered[app.id][parent]){
+			var self = app.getGrid(grid_id);
+			var parent_path = app.getGrid(parent).path;
+			var parent_tmpl = templates[app.id][parent_path];
+			//if(!parent_tmpl) debugger;
+			var node = parent_tmpl.bindings[self.name];
+			render(app, self, node);
+		}
+		//console.log('hash created', path, parent_path);
+	}
+}
+
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);
-Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, che: che_package};
+Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, neu_ozenfant, che: che_package};
 //Firera.loadPackage(html);
 Firera.func_test_export = {parse_pb, parse_fexpr};
 Firera._F = _F;
