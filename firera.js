@@ -30,19 +30,19 @@ var throttle = _F.throttle = function(thunk, time){
 	var pending = false;
 	return () => {
 		if(!is_throttled){
-			console.log('run!');
+			//console.log('run!');
 			thunk();
 			is_throttled = true;
 			setTimeout(() => {
 				is_throttled = false;
 				if(pending){
-					console.log('run pending!');
+					//console.log('run pending!');
 					thunk();
 					pending = false;
 				}
 			}, time);
 		} else {
-			console.log('skip!');
+			//console.log('skip!');
 			pending = true;
 		}
 	}
@@ -2079,6 +2079,24 @@ var core = {
 				}
 			}].concat(fs);
 		},
+		transistAll: (fs) => {
+			var [func, ...rest] = fs;
+			return [(cellA, ...restArgs) => {
+				if(cellA){
+					return func.apply(restArgs);
+				} else {
+					return Firera.noop;
+				}
+			}].concat(rest);
+		},
+		'&&': (fs) => {
+			return [(cellA, cellB) => {
+				return cellA && cellB;
+			}].concat(fs);
+		},
+		'!': (fs) => {
+			return [(a) => !a].concat(fs);
+		},
 		equal: (fs) => {
 			return [(a, b) => a === b].concat(fs);
 		},
@@ -2111,6 +2129,22 @@ var core = {
 						if(arguments[i]) return arguments[i];
 					}
 			}, ...funcstring]
+		},
+		valMap: function(funcstring){
+			var valMap;
+			if(funcstring[0] instanceof Object && !(funcstring[0] instanceof Array)){
+				valMap = funstring.shift();
+			} else {
+				// true/false by default
+				valMap = {};
+				valMap[funcstring[0]] = true;
+				valMap[funcstring[1]] = false;
+			}
+			var func = (cell, val) => {
+				console.log('cell, val', cell, val);
+				return valMap[cell];
+			}
+			return ['funnel', func, ...funcstring];
 		},
 		firstTrueCb: function(funcstring){
 			var cb = funcstring[0];
@@ -2580,11 +2614,7 @@ var htmlCells = {
 				switch(aspect){
 					case 'getval':
 						func = function(cb, vals){
-							var onChange = function(e){
-								if(!filter_attr_in_path(e)){
-									return;
-								}
-								var el = $(this);
+							var onch = (el) => {
 								var type = el.attr('type');
 								var val;
 								if(type == 'checkbox'){
@@ -2594,6 +2624,12 @@ var htmlCells = {
 								}
 								//console.log('CHange', el, val, selector);
 								make_resp(cb, val);
+							}
+							var onChange = function(e){
+								if(!filter_attr_in_path(e)){
+									return;
+								}
+								onch($(this));
 							};
 							var onKeyup = function(e){
 								if(!filter_attr_in_path(e)){
@@ -2617,6 +2653,8 @@ var htmlCells = {
 							}
 							if($now_el){
 								$now_el.on({keyup: onKeyup, change: onChange}, selector);
+								onch($now_el.find(selector));
+								
 							}
 						}
 					break;
@@ -2893,7 +2931,7 @@ Tree.prototype.updateBindings = function(path, struct, el = false){
 		if(template.bindings[key]){
 			this.updateBindings(new_path, struct[key], template.bindings[key]);
 		} else {
-			console.log('bindings not found!', template.bindings, key);
+			//console.log('bindings not found!', template.bindings, key);
 		}
 	}
 }
@@ -2977,7 +3015,7 @@ Tree.prototype.addToRefreshPool = function(path, pth){
 Tree.prototype.removeLeaf = function(path, skip_remove_node){
 	var skip_further = true;
 	if(!skip_remove_node){
-		if(this.template_hash[path]){
+		if(this.template_hash[path] && this.template_hash[path].root){
 			this.template_hash[path].root.remove();
 		} else {
 			skip_further = false;
@@ -3217,7 +3255,6 @@ var set_bindings_rec = (app, struct, el) => {
 		struct.tmpl.setRoot(el).updateBindings();
 		for(let key in struct.children){
 			let el = struct.tmpl.bindings[key];
-			console.log('consider', key, el);
 			set_bindings_rec(app, struct.children[key], el);
 		}
 	} else {

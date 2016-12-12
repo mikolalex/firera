@@ -781,12 +781,9 @@ describe('Basic Firera functionality', function () {
         });
 		console.log('app', app);
 		app.set('text', 'ololo');
-		var res = `Hello,  
-				
-					Ivan
-				 
-				!`;
-		assert.equal($.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()),  res);
+		var ex_res = `Hello,Ivan!`;
+		var res = $.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()).replace(/(\t|\s)/g, "");
+		assert.equal(res, ex_res);
 	})
 	
 	it('Testing indices predicate', function(){
@@ -1292,6 +1289,49 @@ describe('Basic Firera functionality', function () {
 		assert.equal(app.get('bar', 'aaa'), 'baz');
 		assert.equal(app.get('city', 'aaa/bbb'), 'New Tsynglok');
 		console.log('C = ', app.get('c'));
+	})
+	/*it('testing Once', () => {
+		var app = Firera({
+			__root: {
+				$el: $(".test-once"),
+				'input_blurred': ['once', 'input|blur'],
+			}
+			assert.equal(app.get('input_blurred'), undefined);
+			$(".test-once input").blur();
+			assert.equal(app.get('input_blurred') instanceof Object, true);
+			
+		})
+		
+	})*/
+	it('Form validate example', () => {
+		/*var prop = (a) => {
+			return (b) => {
+				return b[a];
+			}
+		}
+		var gt = (a) => {
+			return (b) => {
+				return b > a;
+			}
+		}
+		var len_gt_2 = _.flow(prop(length), gt(2));
+		/*var $root = $('#enter-name-and-email-form');
+		var simple_email_regex = /\S+@\S+\.\S+/;
+		var is_email_valid = simple_email_regex.test.bind(simple_email_regex);
+		var app = {
+			$el: $root,
+			email_valid: [is_email_valid, 'input.email|getval'],
+			name_entered: [(a) => { return a.length > 2 }, 'input.name|getval'],
+			form_valid: ['&&', 'email_valid', 'name_entered'],
+			form_data_to_send: ['transist', '-form_valid', '-#enter-name-and-email-form|formdata', 'button.send|click'],
+			do_something: [(data) => {
+				// do something useful with entered data, e.g. AJAX request
+			}, 'form_data_to_send']
+		};
+		app = Firera({
+			__root: app
+		})
+		*/
 	})
 })
 describe('Che', function () {

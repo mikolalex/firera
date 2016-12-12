@@ -1,0 +1,29 @@
+body {
+	font-size: 15px;
+	font-family: sans-serif;
+	font-family: 'ProbaPro-Regular';
+}
+ 
+@font-face {font-family: 'ProbaPro-Regular';src: url('webfonts/2C7715_0_0.eot');src: url('webfonts/2C7715_0_0.eot?#iefix') format('embedded-opentype'),url('webfonts/2C7715_0_0.woff2') format('woff2'),url('webfonts/2C7715_0_0.woff') format('woff'),url('webfonts/2C7715_0_0.ttf') format('truetype');}
+
+code {
+	padding: 20px;
+	display: block;
+	background-color: whitesmoke;
+    font-family: monospace;
+    white-space: pre;
+	margin: 1em 0;
+    overflow-x: scroll;
+}
+
+#in-content {
+	background-color: white;
+	padding: 2em;
+}
+
+#content {
+	max-width: 1000px;
+	margin: auto;
+	background-color: rgb(254, 255, 78);
+	padding: 40px 27px 8px 14px;
+}

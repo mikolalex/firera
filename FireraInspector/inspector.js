@@ -100,6 +100,52 @@ var templates = {
 		`),
 
 }
+var obj_or_scalar_template = prep(`
+.level
+	span.name$(font-weight: bold)
+	div.$isNumber?(display: inline-block)
+		div.$isEditing?
+			text.number(value: $val)
+			button.change
+				"Change"
+		:
+			span.justvalue.numberval$val
+	:
+		div.$isString?(display: inline-block)
+			div.$isEditing?
+				text.string(value: $val)
+				button.change
+					"Change"
+			:
+				span.stringval.justvalue
+					"&quot;"
+					span.$val
+					"&quot;"
+		:
+			span.type$(font-weight: bold)
+			span
+				": "
+			span.$isObj?
+				span.$isOpened?
+					span.close(href: #)
+						""
+					.keys$
+				:
+					span.open(href: #)
+						""
+			:
+				span.val$
+`);
+var eq = (a) => {
+	return (b) => {
+		return b === a;
+	}
+}
+var iof = (a) => {
+	return (b) => {
+		return b instanceof a;
+	}
+}
 var app_struct_devtool = {
 	__root: {
 		$el: $("#content-devtool"),
@@ -150,43 +196,12 @@ var app_struct_devtool = {
 			$init: {
 					isOpened: false,
 			},
-			$template: prep(`
-					.level
-						span.name$(font-weight: bold)
-						div.$isNumber?(display: inline-block)
-							span.numberval$val
-						:
-							div.$isString?(display: inline-block)
-								span 
-									"&quot;"
-								span.stringval$val
-								span 
-									"&quot;"
-							:
-								span.type$(font-weight: bold)
-								span
-									": "
-								span.$isObj?
-									span.$isOpened?
-										span.close(href: #)
-											""
-										.keys$
-									:
-										span.open(href: #)
-											""
-								:
-									span.val$
-
-			`),
-			'isObj': [a => {
-				return a instanceof Object;
-			}, 'val'],
-			'isString': [a => {
-				return typeof a === 'string';
-			}, 'val'],
-			'isNumber': [a => {
-				return typeof a === 'number';
-			}, 'val'],
+			$template: obj_or_scalar_template,
+			'isEditing': ['valMap', '.justvalue|click', 'button.change|click'],
+			//'val': ['transist', 'button.change|click', '-input[type=text]|getval'],
+			'isObj': [iof(Object), 'val'],
+			'isString': [eq('string'), 'type'],
+			'isNumber': [eq('number'), 'type'],
 			'type': [typf, 'val'],
 			'$child_keys': ['list', {
 				self: {

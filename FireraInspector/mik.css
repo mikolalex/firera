@@ -19,6 +19,13 @@
 				clear: left;
             }
 			
+			.cell input.number {
+				width: 100px;
+			}
+			.justvalue {
+				cursor: pointer;
+			}
+			
 			body {
 					font-size: 12px;
 					font-family: courier;

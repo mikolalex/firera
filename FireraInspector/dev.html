@@ -47,9 +47,9 @@ and open the template in the editor.
 				/*setTimeout(() => {
 					timer('FINISH', true);
 				}, 1)	
-				setTimeout(() => {
+				/*setTimeout(() => {
 					set_data();
-				}, 10)	*/
+				}, 10)*/
 				var sd = _F.throttle(set_data, 300);
 				app.onChangeFinished(() => {
 						setTimeout(sd, 1);
