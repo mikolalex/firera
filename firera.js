@@ -336,7 +336,7 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 		if(val === undefined){
 			val = this.app.getGrid(master_hash_id).get(master_cell);
 		}
-		if(val === undefined){
+		if(val === Firera.undef){
 			return;
 		}
 		var lnks = this.workingLinks[master_hash_id][master_cell];
@@ -1123,7 +1123,8 @@ Hash.prototype.get = function(cell, child){
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
 		return child.get(cell, child_path);
 	} else {
-		return this.cell_values[cell];
+		var val = this.cell_values[cell];
+		return val === undefined ? (this.cell_values.hasOwnProperty(cell) ? val : Firera.undef) : val;
 	}
 }
 
@@ -1950,6 +1951,7 @@ var get_app_struct = (app) => {
 	return get_grid_struct(app.root);
 }
 
+Firera.undef = new function(){};
 Firera.noop = new function(){};
 Firera.apps = apps;
 Firera.run = Firera;
@@ -2141,7 +2143,6 @@ var core = {
 				valMap[funcstring[1]] = false;
 			}
 			var func = (cell, val) => {
-				console.log('cell, val', cell, val);
 				return valMap[cell];
 			}
 			return ['funnel', func, ...funcstring];

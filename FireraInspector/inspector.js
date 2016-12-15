@@ -198,7 +198,7 @@ var app_struct_devtool = {
 			},
 			$template: obj_or_scalar_template,
 			'isEditing': ['valMap', '.justvalue|click', 'button.change|click'],
-			//'val': ['transist', 'button.change|click', '-input[type=text]|getval'],
+			'val': [(a) => { return a ? a : Firera.noop; }, 'input[type=text]|getval'],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],

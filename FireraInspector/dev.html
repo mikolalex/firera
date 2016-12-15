@@ -38,12 +38,14 @@ and open the template in the editor.
 				}
 				window.set_data = () => {
 						var dt = [Firera.getAppStruct()[0]];
+						timer('start');
 						app_devtool.set('data', dt);
+						timer('finish');
 				}
 				
 				var app = Firera(app_struct);
 				var app_devtool = Firera(app_struct_devtool);
-				
+				console.log('App devtool', app_devtool);
 				/*setTimeout(() => {
 					timer('FINISH', true);
 				}, 1)	

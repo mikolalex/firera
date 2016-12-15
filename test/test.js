@@ -576,7 +576,7 @@ describe('Basic Firera functionality', function () {
                 }, 'b']
             }
         })
-        assert.equal(app.get('a'), undefined);
+        assert.equal(app.get('a'), Firera.undef);
         setTimeout(() => {
             assert.equal(app.get('a'), 42);
             done();
