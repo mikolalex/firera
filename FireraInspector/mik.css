@@ -144,8 +144,13 @@
 				width: 50%;
 			}
 			#content-devtool {
-				float: right;
 				width: 50%;
+				position:fixed !important;
+				position:absolute;
+				top:0;
+				right:0;
+				bottom:0;
+				overflow-y: scroll;
 			}
 			
 			.stringval {

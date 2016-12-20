@@ -103,36 +103,30 @@ var templates = {
 var obj_or_scalar_template = prep(`
 .level
 	span.name$(font-weight: bold)
-	div.$isNumber?(display: inline-block)
-		div.$isEditing?
-			text.number(value: $val)
-			button.change
-				"Change"
-		:
-			span.justvalue.numberval$val
-	:
-		div.$isString?(display: inline-block)
-			div.$isEditing?
-				text.string(value: $val)
-				button.change
-					"Change"
-			:
-				span.stringval.justvalue
-					"&quot;"
-					span.$val
-					"&quot;"
-		:
-			span.type$(font-weight: bold)
-			span
-				": "
-			span.$isObj?
-				span.$isOpened?
+	.(display: inline-block)
+			? $isNumber
+				? $isEditing
+					text.number(value: $val)
+					button.change
+						"Change"
+				:
+						span.justvalue.numberval$val
+			* $isString
+				? $isEditing
+					text.string(value: $val)
+					button.change
+						"Change"
+				:
+					span.stringval.justvalue
+						"{{val}}"
+			* $isObj
+				? $isOpened
 					span.close(href: #)
 						""
 					.keys$
 				:
 					span.open(href: #)
-						""
+					""
 			:
 				span.val$
 `);
@@ -198,7 +192,23 @@ var app_struct_devtool = {
 			},
 			$template: obj_or_scalar_template,
 			'isEditing': ['valMap', '.justvalue|click', 'button.change|click'],
-			'val': [(a) => { return a ? a : Firera.noop; }, 'input[type=text]|getval'],
+			'val_changed': ['map', {
+				'val': false,
+				'input[type=text]|getval': true,
+			}],
+			'val': ['transist', (a) => {
+				// try to keep original data type
+				console.log('transist', a);
+				if(a === undefined) debugger;
+				if(Number(a) == a){
+					return Number(a);
+				} else {
+					return a;
+				}
+			}, ['&&', 'button.change|click', '-val_changed'], '-input[type=text]|getval'],
+			'val-watch': [(a) => {
+					//console.log('val now is', a);
+			}, 'val'],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],

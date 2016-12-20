@@ -1343,9 +1343,8 @@ describe('Che', function () {
 				b: [always('B'), '.b|click'],
 				clicked_both: ['che', '& a, b']
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['htmlCells', 'simpleHtmlTemplates']
 		})
-		//console.log('app', app);
 		$(".test-che .a").click();
 		$(".test-che .b").click();
 		assert.deepEqual(app.get('clicked_both'), {a: 'A', b: 'B'})

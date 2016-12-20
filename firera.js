@@ -1,7 +1,7 @@
 'use strict';
 
 var Ozenfant = require('../ozenfant/ozenfant');
-var che = require('shche');
+var che = require('../shche/shche');
 var $ = require('jquery');
 
 var _F = {};
@@ -2073,9 +2073,13 @@ var core = {
 			}, ...args];
 		},
 		transist: (fs) => {
+			var func;
+			if(fs[0] instanceof Function){
+				func = fs.shift();
+			}
 			return [(cellA, cellB) => {
 				if(cellA){
-					return cellB;
+					return func ? func(cellB) : cellB;
 				} else {
 					return Firera.noop;
 				}
@@ -2093,6 +2097,7 @@ var core = {
 		},
 		'&&': (fs) => {
 			return [(cellA, cellB) => {
+				console.log('check &&', cellA, cellB);
 				return cellA && cellB;
 			}].concat(fs);
 		},
@@ -2654,8 +2659,6 @@ var htmlCells = {
 							}
 							if($now_el){
 								$now_el.on({keyup: onKeyup, change: onChange}, selector);
-								onch($now_el.find(selector));
-								
 							}
 						}
 					break;
@@ -3107,7 +3110,7 @@ var ozenfant_new = {
 				var parent = get_parent_path(path)[1];
 				var tree = get_tree(app_id);
 				if(tree.bindings[parent]){
-					tree.render(parent);
+						tree.render(parent);
 				}				
 			}, 
 			'$all_children', '-$path', '-$app_id'],
@@ -3193,20 +3196,22 @@ var che_package = {
 			var succ_cb;
 			var obj = che.create(expr, {
 				onOutput: function(key, val){
-					//console.log('outputting from che', key, val);
+					console.log('outputting from che', key, val);
 				},
 				onSuccess: function(){
-					//console.log('che scenario successfully finished', succ_cb, obj.state);
+					console.log('che scenario successfully finished', succ_cb, obj.state);
 					succ_cb(obj.state);
 				}
 			}, ...cbs);
 			var str = ['asyncClosureFunnel', () => {
 				return (cb, cell, val) => {
-					//console.log('something dripped', cb, cell, val);
+					console.log('something dripped', cb, cell, val);
 					succ_cb = cb;
 					obj.drip(cell, val);
+					return 'a';
 				}
 			}, ...obj.needed_events]
+			console.log('getting che expr', str);
 			return str;
 		}
 	}
