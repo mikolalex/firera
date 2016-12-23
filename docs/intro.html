@@ -6,7 +6,7 @@ and open the template in the editor.
 -->
 <html>
 		<head>
-				<title>TODO supply a title</title>
+				<title>Firera - intro</title>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link rel="stylesheet" href="guide.css" />
@@ -72,18 +72,18 @@ is_email_valid - функція, яка буде перевіряти перед
 **Значення, які залежні від потоків даних є також потоками даних!**
 В більшості туторіалів по ФРП наводиться його використання для абстрагування речей, які інтуїтивно виглядають як потоки даних: наприклад, введена юзером інформація, кліки тощо. Однак, наприклад, стан форми - валідна вона чи ні - не виглядає як потік даних з першого погляду, чи не так? Але оскільки він залежний від потоків даних, він також є потоком даних. Розглянемо на таблиці, що показує значення різних комірок по мірі того, як юзер вводить дані в форму.
 
-
-| Поле input.email        | Комірка "input.email\|getval" | Комірка "is_email_valid"  |
-| -------------:|-------------:| -----:|
-| m     | m | false |
-| me      |  me  |   false |
-| me@ | me@    |    false |
-| me@e | me@e    |    false |
-| me@ex | me@ex    |    false |
-| me@ex. | me@ex.    |    false |
-| me@ex.c | me@ex.c    |    true |
-| me@ex.co | me@ex.co    |    true |
-| me@ex.com | me@ex.com    |    true |
+<table class="tbl">
+<tr><td> Поле input.email        </td><td> Комірка "input.email|getval" </td><td> Комірка "is_email_valid"  </td></tr>
+<tr><td> m     </td><td> m </td><td> false </td></tr>
+<tr><td> me      </td><td>  me  </td><td>   false </td></tr>
+<tr><td> me@ </td><td> me@    </td><td>    false </td></tr>
+<tr><td> me@e </td><td> me@e    </td><td>    false </td></tr>
+<tr><td> me@ex </td><td> me@ex    </td><td>    false </td></tr>
+<tr><td> me@ex. </td><td> me@ex.    </td><td>    false </td></tr>
+<tr><td> me@ex.c </td><td> me@ex.c    </td><td>    true </td></tr>
+<tr><td> me@ex.co </td><td> me@ex.co    </td><td>    true </td></tr>
+<tr><td> me@ex.com </td><td> me@ex.com    </td><td>    true </td></tr>
+</table>
 
 Як бачите, "is_email_valid" є теж потоком даних, однак в процесі вводу мейла його значення зміниться лише один раз - тоді, коли імейл стане валідним. Те саме і з наступною коміркою:
 <code>

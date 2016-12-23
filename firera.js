@@ -306,10 +306,23 @@ var LinkManager = function(app){
 	this.linkStruct = {};
 	this.workingLinks = {};
 	this.pointers = {};
+	this.doubleAsterisk = {};
+	this.pathToId = {};
 };
 
 LinkManager.prototype.onNewHashAdded = function(parent_hash_id, child_id){
-	//console.log('new hash added to', parent_hash_id, 'as', child_id, this.pointers[parent_hash_id]);
+	var child_path = this.app.getGrid(child_id).path
+	//console.log('new hash added to', parent_hash_id, 'as', child_id, child_path);
+	// add doubleAsterisk links
+	for(let path in this.doubleAsterisk){
+		if(child_path.indexOf(path) === 0){
+			// it's a child of master hash
+			for(var cellname in this.doubleAsterisk[path]){
+				this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path);
+			}
+		}
+	}
+	//
 	for(var link_id in this.pointers[parent_hash_id]){
 		this.actualizeLink(link_id, child_id);
 	}
@@ -345,13 +358,16 @@ LinkManager.prototype.checkUpdate = function(master_hash_id, master_cell, val){
 				var cell_val = val;
 				if(lnks[slave_hash_id] && lnks[slave_hash_id][slave_cellname]){
 					var link_data = lnks[slave_hash_id][slave_cellname];
-					//console.log('lnk id', link_id);
-					var data = this.links[link_data.link_id];
-					if(data){
-						for(var i = data.path.length - 1; i > -1; i--){
-							if(data.path[i] === '*'){
-								//console.log('A', i, data.path, link_data.path[i+1]);
-								cell_val = [link_data.path[i+1], cell_val];
+					if(link_data.link_id === '**'){
+						cell_val = [cell_val, link_data.path];
+					} else {
+						var data = this.links[link_data.link_id];
+						if(data){
+							for(var i = data.path.length - 1; i > -1; i--){
+								if(data.path[i] === '*'){
+									//console.log('A', i, data.path, link_data.path[i+1]);
+									cell_val = [link_data.path[i+1], cell_val];
+								}
 							}
 						}
 					}
@@ -479,6 +495,17 @@ LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 		//console.log('Simple!', link, parent);
 		//ttimer.stop('ilc');
 		return;*/
+	}
+	if(path[0] == '**'){
+		if(path.length > 2){
+			console.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var cellname = path[1];
+		var grid_path = this.app.getGrid(hash_id).path;
+		this.pathToId[grid_path] = hash_id;
+		init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
+		return;
 	}
 	var obj = {
 		path: path,

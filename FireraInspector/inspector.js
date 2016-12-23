@@ -148,6 +148,9 @@ var app_struct_devtool = {
 			type: 'grid',
 			datasource: ['../data']
 		}],
+		'new_val_set': [([val, path]) => {
+			console.log('NEW VAL SET!', val, path);
+		}, '**/set_new_val']
 	},
 	grid: {
 		$template: templates.grid,
@@ -196,19 +199,15 @@ var app_struct_devtool = {
 				'val': false,
 				'input[type=text]|getval': true,
 			}],
-			'val': ['transist', (a) => {
+			'val': ['set_new_val'],
+			'set_new_val': ['transist', (a) => {
 				// try to keep original data type
-				console.log('transist', a);
 				if(a === undefined) debugger;
 				if(Number(a) == a){
-					return Number(a);
-				} else {
-					return a;
+					a = Number(a);
 				}
+				return a;
 			}, ['&&', 'button.change|click', '-val_changed'], '-input[type=text]|getval'],
-			'val-watch': [(a) => {
-					//console.log('val now is', a);
-			}, 'val'],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],

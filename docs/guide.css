@@ -27,3 +27,8 @@ code {
 	background-color: rgb(254, 255, 78);
 	padding: 40px 27px 8px 14px;
 }
+
+.tbl td {
+	padding: 10px;
+	border: 1px solid grey;
+}
