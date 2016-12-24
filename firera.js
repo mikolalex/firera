@@ -505,6 +505,10 @@ LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 		var grid_path = this.app.getGrid(hash_id).path;
 		this.pathToId[grid_path] = hash_id;
 		init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
+		// check already added grids
+		this.app.eachChild(hash_id, (child) => {
+			this.addWorkingLink(child.id, cellname, hash_id, '**/' + cellname, '**', child.path);
+		})
 		return;
 	}
 	var obj = {
@@ -579,6 +583,14 @@ App.prototype.getGrid = function(id){
 }
 App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
+}
+App.prototype.eachChild = function(parent_grid_id, cb){
+	var grid = this.getGrid(parent_grid_id);
+	for(var l in grid.linked_hashes){
+		var child = this.getGrid(grid.linked_hashes[l]);
+		cb(child);
+		this.eachChild(grid.linked_hashes[l], cb);
+	}
 }
 
 var cb_prot = {
@@ -2350,8 +2362,8 @@ var core = {
 				console.error('List properties should be an object!');
 			}
 			var item_type = props.type;
-			if(!props.push && !props.datasource && !props.deltas && !props.data){
-				console.warn('No item source provided for list', props.deltas);
+			if(!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]){
+				console.warn('No item source provided for list', funcstring);
 			}
 			//console.log('List properties', props);
 			var deltas_func;
@@ -3007,6 +3019,8 @@ Tree.prototype.render = function(root_path){
 		root_el = this.getBindingsRec(root_path);
 	}
 	if(!root_el){
+		console.warn('Root DOM node($el) is undefined');
+		return;
 		// oh god...
 	}
 	root_el.innerHTML = res;

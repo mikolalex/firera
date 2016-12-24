@@ -1303,6 +1303,53 @@ describe('Basic Firera functionality', function () {
 		})
 		
 	})*/
+	it('** linking', () => {
+		var $root =  $(".test-comments");
+		var c = 0;
+		var app = Firera({
+			__root: {
+				'$el': $root,
+				'clicks': [() => {
+					//console.log('BTN CLC!');
+					++c;	
+				}, '**/btn_click'],
+				'comments_arr': ['just', [
+						{
+							user: 'Mikolalex',
+							text: 'Nice photo!'
+						},
+						{
+							user: 'geo14tr89',
+							text: '+1'
+						},
+						{
+							user: '2te116',
+							text: 'Like!'
+						},
+				]],
+				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
+				'$template': `
+				.h1
+					"Comments"
+				ul.comments$
+				`
+			},
+			comment: {
+				'btn_click': ['.plus-one|click'],
+				'$template': `
+				li.comment
+					.user$(font-weight: bold)
+					.text$
+					button.plus-one
+						"+1"
+				`,
+			},
+			$packages: ['ozenfant_new', 'htmlCells']
+		})
+		//console.log('**', app);
+		$root.find('.comment .plus-one').click();
+		assert.equal(c, 3);
+	})
 	it('Form validate example', () => {
 		/*var prop = (a) => {
 			return (b) => {
