@@ -45,7 +45,9 @@ and open the template in the editor.
 				
 				var app = Firera(app_struct);
 				var app_devtool = Firera(app_struct_devtool);
-				console.log('App devtool', app_devtool.hashes[1]);
+				app_devtool.set('app', app_devtool);
+				console.log('App', app);
+				console.log('App devtool', app_devtool);
 				/*setTimeout(() => {
 					timer('FINISH', true);
 				}, 1)	

@@ -65,10 +65,12 @@ var get_data = (cb, url) => {
 	})
 }
 
-var grids_from_data = (data) => {
+var grids_from_data = (data, parent_path) => {
 	var res = [];
 	for(var key in data){
-		res.push(Object.assign({f_name: key}, data[key], {cells: order_obj(cell_types_order, data[key].cells)}));
+		var path = Firera.is_def(parent_path) ? parent_path + '/' + key : '/' + key;
+		var grid = Object.assign({f_name: key, f_path: path}, data[key], {cells: order_obj(cell_types_order, data[key].cells)});
+		res.push(grid);
 	}
 	return res;
 }
@@ -144,13 +146,22 @@ var app_struct_devtool = {
 	__root: {
 		$el: $("#content-devtool"),
 		$template: templates.main,
+		f_path: '/',
 		$child_grids: ['list', {
 			type: 'grid',
-			datasource: ['../data']
+			datasource: ['../data'],
+			self: {
+				f_path: ['../f_path'],
+			}
 		}],
-		'new_val_set': [([val, path]) => {
-			console.log('NEW VAL SET!', val, path);
-		}, '**/set_new_val']
+		'new_val_set': [(a, app) => {
+			var [val, path] = a;
+			var p = path.split('/');
+			var cellname = p.pop();
+			var new_path = p.slice(1).join('/');
+			console.log('NEW VAL SET!', cellname, val, new_path);
+			app.set(cellname, val, new_path);
+		}, '**/set_new_val', '-app']
 	},
 	grid: {
 		$template: templates.grid,
@@ -161,10 +172,16 @@ var app_struct_devtool = {
 		'.expandable|display': ['toggle', '.expand-collapse|click'],
 		$child_grids: ['list', {
 				type: 'grid',
-				datasource: [grids_from_data, '../children']
+				self: {
+					f_path: ['../f_path'],
+				},
+				datasource: [grids_from_data, '../children', '../f_path']
 		}],
 		$child_cell_types: ['list', {
 				type: 'cell_type',
+				self: {
+					f_path: ['../f_path'],
+				},
 				datasource: [cell_types_from_data, '../cells']
 		}],
 	},
@@ -174,8 +191,12 @@ var app_struct_devtool = {
 				h3$f_name
 				.$cells
 		`),
+		f_path: ['../f_path'],
 		$child_cells: ['list', {
 			type: 'cell',
+			self: {
+				f_path: ['../f_path'],
+			},
 			datasource: ['../cells']
 		}]
 	},
@@ -188,6 +209,7 @@ var app_struct_devtool = {
 			$child_obj: [() => {  
 					return ['obj_or_scalar', {}, {val: 'val'}]
 			}, 'val'],
+			f_path: ['../f_path'],
 	},
 	obj_or_scalar: {
 			$init: {
@@ -199,8 +221,9 @@ var app_struct_devtool = {
 				'val': false,
 				'input[type=text]|getval': true,
 			}],
-			'val': ['set_new_val'],
-			'set_new_val': ['transist', (a) => {
+			f_path: ['../f_path'],
+			'val': ['new_val'],
+			'new_val': ['transist', (a) => {
 				// try to keep original data type
 				if(a === undefined) debugger;
 				if(Number(a) == a){
@@ -208,6 +231,9 @@ var app_struct_devtool = {
 				}
 				return a;
 			}, ['&&', 'button.change|click', '-val_changed'], '-input[type=text]|getval'],
+			'set_new_val': [(a, b) => {
+					return [a, b];
+			}, 'new_val', '-f_path'],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],

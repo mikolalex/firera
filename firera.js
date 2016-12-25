@@ -273,6 +273,9 @@ var get_real_cell_name = function(str){
 
 var real_cell_name = (str) => str.replace(/^(\:|\-|\=)/, '');
 
+var is_def = (a) => {
+	return (a !== undefined) && (a !== Firera.undef);
+}
 
 var PackagePool = function(proto = {}, app_id){
 	this.app_id = app_id;
@@ -578,6 +581,9 @@ App.prototype.get = function(cell, path){
 App.prototype.getStruct = function(){
 	return get_app_struct(this);
 }
+App.prototype.getVals = function(){
+	return get_vals(this.root);
+}
 App.prototype.getGrid = function(id){
 	return this.hashes[id];
 }
@@ -857,7 +863,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 			}
 		}*/
 	}
-	this.cell_values = Object.create(this.plain_base.$init || {});
+	this.cell_values = Object.assign({}, this.plain_base.$init || {});
 	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
 	//////////////////////////
 	//bm.stop('init', '2', id);
@@ -1106,6 +1112,12 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			this.changesFinished();
 		});
 	}
+	/*for(var n of args){
+		if(n === Firera.undef){
+			//console.log('UNDEF FOUND!', cell);
+			return;
+		}
+	}*/
 	// counting value
 	if(props.hasOwnProperty('map') && props.map){
 		var val = func instanceof Function 
@@ -1396,7 +1408,11 @@ Hash.prototype.cell_value = function(cell){
 			return this.name;
 		break;
 		default:
-			return this.cell_values[cell];
+			if(this.cell_values.hasOwnProperty(cell)){
+				return this.cell_values[cell];
+			} else {
+				return Firera.undef;
+			}
 	}
 }
 Hash.prototype.set_cell_value = function(cell, val){
@@ -1989,6 +2005,16 @@ var get_grid_struct = (grid) => {
 var get_app_struct = (app) => {
 	return get_grid_struct(app.root);
 }
+var get_vals = (grid) => {
+	var res = Object.assign({}, grid.cell_values);
+	for(let child_name in grid.linked_hashes){
+		if(child_name === '..') continue;
+		let child_id = grid.linked_hashes[child_name];
+		let child = grid.app.getGrid(child_id);
+		res[child_name] = get_vals(child);
+	}
+	return res;
+}
 
 Firera.undef = new function(){};
 Firera.noop = new function(){};
@@ -2430,6 +2456,7 @@ var core = {
 					var index_c = 3;
 					var index_map = {};
 					return function(cb, deltas, $el){
+						if($el === Firera.undef) return;
 						if(!$el) return;
 						for(var i in deltas){
 							var type = deltas[i][0];
@@ -2513,7 +2540,7 @@ var get_by_selector = function(name, $el, children = false){
 }
 var search_fr_bindings = function($el){
 	var res = {};
-	if(!$el) return res;
+	if(!is_def($el)) return res;
 	$el.find('[data-fr]').each(function(){
 		var name = $(this).attr('data-fr-name');
 		if(!name){
@@ -2552,7 +2579,7 @@ var simpleHtmlTemplates = {
 		'$html_template': [
 			'skipIf',
 			([$prev_el], [$el]) => {
-				if($prev_el && $el && $prev_el[0] && $el[0] && $prev_el[0] === $el[0]){
+				if(is_def($prev_el) && is_def($el) && $prev_el[0] && $el[0] && $prev_el[0] === $el[0]){
 					return false;
 				} else {
 					return true;
@@ -2560,7 +2587,7 @@ var simpleHtmlTemplates = {
 			},
 			function($el){
 				var str = '';
-				if($el){
+				if(is_def($el)){
 					str = $el.html();
 					if(str) str = str.trim();
 				}
@@ -2570,11 +2597,11 @@ var simpleHtmlTemplates = {
 		],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
-				if(real_templ && $el){
+				if(is_def(real_templ) && is_def($el)){
 						$el.html(real_templ);
 						return true;
 				}	
-				if(!$html_template && $el && keys && !no_auto){
+				if(!$html_template && is_def($el) && keys && !no_auto){
 					var auto_template = keys.map((k) => {
 						return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
 					}).join(' ');
@@ -2692,11 +2719,11 @@ var htmlCells = {
 							};
 							var [$prev_el, $now_el] = vals;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
-							if($prev_el){
+							if(is_def($prev_el)){
 								$prev_el.off('keyup', selector);
 								$prev_el.off('change', selector);
 							}
-							if($now_el){
+							if(is_def($now_el)){
 								$now_el.on({keyup: onKeyup, change: onChange}, selector);
 							}
 						}
@@ -2706,8 +2733,9 @@ var htmlCells = {
 							if(!vals) return;
 							var [$prev_el, $now_el] = vals;
 							if(!$now_el) return;
+							if($now_el === Firera.undef) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if($prev_el){
+							if($prev_el && $prev_el !== Firera.undef){
 								$prev_el.off('click', selector);
 							}
 							if($now_el.length === 0){
@@ -2838,7 +2866,7 @@ var htmlCells = {
 				}
 				if(context === 'setter'){
 					parse_fexpr([func, [(a) => {
-						if(!a) return $();
+						if(!is_def(a)) return $();
 						if(!selector) return a;
 						return a.find(selector)
 								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
@@ -3143,7 +3171,7 @@ var ozenfant_new = {
 				var pth = path === '/' ? '' : path;
 				var tree = get_tree(app_id);
 				tree.onUpdateBinding(path, cb);
-				tree.setTemplate(path, template, context, el? el.get()[0] : false);
+				tree.setTemplate(path, template, context, is_def(el)? el.get()[0] : false);
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant.list_render': [
@@ -3189,7 +3217,7 @@ var ozenfant = {
 		'$real_el': ['firstTrueCb', ($el) => { return $el && $el.length }, '$el', '$list_el', '$ozenfant_el'],
 		'$ozenfant_template2': [get_ozenfant_template, '$template', '-$real_values'],
 		'$ozenfant': ['nested', (cb, template, $el, context) => {
-				if(!template || !$el) return;
+				if(!template || !is_def($el)) return;
 				var filtered_context = {};
 				for(let k in context){
 					if(context[k] instanceof Object){
@@ -3340,6 +3368,7 @@ var neu_ozenfant = {
 	}
 }
 
+Firera.is_def = is_def;
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);
 Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, neu_ozenfant, che: che_package};
