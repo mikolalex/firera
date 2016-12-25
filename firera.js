@@ -1412,6 +1412,7 @@ Hash.prototype.cell_value = function(cell){
 				return this.cell_values[cell];
 			} else {
 				return Firera.undef;
+				//return this.cell_values[cell];
 			}
 	}
 }

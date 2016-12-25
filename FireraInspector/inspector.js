@@ -155,12 +155,11 @@ var app_struct_devtool = {
 			}
 		}],
 		'new_val_set': [(a, app) => {
-			var [val, path] = a;
-			var p = path.split('/');
-			var cellname = p.pop();
-			var new_path = p.slice(1).join('/');
-			console.log('NEW VAL SET!', cellname, val, new_path);
-			app.set(cellname, val, new_path);
+			var [val, path, cellname] = a[0];
+			path = Firera.is_def(path) ? path : '/';
+			path = path.substr(1);
+			if(path === '') path = false;
+			app.set(cellname, val, path);
 		}, '**/set_new_val', '-app']
 	},
 	grid: {
@@ -223,6 +222,7 @@ var app_struct_devtool = {
 			}],
 			f_path: ['../f_path'],
 			'val': ['new_val'],
+			'cellname': ['../name'],
 			'new_val': ['transist', (a) => {
 				// try to keep original data type
 				if(a === undefined) debugger;
@@ -231,9 +231,9 @@ var app_struct_devtool = {
 				}
 				return a;
 			}, ['&&', 'button.change|click', '-val_changed'], '-input[type=text]|getval'],
-			'set_new_val': [(a, b) => {
-					return [a, b];
-			}, 'new_val', '-f_path'],
+			'set_new_val': [(a, b, c) => {
+					return [a, b, c];
+			}, 'new_val', '-f_path', '-cellname'],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],
