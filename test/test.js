@@ -245,7 +245,7 @@ describe('Basic Firera functionality', function () {
         app.set('b', 42);
         assert.equal(app.get('c'), 'b_42');
     });
-    it('Testing basic html functionality', function () {
+    it('Testing basic html functionality: visibility', function () {
         var app = Firera({
             __root: {
                 $el: $(".test-html"),
@@ -256,6 +256,22 @@ describe('Basic Firera functionality', function () {
         });
         $('.test-html input').val('ololo').keyup();
         assert.equal(app.get('someval'), 'ololo');
+    });
+    it('Testing basic html functionality: click', function () {
+		var c = 0;
+        var app = Firera({
+            __root: {
+                $el: $(".test-html"),
+                'foo': [() => {
+						++c;
+				}, '.a > *:nth-child(2) div span|click']
+            },
+			$packages: ['simpleHtmlTemplates', 'htmlCells']
+        });
+        $('span').click();
+        $('span').click();
+        $('span').click();
+        assert.equal(c, 3);
     });
     it('Testing nested hashes', function () {
         var str = false;
