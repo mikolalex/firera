@@ -1386,6 +1386,8 @@ describe('Basic Firera functionality', function () {
 							text: 'Like!'
 						},
 				]],
+				selectable: false,
+				username: 'Mikolalex',
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
 				'$template': `
 				.h1
@@ -1394,7 +1396,8 @@ describe('Basic Firera functionality', function () {
 				`
 			},
 			comment: {
-				'|hasClass(active)': ['valMap', '|click', 'other|click'],
+				'.text|hasClass(my-comment)': ['==', '^^/username', 'user'],
+				'|hasClass(active)': ['transist', '/selectable', ['valMap', '|click', 'other|click']],
 				'$template': `
 				li.comment
 					.user$(font-weight: bold)
@@ -1405,7 +1408,15 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
-		console.log('^^', app);
+		//console.log('^^', app);
+		assert.equal($root.find('.comments').children().eq(0).find('.my-comment').length, 1);
+		assert.equal($root.find('.comments').children().eq(1).find('.my-comment').length, 0);
+		assert.equal($root.find('.comments').children().eq(2).find('.my-comment').length, 0);
+		app.set('username', 'geo14tr89');
+		assert.equal($root.find('.comments').children().eq(0).find('.my-comment').length, 0);
+		assert.equal($root.find('.comments').children().eq(1).find('.my-comment').length, 1);
+		assert.equal($root.find('.comments').children().eq(2).find('.my-comment').length, 0);
+		
 		//$root.find('.comments > *:nth-child(2) .text').click();
 	})
 	it('Form validate example', () => {

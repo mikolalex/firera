@@ -514,6 +514,27 @@ LinkManager.prototype.initLink = function(hash_id, link, slave_cellname){
 		})
 		return;
 	}
+	if(path[0] == '^^'){
+		if(path.length > 2){
+			console.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var cellname = path[1];
+		this.app.eachParent(hash_id, (hash) => {
+			this.addWorkingLink(hash.id, cellname, hash_id, '^^/' + cellname);
+		})
+		return;
+	}
+	if(path[0] == ''){
+		if(path.length > 2){
+			console.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var cellname = path[1];
+		var grid_path = this.app.getGrid(hash_id).path;
+		this.addWorkingLink(this.app.hashes[1].id, cellname, hash_id, '/' + cellname);
+		return;
+	}
 	var obj = {
 		path: path,
 		target: path[path.length - 1],
@@ -596,6 +617,13 @@ App.prototype.eachChild = function(parent_grid_id, cb){
 		var child = this.getGrid(grid.linked_hashes[l]);
 		cb(child);
 		this.eachChild(grid.linked_hashes[l], cb);
+	}
+}
+App.prototype.eachParent = function(grid_id, cb){
+	while(grid_id){
+		var grid = this.getGrid(grid_id);
+		cb(grid);
+		grid_id = grid.parent;
 	}
 }
 
@@ -2163,8 +2191,12 @@ var core = {
 		},
 		'&&': (fs) => {
 			return [(cellA, cellB) => {
-				console.log('check &&', cellA, cellB);
 				return cellA && cellB;
+			}].concat(fs);
+		},
+		'==': (fs) => {
+			return [(cellA, cellB) => {
+				return cellA == cellB;
 			}].concat(fs);
 		},
 		'!': (fs) => {
@@ -2761,7 +2793,9 @@ var htmlCells = {
 										return;
 									}
 									make_resp(cb, e);
-									$(document).trigger('click', [e.originalEvent.target]);
+									if(e.originalEvent && e.originalEvent.target){
+										$(document).trigger('click', e.originalEvent.target);
+									}
 									return false;
 								});
 							}
@@ -2811,7 +2845,7 @@ var htmlCells = {
 					break;
 					case 'hasClass':
 						func = function($el, val){
-							if(!$el) return;
+							if(!is_def($el)) return;
 							if(!is_def(val)){
 								val = false;
 							}
