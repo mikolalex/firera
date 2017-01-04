@@ -1366,6 +1366,48 @@ describe('Basic Firera functionality', function () {
 		$root.find('.comment .plus-one').click();
 		assert.equal(c, 3);
 	})
+	it('^^ linking', () => {
+		var $root =  $(".test-comments2");
+		var c = 0;
+		var app = Firera({
+			__root: {
+				'$el': $root,
+				'comments_arr': ['just', [
+						{
+							user: 'Mikolalex',
+							text: 'Nice photo!'
+						},
+						{
+							user: 'geo14tr89',
+							text: '+1'
+						},
+						{
+							user: '2te116',
+							text: 'Like!'
+						},
+				]],
+				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
+				'$template': `
+				.h1
+					"Comments"
+				ul.comments$
+				`
+			},
+			comment: {
+				'|hasClass(active)': ['valMap', '|click', 'other|click'],
+				'$template': `
+				li.comment
+					.user$(font-weight: bold)
+					.text$
+					button.plus-one
+						"+1"
+				`,
+			},
+			$packages: ['ozenfant_new', 'htmlCells']
+		})
+		console.log('^^', app);
+		//$root.find('.comments > *:nth-child(2) .text').click();
+	})
 	it('Form validate example', () => {
 		/*var prop = (a) => {
 			return (b) => {

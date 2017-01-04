@@ -2730,25 +2730,41 @@ var htmlCells = {
 						}
 					break;
 					case 'click':
-						func = function(cb, vals){
-							if(!vals) return;
-							var [$prev_el, $now_el] = vals;
-							if(!$now_el) return;
-							if($now_el === Firera.undef) return;
-							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if($prev_el && $prev_el !== Firera.undef){
-								$prev_el.off('click', selector);
+						if(selector === 'other'){
+							func = function(cb, vals){
+								if(!vals) return;
+								var [$prev_el, $now_el] = vals;
+								if(!$now_el) return;
+								if($now_el === Firera.undef) return;
+								$(document).click(function(e, originalTarget){
+									var is_other = !$.contains($now_el.get()[0], originalTarget);
+									if(is_other){
+										make_resp(cb, true);
+									}
+								})
 							}
-							if($now_el.length === 0){
-								console.warn('Assigning handlers to nothing', $now_el);
-							}
-							$now_el.on('click', selector, (e) => {
-								if(!filter_attr_in_path(e)){
-									return;
+						} else {
+							func = function(cb, vals){
+								if(!vals) return;
+								var [$prev_el, $now_el] = vals;
+								if(!$now_el) return;
+								if($now_el === Firera.undef) return;
+								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+								if($prev_el && $prev_el !== Firera.undef){
+									$prev_el.off('click', selector);
 								}
-								make_resp(cb, e);
-								return false
-							});
+								if($now_el.length === 0){
+									console.warn('Assigning handlers to nothing', $now_el);
+								}
+								$now_el.on('click', selector, (e) => {
+									if(!filter_attr_in_path(e)){
+										return;
+									}
+									make_resp(cb, e);
+									$(document).trigger('click', [e.originalEvent.target]);
+									return false;
+								});
+							}
 						}
 					break;
 					case 'focus':
@@ -2796,6 +2812,9 @@ var htmlCells = {
 					case 'hasClass':
 						func = function($el, val){
 							if(!$el) return;
+							if(!is_def(val)){
+								val = false;
+							}
 							var [classname] = params;
 							$el.toggleClass(classname, val);
 						}
@@ -2869,6 +2888,7 @@ var htmlCells = {
 					parse_fexpr([func, [(a) => {
 						if(!is_def(a)) return $();
 						if(!selector) return a;
+						if(selector === 'other') return a;
 						return a.find(selector)
 								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, get_random_name(), packages);
