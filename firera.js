@@ -2139,6 +2139,32 @@ var core = {
 		}
 	},
 	predicates: {
+		interval: (fs) => {
+			var [interval_ms, flag] = fs;
+			if(flag){
+				return ['asyncClosure', () => {
+					var intervalId;
+					var prev = false;
+					return function(cb, start_stop){
+						if(start_stop === prev){
+							return;
+						}
+						if(Firera.is_def(start_stop) && start_stop){
+							intervalId = setInterval(cb, interval_ms);
+						} else {
+							clearInterval(intervalId);
+						}
+						prev = start_stop;
+					}
+				}, flag]
+			} else {
+				return ['asyncClosure', () => {
+					return function(cb){
+						setInterval(cb, interval_ms);
+					}
+				}]
+			}
+		},
 		toggle: (fs) => {
 			var [cell, def] = fs;
 			return ['closure', () => {

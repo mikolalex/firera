@@ -1419,6 +1419,29 @@ describe('Basic Firera functionality', function () {
 		
 		//$root.find('.comments > *:nth-child(2) .text').click();
 	})
+	it('Timer', (done) => {
+		var c = 0;
+		var app = Firera({
+			__root: {
+				'start_stop': false,
+				'each100ms': ['interval', 100, 'start_stop'],
+				'ololo': [() => {
+					++c;
+				}, 'each100ms'],
+			}
+		})
+		app.set('start_stop', true);
+		setTimeout(() => {
+			app.set('start_stop', false);
+			assert.equal(c >= 4, true);
+			assert.equal(c <= 6, true);
+			var fixed_c = c;
+			setTimeout(() => {
+				assert.equal(c, fixed_c);
+				done();
+			}, 300)
+		}, 500);
+	})
 	it('Form validate example', () => {
 		/*var prop = (a) => {
 			return (b) => {
