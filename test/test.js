@@ -1433,7 +1433,7 @@ describe('Basic Firera functionality', function () {
 		app.set('start_stop', true);
 		setTimeout(() => {
 			app.set('start_stop', false);
-			assert.equal(c >= 4, true);
+			assert.equal(c >= 3, true);
 			assert.equal(c <= 6, true);
 			var fixed_c = c;
 			setTimeout(() => {

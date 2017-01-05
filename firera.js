@@ -104,7 +104,7 @@ var arr_common = _F.arr_common = function(arr1, arr2, cb){
 var arr_deltas = _F.arr_deltas = (old_arr, new_arr) => {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
-	var changed_ones = new_arr.mapFilter((v, k) => {
+	var changed_ones = Arr.mapFilter(new_arr, (v, k) => {
 		if(old_arr[k] !== v && old_arr[k] !== undefined){
 			 return k;
 		}
@@ -176,67 +176,47 @@ window.bm = {
 	}
 }
 
-Object.defineProperty(Object.prototype, 'map', {
-	enumerable: false,
-	writable: true,
-	value: function(func, conf){
+var Obj = {
+	map: function(obj, func, conf){
 		var res = {};
-		var self = this;
 		var exceptions = conf ? conf.except : false;
-		for(let key in self){
+		for(let key in obj){
 			if(exceptions && exceptions.indexOf(key) !== -1){
 				continue;
 			}
-			res[key] = func(this[key], key);
+			res[key] = func(obj[key], key);
 		}
 		return res;
-	}
-});
-Object.defineProperty(Object.prototype, 'each', {
-	enumerable: false,
-    configurable: false,
-	writable: true,
-	value: function(func){
-		for(var key in this){
-			if(func(this[key], key) === false){
+	},
+	each: function(obj, func){
+		for(var key in obj){
+			if(func(obj[key], key) === false){
 				break;
 			}
 		}
-	}
-});
-Object.defineProperty(Object.prototype, 'eachKey', {
-	enumerable: false,
-    configurable: false,
-	writable: true,
-	value: function(func){
-		for(var key in this){
+	},
+	eachKey: function(obj, func){
+		for(var key in obj){
 			if(func(key) === false){
 				break;
 			}
 		}
 	}
-});
-Object.defineProperty(Array.prototype, 'mapFilter', {
-	enumerable: false,
-    configurable: false,
-	writable: true,
-	value: function(func){
+}
+
+var Arr = {
+	mapFilter: function(obj, func){
 		var res = [];
-		for(var key in this){
+		for(var key in obj){
 			var a;
-			if((a = func(this[key], key)) !== undefined){
+			if((a = func(obj[key], key)) !== undefined){
 				res.push(a);
 			}
 		}
 		return res;
-	}
-});
-Object.defineProperty(Array.prototype, 'unique', {
-    enumerable: false,
-    configurable: false,
-    writable: true,
-    value: function() {
-        var a = this.concat();
+	},
+	unique: function(arr) {
+        var a = arr.concat();
         for(var i=0; i<a.length; ++i) {
             for(var j=i+1; j<a.length; ++j) {
                 if(a[i] === a[j])
@@ -245,7 +225,7 @@ Object.defineProperty(Array.prototype, 'unique', {
         }
         return a;
     }
-});
+}
 
 var copy = _F.copy = function(from, to){
 	for(var i in from){
@@ -896,7 +876,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	//////////////////////////
 	//bm.stop('init', '2', id);
 	//bm.start('init', '1', id);
-	this.hashes_to_link.each((hash_name, link_as) => this.linkChild(hash_name, link_as));
+	Obj.each(this.hashes_to_link, (hash_name, link_as) => this.linkChild(hash_name, link_as));
 	// @todo: refactor, make this set in one step
 	//console.log('Setting $init values', this.init_values);
 	//////////////////////////
@@ -981,13 +961,13 @@ Hash.prototype.linkHash = function(cellname, val){
 	var child_id = this.linkChild(hash, cellname, free_vals);
 	if(link1){
 		//console.info('Linking by link1 hash', link1);
-		link1.each((his_cell, my_cell) => {
+		Obj.each(link1, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(this.id, cellname + '/' + his_cell, my_cell);
 		})
 	}
 	if(link2){
 		//console.info('Linking by link2 hash', link2);
-		link2.each((his_cell, my_cell) => {
+		Obj.each(link2, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(child_id, '../' + his_cell, my_cell);
 		})
 	}
@@ -1033,7 +1013,7 @@ Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_cou
 		//console.log('Skipping counting children of async');
 		return;
 	}
-	this.cell_children(cell).eachKey((child_cell_name) => {
+	Obj.eachKey(this.cell_children(cell), (child_cell_name) => {
 		if(!already_counted_cells[child_cell_name]){
 			already_counted_cells[child_cell_name] = true,
 			this.doRecursive(func, child_cell_name, false, cell, Object.create(already_counted_cells));
@@ -1360,7 +1340,7 @@ Hash.prototype.set2 = function(cell, val, child){
 Hash.prototype.force_set = function(cell, val, omit_updating_children){
 	this.set_cell_value(cell, val);
 	if(omit_updating_children) return;
-	this.cell_children(cell).eachKey((child_cell_name) => {
+	Obj.eachKey(this.cell_children(cell), (child_cell_name) => {
 		this.doRecursive(this.compute.bind(this), child_cell_name, false, cell);
 	});
 }
@@ -1378,7 +1358,7 @@ Hash.prototype.all_cell_children = function(cell, arr){
 		return [];
 	}
 	arr = arr || [];
-	this.cell_types[cell].children.eachKey((cl) => {
+	Obj.eachKey(this.cell_types[cell].children, (cl) => {
 		arr.push(cl);
 		this.all_cell_children(cl, arr);
 	});
@@ -1418,10 +1398,10 @@ Hash.prototype.cell_value = function(cell){
 		break;
 		case '$real_values':
 			var res = {};
-			[...(new Set(Object.keys(this.cell_values)
+			Obj.each([...(new Set(Object.keys(this.cell_values)
 						.concat(Object.keys(this.init_values))))].filter((k) => {
 				return k.match(/^(\w|\d|\_|\-)*$/);
-			}).each((k, v) => {
+			}), (k, v) => {
 				res[k] = this.cell_value(k);
 			})
 			return res;
@@ -1458,7 +1438,7 @@ Hash.prototype.set_cell_value = function(cell, val){
 		this.set('*', [cell, val]);
 	}
 	if(this.dynamic_cell_links[cell]){
-		this.dynamic_cell_links[cell].each((links, hash_name) => {
+		Obj.each(this.dynamic_cell_links[cell], (links, hash_name) => {
 			var own = hash_name === '__self';
 			var hsh = own ? this : this.linked_hashes_provider.get(hash_name);
 			//console.log('Updating dynamic cell links for cell', cell, links, hash_name, this.linked_hashes_provider, hsh);
@@ -1506,10 +1486,10 @@ var side_effects = {
 	children: {
 		regexp: /^\$all\_children$/,
 		func: function(__, deltas){
-			if(!deltas || !deltas.eachKey){
+			if(!deltas || !(deltas instanceof Object)){
 				return;
 			}
-			deltas.eachKey((k) => {
+			Obj.eachKey(deltas, (k) => {
 				if(!deltas[k]) return;
 				var [type, key, hashname, free_vals] = deltas[k];
 				switch(type){
@@ -1695,7 +1675,7 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 				case 'nested':
 					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
 					init_if_empty(pool.plain_base, '$init', {});
-					dependent_cells.each((name) => {
+					Obj.each(dependent_cells, (name) => {
 						pool.plain_base.$init[name] = null;
 					})
 					a.splice(2, 1);
@@ -1870,7 +1850,7 @@ var parse_pb = function(res, packages){
 				// its dynamic children
 				parse_fexpr(value, res, '$all_children', packages);
 			} else {
-				value.each((hash_type, link_as) => {
+				Obj.each(value, (hash_type, link_as) => {
 					if(hash_type instanceof Array){
 						key = '$child_' + link_as;
 						//console.log('Child', hash_type, link_as, key);
@@ -1918,7 +1898,7 @@ window.Firera = function(config){
 	var start = performance.now();
 	var app = get_app(config.$packages);
 	// getting real pbs
-	app.cbs = config.map(app.parse_cbs.bind(app), {except: ['$packages']});
+	app.cbs = Obj.map(config, app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
 	if(!app.cbs.__root){
 		// no root hash
@@ -1954,7 +1934,7 @@ var type_map = {
 var get_grid_struct = (grid) => {
 	var cells_1 = Object.keys(grid.cell_types);
 	var cells_2 = Object.keys(grid.cell_values);
-	var cells_3 = cells_1.concat(cells_2).unique();
+	var cells_3 = Arr.unique(cells_1.concat(cells_2));
 	var cells = [];
 	for(let cell of cells_3){
 		let types, type;
@@ -2407,9 +2387,9 @@ var core = {
 				return (cell, chng) => {
 					if(path_cellname(cell) == '$arr_data.changes'){
 						// finding deletion
-						chng.filter((a) => {
+						Obj.each(chng.filter((a) => {
 							return a[0] === 'remove';
-						}).each((a) => {
+						}), (a) => {
 							if(vals[a[1]]){
 								//console.log('Removing one');
 								count--;
@@ -2539,7 +2519,7 @@ var core = {
 				$htmlbindings: ['closure', () => {
 					return ($el, map) => {
 						if(!$el || !map) return;
-						var res = map.map((n, i) => {
+						var res = Obj.map(map, (n, i) => {
 							return get_by_selector(map[i], $el);
 						})
 						return res;
