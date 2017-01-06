@@ -67,7 +67,7 @@ var predefined_functions = {
 	},
 }
 
-var real_cell_name = (str) => str.replace(/^(\:|\-|\=)/, '');
+var real_cell_name = (str) => str.replace(/^(\:|\-|\=|\~)/, '');
 
 var findMatcher = (cellname, packages) => {
 	for(var n in packages.cellMatchers){
@@ -85,15 +85,14 @@ var cell_listening_type = function(str){
 	var m = str.match(/^(\:|\-|\=)/);
 	return [{
 		//':': 'change', 
-		'=': 'skip_same', 
+		'=': 'skip_same',
 		'-': 'passive', 
 		'val': 'normal'
 	}[m ? m[1] : 'val'], str.replace(/^(\:|\-|\=)/, '')];
 }
 
-var get_cell_type = function(cellname, type, func, parents){
+var get_cell_type = function(cellname, type, func, parents, additional_type){
 	//console.log('getting cell type', arguments);
-	
 	var real_cell_types = utils.split_camelcase(type) || [];
 
 	var map = real_cell_types.indexOf('map') !== -1;
@@ -103,7 +102,8 @@ var get_cell_type = function(cellname, type, func, parents){
 	var funnel = real_cell_types.indexOf('funnel') !== -1;
 	var dynamic = real_cell_types.indexOf('dynamic') !== -1;
 	return {
-		type, 
+		type,
+		additional_type,
 		func, 
 		props: {map, closure, async, nested, funnel, dynamic}, 
 		real_cell_name: cellname.replace(/^(\:|\-)/, ''),
@@ -115,13 +115,17 @@ var get_cell_type = function(cellname, type, func, parents){
 
 
 var parse_cell_type = (i, row, pool, children) => {
+	var additional_type;
+	if(i !== get_real_cell_name(i)){
+		additional_type = i[0];
+		i = get_real_cell_name(i);
+	}
 	var cell_types = pool;
 	let type = 'free';
 	if(i === '$children'){
 		return;
 	}
 	if(i === '$init'){
-		//console.log('parsing free variables', pbs[i]);
 		for(var j in row){
 			cell_types[j] = get_cell_type(i, type);
 		}
@@ -142,7 +146,7 @@ var parse_cell_type = (i, row, pool, children) => {
 		type = func;
 		func = parents.shift();
 	}
-	cell_types[i] = get_cell_type(i, type, func, parents);
+	cell_types[i] = get_cell_type(i, type, func, parents, additional_type);
 	for(var j in parents){
 		var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
 		if(listening_type !== 'passive'){
@@ -158,8 +162,12 @@ var parse_cell_types = function(pbs){
 	var cell_types = {};
 	var children = {};
 	//console.log('PBS', pbs);
+	var already = {};
 	for(let i in pbs){
+		let rc = get_real_cell_name(i);
+		if(already[rc]) continue;
 		parse_cell_type(i, pbs[i], cell_types, children);
+		already[rc] = true;
 	}
 	for(let cellname in children){
 		if(!cell_types[cellname]){
@@ -278,7 +286,19 @@ var side_effects = {
 };
 
 var get_real_cell_name = function(str){
-	return str[0] === '-' ? str.slice(1) : str;
+	return(str[0] === '-' 
+		   ? 
+				str.slice(1) 
+		   : 
+				(str[0] === '=' 
+				? 
+					str.slice(1) 
+				: 
+					(str[0] === '~' 
+					? 
+					   str.slice(1) 
+					: 
+					   str)));
 }
 
 var parse_cellname = function(cellname, pool, context, packages, isDynamic){
@@ -359,7 +379,7 @@ var parse_pb = function(res, packages){
 
 var parse_fexpr = function(a, pool, key, packages){
 	var funcstring;
-	//console.log('Parse fexpr', a, key);
+	key = get_real_cell_name(key);
 	if(a instanceof Array){
 		funcstring = parse_arr_funcstring(a, key, pool, packages);
 		if(funcstring === undefined) return;

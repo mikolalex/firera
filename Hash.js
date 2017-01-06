@@ -285,7 +285,6 @@ Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_cou
 
 
 Hash.prototype.compute = function(cell, parent_cell_name){
-	utils.log('compute', cell);
 	var real_cell_name = this.real_cell_name(cell);
 	var val;
 	var props = this.cell_type_props(cell);
@@ -400,9 +399,23 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 			break;
 		}
 	}
-	if(val === Firera.noop){
-		//console.log('skipping update');
+	if(
+		val === Firera.noop
+		||
+		(
+			val === this.cell_value(real_cell_name)
+			&&
+			this.isValue(real_cell_name)
+		)
+	){
 		return Firera.noop;
+	}
+	if(this.isSignal(real_cell_name)){
+		if(!val){
+			return Firera.noop;
+		} else {
+			val = true;
+		}
 	}
 	if(props.async || props.nested){
 		
@@ -637,6 +650,12 @@ Hash.prototype.cell_has_type = function(cell, type){
 }
 Hash.prototype.cell_type_props = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].props : {};
+}
+Hash.prototype.isValue = function(real_cell_name){
+	return this.cell_types[real_cell_name].additional_type === '=';
+}
+Hash.prototype.isSignal = function(real_cell_name){
+	return this.cell_types[real_cell_name].additional_type === '~';
 }
 Hash.prototype.real_cell_name = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};

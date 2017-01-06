@@ -1442,6 +1442,37 @@ describe('Basic Firera functionality', function () {
 			}, 300)
 		}, 500);
 	})
+	it('Signals = ~', () => {
+		var d_counter = 0;
+		var e_counter = 0;
+		var app = Firera({
+			__root: {
+				'a': 10,
+				b: 32,
+				z: 100,
+				'=c': [function(a, b){
+					return a + b;
+				}, 'a', 'b'],
+				'~d': [(c, z) => {
+					++d_counter;
+					return d_counter % 2 === 0;
+				}, 'c', 'z'],
+				e: [(d) => {
+					++e_counter;
+				}, 'd'],
+			}
+		})
+		app.set('a', 10);// same values
+		app.set('b', 32);// same values
+		app.set('b', 33);
+		app.set('b', 34);
+		app.set('b', 34);
+		app.set('b', 35);
+		app.set('b', 34);
+		app.set('b', 35);
+		assert.equal(d_counter, 6);
+		assert.equal(e_counter, 3);
+	})
 	it('Form validate example', () => {
 		/*var prop = (a) => {
 			return (b) => {
