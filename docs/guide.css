@@ -3,6 +3,10 @@ body {
 	font-family: sans-serif;
 	font-family: 'ProbaPro-Regular';
 }
+
+* {
+	box-sizing: border-box;
+}
  
 @font-face {font-family: 'ProbaPro-Regular';src: url('webfonts/2C7715_0_0.eot');src: url('webfonts/2C7715_0_0.eot?#iefix') format('embedded-opentype'),url('webfonts/2C7715_0_0.woff2') format('woff2'),url('webfonts/2C7715_0_0.woff') format('woff'),url('webfonts/2C7715_0_0.ttf') format('truetype');}
 
@@ -31,4 +35,66 @@ code {
 .tbl td {
 	padding: 10px;
 	border: 1px solid grey;
+}
+
+.doc-root {
+	max-width: 1000px;
+	margin: auto;
+}
+
+.doc-root > * {
+	border-style: solid;
+    border-width: 35px 10px 20px 80px;
+    padding: 50px 70px 40px 30px;
+    text-align: justify;
+    border-color: rgb(42, 186, 255);
+    margin: 5px;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+	text-align: center;
+}
+
+hr {
+    height: 1px;
+    border: none;
+    border-top: 2px solid rgb(75, 75, 75);
+    border-bottom: 1px solid rgb(75, 75, 75);
+    margin: 40px 70px;
+}
+
+.one {
+	clear: left;
+	padding-bottom: 6em;
+}
+
+.one > * {
+	text-align: left;
+}
+
+.one > *:nth-child(1) {
+	font-size: 1.2em;
+}
+
+.one > *:nth-child(2) {
+	margin-top: 2em;
+}
+
+dt::before {
+	content: '<';
+}
+dt::after {
+	content: '>';
+}
+
+dt {
+	display: inline;
+	color: grey;
+	padding-right: 5px;
+	font-style: italic;
+}
+
+mn {
+	font-weight: bold;
 }

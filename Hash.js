@@ -161,7 +161,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 }
 
 Hash.prototype.changesFinished = function(){
-	this.app.changeFinished();
+	this.app._changeFinished();
 }
 
 Hash.prototype.initIfSideEffectCell = function(cell){

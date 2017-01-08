@@ -116,7 +116,7 @@ App.prototype.onChangeFinished = function(cb){
 	}
 	this.onChangeFinishedStack.push(cb);
 }
-App.prototype.changeFinished = function(){
+App.prototype._changeFinished = function(){
 	if(this.onChangeFinishedStack){
 		for(let cb of this.onChangeFinishedStack){
 			cb();
