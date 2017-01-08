@@ -1473,6 +1473,23 @@ describe('Basic Firera functionality', function () {
 		assert.equal(d_counter, 6);
 		assert.equal(e_counter, 3);
 	})
+	it('* subtree', () => {
+		var app = Firera({
+			__root: {
+				a: 10,
+				b: 32,
+				c: [(a, b) => {
+					console.log('Something', a, b);
+					return 10;
+				}, '*', '-a'],
+				d: [(a) => {
+						console.log('set D', a);
+						return a + 100;
+				}, 'c']
+			}
+		})
+		app.set('a', 20);
+	})
 	it('Form validate example', () => {
 		/*var prop = (a) => {
 			return (b) => {

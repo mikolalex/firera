@@ -123,16 +123,9 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	this.dirtyCounter = {};
 	this.dynamic_cell_links = {};
 	this.dynamic_cells_props = {};
-	if(this.cell_types['*']){
-		/*var omit_list = this.all_cell_children('*');
-		for(let cell in this.cell_types){
-			if(omit_list.indexOf(cell) === -1 && can_be_set_to_html(cell, this.app)){
-				add_dynamic_link(this.dynamic_cell_links, cell, '__self', '*', '');
-			}
-		}*/
-	}
 	this.cell_values = Object.assign({}, this.plain_base.$init || {});
 	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
+	this.asterisk_omit_list = this.all_cell_children('*');
 	//////////////////////////
 	//bm.stop('init', '2', id);
 	//bm.start('init', '1', id);
@@ -704,8 +697,7 @@ Hash.prototype.set_cell_value = function(cell, val){
 		//console.log('Child', real_cell_name, 'val is', val);
 	}
 	//if(cell === 'text' || cell === '*') console.log('Set cell value', cell, val, this.dynamic_cell_links[cell]);
-	var omit_list = this.all_cell_children('*');
-	if(this.cell_types['*'] && cell !== '*' && omit_list.indexOf(cell) === -1){
+	if(this.cell_types['*'] && cell !== '*' && this.asterisk_omit_list.indexOf(cell) === -1){
 		this.set('*', [cell, val]);
 	}
 	if(this.dynamic_cell_links[cell]){
