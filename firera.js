@@ -122,6 +122,6 @@ Firera.loadPackage(core);
 Firera.loadPackage(che_package);
 Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, neu_ozenfant, che: che_package};
 Firera.func_test_export = {parse_pb: Parser.parse_pb, parse_fexpr: Parser.parse_fexpr};
-Firera._F = utils;
+Firera._ = utils;
 
 module.exports = Firera;

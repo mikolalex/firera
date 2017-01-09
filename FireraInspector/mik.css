@@ -45,6 +45,33 @@
 				min-height: 1.7em;
 			}
 			
+			.typef {
+				color: grey;
+				text-transform: uppercase;
+				font-size: 0.8em;
+			}
+			
+			.cell:hover .parents_list {
+				display: block;
+			}
+			
+			.parents_list {
+				display: none;
+			}
+			
+			.warn::before {
+				content: '!';
+				border: 1px solid black;
+				margin: 3px;
+				padding: 0px 2px;
+				background-color: yellow;
+				border-radius: 3px;
+				font-size: 0.8em;
+			}
+			.warn {
+				padding: 2px;
+			}
+			
 			
 			[data-type] h3 {
 				float: right;

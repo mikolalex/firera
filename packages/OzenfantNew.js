@@ -269,12 +269,23 @@ var ozenfant_new = {
 			}
 		}, '$template', '-$path', '-$app_id', '-$real_values', '-$el'],
 		'$ozenfant.list_render': [
-			(_, path, app_id) => {
-				var parent = get_parent_path(path)[1];
-				var tree = get_tree(app_id);
-				if(tree.bindings[parent]){
-						tree.render(parent);
-				}				
+				(new_children, path, app_id) => {
+					var skip = true;
+					for(var c of new_children){
+						if(c[0] === 'add' || c[0] === 'remove'){
+							skip = false;
+							break;
+						}
+					}
+					if(skip){
+						//console.log('SKIP LIST RENDER', children);
+						return;
+					}
+					var parent = get_parent_path(path)[1];
+					var tree = get_tree(app_id);
+					if(tree.bindings[parent]){
+							tree.render(parent);
+					}	
 			}, 
 			'$all_children', '-$path', '-$app_id'],
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {

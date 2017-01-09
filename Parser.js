@@ -17,7 +17,7 @@ var get_random_name = (function(){
 	// temp solution for Symbol
 	var c = 1;
 	return function(){
-		return 'ololo123321@@@_' + (++c);
+		return '@@@_' + (++c);
 	}
 })()
 
@@ -274,7 +274,7 @@ var side_effects = {
 						this.linkHash(key, [hashname, null, null, free_vals]);
 					break;
 					case 'change':
-						this.updateChildFreeValues(key, free_vals);
+						this.updateChildFreeValues(key, free_vals, true);
 					break;
 					default:
 						throw new Error('Unknown action: ' + type);

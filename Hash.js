@@ -35,8 +35,8 @@ var create_provider = (app, self) => {
 			self.app.hashes[id].set('$remove', true);
 			delete self.app.hashes[id];
 		},
-		setCellValues: function(childName, values){
-			this.get(childName).set(values);
+		setCellValues: function(childName, values, skipsame){
+			this.get(childName).set(values, false, false, false, skipsame);
 		},
 		initChild: function(name){
 			if(!this.get(name).init){
@@ -186,8 +186,8 @@ Hash.prototype.init = function(){
 	}
 	this.set(this.init_values);
 }
-Hash.prototype.updateChildFreeValues = function(childName, values){
-	this.linked_hashes_provider.setCellValues(childName, values);
+Hash.prototype.updateChildFreeValues = function(childName, values, skipsame){
+	this.linked_hashes_provider.setCellValues(childName, values, skipsame);
 }
 
 Hash.prototype.initLinkChain = function(link){
@@ -243,10 +243,6 @@ Hash.prototype.linkChild = function(type, link_as, free_vals){
 	var id = this.linked_hashes_provider.create(this, type, link_as, free_vals);
 	this.linked_hashes_provider.initChild(link_as);
 	return id;
-}
-
-Hash.prototype.cellExists = function(cellname){
-	return this.cell_types[cellname] !== undefined;
 }
 
 Hash.prototype.unlinkChild = function(link_as){
@@ -525,7 +521,14 @@ Hash.prototype.updateTree = function(cells, no_args = false, compute = false){
 	}
 }
 
-Hash.prototype.set = function(cells, val, child, no_args){
+Hash.prototype.cellExists = function(cn){
+	cn = Parser.get_real_cell_name(cn);
+	return this.cell_values.hasOwnProperty(cn) 
+			|| (this.cell_types.hasOwnProperty(cn) && this.cell_types[cn].type !== 'fake')
+			|| (this.fake_cells.indexOf(cn) !== -1);
+} 
+
+Hash.prototype.set = function(cells, val, child, no_args, skipsame){
 	if(child){
 		// setting value for some linked child hash
 		var path = child.split('/');
@@ -543,6 +546,19 @@ Hash.prototype.set = function(cells, val, child, no_args){
 		var a = {};
 		a[cells] = val;
 		cells = a;
+	}
+	if(skipsame){
+		//console.log('SLI{DAME');
+		var res = {};
+		for(var cellname in cells){
+			if(this.cell_value(cellname) === cells[cellname]){
+				// skip
+				//console.log('skip', cellname, cells[cellname]);
+			} else {
+				res[cellname] = cells[cellname];
+			}
+		}
+		cells = res;
 	}
 	this.updateTree(cells, no_args);
 } 
@@ -653,6 +669,7 @@ Hash.prototype.isSignal = function(real_cell_name){
 Hash.prototype.real_cell_name = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
 }
+Hash.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '$name'];
 Hash.prototype.cell_value = function(cell){
 	switch(cell){
 		case '$real_keys':

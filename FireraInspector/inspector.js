@@ -106,6 +106,7 @@ var obj_or_scalar_template = prep(`
 .level
 	span.name$(font-weight: bold)
 	.(display: inline-block)
+			span.typef$
 			? $isNumber
 				? $isEditing
 					text.number(value: $val)
@@ -131,6 +132,8 @@ var obj_or_scalar_template = prep(`
 					""
 			:
 				span.val$
+	.parents_list$
+	.wrong_link_messages$
 `);
 var eq = (a) => {
 	return (b) => {
@@ -142,6 +145,8 @@ var iof = (a) => {
 		return b instanceof a;
 	}
 }
+var toString = (a) => a.toString();
+
 var app_struct_devtool = {
 	__root: {
 		$el: $("#content-devtool"),
@@ -206,7 +211,7 @@ var app_struct_devtool = {
 							.obj$
 			`),
 			$child_obj: [() => {  
-					return ['obj_or_scalar', {}, {val: 'val'}]
+					return ['obj_or_scalar', {}, {val: 'val', parents: 'parents', wrong_links: 'wrong_links'}]
 			}, 'val'],
 			f_path: ['../f_path'],
 	},
@@ -234,9 +239,32 @@ var app_struct_devtool = {
 			'set_new_val': [(a, b, c) => {
 					return [a, b, c];
 			}, 'new_val', '-f_path', '-cellname'],
+			'typef': [(a) => {
+					var b = typeof a;
+					if(a === null){
+						b = 'null';
+					}
+					if(a === undefined){
+						b = 'undefined';
+					}
+					return b;
+			}, 'val'],
+			parents_list: [
+				(a) => { 
+					return toString(a).split(',').join(' ');
+				},
+				'parents'
+			],
 			'isObj': [iof(Object), 'val'],
 			'isString': [eq('string'), 'type'],
 			'isNumber': [eq('number'), 'type'],
+			'wrong_link_messages': [(wl) => {
+				var htmls = Firera._.Obj.map(wl, (v, k) => {
+					return '<div class="warn">' + k + '</div>';
+				})
+				var res = Firera._.Obj.join(htmls, '');
+				return res;
+			}, 'wrong_links'],
 			'type': [typf, 'val'],
 			'$child_keys': ['list', {
 				self: {

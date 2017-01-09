@@ -20,7 +20,7 @@ and open the template in the editor.
 		<script src="inspector.js"></script>
 		<script>
 		$(function(){
-				var _F = Firera._F;
+				var _F = Firera._;
 				var make_changes = () => {
 						type('Do something useful');
 						enter();
@@ -35,12 +35,16 @@ and open the template in the editor.
 						$root.find('ul > *:nth-child(1) .complete').click();
 						$root.find('.clear-completed').click();
 						$root.find('.clear-completed').click();
+						$root.find('ul > *:nth-child(1) .complete').click();
 				}
 				window.set_data = () => {
 						var dt = [Firera.getAppStruct()[0]];
-						timer('start');
+						//timer('start');
+						var a = performance.now();
 						app_devtool.set('data', dt);
-						timer('finish');
+						var b = performance.now();
+						//timer('finish');
+						console.log('total', b-a);
 				}
 				
 				var app = Firera(app_struct);

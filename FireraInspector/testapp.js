@@ -121,7 +121,7 @@ var app_struct = {
 		'|visibility': ['!=', '../display', 'complete'],
 		'|hasClass(completed)': ['complete'],
 		$template: todo_template,
-		complete: ['.complete|click'],
+		complete: ['toggle', '.complete|click', false],
 		'c': ['+', 'a', 'b']
 	},
 	$packages: ['ozenfant_new', 'htmlCells']

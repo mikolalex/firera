@@ -190,6 +190,13 @@ var Obj = _F.Obj = {
 			}
 		}
 	},
+	join: function(obj, glue){
+		var res = [];
+		for(var key in obj){
+			res.push(obj[key]);
+		}
+		return res.join(glue);
+	},
 	eachKey: function(obj, func){
 		for(var key in obj){
 			if(func(key) === false){

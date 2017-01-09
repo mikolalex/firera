@@ -43,9 +43,18 @@ var get_grid_struct = (grid) => {
 			console.log('unmapped type!', type);
 		}
 		type = type_map[type];
+		var parents = grid.cell_parents(cell);
+		var wrong_links = {};
+		for(let cn of parents){
+			if(!grid.cellExists(cn)){
+				wrong_links[cn] = true;
+			}
+		}
 		var obj = {
 			name: cell,
 			val: grid.cell_values[cell],
+			parents,
+			wrong_links,
 			type,
 			props,
 		};
