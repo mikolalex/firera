@@ -15,6 +15,7 @@ and open the template in the editor.
 				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>-->
 		</head>
 		<body>
+				<br><br><br>
 				<div class="doc-root">
 						<div>
 								<h1>
@@ -29,7 +30,7 @@ and open the template in the editor.
 						</div>
 						<div>
 								<h2>Firera methods</h2>
-								
+								<div class="hiddenlink">Firera</div>
 								<div class="one">
 										<div>
 												<mn>Firera</mn>( <dt>Object</dt>plainBase)
@@ -38,6 +39,7 @@ and open the template in the editor.
 												Instanciates and returns Firera application.
 										</div>
 								</div>
+								<div class="hiddenlink">Firera.loadPackage</div>
 								<div class="one">
 										<div>
 												<mn>Firera.loadPackage</mn>( <dt>String</dt>packageName | <dt>Object</dt>package)
@@ -46,6 +48,7 @@ and open the template in the editor.
 												Loads a package. It becomes globally available to all Firera apps on page.
 										</div>
 								</div>
+								<div class="hiddenlink">Firera.join</div>
 								<div class="one">
 										<div>
 												<mn>Firera.join</mn>( <dt>Object</dt>plainBase1, <dt>Object</dt>plainBase2[, <dt>Object</dt>plainBase2, ...])
@@ -56,6 +59,377 @@ and open the template in the editor.
 								</div>
 								
 						</div>
+						<div>
+								<h2>Firera cell dependency types</h2>
+								<div class="hiddenlink">default</div>
+								<div class="one">
+										<div><mn>Default</mn></div>
+										<div>
+												When one of the argument changes, all the arugments' values are gathered and passed to formula.
+												It's a default type, so you don't need to put it to the beginning of F-expression.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	bar: 20,
+	res: [(a, b) => {
+		return a + b;
+	}, 'foo', 'bar'],
+}});
+app.get('res'); // 30
+app.set('bar', 100);
+app.get('res'); // 110
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">funnel</div>
+								<div class="one">
+										<div><mn>Funnel</mn></div>
+										<div>
+												When one of the argument changes, it's name and values is passed to formula.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	bar: 20,
+	baz: 40,
+	res: ['funnel', (cellname, value) => {
+		console.log('Cell', cellname, 'changed to', value);
+		return value + 10;
+	}, 'foo', 'bar', 'baz'],
+}});
+app.get('res'); // Firera.undef
+app.set('bar', 100);
+// 'Cell bar changed to 100'
+app.get('res'); // 110
+
+app.set('foo', 42);
+// 'Cell foo changed to 42'
+app.get('res'); // 52
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">closure</div>
+								<div class="one">
+										<div><mn>Closure</mn></div>
+										<div>
+												When an instance of Firera.Grid is created, a formula is run and the value it returns become a real formula.
+												The main advantage is you can create and use closure variables of the first function.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	total_sum: ['closure', () => {
+		// This function will be run once - on creating each F.Grid
+		var sum = 0;
+		var counter = 0;
+		return (a) => {
+			// this function will become an actual formula for cell 'total_sum'
+			sum += a;
+			console.log('running for the ' + counter + ' time');
+			counter++;
+			return sum;
+		}
+	}, 'foo']
+}});
+// 'running for the 0 time'
+app.get('total_sum'); // 10
+
+app.set('foo', 100);
+// 'running for the 1 time'
+app.get('total_sum'); // 110
+
+app.set('foo', -40);
+// 'running for the 2 time'
+app.get('total_sum'); // 70
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">closure</div>
+								<div class="one">
+										<div><mn>Async</mn></div>
+										<div>
+											This type should be used when your formula is asynchronous.
+											First argument for formula is a callback function, used to yield a result.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	factorial: ['async', (cb, value) => {
+		$.get('/calc_factorial?num=' + value, function(data){
+			// here we return the value of "factorial" cell by 
+			// calling callback function "cb"
+			cb(data);
+		}
+	}, 'foo']
+}});
+app.set('foo', 5);
+app.get('factorial'); // Firera.undef
+
+// let's wait for some time...
+setTimeout(() => {
+		app.get('factorial); // 120
+}, 1000); 
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">nested</div>
+								<div class="one">
+										<div><mn>Nested</mn></div>
+										<div>
+											Similar to async, but you can also specify a "subcell" which you want to put your value in.
+										</div>
+										<div>
+<code>
+var collect_nums = () => {
+	var arr = [];
+	return (a) => {
+		arr.push(a);
+		return a;
+	}
+}
+var app = Firera({__root: {
+	foo: 10,
+	nums: ['nested', (cb, value) => {
+		if(value%2){
+			cb('odd', value);
+		} else {
+			cb('even', value);
+		}
+	}, 'foo'],
+	odd: ['closure', collect_nums, 'nums.odd'],
+	even: ['closure', collect_nums, 'nums.even'],
+}});
+app.get('odd'); // []
+app.get('even'); // [10]
+
+app.set('foo', 5);
+app.get('odd'); // [5]
+app.get('even'); // [10]
+
+app.set('foo', 7);
+app.get('odd'); // [5, 7]
+app.get('even'); // [10]
+
+</code>
+Plase note that in this case you CANNOT subscribe to very "nums" cell, but only is subcells.
+										</div>
+								</div>
+								<div class="hiddenlink">dynamic</div>
+								<div class="one">
+										<div><mn>Dynamic</mn></div>
+										<div>
+											A side-effect type: a formula should return F-expression which is used for computing cell value
+										</div>
+										<div>
+<code>
+
+var app = Firera({__root: {
+	a1: 10,
+	a2: 20,
+	a3: 45,
+	b1: -1,
+	b2: 9,
+	b3: 3,
+	flag: 'a',
+	val: ['dynamic', (letter) => {
+		return [(a, b, c) => {
+			//console.log('computing sum');
+			return a + b + c;
+		}, letter + '1', letter + '2', letter + '3']
+	}, 'flag']
+}})
+app.get('val'); // 75
+
+app.set('a1', 12);
+app.get('val'); // 77
+
+app.set('flag', 'b');
+app.get('val'); // 11
+
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">Cell types compatibility</div>
+								<div class="one">
+										<div><mn>Cell types compatibility</mn></div>
+										<div>
+											Some of the cell types can be combined together, some cannot.
+											For example, you cannot combine default type and funnel, because they are actual opposites.
+											But you can use closureFunnel or even asyncClosureFunnel aggregation.
+										</div>
+										<div>
+												<table class="cooltable">
+														<tr>
+																<td>
+																		
+																</td>
+																<td>
+																		Default
+																</td>
+																<td>
+																		Funnel
+																</td>
+																<td>
+																		Closure
+																</td>
+																<td>
+																		Async
+																</td>
+																<td>
+																		Nested
+																</td>
+																<td>
+																		Dynamic
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Default
+																</td>
+																<td class="empty">
+																		
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		+
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Funnel
+																</td>
+																<td>
+																		-
+																</td>
+																<td class="empty">
+																		
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Closure
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		+
+																</td>
+																<td class="empty">
+																		
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Async
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td class="empty">
+																		
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		+
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Nested
+																</td>
+																<td>
+																		-
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		-
+																</td>
+																<td class="empty">
+																		
+																</td>
+																<td>
+																		+
+																</td>
+														</tr>
+														<tr>
+																<td>
+																		Dynamic
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td>
+																		+
+																</td>
+																<td class="empty">
+																		
+																</td>
+														</tr>
+												</table>
+										</div>
+								</div>
+						</div>
 				</div>
+				<br><br><br><br><br><br>
 		</body>
 </html>

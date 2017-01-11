@@ -98,3 +98,24 @@ dt {
 mn {
 	font-weight: bold;
 }
+
+.hiddenlink {
+	display: none;
+}
+
+.cooltable {
+	margin: 3em;
+}
+
+.cooltable td {
+    padding: 0.5em;
+    border: 1px solid grey;
+    text-align: center;
+    font-size: 1.4em;
+}
+.cooltable td:first-child {
+	background-color: whitesmoke;
+}
+.cooltable td.empty {
+	background-color: grey;
+}
