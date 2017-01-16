@@ -36,7 +36,7 @@ and open the template in the editor.
 												<mn>Firera</mn>( <dt>Object</dt>plainBase)
 										</div>
 										<div>
-												Instanciates and returns Firera application.
+												Creates and returns an instance of Firera.App.
 										</div>
 								</div>
 								<div class="hiddenlink">Firera.loadPackage</div>
@@ -55,6 +55,82 @@ and open the template in the editor.
 										</div>
 										<div>
 												Static method. Merges two or more plainBase objects into one. Wise merge for some keys(e.g. $packages arrays will we merged in one)
+										</div>
+								</div>
+								
+						</div>
+						<div>
+								<h2>Firera.App</h2>
+								<div class="hiddenlink">loadPackage</div>
+								<div class="one">
+										<div>
+												<mn>app.loadPackage</mn>( <dt>Object</dt>plainBase)
+										</div>
+										<div>
+												Loads a package to particular app instance.
+										</div>
+								</div>
+								<div class="hiddenlink">get</div>
+								<div class="one">
+										<div>
+												<mn>app.get</mn>( <dt>String</dt>cellname[, <dt>String</dt>path])
+										</div>
+										<div>
+												Returns a value of particular cell.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	$child_bar: {
+		a: 10,
+		b: 20,
+		c: [(n, m) => n + m, 'a', 'b'],
+		$child_baz: {
+			a1: 10,
+			b1: 32,
+		}
+	},
+}});
+app.get('foo'); // 10
+app.get('c'); // Firera.undef
+app.get('c', 'bar'); // 30
+app.get('a1', 'bar/baz'); // 10
+</code>
+										</div>
+								</div>
+								<div class="hiddenlink">set</div>
+								<div class="one">
+										<div>
+												<mn>app.set</mn>( <dt>String</dt>cellname, <dt>Mixed</dt>value[, <dt>String</dt>path])
+										</div>
+										<div>
+												Sets a value of particular cell.
+										</div>
+										<div>
+<code>
+var app = Firera({__root: {
+	foo: 10,
+	$child_bar: {
+		a: 10,
+		b: 20,
+		c: [(n, m) => n + m, 'a', 'b'],
+		$child_baz: {
+			a1: 10,
+			b1: 32,
+		}
+	},
+}});
+app.set('foo', 20);
+
+app.set('a', 20, 'bar');
+app.get('c', 'bar'); // 40
+
+app.set('a', '20', 'bar');
+app.get('c', 'bar'); // '2020'
+
+app.set('a1', 100, 'bar/baz');
+</code>
 										</div>
 								</div>
 								
@@ -399,7 +475,7 @@ app.get('val'); // 11
 																		
 																</td>
 																<td>
-																		+
+																		-
 																</td>
 														</tr>
 														<tr>
@@ -419,7 +495,7 @@ app.get('val'); // 11
 																		+
 																</td>
 																<td>
-																		+
+																		-
 																</td>
 																<td class="empty">
 																		

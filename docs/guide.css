@@ -57,7 +57,7 @@ h1, h2, h3 {
 }
 
 hr {
-    height: 1px;
+    height: 4px;
     border: none;
     border-top: 2px solid rgb(75, 75, 75);
     border-bottom: 1px solid rgb(75, 75, 75);
