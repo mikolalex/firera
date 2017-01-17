@@ -134,7 +134,7 @@ App.prototype._changeFinished = function(){
 }
 
 App.prototype.get = function(cell, path){
-	if(path[0] === '/') path = path.substr(1);
+	if(path && path[0] === '/') path = path.substr(1);
 	return this.root.get(cell, path);
 }
 App.prototype.getStruct = function(){

@@ -167,6 +167,31 @@ module.exports = {
 		equal: (fs) => {
 			return [(a, b) => a === b].concat(fs);
 		},
+		'+': (fs) => {
+			return [(a, b) => {
+					return Number(a) + Number(b)
+			}].concat(fs);
+		},
+		'-': (fs) => {
+			return [(a, b) => {
+					return a - b;
+			}].concat(fs);
+		},
+		'*': (fs) => {
+			return [(a, b) => {
+					return a * b;
+			}].concat(fs);
+		},
+		'/': (fs) => {
+			return [(a, b) => {
+					return a / b;
+			}].concat(fs);
+		},
+		'%': (fs) => {
+			return [(a, b) => {
+					return a % b;
+			}].concat(fs);
+		},
 		accum: (funcstring) => {
 			return ['closure', () => {
 				var arr = [];

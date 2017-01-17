@@ -511,30 +511,123 @@ console.log(app.get('name', '/crane/2')); // 'Buska'
 		Однак ізольовані гріди, навіть вкладені один в оден, мало що нам дадуть. Потрібен механізм зв"язку, щоб дані могли циркулювати між ними.
 		<code>
 var app = Firera({__root: {
-	foo: 10,
+	multiplier: 10,
+	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: {
 		width: 40,
 		height: 120,
-		weight: [(w, h) => {
-			return (w+h)/10;
-		}, 'width', 'height'],
-		$child_1: {
-			name: 'Busol',
-			gender: 'male',
-		},
-		$child_2: {
-			name: 'Buska',
-			gender: 'female',
-		},
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '../multiplier']
 	},
-	heron: {
-		b: 10,
-		c: 40,
+	$child_crane_2: {
+		width: 50,
+		height: 80,
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '/multiplier']
 	},
 }});
-console.log(app.get('name', '/crane/1')); // 'Busol'
-console.log(app.get('name', '/crane/2')); // 'Buska'
+console.log(app.get('weight', '/crane_1')); // 16
+console.log(app.get('first_crane_weight')); // 16
+console.log(app.get('weight', '/crane_2')); // 13
 </code>
+		Тут представлено кілька способів лінкінга комірок між різними грідами.
+		Наприклад, комірка '../multiplier' звертається до батьківського гріда. Така адресація схожа на ту, що застосовується у файловій системі, але вона має деякі відмінності і обмеження!(про це нижче)
+		А тут ми звртаємось до комірки вкладеного гріда:
+<code>
+	first_crane_weight: ['crane_1/weight'],
+</code>
+		Питання - чому ми написали ['crane_1/weight'], а не просто 'crane_1/weight'? Тому що все, окрім масиву, буде розцінено як статичне значення. Тобто, якби ми написали 
+<code>
+	first_crane_weight: 'crane_1/weight',
+</code>
+		то значенням комірки first_crane_weight була би СТРОЧКА 'crane_1/weight'. В нашому випадку, ми хочемо, щоб значення бралось із іншої комірки.
+		В другому вкладеному гріді ми використовуємо адресацію "від кореня": '/multiplier'. Слеш на початку означає відлік від кореневого гріда.
+		Окрім цього, існує синтаксис для лінкінга комірок з усіх вкладених або усіх батьківських грідів.
+		<code>
+'any_click_in_children': ['*/some_click'], // слухаємо значенням комірок some_click 
+					// із усіх вкладених грідів-безпосередніх дітей
+'any_click_inside': ['**/some_click'], // слухаємо значенням комірок some_click 
+					// із усіх вкладених грідів якої завгодно глибини
+'any_click_upper': ['^^/some_click'], // слухаємо значенням комірок some_click 
+					// із усього ланцюжка батьківських грідів
+		</code>
+		Однак, для того щоб ви, використовуючи лінкінг комірок, не приготували смачне спагетті, існує обмеження - <b>не більше одного слеша в адресі</b>.
+		Тобто, не можна писати ось так: ../../a, ../foo/b і т.п. Якщо вам дуже хочеться це зробити, подумайте, а чи все добре із структурою вашого застосунку?..
+		</div>
+		<div>
+		<h2>
+				Списки
+		</h2>
+		
+		Як ви, мабуть, помітили, наш попередній приклад із двома журавлями дещо порушує принцип DRY - там повторюється багато коду.
+		Перший і другий вкладені гріди відрізняються тільки статичними даними, структура ж їх динамічних комірок однакова.
+		Ми можемо трохи спростити цей вираз:
+<code>
+var crane = {
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '../multiplier']
+}
+var cranes = [
+	{
+		width: 40,
+		height: 120,
+	},
+	{
+		width: 50,
+		height: 80,
+	},
+]
+var app = Firera({__root: {
+	multiplier: 10,
+	first_crane_weight: ['crane_1/weight'],
+	$child_crane_1: Object.assign({}, cranes[0], crane),
+	$child_crane_1: Object.assign({}, cranes[1], crane),
+}});
+</code>
+		Уже вимальовується розрінення двох складових: структури і даних.
+		Структура для обох грідів однакова, а дані різняться.
+		Припустимо, нам хочеться створити наперед невідому кількість вкладених грідів типу crane, в залежності від масиву вхідних даних.
+		Для цього існує конструкція "список".
+<code>
+var cranes = [
+	{
+		width: 40,
+		height: 120,
+	},
+	{
+		width: 50,
+		height: 80,
+	},
+	{
+		width: 70,
+		height: 160,
+	},
+]
+var app = Firera({
+	__root: {
+		multiplier: 10,
+		first_crane_weight: ['crane_1/weight'],
+		$child_cranes: ['list', {
+			type: 'crane',
+			data: cranes, 
+		}]
+	},
+	crane: {
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '^^/multiplier']
+	}
+});
+
+console.log(app.get('weight', '/cranes/0'); // 16
+console.log(app.get('weight', '/cranes/1'); // 13
+console.log(app.get('weight', '/cranes/2'); // 23
+</code>
+					
+					
 			</div>
 		</div>
 			<script>
