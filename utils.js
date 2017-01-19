@@ -81,6 +81,16 @@ var arr_remove = _F.arr_remove = (arr, el) => {
 	}
 }
 
+var sh_copy = _F.sh_copy = (obj) => {
+	var res = obj instanceof Array ? [] : {};
+	for(var i in obj){
+		if(obj.hasOwnProperty(i)){
+			res[i] = obj[i];
+		}
+	}
+	return res;
+}
+
 var arr_different = _F.arr_different = function(arr1, arr2, cb){
 	for(var i in arr1){
 		if(arr2[i] === undefined){

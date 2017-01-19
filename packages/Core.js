@@ -47,7 +47,7 @@ var get_arr_changes = () => {
 		utils.arr_common(arr, new_arr, (key) => {
 			changes.push(['change', map[key], new_arr[key]]);
 		})
-		arr = new_arr;
+		arr = utils.sh_copy(new_arr);
 		return changes;
 	}
 }
