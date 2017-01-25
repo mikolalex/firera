@@ -2,13 +2,12 @@ var utils = require('./utils');
 var Obj = utils.Obj;
 var Arr = utils.Arr;
 
-var system_predicates = new Set([
+var system_macros = new Set([
 	'is',
 	'async',
 	'closure',
 	'funnel',
 	'map',
-	'hash',
 	'dynamic',
 	'nested'
 ]);
@@ -184,8 +183,8 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 	var funcstring;
 	a = a.slice();
 	var funcname = a[0];
-	if(packages.predicates.hasOwnProperty(funcname)){
-		a = packages.predicates[funcname](a.slice(1));
+	if(packages.macros.hasOwnProperty(funcname)){
+		a = packages.macros[funcname](a.slice(1));
 		funcname = a[0];
 		a = a.slice();
 	}
@@ -199,7 +198,7 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 		if(funcname instanceof Function){
 			// it's "is" be default
 			funcstring = ['is'].concat(a);
-		} else if(system_predicates.has(cc[0])){
+		} else if(system_macros.has(cc[0])){
 			switch(funcname){
 				case 'nested':
 					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
@@ -248,7 +247,7 @@ var side_effects = {
 	'child': {
 		func: function(cellname, val, type){
 			if(val){
-				this.linkHash(cellname, val);
+				this.linkGrid(cellname, val);
 			}
 			if(val === false) {
 				var link_as = cellname.replace('$child_', '');
@@ -265,13 +264,13 @@ var side_effects = {
 			}
 			Obj.eachKey(deltas, (k) => {
 				if(!deltas[k]) return;
-				var [type, key, hashname, free_vals] = deltas[k];
+				var [type, key, gridname, free_vals] = deltas[k];
 				switch(type){
 					case 'remove':
 						this.unlinkChild(key);
 					break;
 					case 'add':
-						this.linkHash(key, [hashname, null, null, free_vals]);
+						this.linkGrid(key, [gridname, null, null, free_vals]);
 					break;
 					case 'change':
 						this.updateChildFreeValues(key, free_vals, true);
@@ -304,7 +303,7 @@ var get_real_cell_name = function(str){
 var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
 		//console.log('Found cellname', cellname);
-		// it's a path - link to other hashes
+		// it's a path - link to other grids
 		var path = cellname.split('/');
 		//console.log('Found', cellname, 'in', pool);
 		if(!pool.initLinkChain){
@@ -342,26 +341,26 @@ var parse_pb = function(res, packages){
 				// its dynamic children
 				parse_fexpr(value, res, '$all_children', packages);
 			} else {
-				Obj.each(value, (hash_type, link_as) => {
-					if(hash_type instanceof Array){
+				Obj.each(value, (grid_type, link_as) => {
+					if(grid_type instanceof Array){
 						key = '$child_' + link_as;
-						//console.log('Child', hash_type, link_as, key);
-						parse_fexpr(hash_type, res, key, packages);
+						//console.log('Child', grid_type, link_as, key);
+						parse_fexpr(grid_type, res, key, packages);
 					} else {
-						if(typeof hash_type === 'string'){
-							res.hashes_to_link[link_as] = hash_type;
-						} else if(!hash_type.add && !hash_type.remove){
-							res.hashes_to_link[link_as] = hash_type.type;
+						if(typeof grid_type === 'string'){
+							res.grids_to_link[link_as] = grid_type;
+						} else if(!grid_type.add && !grid_type.remove){
+							res.grids_to_link[link_as] = grid_type.type;
 						} else {
-							// console.log('Adding cells for managing dynamic hash', hash_type);
+							// console.log('Adding cells for managing dynamic grid', grid_type);
 							var obj = {};
-							if(hash_type.add){
-								obj[hash_type.add] = function(){
-									return {type: hash_type.type, action: 'add'};
+							if(grid_type.add){
+								obj[grid_type.add] = function(){
+									return {type: grid_type.type, action: 'add'};
 								}
 							}
-							if(hash_type.remove){
-								obj[hash_type.remove] = function(){
+							if(grid_type.remove){
+								obj[grid_type.remove] = function(){
 									return {action: 'remove'};
 								}
 							}
@@ -433,5 +432,5 @@ App.side_effects = side_effects;
 App.parse_arr_funcstring = parse_arr_funcstring;
 App.parse_cell_type = parse_cell_type; 
 App.findMatcher = findMatcher;
-App.system_predicates = system_predicates; 
+App.system_macros = system_macros; 
 module.exports = App;

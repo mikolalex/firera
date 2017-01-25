@@ -9,8 +9,8 @@ var parse_rec = (app, grid_id, cell) => {
 		grid_id,
 		children: {},
 	};
-	for(let gridname in grid.linked_hashes){
-			var gr_id = grid.linked_hashes[gridname];
+	for(let gridname in grid.linked_grids){
+			var gr_id = grid.linked_grids[gridname];
 			res.children[gridname] = parse_rec(app, gr_id, cell);
 	}
 	return res;
@@ -63,7 +63,7 @@ var render = function(app, start, node){
 }
 
 module.exports = {
-	onHashCreated: (app, grid_id, path, parent) => {
+	onGridCreated: (app, grid_id, path, parent) => {
 		if(!parent){
 			var self = app.getGrid(grid_id);
 			var node = self.cell_values.$el.get()[0];
@@ -77,6 +77,6 @@ module.exports = {
 			var node = parent_tmpl.bindings[self.name];
 			render(app, self, node);
 		}
-		//console.log('hash created', path, parent_path);
+		//console.log('grid created', path, parent_path);
 	}
 }

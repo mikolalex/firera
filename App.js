@@ -2,7 +2,7 @@ var PackagePool = require('./PackagePool');
 var LinkManager = require('./LinkManager');
 var Parser = require('./Parser');
 var utils = require('./utils');
-var Hash = require("./Hash");
+var Grid = require("./Grid");
 var Obj = utils.Obj;
 var Arr = utils.Arr;
 var apps = [];
@@ -31,7 +31,7 @@ var get_grid_struct = (grid) => {
 		var props = {};
 		var once = false;
 		for(let subtype of types){
-			if(Parser.system_predicates.has(subtype) && subtype !== 'is'){
+			if(Parser.system_macros.has(subtype) && subtype !== 'is'){
 				props[subtype] = true;
 				once = true;
 			}
@@ -83,7 +83,7 @@ var get_grid_struct = (grid) => {
 		
 	});
 	
-	var childs = grid.linked_hashes_provider.pool;
+	var childs = grid.linked_grids_provider.pool;
 	var children = {};
 	for(let child_name in childs){
 		if(child_name === '..') continue;
@@ -114,8 +114,8 @@ var App = function(packages, root_package_pool){
 			this.packagePool.load(pack);
 		}
 	}
-	this.hashes = {};
-	this.hashIds = 0;
+	this.grids = {};
+	this.gridIds = 0;
 	this.linkManager = new LinkManager(this);
 };
 
@@ -144,17 +144,17 @@ App.prototype.getVals = function(){
 	return get_vals(this.root);
 }
 App.prototype.getGrid = function(id){
-	return this.hashes[id];
+	return this.grids[id];
 }
 App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
 }
 App.prototype.eachChild = function(parent_grid_id, cb){
 	var grid = this.getGrid(parent_grid_id);
-	for(var l in grid.linked_hashes){
-		var child = this.getGrid(grid.linked_hashes[l]);
+	for(var l in grid.linked_grids){
+		var child = this.getGrid(grid.linked_grids[l]);
 		cb(child);
-		this.eachChild(grid.linked_hashes[l], cb);
+		this.eachChild(grid.linked_grids[l], cb);
 	}
 }
 App.prototype.eachParent = function(grid_id, cb){
@@ -261,11 +261,11 @@ var cb_prot = {
 }
 
 App.prototype.parse_cbs = function(a){
-	var eachMixin = Object.assign({}, this.packagePool.eachHashMixin);
+	var eachMixin = Object.assign({}, this.packagePool.eachGridMixin);
 	var res = Object.create(cb_prot);
 	res.plain_base = Object.assign(eachMixin, a); 
 	res.side_effects = {};
-	res.hashes_to_link = {};
+	res.grids_to_link = {};
 	res.no_args_cells = {};
 	
 	Parser.parse_pb(res, this.packagePool);
@@ -279,19 +279,19 @@ App.prototype.loadPackage = function(pack) {
 	this.packagePool.load(pack);
 }
 
-App.prototype.setHash = function(id, hash){
-	this.hashes[id] = hash;
+App.prototype.setGrid = function(id, grid){
+	this.grids[id] = grid;
 }
 
-App.prototype.createHash = function(type, link_as, free_vals, parent_id) {
+App.prototype.createGrid = function(type, link_as, free_vals, parent_id) {
 	var parent = this.getGrid(parent_id);
 	free_vals = parent.init_values[link_as] 
 				? Object.assign({}, parent.init_values[link_as], free_vals || {}) 
 				: free_vals;
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
-	var child = new Hash(this, type, link_as, free_vals, true, parent_id, path); 
-	Firera.hashCreated(this, child.id, child.path, child.parent);
+	var child = new Grid(this, type, link_as, free_vals, true, parent_id, path); 
+	Firera.gridCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;
 }

@@ -6,8 +6,8 @@ var kcopy = function(from, to){
 var PackagePool = function(proto = {}, app_id){
 	this.app_id = app_id;
 	this.cellMatchers = Object.assign({}, proto.cellMatchers);
-	this.predicates = Object.assign({}, proto.predicates);
-	this.eachHashMixin = Object.assign({}, proto.eachHashMixin);
+	this.macros = Object.assign({}, proto.macros);
+	this.eachGridMixin = Object.assign({}, proto.eachGridMixin);
 }
 PackagePool.prototype.load = function(pack){
 	if(typeof pack === 'string'){
@@ -18,14 +18,14 @@ PackagePool.prototype.load = function(pack){
 		pack = Firera.packagesAvailable[pack];
 	}
 	kcopy(pack.cellMatchers, this.cellMatchers);
-	kcopy(pack.predicates, this.predicates);
-	if(pack.eachHashMixin){
-		// update the mixin for each hash created
-		Object.assign(this.eachHashMixin, pack.eachHashMixin);
+	kcopy(pack.macros, this.macros);
+	if(pack.eachGridMixin){
+		// update the mixin for each grid created
+		Object.assign(this.eachGridMixin, pack.eachGridMixin);
 	}
-	if(pack.onHashCreated){
-		init_if_empty(onHashCreatedStack, this.app_id, []);
-		onHashCreatedStack[this.app_id].push(pack.onHashCreated);
+	if(pack.onGridCreated){
+		init_if_empty(onGridCreatedStack, this.app_id, []);
+		onGridCreatedStack[this.app_id].push(pack.onGridCreated);
 	}
 }
 module.exports = PackagePool;

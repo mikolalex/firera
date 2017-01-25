@@ -26,7 +26,7 @@ var init_from_path = function(obj, path, val) {
 }
 
 var Tree = function(){
-	this.template_hash = {};
+	this.template_grid = {};
 	this.template_tree = {};
 	this.bindings = {};
 	this.onUpdateBindingsCbs = {};
@@ -35,10 +35,10 @@ Tree.prototype.getHTML = function(path, node){
 	if(!node) return;
 	if(node instanceof Ozenfant){
 		// its final template
-		return this.template_hash[path].getHTML();
+		return this.template_grid[path].getHTML();
 	} else {
 		var template;
-		if(template = this.template_hash[path]){
+		if(template = this.template_grid[path]){
 			// its object
 			for(let key in node){
 				var new_path = path == '/' ? path + key : path + '/' + key;
@@ -65,7 +65,7 @@ Tree.prototype.onUpdateBinding = function(path, cb){
 }
 
 Tree.prototype.updateBindings = function(path, struct, el = false){
-	var template = this.template_hash[path];
+	var template = this.template_grid[path];
 	if(el){
 		this.bindings[path] = el;
 	}
@@ -85,7 +85,7 @@ Tree.prototype.updateBindings = function(path, struct, el = false){
 	}
 	template.updateBindings();
 	if(this.onUpdateBindingsCbs[path]){
-		this.onUpdateBindingsCbs[path]($(this.template_hash[path].root));
+		this.onUpdateBindingsCbs[path]($(this.template_grid[path].root));
 	}
 	if(!(struct instanceof Object) || (struct instanceof Ozenfant)){
 		return;
@@ -110,7 +110,7 @@ Tree.prototype.getBindingsRec = function(path){
 	if(parent === ''){
 		parent = '/';
 	}
-	var template = this.template_hash[parent];
+	var template = this.template_grid[parent];
 	if(template){
 		return template.bindings[key];
 	} else {
@@ -132,7 +132,7 @@ Tree.prototype.render = function(root_path){
 	//timer('render', root_path);
 	var branch = get_branch(this.template_tree, root_path);
 	var res = this.getHTML(root_path, branch);
-	var root_el = this.template_hash[root_path] ? this.template_hash[root_path].root : false;
+	var root_el = this.template_grid[root_path] ? this.template_grid[root_path].root : false;
 	if(!root_el){
 		root_el = this.bindings[root_path];
 	}
@@ -181,13 +181,13 @@ Tree.prototype.addToRefreshPool = function(path, pth){
 Tree.prototype.removeLeaf = function(path, skip_remove_node){
 	var skip_further = true;
 	if(!skip_remove_node){
-		if(this.template_hash[path] && this.template_hash[path].root){
-			this.template_hash[path].root.remove();
+		if(this.template_grid[path] && this.template_grid[path].root){
+			this.template_grid[path].root.remove();
 		} else {
 			skip_further = false;
 		}
 	}
-	delete this.template_hash[path];
+	delete this.template_grid[path];
 	delete this.bindings[path];
 	var struct = get_branch(this.template_tree, path);
 	for(var key in struct){
@@ -222,11 +222,11 @@ Tree.prototype.setTemplate = function(path, template, context, el){
 	if(el){
 		tmpl.root = el;
 	}
-	this.template_hash[path] = tmpl;
+	this.template_grid[path] = tmpl;
 	init_from_path(this.template_tree, path, {});
 	this.addToRefreshPool(path, pth);
 	var [name, parent] = get_parent_path(path);
-	if(this.template_hash[parent] && !((Number(name) == name) && name.length)){
+	if(this.template_grid[parent] && !((Number(name) == name) && name.length)){
 		this.refresh(); 
 	}
 }
@@ -257,9 +257,9 @@ var get_tree = (app_id) => {
 
 
 var ozenfant_new = {
-	eachHashMixin: {
+	eachGridMixin: {
 		'$real_el': ['asyncClosure', () => {
-			var hashname, template;
+			var gridname, template;
 			return (cb, template, path, app_id, context, el) => {
 				if(!app_id) return;
 				var pth = path === '/' ? '' : path;
@@ -291,7 +291,7 @@ var ozenfant_new = {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
 				if(!template_path || !app_id || !ozenfant_trees[app_id]) return;
 				var pth = template_path;
-				var template = get_tree(app_id).template_hash[pth];
+				var template = get_tree(app_id).template_grid[pth];
 				if(!template) {
 					return;
 				}

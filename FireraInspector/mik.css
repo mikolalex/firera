@@ -55,7 +55,16 @@
 				display: block;
 			}
 			
+			.parent-name {
+			    padding: 0px 2px;
+				margin: 3px;
+				color: #525252;
+				border: 1px solid #d4d4d4;
+			}
+			
 			.parents_list {
+				margin-top: -1px;
+				margin-left: -8px;
 				display: none;
 			}
 			

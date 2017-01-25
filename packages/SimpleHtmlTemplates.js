@@ -31,7 +31,7 @@ var write_changes = function(){
 }
 
 module.exports = {
-	eachHashMixin: {
+	eachGridMixin: {
 		$el: ['closure', () => {
 			var prev_el;
 			return (name, map) => {

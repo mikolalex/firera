@@ -1,7 +1,7 @@
 var che = require('../../shche/shche');
 
 module.exports = {
-	predicates: {
+	macros: {
 		che: function(expr){
 			var [expr, cbs] = expr;
 			cbs = cbs || [];

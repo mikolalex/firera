@@ -11,15 +11,15 @@ var create_provider = (app, self) => {
 	return {
 		pool: {},
 		create: function(self, type, link_as, free_vals){
-			var child_id = self.app.createHash(type, link_as, free_vals, self.id);
-			utils.init_if_empty(self, 'linked_hashes', {}, link_as, child_id);
+			var child_id = self.app.createGrid(type, link_as, free_vals, self.id);
+			utils.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
 			this.set(link_as, child_id);
-			this.get(link_as).linked_hashes_provider.set('..', self.id);
-			app.linkManager.onNewHashAdded(self.id, child_id);
+			this.get(link_as).linked_grids_provider.set('..', self.id);
+			app.linkManager.onNewGridAdded(self.id, child_id);
 			return child_id;
 		},
-		set: function(name, hash_id){
-			this.pool[name] = hash_id;
+		set: function(name, grid_id){
+			this.pool[name] = grid_id;
 		},
 		isLinked: function(name){
 			return !!this.get(name);
@@ -27,13 +27,13 @@ var create_provider = (app, self) => {
 		get: function(name){
 			var id = this.pool[name];
 			
-			return id ? app.hashes[id] : false;
+			return id ? app.grids[id] : false;
 		},
 		remove: function(name){
 			var id = this.pool[name];
 			delete this.pool[name];
-			self.app.hashes[id].set('$remove', true);
-			delete self.app.hashes[id];
+			self.app.grids[id].set('$remove', true);
+			delete self.app.grids[id];
 		},
 		setCellValues: function(childName, values, skipsame){
 			this.get(childName).set(values, false, false, false, skipsame);
@@ -47,14 +47,14 @@ var create_provider = (app, self) => {
 		unlinkChildCells: function(name){
 			var hsh = this.get(name);
 			if(!hsh){
-				//console.warn('removing unexisting hash!', name);
+				//console.warn('removing unexisting grid!', name);
 				return;
 			}
 			this.remove(name);
 		},
-		getLinkedHashCellValue: function(hashname, cellname){
-			var hash = this.get(hashname);
-			return hash ? hash.cell_value(cellname) : false;
+		getLinkedGridCellValue: function(gridname, cellname){
+			var grid = this.get(gridname);
+			return grid ? grid.cell_value(cellname) : false;
 		},
 		linkAnyTwoCells: function(slave, master){
 			if(slave.indexOf('/') !== -1){
@@ -81,13 +81,13 @@ var add_dynamic_link = (pool, cell, grid, slave_cell, type) => {
 	})
 }
 
-var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id, path){
+var Grid = function(app, parsed_pb_name, name, free_vals, init_later, parent_id, path){
 	var self = this;
-	var id = ++app.hashIds;
+	var id = ++app.gridIds;
 	//////////////////////////
 	//bm.start('init', '2', id);
 	this.path = path;
-	app.setHash(id, this);
+	app.setGrid(id, this);
 	this.id = id;
 	this.parent = parent_id;
 	this.app = app;
@@ -106,18 +106,18 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 		}
 	}
 	if(!parsed_pb){
-		console.error('Cannot find hash to parse:', parsed_pb_name);
+		console.error('Cannot find grid to parse:', parsed_pb_name);
 		return;
 	}
 	this.cell_types = parsed_pb.cell_types;
 	this.side_effects = parsed_pb.side_effects;
-	this.hashes_to_link = parsed_pb.hashes_to_link;
+	this.grids_to_link = parsed_pb.grids_to_link;
 	this.plain_base = Object.create(parsed_pb.plain_base);
 	this.link_chains = Object.create(parsed_pb.link_chains || {});
 	this.levels = Object.create(parsed_pb.levels);
 	//this.setLevels();
-	this.linked_hashes_provider = create_provider(app, self);
-	this.linked_hashes = {};
+	this.linked_grids_provider = create_provider(app, self);
+	this.linked_grids = {};
 	// for "closure" cell type
 	this.cell_funcs = {};
 	this.dirtyCounter = {};
@@ -129,7 +129,7 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	//////////////////////////
 	//bm.stop('init', '2', id);
 	//bm.start('init', '1', id);
-	Obj.each(this.hashes_to_link, (hash_name, link_as) => this.linkChild(hash_name, link_as));
+	Obj.each(this.grids_to_link, (grid_name, link_as) => this.linkChild(grid_name, link_as));
 	// @todo: refactor, make this set in one step
 	//console.log('Setting $init values', this.init_values);
 	//////////////////////////
@@ -160,11 +160,11 @@ var Hash = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 	//bm.stop('init', '5', id);
 }
 
-Hash.prototype.changesFinished = function(){
+Grid.prototype.changesFinished = function(){
 	this.app._changeFinished();
 }
 
-Hash.prototype.initIfSideEffectCell = function(cell){
+Grid.prototype.initIfSideEffectCell = function(cell){
 	if(!this.cellExists(cell) && unusual_cell(cell)){
 		Parser.parse_cellname(cell, this, 'getter', this.app.packagePool, this);
 		this.cell_types = Parser.parse_cell_types(this.plain_base);
@@ -176,80 +176,80 @@ Hash.prototype.initIfSideEffectCell = function(cell){
 	}
 }
 
-Hash.prototype.hasChild = function(name){
-	return this.linked_hashes && this.linked_hashes[name];
+Grid.prototype.hasChild = function(name){
+	return this.linked_grids && this.linked_grids[name];
 } 
 
-Hash.prototype.init = function(){
+Grid.prototype.init = function(){
 	for(let cell in this.init_values){
 		Parser.parse_cellname(cell, this, 'setter', this.app.packagePool);
 	}
 	this.set(this.init_values);
 }
-Hash.prototype.updateChildFreeValues = function(childName, values, skipsame){
-	this.linked_hashes_provider.setCellValues(childName, values, skipsame);
+Grid.prototype.updateChildFreeValues = function(childName, values, skipsame){
+	this.linked_grids_provider.setCellValues(childName, values, skipsame);
 }
 
-Hash.prototype.initLinkChain = function(link){
+Grid.prototype.initLinkChain = function(link){
 	this.app.linkManager.initLink(this.id, link);
 }
 
-Hash.prototype.linkHash = function(cellname, val){
+Grid.prototype.linkGrid = function(cellname, val){
 	//log('RUNNING SIDE EFFECT', this, val); 
-	var hash, link1, link2, free_vals;
+	var grid, link1, link2, free_vals;
 	cellname = cellname.replace("$child_", "");
 	if(val instanceof Array){
-		// it's hash and link
-		hash = val[0];
+		// it's grid and link
+		grid = val[0];
 		link1 = val[1];
 		link2 = val[2];
 		free_vals = val[3] || {};
 	} else {
-		hash = val;
+		grid = val;
 	}
-	if(!hash){
-		console.warn('Trying to link undefined hash:', hash);
+	if(!grid){
+		console.warn('Trying to link undefined grid:', grid);
 		return;
 	}
-	var child_id = this.linkChild(hash, cellname, free_vals);
+	var child_id = this.linkChild(grid, cellname, free_vals);
 	if(link1){
-		//console.info('Linking by link1 hash', link1);
+		//console.info('Linking by link1 grid', link1);
 		Obj.each(link1, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(this.id, cellname + '/' + his_cell, my_cell);
 		})
 	}
 	if(link2){
-		//console.info('Linking by link2 hash', link2);
+		//console.info('Linking by link2 grid', link2);
 		Obj.each(link2, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(child_id, '../' + his_cell, my_cell);
 		})
 	}
 }
 
-Hash.prototype.getChild = function(link_as){
-	return this.app.getGrid(this.linked_hashes_provider.pool[link_as]);
+Grid.prototype.getChild = function(link_as){
+	return this.app.getGrid(this.linked_grids_provider.pool[link_as]);
 } 
 
-Hash.prototype.linkChild = function(type, link_as, free_vals){
-	if(this.linked_hashes_provider.isLinked(link_as)){
+Grid.prototype.linkChild = function(type, link_as, free_vals){
+	if(this.linked_grids_provider.isLinked(link_as)){
 		var pb = this.getChild(link_as).parsed_pb_name;
 		if(pb === type){
 			this.getChild(link_as).set(free_vals);
-			return this.linked_hashes_provider.pool[link_as];
+			return this.linked_grids_provider.pool[link_as];
 		} else {
 			this.unlinkChild(link_as);
 		}
 	}
-	var id = this.linked_hashes_provider.create(this, type, link_as, free_vals);
-	this.linked_hashes_provider.initChild(link_as);
+	var id = this.linked_grids_provider.create(this, type, link_as, free_vals);
+	this.linked_grids_provider.initChild(link_as);
 	return id;
 }
 
-Hash.prototype.unlinkChild = function(link_as){
-	this.linked_hashes_provider.unlinkChildCells(link_as);
+Grid.prototype.unlinkChild = function(link_as){
+	this.linked_grids_provider.unlinkChildCells(link_as);
 }
 
-Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
+Grid.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
 	var cb = this.doRecursive.bind(this, func);
 	if(!skip) {
 		//console.log('--Computing cell', this.cell_type(cell));
@@ -273,7 +273,7 @@ Hash.prototype.doRecursive = function(func, cell, skip, parent_cell, already_cou
 }
 
 
-Hash.prototype.compute = function(cell, parent_cell_name){
+Grid.prototype.compute = function(cell, parent_cell_name){
 	var real_cell_name = this.real_cell_name(cell);
 	var val;
 	var props = this.cell_type_props(cell);
@@ -413,7 +413,7 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 		Parser.parse_cell_type(cell, fs, this.dynamic_cells_props, []);
 		parents = this.dynamic_cells_props[cell].parents;
 		for(let parent_cell of parents){
-			this.linked_hashes_provider.linkAnyTwoCells(parent_cell, cell);
+			this.linked_grids_provider.linkAnyTwoCells(parent_cell, cell);
 		}
 		this.setLevel(cell, parents.concat(this.cell_parents(real_cell_name)));
 		this.compute(cell);
@@ -422,13 +422,13 @@ Hash.prototype.compute = function(cell, parent_cell_name){
 	}
 }
 
-Hash.prototype.get = function(cell, child){
+Grid.prototype.get = function(cell, child){
 	if(child){
-		// setting value for some linked child hash
+		// setting value for some linked child grid
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_hashes_provider.get(childname);
+		var child = this.linked_grids_provider.get(childname);
 		if(!child){
 			console.warn('Cannot get - no such path', path);
 			return;
@@ -441,7 +441,7 @@ Hash.prototype.get = function(cell, child){
 	}
 }
 
-Hash.prototype.setLevel = function(cell, parents){
+Grid.prototype.setLevel = function(cell, parents){
 	//console.log('got parents', parents);
 	var max_level = 0;
 	for(let prnt of parents){
@@ -454,7 +454,7 @@ Hash.prototype.setLevel = function(cell, parents){
 	//console.log('got max level', max_level);
 }
 
-Hash.prototype.updateTree = function(cells, no_args = false, compute = false){
+Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 	var set = Object.keys(cells);
 	var start_level = Number.POSITIVE_INFINITY;
 	var levels = {};
@@ -521,19 +521,19 @@ Hash.prototype.updateTree = function(cells, no_args = false, compute = false){
 	}
 }
 
-Hash.prototype.cellExists = function(cn){
+Grid.prototype.cellExists = function(cn){
 	cn = Parser.get_real_cell_name(cn);
 	return this.cell_values.hasOwnProperty(cn) 
 			|| (this.cell_types.hasOwnProperty(cn) && this.cell_types[cn].type !== 'fake')
 			|| (this.fake_cells.indexOf(cn) !== -1);
 } 
 
-Hash.prototype.set = function(cells, val, child, no_args, skipsame){
+Grid.prototype.set = function(cells, val, child, no_args, skipsame){
 	if(child){
-		// setting value for some linked child hash
+		// setting value for some linked child grid
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_hashes_provider.get(childname);
+		var child = this.linked_grids_provider.get(childname);
 		if(!child){
 			console.warn('Cannot set - no such path', path);
 			return;
@@ -563,13 +563,13 @@ Hash.prototype.set = function(cells, val, child, no_args, skipsame){
 	this.updateTree(cells, no_args);
 } 
 
-Hash.prototype.set2 = function(cell, val, child){
+Grid.prototype.set2 = function(cell, val, child){
 	if(child){
-		// setting value for some linked child hash
+		// setting value for some linked child grid
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_hashes_provider.get(childname);
+		var child = this.linked_grids_provider.get(childname);
 		if(!child){
 			console.warn('Cannot set - no such path', path);
 			return;
@@ -611,23 +611,23 @@ Hash.prototype.set2 = function(cell, val, child){
 		//console.log('Cell values after set', this.cell_values);
 	}
 }
-Hash.prototype.force_set = function(cell, val, omit_updating_children){
+Grid.prototype.force_set = function(cell, val, omit_updating_children){
 	this.set_cell_value(cell, val);
 	if(omit_updating_children) return;
 	Obj.eachKey(this.cell_children(cell), (child_cell_name) => {
 		this.doRecursive(this.compute.bind(this), child_cell_name, false, cell);
 	});
 }
-Hash.prototype.cell_parents = function(cell){
+Grid.prototype.cell_parents = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].parents : [];
 }
-Hash.prototype.cell_arg_num = function(cell){
+Grid.prototype.cell_arg_num = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].arg_num : 0;
 }
-Hash.prototype.cell_children = function(cell){
+Grid.prototype.cell_children = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].children : {};
 }
-Hash.prototype.all_cell_children = function(cell, arr){
+Grid.prototype.all_cell_children = function(cell, arr){
 	if(!this.cell_types[cell]){
 		return [];
 	}
@@ -638,7 +638,7 @@ Hash.prototype.all_cell_children = function(cell, arr){
 	});
 	return arr;
 }
-Hash.prototype.cell_func = function(cell){
+Grid.prototype.cell_func = function(cell){
 	var a;
 	if(a = this.cell_types[cell].func) {
 		return a;
@@ -646,10 +646,10 @@ Hash.prototype.cell_func = function(cell){
 		throw new Error('Cannot find cell func for cell '+cell);
 	}
 }
-Hash.prototype.cell_type = function(cell){
+Grid.prototype.cell_type = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].type : [];
 }
-Hash.prototype.cell_has_type = function(cell, type){
+Grid.prototype.cell_has_type = function(cell, type){
 	var types = this.cell_types[cell];
 	if(types){
 		return types.props[type];
@@ -657,20 +657,20 @@ Hash.prototype.cell_has_type = function(cell, type){
 		return false;
 	}
 }
-Hash.prototype.cell_type_props = function(cell){
+Grid.prototype.cell_type_props = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].props : {};
 }
-Hash.prototype.isValue = function(real_cell_name){
+Grid.prototype.isValue = function(real_cell_name){
 	return this.cell_types[real_cell_name].additional_type === '=';
 }
-Hash.prototype.isSignal = function(real_cell_name){
+Grid.prototype.isSignal = function(real_cell_name){
 	return this.cell_types[real_cell_name].additional_type === '~';
 }
-Hash.prototype.real_cell_name = function(cell){
+Grid.prototype.real_cell_name = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
 }
-Hash.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '$name'];
-Hash.prototype.cell_value = function(cell){
+Grid.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '$name'];
+Grid.prototype.cell_value = function(cell){
 	switch(cell){
 		case '$real_keys':
 			return [...(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))].filter((k) => {
@@ -705,7 +705,7 @@ Hash.prototype.cell_value = function(cell){
 			}
 	}
 }
-Hash.prototype.set_cell_value = function(cell, val){
+Grid.prototype.set_cell_value = function(cell, val){
 	var same_song = val === this.cell_values[cell];
 	this.cell_values[cell] = val;
 	if(this.side_effects[cell]){	
@@ -718,10 +718,10 @@ Hash.prototype.set_cell_value = function(cell, val){
 		this.set('*', [cell, val]);
 	}
 	if(this.dynamic_cell_links[cell]){
-		Obj.each(this.dynamic_cell_links[cell], (links, hash_name) => {
-			var own = hash_name === '__self';
-			var hsh = own ? this : this.linked_hashes_provider.get(hash_name);
-			//console.log('Updating dynamic cell links for cell', cell, links, hash_name, this.linked_hashes_provider, hsh);
+		Obj.each(this.dynamic_cell_links[cell], (links, grid_name) => {
+			var own = grid_name === '__self';
+			var hsh = own ? this : this.linked_grids_provider.get(grid_name);
+			//console.log('Updating dynamic cell links for cell', cell, links, grid_name, this.linked_grids_provider, hsh);
 			if(hsh){
 				for(var link of links){
 					//console.log('Writing dynamic cell link ' + link.cell_name, link.type === 'val', this.name);
@@ -730,7 +730,7 @@ Hash.prototype.set_cell_value = function(cell, val){
 					} else if(link.type === 'dynamic'){
 						hsh.compute(link.cell_name, cell);
 					} else {
-						//log('Updating links', hash_name, link.cell_name, [hash_name !== '__self' ? this.name : cell, val]);
+						//log('Updating links', grid_name, link.cell_name, [grid_name !== '__self' ? this.name : cell, val]);
 						hsh.set(link.cell_name, [own ? cell : this.name, val]);
 					}
 				}
@@ -740,4 +740,4 @@ Hash.prototype.set_cell_value = function(cell, val){
 	this.app.linkManager.checkUpdate(this.id, cell, val);
 }
 
-module.exports = Hash;
+module.exports = Grid;

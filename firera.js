@@ -6,7 +6,7 @@ var App = require('./App');
 var PackagePool = require('./PackagePool');
 var utils = require('./utils');
 var Obj = utils.Obj;
-var Hash = require("./Hash");
+var Grid = require("./Grid");
 var simpleHtmlTemplates = require("./packages/SimpleHtmlTemplates");
 var che_package = require("./packages/Che");
 var ozenfant = require('./packages/OzenfantOld');
@@ -46,13 +46,13 @@ window.Firera = function(config){
 	app.cbs = Obj.map(config, app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
 	if(!app.cbs.__root){
-		// no root hash
+		// no root grid
 		throw new Error('Cant find root app!');
 	}
 	//console.log(app);
 	//var compilation_finished = performance.now();
-	app.root = new Hash(app, '__root', false, {$app_id: app.id}, null, null, '/');
-	Firera.hashCreated(app, app.root.id, app.root.path, null);
+	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
+	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -61,10 +61,10 @@ window.Firera = function(config){
 	return app;
 };
 
-var onHashCreatedStack = {};
-Firera.hashCreated = function(app, grid_id, path, parent){
-	if(onHashCreatedStack[app.id]){
-		for(let cb of onHashCreatedStack[app.id]){
+var onGridCreatedStack = {};
+Firera.gridCreated = function(app, grid_id, path, parent){
+	if(onGridCreatedStack[app.id]){
+		for(let cb of onGridCreatedStack[app.id]){
 			cb(app, grid_id, path, parent);
 		}
 	}
@@ -72,9 +72,9 @@ Firera.hashCreated = function(app, grid_id, path, parent){
 
 var get_vals = (grid) => {
 	var res = Object.assign({}, grid.cell_values);
-	for(let child_name in grid.linked_hashes){
+	for(let child_name in grid.linked_grids){
 		if(child_name === '..') continue;
-		let child_id = grid.linked_hashes[child_name];
+		let child_id = grid.linked_grids[child_name];
 		let child = grid.app.getGrid(child_id);
 		res[child_name] = get_vals(child);
 	}

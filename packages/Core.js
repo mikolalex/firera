@@ -74,7 +74,7 @@ module.exports = {
 			}
 		}
 	},
-	predicates: {
+	macros: {
 		interval: (fs) => {
 			var [interval_ms, flag] = fs;
 			if(flag){

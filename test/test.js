@@ -261,7 +261,7 @@ describe('Basic Firera functionality', function () {
         $('span').click();
         assert.equal(c, 3);
     });
-    it('Testing nested hashes', function () {
+    it('Testing nested grids', function () {
         var str = false;
         var app = Firera({
             __root: {
@@ -284,7 +284,7 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('someval'), true);
     });
     it('Testing multiple children', function () {
-        var str = false;
+	   var str = false;
         var app = Firera({
             __root: {
                 $el: $(".test-nested"),
@@ -378,7 +378,7 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('val'), 'bar');
         app.set('registered', true);
     });
-    it('Testing hash linking', function () {
+    it('Testing grid linking', function () {
         var app = Firera({
         	__root: {
 				registered: false,
@@ -1444,4 +1444,3 @@ describe('Che', function () {
 		assert.deepEqual(app.get('clicked_both'), {a: 'A', b: 'B'})
 	})
 })
-

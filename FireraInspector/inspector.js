@@ -107,14 +107,14 @@ var obj_or_scalar_template = prep(`
 	span.name$(font-weight: bold)
 	.(display: inline-block)
 			span.typef$
-			? $isNumber
+			? typeof($val) === 'number'
 				? $isEditing
 					text.number(value: $val)
 					button.change
 						"Change"
 				:
 						span.justvalue.numberval$val
-			* $isString
+			* typeof($val) === 'string'
 				? $isEditing
 					text.string(value: $val)
 					button.change
@@ -122,7 +122,7 @@ var obj_or_scalar_template = prep(`
 				:
 					span.stringval.justvalue
 						"{{val}}"
-			* $isObj
+			* typeof($val) === 'object'
 				? $isOpened
 					span.close(href: #)
 						""
@@ -132,9 +132,8 @@ var obj_or_scalar_template = prep(`
 					""
 			:
 				span.val$
-	.parents_list$
-	.wrong_link_messages$
 `);
+console.log('oos', obj_or_scalar_template);
 var eq = (a) => {
 	return (b) => {
 		return b === a;
@@ -209,9 +208,28 @@ var app_struct_devtool = {
 					.cell
 							div.cellname$name
 							.obj$
+							.parents_list{$parents_list}
+								span.parent-name$.
+							.wrong_link_messages$
 			`),
+			parents_list: [
+				(a) => { 
+					if(!a.length){
+						return [];
+					}
+					return toString(a).split(',');
+				},
+				'parents'
+			],
+			'wrong_link_messages': [(wl) => {
+				var htmls = Firera._.Obj.map(wl, (v, k) => {
+					return '<div class="warn">' + k + '</div>';
+				})
+				var res = Firera._.Obj.join(htmls, '');
+				return res;
+			}, 'wrong_links'],
 			$child_obj: [() => {  
-					return ['obj_or_scalar', {}, {val: 'val', parents: 'parents', wrong_links: 'wrong_links'}]
+					return ['obj_or_scalar', {}, {val: 'val'}]
 			}, 'val'],
 			f_path: ['../f_path'],
 	},
@@ -230,7 +248,6 @@ var app_struct_devtool = {
 			'cellname': ['../name'],
 			'new_val': ['transist', (a) => {
 				// try to keep original data type
-				if(a === undefined) debugger;
 				if(Number(a) == a){
 					a = Number(a);
 				}
@@ -249,22 +266,6 @@ var app_struct_devtool = {
 					}
 					return b;
 			}, 'val'],
-			parents_list: [
-				(a) => { 
-					return toString(a).split(',').join(' ');
-				},
-				'parents'
-			],
-			'isObj': [iof(Object), 'val'],
-			'isString': [eq('string'), 'type'],
-			'isNumber': [eq('number'), 'type'],
-			'wrong_link_messages': [(wl) => {
-				var htmls = Firera._.Obj.map(wl, (v, k) => {
-					return '<div class="warn">' + k + '</div>';
-				})
-				var res = Firera._.Obj.join(htmls, '');
-				return res;
-			}, 'wrong_links'],
 			'type': [typf, 'val'],
 			'$child_keys': ['list', {
 				self: {
