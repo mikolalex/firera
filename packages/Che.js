@@ -2,15 +2,15 @@ var che = require('../../shche/shche');
 
 module.exports = {
 	macros: {
-		che: function(expr){
+		che(expr){
 			var [expr, cbs] = expr;
 			cbs = cbs || [];
 			var succ_cb;
 			var obj = che.create(expr, {
-				onOutput: function(key, val){
+				onOutput(key, val){
 					console.log('outputting from che', key, val);
 				},
-				onSuccess: function(){
+				onSuccess(){
 					console.log('che scenario successfully finished', succ_cb, obj.state);
 					succ_cb(obj.state);
 				}

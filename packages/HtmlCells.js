@@ -26,7 +26,7 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
-			func: function(matches, pool, context, packages){
+			func(matches, pool, context, packages) {
 				var get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if(params && params[1]){

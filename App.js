@@ -166,13 +166,13 @@ App.prototype.eachParent = function(grid_id, cb){
 }
 
 var cb_prot = {
-	cell_parents: function(cell){
+	cell_parents(cell) {
 		return this.cell_types[cell] ? this.cell_types[cell].parents : [];
 	},
-	cell_children: function(cell){
+	cell_children(cell) {
 		return this.cell_types[cell] ? this.cell_types[cell].children : {};
 	}, 
-	setLevels: function(){
+	setLevels() {
 		var level = 1;
 		this.levels = {};
 		var max_level = 1;
@@ -193,7 +193,7 @@ var cb_prot = {
 			c++;
 		}
 	},
-	setLevelsIterable: function(cellname, pool){
+	setLevelsIterable(cellname, pool) {
 		var max_level = 1;
 		for(var cell of this.cell_parents(cellname)){
 			cell = Parser.real_cell_name(cell);
@@ -221,7 +221,7 @@ var cb_prot = {
 			}
 		}
 	},
-	setLevelsRec: function(cellname, already_set){
+	setLevelsRec(cellname, already_set) {
 		var max_level = 1;
 		for(var cell of this.cell_parents(cellname)){
 			cell = Parser.real_cell_name(cell);

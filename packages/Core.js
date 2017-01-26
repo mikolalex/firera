@@ -58,7 +58,7 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'PrevValue',
 			regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
-			func: function(matches, pool, context, packages){
+			func(matches, pool, context, packages) {
 				if(context == 'setter') return;
 				var cellname = matches[2];
 				Parser.parse_fexpr(['closure', function(){
@@ -141,6 +141,17 @@ module.exports = {
 				}
 			}].concat(fs);
 		},
+		map: (fs) => {
+			var [map] = fs;
+			var cells = Object.keys(map);
+			var func = (cellname, val) => {
+				if(!(map[cellname] instanceof Function)){
+					return map[cellname];
+				}
+				return map[cellname](val);
+			}
+			return ['funnel', func, ...cells];
+		},
 		transistAll: (fs) => {
 			var [func, ...rest] = fs;
 			return [(cellA, ...restArgs) => {
@@ -201,20 +212,20 @@ module.exports = {
 				}
 			}, funcstring[0]];
 		},
-		first: function(funcstring){
+		first(funcstring) {
 			return [(a) => a, ...funcstring]
 		},
-		second: function(funcstring){
+		second(funcstring) {
 			return [(a, b) => b, ...funcstring]
 		},
-		firstDefined: function(funcstring){
+		firstDefined(funcstring) {
 			return [function(){
 					for(var i in arguments){
 						if(arguments[i] !== undefined) return arguments[i];
 					}
 			}, ...funcstring]
 		},
-		firstTrue: function(funcstring){
+		firstTrue(funcstring) {
 			return [function(){
 					//console.log('Looking for firstTrue', arguments);
 					for(var i in arguments){
@@ -222,7 +233,7 @@ module.exports = {
 					}
 			}, ...funcstring]
 		},
-		valMap: function(funcstring){
+		valMap(funcstring) {
 			var valMap;
 			if(funcstring[0] instanceof Object && !(funcstring[0] instanceof Array)){
 				valMap = funstring.shift();
@@ -237,7 +248,7 @@ module.exports = {
 			}
 			return ['funnel', func, ...funcstring];
 		},
-		firstTrueCb: function(funcstring){
+		firstTrueCb(funcstring) {
 			var cb = funcstring[0];
 			var fncstr = funcstring.slice(1);
 			return [function(){
@@ -247,7 +258,7 @@ module.exports = {
 					}
 			}, ...fncstr]
 		},
-		asArray: function(funcstring){
+		asArray(funcstring) {
 			var subscribe_to = '*/*';
 			if(funcstring[0] instanceof Array){
 				// its an array of fields
@@ -287,7 +298,7 @@ module.exports = {
 					}
 			}, subscribe_to, '$arr_data.changes']
 		},
-		indices: function(funcstring){
+		indices(funcstring) {
 			var func = funcstring[0];
 			var field = '*/' + funcstring[1];
 			if(!funcstring[1]){
@@ -317,7 +328,7 @@ module.exports = {
 				}
 			}, field, '$arr_data.changes'];
 		},
-		reduce: function(funcstring){
+		reduce(funcstring) {
 			var field = '*/' + funcstring[0];
 			var config = funcstring[1];
 			var res = config.def;
@@ -353,7 +364,7 @@ module.exports = {
 				}
 			}, field, '$arr_data.changes']
 		},
-		count: function(funcstring){
+		count(funcstring) {
 			var fieldname = funcstring[0];
 			var pieces = fieldname.split('/');
 			fieldname = pieces.pop();
@@ -399,10 +410,10 @@ module.exports = {
 				}
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes']
 		},
-		join: function(funcstring){
+		join(funcstring) {
 			return ['funnel', utils.second].concat(funcstring);
 		},
-		list: function(funcstring){
+		list(funcstring) {
 			var props = funcstring[0];
 			if(!props instanceof Object){
 				console.error('List properties should be an object!');
@@ -532,7 +543,7 @@ module.exports = {
 			}
 			return fnc;
 		},
-		arr_deltas: function(funcstring){
+		arr_deltas(funcstring) {
 			var cell = funcstring[0];
 			return ['closure', function(){
 				var val = [];

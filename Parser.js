@@ -7,7 +7,6 @@ var system_macros = new Set([
 	'async',
 	'closure',
 	'funnel',
-	'map',
 	'dynamic',
 	'nested'
 ]);
@@ -19,6 +18,10 @@ var get_random_name = (function(){
 		return '@@@_' + (++c);
 	}
 })()
+
+var err = (text) => {
+	console.error(text);
+}
 
 var predefined_functions = {
 	'=': {
@@ -94,17 +97,19 @@ var get_cell_type = function(cellname, type, func, parents, additional_type){
 	//console.log('getting cell type', arguments);
 	var real_cell_types = utils.split_camelcase(type) || [];
 
-	var map = real_cell_types.indexOf('map') !== -1;
 	var closure = real_cell_types.indexOf('closure') !== -1;
 	var async = real_cell_types.indexOf('async') !== -1;
 	var nested = real_cell_types.indexOf('nested') !== -1;
 	var funnel = real_cell_types.indexOf('funnel') !== -1;
 	var dynamic = real_cell_types.indexOf('dynamic') !== -1;
+	if((async && nested) || (dynamic && nested)){
+		err('Incompatible cell types: ' + real_cell_types.join(', '));
+	}
 	return {
 		type,
 		additional_type,
 		func, 
-		props: {map, closure, async, nested, funnel, dynamic}, 
+		props: {closure, async, nested, funnel, dynamic}, 
 		real_cell_name: cellname.replace(/^(\:|\-)/, ''),
 		parents: parents || [], 
 		arg_num: parents ? parents.length : 0,
@@ -208,14 +213,6 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 					})
 					a.splice(2, 1);
 					funcstring = a; 
-				break;
-				case 'map':
-					funcstring = ['map', a[1]].concat(Object.keys(a[1]));
-					if(a[2]){
-						// default value
-						utils.init_if_empty(pool.plain_base, '$init', {});
-						pool.plain_base.$init[key] = a[2];
-					}
 				break;
 				default:
 					funcstring = a; 

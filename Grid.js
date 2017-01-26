@@ -10,7 +10,7 @@ var unusual_cell = (cellname) => {
 var create_provider = (app, self) => {
 	return {
 		pool: {},
-		create: function(self, type, link_as, free_vals){
+		create(self, type, link_as, free_vals) {
 			var child_id = self.app.createGrid(type, link_as, free_vals, self.id);
 			utils.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
 			this.set(link_as, child_id);
@@ -18,33 +18,33 @@ var create_provider = (app, self) => {
 			app.linkManager.onNewGridAdded(self.id, child_id);
 			return child_id;
 		},
-		set: function(name, grid_id){
+		set(name, grid_id) {
 			this.pool[name] = grid_id;
 		},
-		isLinked: function(name){
+		isLinked(name) {
 			return !!this.get(name);
 		},
-		get: function(name){
+		get(name) {
 			var id = this.pool[name];
 			
 			return id ? app.grids[id] : false;
 		},
-		remove: function(name){
+		remove(name) {
 			var id = this.pool[name];
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
 			delete self.app.grids[id];
 		},
-		setCellValues: function(childName, values, skipsame){
+		setCellValues(childName, values, skipsame) {
 			this.get(childName).set(values, false, false, false, skipsame);
 		},
-		initChild: function(name){
+		initChild(name) {
 			if(!this.get(name).init){
 				console.log('strange', this, name);
 			}
 			this.get(name).init();
 		},
-		unlinkChildCells: function(name){
+		unlinkChildCells(name) {
 			var hsh = this.get(name);
 			if(!hsh){
 				//console.warn('removing unexisting grid!', name);
@@ -52,11 +52,11 @@ var create_provider = (app, self) => {
 			}
 			this.remove(name);
 		},
-		getLinkedGridCellValue: function(gridname, cellname){
+		getLinkedGridCellValue(gridname, cellname) {
 			var grid = this.get(gridname);
 			return grid ? grid.cell_value(cellname) : false;
 		},
-		linkAnyTwoCells: function(slave, master){
+		linkAnyTwoCells(slave, master) {
 			if(slave.indexOf('/') !== -1){
 				app.linkManager.initLink(self.id, slave);
 			} else {
