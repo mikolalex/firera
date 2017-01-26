@@ -7,8 +7,10 @@ var notify = require("gulp-notify");
 
 var entryPoints = [
 	['./', 'firera.js', './dist'],
+	['./', 'firera.js', './FireraInspector'],
 	['./test/', 'test.js', './test/br'],
 	['./test/', 'polygon.js', './test/br'],
+	['./benchmarks/', 'index.js', './benchmarks/br'],
 ]
 
 function handleErrors() {

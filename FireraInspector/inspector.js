@@ -56,14 +56,6 @@ var always = (a) => {
 
 var typf = a => typeof a;
 
-var get_data = (cb, url) => {
-	$.get(url, (data) => {
-		for(var d of data){
-				d.cells = order_obj(cell_types_order, d.cells);
-		}
-		cb(data);
-	})
-}
 
 var grids_from_data = (data, parent_path) => {
 	var res = [];

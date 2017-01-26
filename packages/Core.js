@@ -521,9 +521,15 @@ module.exports = {
 			};
 			if(props.push){
 				all_lists_mixin.$push = props.push;
+				if(!props.push instanceof Array){
+					console.error('List\'s PUSH property should be a F-expression(array), given', props.push);
+				}
 			}
 			if(props.pop){
 				all_lists_mixin.$pop = props.pop;
+				if(!props.pop instanceof Array){
+					console.error('List\'s POP property should be a F-expression(array), given', props.pop);
+				}
 			}
 			if(props.datasource){
 				all_lists_mixin.$datasource = props.datasource;

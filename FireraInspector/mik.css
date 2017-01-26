@@ -175,11 +175,11 @@
 				cursor: pointer;
 			}
 			
-			#content {
+			.id-content {
 				float: left;
 				width: 50%;
 			}
-			#content-devtool {
+			.id-content-devtool {
 				width: 50%;
 				position:fixed !important;
 				position:absolute;

@@ -9,13 +9,13 @@ and open the template in the editor.
         <title>TODO supply a title</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="../dist/firera.js"></script>
+        <script src="firera.js"></script>
         <script src="jquery.js"></script>
         <link rel="stylesheet" href="mik.css" />
     </head>
     <body>
-        <div id="content" class="test-todo-mvc"></div>
-        <div id="content-devtool"></div>
+        <div id="content" class="id-content" class="test-todo-mvc"></div>
+        <div id="content-devtool" class="id-content-devtool"></div>
 		<script src="testapp.js"></script>
 		<script src="inspector.js"></script>
 		<script>
@@ -37,19 +37,27 @@ and open the template in the editor.
 						$root.find('.clear-completed').click();
 						$root.find('ul > *:nth-child(1) .complete').click();
 				}
+				var make_changes2 = () => {
+						app.set('add_item', {});
+						app.set('add_item', {});
+						app.set('add_item', {});
+				}
 				window.set_data = () => {
 						var dt = [Firera.getAppStruct()[0]];
+						console.log('set data', dt);
 						//timer('start');
 						var a = performance.now();
 						app_devtool.set('data', dt);
 						var b = performance.now();
 						//timer('finish');
 						console.log('total', b-a);
+						var a = Firera.getAppStruct()[1].children.grids.children[0].cells.DOM[0].name;
+						console.log('A', a);
 				}
 				
 				var app = Firera(app_struct);
 				var app_devtool = Firera(app_struct_devtool);
-				app_devtool.set('app', app);
+				//app_devtool.set('app', app);
 				console.log('App', app);
 				console.log('App devtool', app_devtool);
 				/*setTimeout(() => {
@@ -57,13 +65,14 @@ and open the template in the editor.
 				}, 1)	
 				/*setTimeout(() => {
 					set_data();
-				}, 10)*/
+				}, 10)
 				var sd = _F.throttle(set_data, 300);
 				app.onChangeFinished(() => {
 						setTimeout(sd, 1);
-				});
+				});*/
+				setTimeout(set_data, 500);
 				
-				make_changes();
+				make_changes2();
 		})
 
 
