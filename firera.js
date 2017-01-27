@@ -61,10 +61,10 @@ window.Firera = function(config){
 	return app;
 };
 
-var onGridCreatedStack = {};
+Firera.onGridCreatedStack = {};
 Firera.gridCreated = function(app, grid_id, path, parent){
-	if(onGridCreatedStack[app.id]){
-		for(let cb of onGridCreatedStack[app.id]){
+	if(Firera.onGridCreatedStack[app.id]){
+		for(let cb of Firera.onGridCreatedStack[app.id]){
 			cb(app, grid_id, path, parent);
 		}
 	}

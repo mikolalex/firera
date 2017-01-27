@@ -290,7 +290,7 @@ App.prototype.createGrid = function(type, link_as, free_vals, parent_id) {
 				: free_vals;
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
-	var child = new Grid(this, type, link_as, free_vals, true, parent_id, path); 
+	var child = new Grid(this, type, link_as, free_vals, true, parent_id, path);
 	Firera.gridCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;

@@ -1,7 +1,15 @@
 var Firera = require('../firera');
 var $ = require('jquery');
+var Benchmark = require('benchmark');
 
 var $root = $(".some-list");
+
+var run_test = (cb, str) => {
+	var a = performance.now();
+	cb();
+	var b = performance.now();
+	console.log('total for', str + ':', b-a);
+}
 
 window.app = Firera({
 	__root: {
@@ -23,11 +31,13 @@ window.app = Firera({
 				"I am an item"
 		`
 	},
-	$packages: ['ozenfant_new', 'htmlCells']
+	$packages: ['neu_ozenfant', 'htmlCells']
 })
 
-for(var c = 0; c <= 100; c++){
-	app.set('add_item', {});
+var test1 = () => {
+	for(var c = 0; c <= 100; c++){
+		app.set('add_item', {});
+	}
 }
 
-console.log('app', app);
+run_test(test1, 'Add item');

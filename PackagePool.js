@@ -1,3 +1,5 @@
+var utils = require('./utils');
+
 var kcopy = function(from, to){
 	for(let i in from){
 		to[i] = from[i];
@@ -24,8 +26,8 @@ PackagePool.prototype.load = function(pack){
 		Object.assign(this.eachGridMixin, pack.eachGridMixin);
 	}
 	if(pack.onGridCreated){
-		init_if_empty(onGridCreatedStack, this.app_id, []);
-		onGridCreatedStack[this.app_id].push(pack.onGridCreated);
+		utils.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
+		Firera.onGridCreatedStack[this.app_id].push(pack.onGridCreated);
 	}
 }
 module.exports = PackagePool;

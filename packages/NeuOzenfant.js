@@ -1,6 +1,8 @@
 
 var rendered = {};
 var templates = {};
+var utils = require('../utils');
+var $ = require('jquery');
 
 var parse_rec = (app, grid_id, cell) => {
 	var grid = app.getGrid(grid_id);
@@ -46,11 +48,11 @@ var set_bindings_rec = (app, struct, el) => {
 			set_bindings_rec(app, struct.children[key], el);
 		}
 	} else {
-		el.children.each((node, key) => {
+		for(let key in el.children){
 			if(el.children.hasOwnProperty(key)){
-				set_bindings_rec(app, struct.children[key], node);
+				set_bindings_rec(app, struct.children[key], el.children[key]);
 			}
-		})
+		}
 	}
 }
 var render = function(app, start, node){
@@ -77,6 +79,6 @@ module.exports = {
 			var node = parent_tmpl.bindings[self.name];
 			render(app, self, node);
 		}
-		//console.log('grid created', path, parent_path);
+		console.log('grid created', path, parent_path);
 	}
 }
