@@ -253,7 +253,7 @@ module.exports = {
 					break;
 					case 'display':
 						func = function($el, val){
-							if(!$el || val === undefined){
+							if(!Firera.is_def($el) || val === undefined){
 								return;
 							}
 							if(val){

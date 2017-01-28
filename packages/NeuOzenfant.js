@@ -64,21 +64,49 @@ var render = function(app, start, node){
 		//console.log('html', html);
 }
 
+var get_parent_grid = (app, grid_id) => {
+	return app.getGrid(app.getGrid(grid_id).parent);
+}
+
+var get_template = (app, path) => {
+	return templates[app.id][path];
+}
+
+var get_binding = (template, name) => {
+	return template.bindings[name];
+}
+
 module.exports = {
-	onGridCreated: (app, grid_id, path, parent) => {
+	onBranchCreated: (app, grid_id, path, parent) => {
+		console.log('branch created', path);
+		var self = app.getGrid(grid_id);
 		if(!parent){
-			var self = app.getGrid(grid_id);
 			var node = self.cell_values.$el.get()[0];
 			render(app, self, node);
 		}
 		if(rendered[app.id] && rendered[app.id][parent]){
-			var self = app.getGrid(grid_id);
 			var parent_path = app.getGrid(parent).path;
 			var parent_tmpl = templates[app.id][parent_path];
-			//if(!parent_tmpl) debugger;
-			var node = parent_tmpl.bindings[self.name];
-			render(app, self, node);
+			if(parent_tmpl) {
+				var node = parent_tmpl.bindings[self.name];
+				if(!node){
+					console.error('No binding found for', self.name, 'in path', parent_path);
+					return;
+				}
+				render(app, self, node);
+			} else {
+				// it's a list
+				var parpar_template = get_template(app, get_parent_grid(app, parent).path);
+				var parpar_binding = get_binding(parpar_template, app.getGrid(parent).name);
+				if(!parpar_binding) {
+					console.log('parent binding is absent!', get_parent_grid(app, parent).path);
+					return;
+				}
+				var struct = parse_rec(app, grid_id, '$template');
+				var html = render_rec(app, struct);
+				parpar_binding.insertAdjacentHTML("beforeend", html);
+				//console.log('insert list item', parpar_binding, html);
+			}
 		}
-		console.log('grid created', path, parent_path);
 	}
 }

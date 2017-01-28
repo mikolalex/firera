@@ -31,7 +31,11 @@ window.app = Firera({
 				"I am an item"
 		`
 	},
-	$packages: ['neu_ozenfant', 'htmlCells']
+	$packages: [
+		'neu_ozenfant', 
+		//'ozenfant_new', 
+		'htmlCells'
+	]
 })
 
 var test1 = () => {

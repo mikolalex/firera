@@ -195,6 +195,7 @@ Grid.prototype.initLinkChain = function(link){
 }
 
 Grid.prototype.linkGrid = function(cellname, val){
+	++this.app.grid_create_counter;
 	//log('RUNNING SIDE EFFECT', this, val); 
 	var grid, link1, link2, free_vals;
 	cellname = cellname.replace("$child_", "");
@@ -223,6 +224,10 @@ Grid.prototype.linkGrid = function(cellname, val){
 		Obj.each(link2, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(child_id, '../' + his_cell, my_cell);
 		})
+	}
+	--this.app.grid_create_counter;
+	if(this.app.grid_create_counter === 0){
+		this.app.branchCreated(child_id);
 	}
 }
 

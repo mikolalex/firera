@@ -53,6 +53,7 @@ window.Firera = function(config){
 	//var compilation_finished = performance.now();
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
+	app.branchCreated(1);
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -62,6 +63,7 @@ window.Firera = function(config){
 };
 
 Firera.onGridCreatedStack = {};
+Firera.onBranchCreatedStack = {};
 Firera.gridCreated = function(app, grid_id, path, parent){
 	if(Firera.onGridCreatedStack[app.id]){
 		for(let cb of Firera.onGridCreatedStack[app.id]){

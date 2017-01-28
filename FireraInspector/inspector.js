@@ -125,7 +125,6 @@ var obj_or_scalar_template = prep(`
 			:
 				span.val$
 `);
-console.log('oos', obj_or_scalar_template);
 var eq = (a) => {
 	return (b) => {
 		return b === a;
@@ -279,5 +278,9 @@ var app_struct_devtool = {
 				return cell === '.open|click';
 			}, '.open|click', '.close|click'],
 	},
-	$packages: ['ozenfant_new', 'htmlCells']
+	$packages: [
+		'neu_ozenfant', 
+		//'ozenfant_new', 
+		'htmlCells'
+	]
 }
