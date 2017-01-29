@@ -89,6 +89,20 @@ var get_root_node_from_html = (html) => {
 	return children[0];
 }
 
+/*var get_path_binding = (app_id, path) => {
+	var pieces = path.split('/');
+	var last = pieces[pieces.length - 1];
+	if(Number(last) == last){
+		// it's list item
+		var parent_name = pieces[pieces.length - 2];
+		var parpar_path = pieces.slice(0, pieces.length - 2).join('/');
+		parpar_path = parpar_path === '' ? '/' : parpar_path;
+		return templates[app_id][parpar_path].bindings[parent_name].childNodes[Number(last) + 1];
+	} else {
+		console.log('should be implemented!');
+	}
+}*/
+
 module.exports = {
 	eachGridMixin: {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
@@ -102,7 +116,8 @@ module.exports = {
 		}, '*', '-$path', '-$app_id'],
 		'$html_skeleton_changes': ['$real_el'],
 		'$ozenfant.remover': [(_, path, app_id) => {
-			console.log('REMOVE', path, app_id);
+			get_template(app_id, path).root.remove();
+			delete templates[app_id][path];
 		}, '$remove', '-$path', '-$app_id']
 	},
 	onBranchCreated: (app, grid_id, path, parent) => {

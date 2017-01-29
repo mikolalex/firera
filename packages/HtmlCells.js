@@ -120,7 +120,7 @@ module.exports = {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
-								if(!$now_el) return;
+								if(!Firera.is_def($now_el)) return;
 								if($now_el === Firera.undef) return;
 								$(document).click(function(e, originalTarget){
 									var is_other = !$.contains($now_el.get()[0], originalTarget);
@@ -133,7 +133,7 @@ module.exports = {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
-								if(!$now_el) return;
+								if(!Firera.is_def($now_el)) return;
 								if($now_el === Firera.undef) return;
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
 								if($prev_el && $prev_el !== Firera.undef){
@@ -159,7 +159,7 @@ module.exports = {
 						func = function(cb, vals){
 							if(!vals) return;
 							var [$prev_el, $now_el] = vals;
-							if(!$now_el) return;
+							if(!Firera.is_def($now_el)) return;
 							if($prev_el){
 								$prev_el.off('focus', selector);
 							}
@@ -178,7 +178,7 @@ module.exports = {
 					case 'press':
 						func = function(cb, vals){
 							var [$prev_el, $now_el] = vals;
-							if(!$now_el) return;
+							if(!Firera.is_def($now_el)) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
 							if($prev_el){
 								$prev_el.off('keyup', selector);
@@ -231,7 +231,7 @@ module.exports = {
 					break;
 					case 'visibility':
 						func = function($el, val){
-							if(!$el){
+							if(!Firera.is_def($el)){
 								return;
 							}
 							if(val === undefined){

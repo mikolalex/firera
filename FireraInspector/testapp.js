@@ -74,10 +74,8 @@ var main_template = `
 			text.new-todo-text
 `;
 var todo_template = `
-li
-	.
-		"This is todo"
-	.$text
+li.todo
+	.todo-text$text
 	.
 		a.complete(href: #)
 			"Complete"
