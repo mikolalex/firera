@@ -51,9 +51,13 @@ window.Firera = function(config){
 	}
 	//console.log(app);
 	//var compilation_finished = performance.now();
+	++app.grid_create_counter;
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
-	app.branchCreated(1);
+	--app.grid_create_counter;
+	if(app.grid_create_counter === 0){
+		app.branchCreated(1);
+	}
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'

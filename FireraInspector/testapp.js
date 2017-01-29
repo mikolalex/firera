@@ -74,6 +74,7 @@ var main_template = `
 			text.new-todo-text
 `;
 var todo_template = `
+li
 	.
 		"This is todo"
 	.$text
@@ -125,5 +126,9 @@ var app_struct = {
 		complete: ['toggle', '.complete|click', false],
 		'c': ['+', 'a', 'b']
 	},
-	$packages: ['ozenfant_new', 'htmlCells']
+	$packages: [
+		'neu_ozenfant', 
+		//'ozenfant_new', 
+		'htmlCells'
+	]
 }

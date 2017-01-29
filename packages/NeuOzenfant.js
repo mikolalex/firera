@@ -22,7 +22,7 @@ var render_rec = (app, struct) => {
 	var grid = app.getGrid(struct.grid_id);
 	utils.init_if_empty(rendered, app.id, {}, grid.id, true);
 	if(struct.val){
-		var context = Object.create(grid.cell_values);
+		var context = Object.assign({}, grid.cell_values);
 		for(let key in struct.children){
 				context[key] = render_rec(app, struct.children[key])
 		}
@@ -41,11 +41,14 @@ var set_bindings_rec = (app, struct, el) => {
 	if(!struct) debugger;
 	var grid = app.getGrid(struct.grid_id);
 	if(struct.tmpl){
-		grid.set('$el', $(el));
+		//console.log('set real el', $(el), grid.path);
+		grid.set('$real_el', $(el));
 		struct.tmpl.setRoot(el).updateBindings();
 		for(let key in struct.children){
 			let el = struct.tmpl.bindings[key];
-			set_bindings_rec(app, struct.children[key], el);
+			if(el){
+				set_bindings_rec(app, struct.children[key], el);
+			}
 		}
 	} else {
 		for(let key in el.children){
@@ -76,12 +79,37 @@ var get_binding = (template, name) => {
 	return template.bindings[name];
 }
 
+var container;
+
+var get_root_node_from_html = (html) => {
+	var children = container.html(html).children();
+	if(children[1]){
+		console.error('Template should have only one root node,', children.length - 1, 'given in', html);
+	}
+	return children[0];
+}
+
 module.exports = {
+	eachGridMixin: {
+		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
+				if(!template_path || !app_id || !templates[app_id]) return;
+				var template = templates[app_id][template_path];
+				if(!template) {
+					return;
+				}
+				//console.log('Set', cell, val, template.state[cell]);
+				template.set(cell, val);
+		}, '*', '-$path', '-$app_id'],
+		'$html_skeleton_changes': ['$real_el'],
+		'$ozenfant.remover': [(_, path, app_id) => {
+			console.log('REMOVE', path, app_id);
+		}, '$remove', '-$path', '-$app_id']
+	},
 	onBranchCreated: (app, grid_id, path, parent) => {
-		console.log('branch created', path);
 		var self = app.getGrid(grid_id);
 		if(!parent){
 			var node = self.cell_values.$el.get()[0];
+			container = $('<div/>').appendTo('body').css('display', 'none').attr('id', 'ozenfant-container-hidden');
 			render(app, self, node);
 		}
 		if(rendered[app.id] && rendered[app.id][parent]){
@@ -104,8 +132,10 @@ module.exports = {
 				}
 				var struct = parse_rec(app, grid_id, '$template');
 				var html = render_rec(app, struct);
-				parpar_binding.insertAdjacentHTML("beforeend", html);
-				//console.log('insert list item', parpar_binding, html);
+				var node = get_root_node_from_html(html);
+				//parpar_binding.insertAdjacentHTML("beforeend", html);
+				$(node).appendTo(parpar_binding);
+				set_bindings_rec(app, struct, node);
 			}
 		}
 	}

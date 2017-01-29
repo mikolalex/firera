@@ -143,9 +143,9 @@ module.exports = {
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
 								$now_el.on('click', selector, (e) => {
-									if(!filter_attr_in_path(e)){
-										return;
-									}
+									//if(!filter_attr_in_path(e)){
+									//	return;
+									//}
 									make_resp(cb, e);
 									if(e.originalEvent && e.originalEvent.target){
 										$(document).trigger('click', e.originalEvent.target);

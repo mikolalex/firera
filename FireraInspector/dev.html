@@ -14,7 +14,7 @@ and open the template in the editor.
         <link rel="stylesheet" href="mik.css" />
     </head>
     <body>
-        <div id="content" class="id-content" class="test-todo-mvc"></div>
+        <div id="content" class="id-content test-todo-mvc"></div>
         <div id="content-devtool" class="id-content-devtool"></div>
 		<script src="testapp.js"></script>
 		<script src="inspector.js"></script>
@@ -31,6 +31,8 @@ and open the template in the editor.
 
 						type('Listen to music');
 						enter();
+						
+						var $root = $(".test-todo-mvc");
 
 						$root.find('ul > *:nth-child(1) .complete').click();
 						$root.find('.clear-completed').click();
@@ -44,7 +46,7 @@ and open the template in the editor.
 				}
 				window.set_data = () => {
 						var dt = [Firera.getAppStruct()[0]];
-						console.log('set data', dt);
+						//console.log('set data', dt);
 						//timer('start');
 						var a = performance.now();
 						app_devtool.set('data', dt);
@@ -57,7 +59,7 @@ and open the template in the editor.
 				
 				var app = Firera(app_struct);
 				var app_devtool = Firera(app_struct_devtool);
-				//app_devtool.set('app', app);
+				app_devtool.set('app', app);
 				console.log('App', app);
 				console.log('App devtool', app_devtool);
 				/*setTimeout(() => {
