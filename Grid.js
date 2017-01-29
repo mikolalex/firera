@@ -172,7 +172,16 @@ Grid.prototype.initIfSideEffectCell = function(cell){
 		if(matched){
 			this.compute(cell);
 		}
-		//this.setLevels();
+		// update levels for this new cell
+		if(this.cell_types[cell]){
+			var max_level = 0;
+			for(let parent of this.cell_types[cell].parents){
+				if(this.levels[parent] > max_level){
+					max_level = this.levels[parent];
+				}
+			}
+			this.levels[cell] = max_level + 1;
+		}
 	}
 }
 
