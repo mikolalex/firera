@@ -747,7 +747,7 @@ describe('Basic Firera functionality', function () {
 		console.log('app', app);
 		app.set('text', 'ololo');
 		var ex_res = `Hello,Ivan!`;
-		var res = $.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()).replace(/(\t|\s)/g, "");
+		var res = $.trim($('.test-ozenfant-nested > * > * > ul > *:nth-child(2) ').text()).replace(/(\t|\s)/g, "");
 		assert.equal(res, ex_res);
 	})
 	
@@ -805,6 +805,7 @@ describe('Basic Firera functionality', function () {
 		var app = Firera({
 			__root: {
 				$template: `
+					.trainz
 						h1
 							"Trains"
 						.trains$
@@ -916,6 +917,7 @@ describe('Basic Firera functionality', function () {
 				$el: $(".test-new-children"),
 				someval: ['todo/ololo'],
 				$template: `
+			.
 				.
 					a.add(href: #)
 						"Show todo"
@@ -964,6 +966,7 @@ describe('Basic Firera functionality', function () {
 			triggerEnter($root.find('input[type=text]'));
 		}
 		var main_template = `
+		.todo-mvc-tst
 			h1 
 				"Todo MVC"
 			.
@@ -996,6 +999,7 @@ describe('Basic Firera functionality', function () {
 					text.new-todo-text
 		`;
 		var todo_template = `
+		li
 			.
 				"This is todo"
 			.$text
@@ -1194,7 +1198,7 @@ describe('Basic Firera functionality', function () {
 		var app = Firera({
 			__root: {
 				$template: `
-				
+					.
 						.
 							"Blocks"
 						.blocks$   
@@ -1282,6 +1286,7 @@ describe('Basic Firera functionality', function () {
 				]],
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
 				'$template': `
+			.
 				.h1
 					"Comments"
 				ul.comments$
@@ -1327,6 +1332,7 @@ describe('Basic Firera functionality', function () {
 				username: 'Mikolalex',
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
 				'$template': `
+			.
 				.h1
 					"Comments"
 				ul.comments$

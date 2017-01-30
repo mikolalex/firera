@@ -9,7 +9,7 @@ var filter_attr_in_parents = (parent_node, index, el) => {
 		el = el.parentElement;
 		if(!el) return true;
 		if(el.hasAttribute('data-fr')){
-			return el === parent_node;
+			return el.children[0] === parent_node;
 		}
 	}
 }
@@ -277,8 +277,9 @@ module.exports = {
 						if(!Firera.is_def(a)) return $();
 						if(!selector) return a;
 						if(selector === 'other') return a;
-						return a.find(selector)
+						var node = a.find(selector)
 								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
+						return node;
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {

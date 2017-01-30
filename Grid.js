@@ -235,6 +235,7 @@ Grid.prototype.linkGrid = function(cellname, val){
 		})
 	}
 	--this.app.grid_create_counter;
+	//console.log('grid created', this.app.getGrid(child_id).path);
 	if(this.app.grid_create_counter === 0){
 		this.app.branchCreated(child_id);
 	}

@@ -37,13 +37,16 @@ var render_rec = (app, struct) => {
 		return res.join('');
 	}
 }
-var set_bindings_rec = (app, struct, el) => {
+var set_bindings_rec = (app, struct, el, is_root) => {
 	if(!struct) debugger;
 	var grid = app.getGrid(struct.grid_id);
 	if(struct.tmpl){
-		//console.log('set real el', $(el), grid.path);
+		if(is_root){
+			struct.tmpl.setFirstNode(el).updateBindings();
+		} else {
+			struct.tmpl.setRoot(el).updateBindings();
+		}
 		grid.set('$real_el', $(el));
-		struct.tmpl.setRoot(el).updateBindings();
 		for(let key in struct.children){
 			let el = struct.tmpl.bindings[key];
 			if(el){
@@ -53,7 +56,7 @@ var set_bindings_rec = (app, struct, el) => {
 	} else {
 		for(let key in el.children){
 			if(el.children.hasOwnProperty(key)){
-				set_bindings_rec(app, struct.children[key], el.children[key]);
+				set_bindings_rec(app, struct.children[key], el.children[key], true);
 			}
 		}
 	}
@@ -116,7 +119,12 @@ module.exports = {
 		}, '*', '-$path', '-$app_id'],
 		'$html_skeleton_changes': ['$real_el'],
 		'$ozenfant.remover': [(_, path, app_id) => {
-			get_template(app_id, path).root.remove();
+			var template = templates[app_id][path];
+			if(template && template.root){
+				template.root.remove();
+			} else {
+				//debugger;
+			}
 			delete templates[app_id][path];
 		}, '$remove', '-$path', '-$app_id']
 	},
@@ -150,7 +158,7 @@ module.exports = {
 				var node = get_root_node_from_html(html);
 				//parpar_binding.insertAdjacentHTML("beforeend", html);
 				$(node).appendTo(parpar_binding);
-				set_bindings_rec(app, struct, node);
+				set_bindings_rec(app, struct, node, true);
 			}
 		}
 	}

@@ -42,6 +42,7 @@ var enter = () => {
 }
 
 var main_template = `
+.
 	h1 
 		"Todo MVC"
 	.

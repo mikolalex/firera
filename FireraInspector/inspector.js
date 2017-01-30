@@ -79,6 +79,7 @@ var prep = Firera.Ozenfant.prepare;
 
 var templates = {
 	main: prep(`
+		.
 			h1 
 				"FireraInspector"
 			.$grids

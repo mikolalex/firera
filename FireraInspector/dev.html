@@ -53,8 +53,6 @@ and open the template in the editor.
 						var b = performance.now();
 						//timer('finish');
 						console.log('total', b-a);
-						var a = Firera.getAppStruct()[1].children.grids.children[0].cells.DOM[0].name;
-						console.log('A', a);
 				}
 				
 				var app = Firera(app_struct);
@@ -67,11 +65,12 @@ and open the template in the editor.
 				}, 1)	
 				/*setTimeout(() => {
 					set_data();
-				}, 10)
+				}, 10)*/
 				var sd = _F.throttle(set_data, 300);
 				app.onChangeFinished(() => {
 						setTimeout(sd, 1);
-				});*/
+				});
+				//*/
 				setTimeout(set_data, 500);
 				
 				make_changes();
