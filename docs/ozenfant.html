@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+		<head>
+				<title>Firera - intro</title>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<link rel="stylesheet" href="guide.css" />
+				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+		</head>
+		<body>
+		<div id="content" class="ozenfant">
+			<div>
+				<h1>Ozenfant</h1>
+				Озанфан - це HTML-шаблонізатор з мінімалістичним синтаксисом і широкими можливостями. Названий на честь ідеолога пуризму - Амеде Озанфана.
+				Він не використовує virtual DOM, однак і не є класичним string-based шаблонізатором. Озанфан використовує вставку готового HTML для початково рендерингу і запам"ятовує 
+				посилання на конкретні DOM-вузли для подальшої модифікації окремих частин шаблону. Завдяки цьому він працює набагато швидше за строкові шаблонізатори.<br>
+				<img src="oz.jpg" alt="" class="oz-image"/>
+			</div><div>
+				<h2>Основи синтаксису</h2>
+<code>&lt;div&gt;
+	&lt;div class="foo boo"&gt;
+		Hello,
+		&lt;span id="main" class="bar" style="color: red"&gt;
+			world!
+		&lt;/span&gt;
+		&lt;a href="google.com.ua" target="_blank" style="text-decoration: underline"&gt;
+			Google
+		&lt;/a&gt;
+	&lt;/div&gt;
+	&lt;form&gt;
+		&lt;input type="text" value="Enter something" /&gt;
+	&lt;/form&gt;
+&lt;/div&gt;
+</code>
+				&nbsp;|<br>
+				V
+<code>.
+	.foo.boo
+		"Hello,"
+		span.bar(id: main, color: red)
+				"world!"
+		a(href: google.com.ua, target: _blank, text-decoration: underline)
+				"Google"
+	form
+		text(value: Enter something)
+</code>
+				Цей приклад ілюструє основі особливості і правила Ozenfant:
+				<ul class="oz-list">
+						<li>
+								структура в Озанфан передається за допомогою відступів(як в Python), тому вони є критично важливими.
+						</li>
+						<li>
+								звичайний ДОМ-вузол передається крапкою ".". За умовчанням, це тег div.
+						</li>
+						<li>
+								класи вузла вказуються по черзі, через крапку(напр., ".foo.boo")
+						</li>
+						<li>
+								атрибути тега вказуються в дужках за шаблоном attrName: attrValue, наприклад (href: google.com.ua, target: _blank)
+						</li>
+						<li>
+								inline-стилі тега вказуються так само, поруч із атрибутами: (id: main, color: red).
+						</li>
+						<li>
+								текстові вставки обгортаються в лапки, пишуться, як і теги, з нової строчки і з відповідними відступами
+						</li>
+						<li>
+								деякі теги мають альтернативні скорочені варіанти запису, наприклад, &lt;input type="text"&gt; -&gt; text, &lt;input type="checkbox"&gt; -&gt; checkbox і т.д.
+						</li>
+						<li>
+								у кожного шаблона завжди мусить бути тільки один кореневий вузол
+						</li>
+				</ul>
+				<br><br>
+			</div>
+				<div>
+						<h2>
+								Змінні
+						</h2>	
+						За допомогою змінни можна змінювати частини шаблону, не вдаючись до його повного перерендерингу.
+						Існує кілька аспектів, які можуть бути змінними:
+						<ul class="oz-list">
+								<li>
+										вміст ДОМ-вузла(innerHTML)
+								</li>
+								<li>
+										значення атрибута/стиля
+								</li>
+								<li>
+										значення текстового вузла
+								</li>
+						</ul>
+<code>
+&lt;div id="main"&gt;
+
+&lt;/div&gt;
+&lt;script&gt;
+	var node = document.getElementById('main');
+	// create empty template
+	var template_str = `
+		.
+			.user(data-id: $id)
+				.name$
+				.e-mail$email
+				textarea.a10.info$
+			.
+				"Hello, {{name}}!"
+	`;
+	var context = {
+		id: 37,
+		name: 'Mykola',
+		email: 'laaazyyy@gmail.com',
+		info: 'Ene bene raba'
+	};
+	
+	var t = new Firera.Ozenfant(template_str);
+	t.render(node, context);
+	console.log(node.innerHTML);
+&lt;/script&gt;
+</code>
+				&nbsp;|<br>
+				V
+<code>
+&lt;div&gt;
+   &lt;div class="user" data-id="37"&gt;
+       &lt;div class="name"&gt;
+            Mykola
+       &lt;/div&gt;
+       &lt;div class="e-mail"&gt;
+            laaazyyy@gmail.com
+       &lt;/div&gt;
+       &lt;textarea class="a10 info"&gt;
+            Ene bene raba 			
+       &lt;/textarea&gt;
+   &lt;/div&gt;
+   &lt;div&gt;
+	   Hello, Mykola! 		
+   &lt;/div&gt;
+&lt;/div&gt;
+</code>
+				<p>Імена змінних починаються зі знаку долара "$". 
+				В даному прикладі є усі три способа використання змінних: змінна id вставляється як значення атрибута data-id, змінні name, email, info - як вміст ДОМ-вузлів, а змінна 
+				name - також як частина текстового вузла.
+				Зверніть увагу, що назви змінних name та info залишені пустими - в такому випадку ім"я змінної береться по останньому класу, name та info відповідно.
+				Це робить синтаксис більш лаконічним та змушує вас писати семантичний HTML та CSS.
+				</p>
+				<p>
+				
+				Однак, дотепер це все поки що мало відрізняється від традиційних string-based шаблонізаторів.
+				Ключова особливість Озанфан - запам"ятовування лінків на ДОМ-вузли в згенерованому і вставленому коді, завдяки чому можна змінювати окремі частини шаблону без загального перерендерингу.
+				</p>
+<code>
+&lt;script&gt;
+	var node = document.getElementById('main');
+	var template_str = `
+		.
+			.user(data-id: $id)
+				.name$
+				.e-mail$email
+				textarea.a10.info$
+			.
+				"Hello, {{name}}!"
+	`;
+	var context = {
+		id: 37,
+		name: 'Mykola',
+		email: 'laaazyyy@gmail.com',
+		info: 'Ene bene raba'
+	};
+	
+	var t = new Firera.Ozenfant(template_str);
+	t.render(node, context);
+	
+	// Спробуємо щось змінити!
+	
+	t.set('id', 42);
+	console.log($(".user").attr('data-id')); // 42
+	
+	t.set('name', 'Vasyl');
+	console.log($(".user .name").html()); // 'Vasyl'
+	console.log($(".user textarea").val()); // 'Hello, Vasyl!'
+	
+&lt;/script&gt;
+</code>
+				<p>
+						Ці зміни відбувають методом точкової модифікації DOM-дерева, що робить Ozenfant дуже швидким шаблонізатором.
+				</p>
+						
+
+				</div>
+		</div>
+			<script>
+					$(document).ready(function() {
+							$('code').each(function(i, block) {
+									hljs.highlightBlock(block);
+							});
+					});
+			</script>
+		</body>
+</html>

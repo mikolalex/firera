@@ -37,6 +37,22 @@ code {
     text-align: justify;
     border-color: rgb(254, 255, 78);
 }
+#content.ozenfant > * {
+    border-color: #2a926a;
+}
+.ozenfant code {
+    padding: 1.5em;
+}
+
+.oz-image {
+	max-width: 100%;
+    display: inline-block;
+    padding: 6em 1em 3em 3em;
+}
+
+.oz-list > li {
+	padding: 1em;
+}
 
 .tbl td {
 	padding: 10px;
