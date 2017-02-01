@@ -1,7 +1,7 @@
 'use strict';
 
-var Ozenfant = require('../ozenfant/ozenfant');
-var Parser = require('./Parser');
+import Ozenfant from '../ozenfant/ozenfant';
+import Parser from './Parser';
 var App = require('./App');
 var PackagePool = require('./PackagePool');
 var utils = require('./utils');
@@ -14,14 +14,14 @@ var ozenfant_new = require('./packages/OzenfantNew');
 var htmlCells = require('./packages/HtmlCells');
 var core = require('./packages/Core');
 var neu_ozenfant = require('./packages/NeuOzenfant');
-
+ 
 
 var is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }
 
 var show_performance = function(){
-	var res = [];
+	const res = [];
 	for(var i = 1; i < arguments.length; ++i){
 		res.push(i + ': ' + (arguments[i] - arguments[i - 1]).toFixed(3));
 	}
@@ -30,7 +30,7 @@ var show_performance = function(){
 }
 
 var get_app = function(packages){
-	var app = new App(packages, root_package_pool);
+	const app = new App(packages, root_package_pool);
 	App.apps.push(app);
 	return app;
 }

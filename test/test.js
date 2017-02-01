@@ -133,7 +133,7 @@ var fromMap = function(map, def){
 	}
 }
 
-describe('Basic Firera functionality', function () {
+describe('Basic Firera functionality8', function () {
 
     it('Testing simple grid', function () {
         var app = Firera({
