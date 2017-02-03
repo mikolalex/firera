@@ -15,7 +15,7 @@ var htmlCells = require('./packages/HtmlCells');
 var core = require('./packages/Core');
 var neu_ozenfant = require('./packages/NeuOzenfant');
  
-
+ 
 var is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }

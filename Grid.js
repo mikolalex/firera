@@ -446,7 +446,7 @@ Grid.prototype.get = function(cell, child){
 		var child = this.linked_grids_provider.get(childname);
 		if(!child){
 			console.warn('Cannot get - no such path', path);
-			return;
+			return Firera.undef;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
 		return child.get(cell, child_path);

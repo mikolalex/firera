@@ -236,7 +236,8 @@ var Arr = _F.Arr = {
             }
         }
         return a;
-    }
+    },
+	realLength: (a) => Object.keys(a).length,
 }
 
 var toLowerCase = (a) => a.toLowerCase();
