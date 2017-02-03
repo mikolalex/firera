@@ -135,7 +135,7 @@ var fromMap = function(map, def){
 	}
 }
 
-describe('Basic Firera functionality8', function () {
+describe('Basic Firera functionality', function () {
 
     it('Testing simple grid', function () {
         var app = Firera({
@@ -1041,7 +1041,7 @@ describe('Basic Firera functionality8', function () {
 				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');
