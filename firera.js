@@ -34,7 +34,7 @@ var get_app = function(packages){
 	App.apps.push(app);
 	return app;
 }
-
+ 
 window.Firera = function(config){
 	if(arguments.length > 1){
 		// it's a set of grids we should join

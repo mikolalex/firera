@@ -258,9 +258,9 @@ describe('Basic Firera functionality', function () {
             },
 			$packages: ['simpleHtmlTemplates', 'htmlCells']
         });
-        $('span').click();
-        $('span').click();
-        $('span').click();
+        $('.test-html span').click();
+        $('.test-html span').click();
+        $('.test-html span').click();
         assert.equal(c, 3);
     });
     it('Testing nested grids', function () {
@@ -735,7 +735,7 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
         });
-		console.log('app', app);
+		//console.log('app', app);
 		app.set('text', 'ololo');
 		var ex_res = `Hello,Ivan!`;
 		var res = $.trim($('.test-ozenfant-nested > * > * > ul > *:nth-child(2) ').text()).replace(/(\t|\s)/g, "");
@@ -943,7 +943,7 @@ describe('Basic Firera functionality', function () {
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		$(".test-new-children .add").click();
-		console.log('app', app);
+		//console.log('app', app);
 		assert.equal($(".test-new-children .todosya").length, 1);
 		$(".test-new-children .remove").click();
 		assert.equal($(".test-new-children .todosya").length, 0);
@@ -1043,7 +1043,7 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['neu_ozenfant', 'htmlCells']
 		})
-		console.log('app', app, $root.find('input[type=text]'));
+		//console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');
 		enter();
 
@@ -1414,11 +1414,11 @@ describe('Basic Firera functionality', function () {
 				a: 10,
 				b: 32,
 				c: [(a, b) => {
-					console.log('Something', a, b);
+					//console.log('Something', a, b);
 					return 10;
 				}, '*', '-a'],
 				d: [(a) => {
-						console.log('set D', a);
+						//console.log('set D', a);
 						return a + 100;
 				}, 'c']
 			}
