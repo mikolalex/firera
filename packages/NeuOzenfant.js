@@ -109,7 +109,7 @@ var get_root_node_from_html = (html) => {
 module.exports = {
 	eachGridMixin: {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
-				if(!template_path || !app_id || !templates[app_id]) return;
+				if(!template_path || !app_id || !templates[app_id] || cell.indexOf('/') !== -1) return;
 				var template = templates[app_id][template_path];
 				if(!template) {
 					return;

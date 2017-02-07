@@ -289,7 +289,7 @@ var ozenfant_new = {
 			}, 
 			'$all_children', '-$path', '-$app_id'],
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
-				if(!template_path || !app_id || !ozenfant_trees[app_id]) return;
+				if(!template_path || !app_id || !ozenfant_trees[app_id] || cell.indexOf('/') !== -1) return;
 				var pth = template_path;
 				var template = get_tree(app_id).template_grid[pth];
 				if(!template) {
