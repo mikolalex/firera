@@ -42,8 +42,10 @@ var set_bindings_rec = (app, struct, el, is_root) => {
 	var grid = app.getGrid(struct.grid_id);
 	if(struct.tmpl){
 		if(is_root){
+			$(el).attr('data-fr-grid-root', 1);
 			struct.tmpl.setFirstNode(el).updateBindings();
 		} else {
+			$(el).attr('data-fr-grid-root', 1);
 			struct.tmpl.setRoot(el).updateBindings();
 		}
 		grid.set('$real_el', $(el));
@@ -85,7 +87,8 @@ var get_binding = (template, name) => {
 var container;
 
 var get_root_node_from_html = (html) => {
-	var children = container.html(html).children();
+	container.html(html);
+	var children = container.children();
 	if(children[1]){
 		console.error('Template should have only one root node,', children.length - 1, 'given in', html);
 	}

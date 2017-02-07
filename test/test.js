@@ -1028,7 +1028,7 @@ describe('Basic Firera functionality', function () {
 					}
 				}],
 				'remove_done': ['.clear-completed|click'],
-				'new_todos': ['.new-todo-text|enterText'],
+				'new_todos': ['.new-todo-text|>enterText'],
 				'display': ['.display > *|click|attr(class)'],
 				'.new-todo-text|setval': [always(''), 'new_todos'],
 				'completed_number': ['count', 'todos/complete'],
@@ -1424,6 +1424,52 @@ describe('Basic Firera functionality', function () {
 			}
 		})
 		app.set('a', 20);
+		// no asserts needed - if it doesn't throw an error, it's ok!
+	})
+	it('DOM events - all subtree', () => {
+		var $root =  $(".test-DOM");
+		var c = 0;
+		var d = 0;
+		var app = Firera({
+			__root: {
+				$el: $root,
+				listen_a_click: [(e) => {
+					++c;
+				}, 'a|click'],
+				listen_any_click: [(e) => {
+					++d;
+				}, 'a|>click'],
+				$template: `
+			.
+				h1
+					"Dom events"
+				.links
+					a.foo
+						"Foo"
+					a.bar
+						"Bar"
+				.items$
+
+				`,
+				$child_items: ['list', {
+						type: 'item',
+						data: [{}, {}, {}]
+				}]
+			},
+			item: {
+				$template: `
+					li
+						a.item(data-num: $name)
+							"item"
+				
+				`
+			},
+			$packages: ['neu_ozenfant', 'htmlCells'],
+		})
+		$root.find("a.item").click();
+		$root.find("a.foo").click();
+		assert.equal(c, 1);
+		assert.equal(d, 4);
 		// no asserts needed - if it doesn't throw an error, it's ok!
 	})
 })
