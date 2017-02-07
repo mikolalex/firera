@@ -1,7 +1,7 @@
 'use strict';
 
-var Ozenfant = require('../ozenfant/ozenfant');
-var Parser = require('./Parser');
+import Ozenfant from '../ozenfant/ozenfant';
+import Parser from './Parser';
 var App = require('./App');
 var PackagePool = require('./PackagePool');
 var utils = require('./utils');
@@ -14,14 +14,14 @@ var ozenfant_new = require('./packages/OzenfantNew');
 var htmlCells = require('./packages/HtmlCells');
 var core = require('./packages/Core');
 var neu_ozenfant = require('./packages/NeuOzenfant');
-
-
+ 
+ 
 var is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }
 
 var show_performance = function(){
-	var res = [];
+	const res = [];
 	for(var i = 1; i < arguments.length; ++i){
 		res.push(i + ': ' + (arguments[i] - arguments[i - 1]).toFixed(3));
 	}
@@ -30,11 +30,11 @@ var show_performance = function(){
 }
 
 var get_app = function(packages){
-	var app = new App(packages, root_package_pool);
+	const app = new App(packages, root_package_pool);
 	App.apps.push(app);
 	return app;
 }
-
+ 
 window.Firera = function(config){
 	if(arguments.length > 1){
 		// it's a set of grids we should join
@@ -51,8 +51,13 @@ window.Firera = function(config){
 	}
 	//console.log(app);
 	//var compilation_finished = performance.now();
+	++app.grid_create_counter;
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
+	--app.grid_create_counter;
+	if(app.grid_create_counter === 0){
+		app.branchCreated(1);
+	}
 	//var init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
@@ -62,6 +67,7 @@ window.Firera = function(config){
 };
 
 Firera.onGridCreatedStack = {};
+Firera.onBranchCreatedStack = {};
 Firera.gridCreated = function(app, grid_id, path, parent){
 	if(Firera.onGridCreatedStack[app.id]){
 		for(let cb of Firera.onGridCreatedStack[app.id]){

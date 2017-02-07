@@ -3,6 +3,8 @@ var che = require('shche');
 var Ozenfant = require('ozenfant');
 var assert = require('assert');
 var $ = require('jquery');
+var utils = require('../utils');
+var Arr = utils.Arr;
 
 var id = a => a;
 var not = a => !a;
@@ -13,20 +15,20 @@ var always = function(a){
 }
 
 
-	var ttimer_pool = {};
-	var ttimer = {
-			start: function(key){
-					if(!ttimer_pool[key]){
-							ttimer_pool[key] = {
-									sum: 0,
-							}
-					}
-					ttimer_pool[key].current = performance.now();
-			},
-			stop: function(key){
-					ttimer_pool[key].sum += performance.now() - ttimer_pool[key].current;
-			},
-	}
+var ttimer_pool = {};
+var ttimer = {
+		start: function(key){
+				if(!ttimer_pool[key]){
+						ttimer_pool[key] = {
+								sum: 0,
+						}
+				}
+				ttimer_pool[key].current = performance.now();
+		},
+		stop: function(key){
+				ttimer_pool[key].sum += performance.now() - ttimer_pool[key].current;
+		},
+}
 
 var decorate = (fnc, msg) => {
 	return function(){
@@ -162,7 +164,7 @@ describe('Basic Firera functionality', function () {
         app.set('a', 20);
         assert.equal(app.get('d'), 28);
     });
-    it('Testing async', function () {
+    /*it('Testing async', function () {
         var handler = function(e, cb){
             cb($(this).val());
         }
@@ -184,7 +186,7 @@ describe('Basic Firera functionality', function () {
         //console.log('SETTING VALUES FROM DOM');
         app.set('$el', $(".async-ex input"));
         //console.log(app.root);
-    });
+    });*/
     it('Testing passive listening', function () {
         var app = Firera({
             __root: {
@@ -256,9 +258,9 @@ describe('Basic Firera functionality', function () {
             },
 			$packages: ['simpleHtmlTemplates', 'htmlCells']
         });
-        $('span').click();
-        $('span').click();
-        $('span').click();
+        $('.test-html span').click();
+        $('.test-html span').click();
+        $('.test-html span').click();
         assert.equal(c, 3);
     });
     it('Testing nested grids', function () {
@@ -350,11 +352,6 @@ describe('Basic Firera functionality', function () {
     });
     var add = (a, b) => a + b;
     
-    var get_by_selector = function(name, $el){
-        //console.info("GBS", arguments);
-        return $el ? $el.find('[data-fr=' + name + ']') : null;
-    }
-    
 
     it('Testing dynamic $children members', function () {
         var app = Firera({
@@ -377,6 +374,7 @@ describe('Basic Firera functionality', function () {
         })
         assert.equal(app.get('val'), 'bar');
         app.set('registered', true);
+        assert.equal(app.get('foo', 'block'), 'bar');
     });
     it('Testing grid linking', function () {
         var app = Firera({
@@ -412,15 +410,22 @@ describe('Basic Firera functionality', function () {
                 arr_changes: ['arr_deltas', 'numbers']
         	}
         })
+		
         app.set('numbers', [1, 2, 5, 5]);
-        
         var deltas = app.get('arr_changes');
         assert.deepEqual(deltas, [["add","3",5],["change","2",5]]);
+		
         app.set('numbers', []);
-        
         deltas = app.get('arr_changes');
         assert.deepEqual(deltas, [["remove","0"],["remove","1"],["remove","2"],["remove","3"]]);
+		
         app.set('numbers', [1, 2, 5, 5]);
+        deltas = app.get('arr_changes');
+		assert.deepEqual(deltas, [["add","0",1],["add","1",2],["add","2",5],["add","3",5]]);
+		
+        app.set('numbers', [1, 2, 4, 5]);
+        deltas = app.get('arr_changes');
+		assert.deepEqual(deltas, [["change","2",4]]);
     });
     
     var add = function(vals){
@@ -428,15 +433,13 @@ describe('Basic Firera functionality', function () {
             return [['add', null, as('text')(vals)]];
         }
     }
-    
-    var second = (__, a) => a;
 	var get = (i) => {
 		return (a) => {
 			if(a && a[i] !== undefined) return a[i];
 		}
 	}
     
-    it('Testing html val set & get', function(){
+    /*it('Testing html val set & get', function(){
         var app = Firera({
             __root: {
                 $el: ['just', $(".test-input-setget")],
@@ -452,17 +455,7 @@ describe('Basic Firera functionality', function () {
             }
         })
         
-    });
-	var mk_logger = (a) => {
-		return (b) => {
-			console.log(a, b);
-			return b;
-		}
-	}
-    var logger = (varname, a) => {
-        console.log(varname, ':', a);
-        return a;
-    }
+    });*/
     it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
         var app = Firera({
@@ -548,8 +541,6 @@ describe('Basic Firera functionality', function () {
         }, 10)
     })
 	
-	var arr_real_length = (a) => Object.keys(a).length;
-	
 	it('Casting list as array', function(){
         var $root = $(".test-trains");
 		var add_item = () => {
@@ -588,7 +579,7 @@ describe('Basic Firera functionality', function () {
 		
 		$root.find('[data-fr=trains] > *:first-child .remove').click();
 		//console.log('TRAINS', app.get('arr', 'trains'));
-		assert.equal(arr_real_length(app.get('arr', 'trains')), 1);
+		assert.equal(Arr.realLength(app.get('arr', 'trains')), 1);
 		
 		var inp = $root.find('[data-fr=trains] > *:first-child input');
 		inp.val('ololo').keyup();
@@ -744,10 +735,10 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
         });
-		console.log('app', app);
+		//console.log('app', app);
 		app.set('text', 'ololo');
 		var ex_res = `Hello,Ivan!`;
-		var res = $.trim($('.test-ozenfant-nested > * > ul > *:nth-child(2) > div').text()).replace(/(\t|\s)/g, "");
+		var res = $.trim($('.test-ozenfant-nested > * > * > ul > *:nth-child(2) ').text()).replace(/(\t|\s)/g, "");
 		assert.equal(res, ex_res);
 	})
 	
@@ -805,6 +796,7 @@ describe('Basic Firera functionality', function () {
 		var app = Firera({
 			__root: {
 				$template: `
+					.trainz
 						h1
 							"Trains"
 						.trains$
@@ -916,6 +908,7 @@ describe('Basic Firera functionality', function () {
 				$el: $(".test-new-children"),
 				someval: ['todo/ololo'],
 				$template: `
+			.
 				.
 					a.add(href: #)
 						"Show todo"
@@ -950,7 +943,7 @@ describe('Basic Firera functionality', function () {
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
 		$(".test-new-children .add").click();
-		console.log('app', app);
+		//console.log('app', app);
 		assert.equal($(".test-new-children .todosya").length, 1);
 		$(".test-new-children .remove").click();
 		assert.equal($(".test-new-children .todosya").length, 0);
@@ -964,6 +957,7 @@ describe('Basic Firera functionality', function () {
 			triggerEnter($root.find('input[type=text]'));
 		}
 		var main_template = `
+		.todo-mvc-tst
 			h1 
 				"Todo MVC"
 			.
@@ -996,6 +990,7 @@ describe('Basic Firera functionality', function () {
 					text.new-todo-text
 		`;
 		var todo_template = `
+		li
 			.
 				"This is todo"
 			.$text
@@ -1046,9 +1041,9 @@ describe('Basic Firera functionality', function () {
 				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
-		console.log('app', app, $root.find('input[type=text]'));
+		//console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');
 		enter();
 
@@ -1181,7 +1176,7 @@ describe('Basic Firera functionality', function () {
 			}
 		})
 		var st = app.getStruct();
-		console.log('ST', st); 
+		assert.equal(st.children.foo.cells.formula[0].wrong_links.z, true);
 	})
 	it('"data" for list', () => {    
 		var get_fields_map = function(){
@@ -1191,10 +1186,16 @@ describe('Basic Firera functionality', function () {
 				return val;
 			}
 		} 
+		const block_template = `
+
+				.
+					"Hello!"
+
+		`;
 		var app = Firera({
 			__root: {
 				$template: `
-				
+					.
 						.
 							"Blocks"
 						.blocks$   
@@ -1209,16 +1210,12 @@ describe('Basic Firera functionality', function () {
 				}]
 			},
 			block: {
-				$template: `
-				
-						.
-							"Hello!"
-				
-				`
+				$template: block_template,
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
-		console.log('app', app);  
+		assert.equal(app.get('$template', 'blocks/2'), block_template);
+		assert.equal(app.get('$template', 'blocks/5'), Firera.undef);
 	})
 	it('Nested $init', () => {   
 		var app = Firera({
@@ -1253,7 +1250,6 @@ describe('Basic Firera functionality', function () {
 		assert.equal(app.get('foo'), 'bar');
 		assert.equal(app.get('bar', 'aaa'), 'baz');
 		assert.equal(app.get('city', 'aaa/bbb'), 'New Tsynglok');
-		console.log('C = ', app.get('c'));
 	})
 
 	it('** linking', () => {
@@ -1282,6 +1278,7 @@ describe('Basic Firera functionality', function () {
 				]],
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
 				'$template': `
+			.
 				.h1
 					"Comments"
 				ul.comments$
@@ -1327,6 +1324,7 @@ describe('Basic Firera functionality', function () {
 				username: 'Mikolalex',
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
 				'$template': `
+			.
 				.h1
 					"Comments"
 				ul.comments$
@@ -1416,16 +1414,17 @@ describe('Basic Firera functionality', function () {
 				a: 10,
 				b: 32,
 				c: [(a, b) => {
-					console.log('Something', a, b);
+					//console.log('Something', a, b);
 					return 10;
 				}, '*', '-a'],
 				d: [(a) => {
-						console.log('set D', a);
+						//console.log('set D', a);
 						return a + 100;
 				}, 'c']
 			}
 		})
 		app.set('a', 20);
+		// no asserts needed - if it doesn't throw an error, it's ok!
 	})
 })
 describe('Che', function () {

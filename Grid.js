@@ -172,7 +172,16 @@ Grid.prototype.initIfSideEffectCell = function(cell){
 		if(matched){
 			this.compute(cell);
 		}
-		//this.setLevels();
+		// update levels for this new cell
+		if(this.cell_types[cell]){
+			var max_level = 0;
+			for(let parent of this.cell_types[cell].parents){
+				if(this.levels[parent] > max_level){
+					max_level = this.levels[parent];
+				}
+			}
+			this.levels[cell] = max_level + 1;
+		}
 	}
 }
 
@@ -195,6 +204,7 @@ Grid.prototype.initLinkChain = function(link){
 }
 
 Grid.prototype.linkGrid = function(cellname, val){
+	++this.app.grid_create_counter;
 	//log('RUNNING SIDE EFFECT', this, val); 
 	var grid, link1, link2, free_vals;
 	cellname = cellname.replace("$child_", "");
@@ -223,6 +233,11 @@ Grid.prototype.linkGrid = function(cellname, val){
 		Obj.each(link2, (his_cell, my_cell) => {
 			this.app.linkManager.initLink(child_id, '../' + his_cell, my_cell);
 		})
+	}
+	--this.app.grid_create_counter;
+	//console.log('grid created', this.app.getGrid(child_id).path);
+	if(this.app.grid_create_counter === 0){
+		this.app.branchCreated(child_id);
 	}
 }
 
@@ -431,7 +446,7 @@ Grid.prototype.get = function(cell, child){
 		var child = this.linked_grids_provider.get(childname);
 		if(!child){
 			console.warn('Cannot get - no such path', path);
-			return;
+			return Firera.undef;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
 		return child.get(cell, child_path);

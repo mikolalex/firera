@@ -108,6 +108,7 @@ var get_app_struct = (app) => {
 
 var App = function(packages, root_package_pool){
 	this.id = ++appIds;
+	this.grid_create_counter = 0;
 	this.packagePool = new PackagePool(root_package_pool, this.id);
 	if(packages){
 		for(let pack of packages){
@@ -281,6 +282,16 @@ App.prototype.loadPackage = function(pack) {
 
 App.prototype.setGrid = function(id, grid){
 	this.grids[id] = grid;
+}
+
+App.prototype.branchCreated = function(grid_id){
+	var grid = this.getGrid(grid_id);
+	var path = grid.path;
+	if(Firera.onBranchCreatedStack[this.id]){
+		for(let cb of Firera.onBranchCreatedStack[this.id]){
+			cb(this, grid_id, path, grid.parent);
+		}
+	}
 }
 
 App.prototype.createGrid = function(type, link_as, free_vals, parent_id) {

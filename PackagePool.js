@@ -29,5 +29,9 @@ PackagePool.prototype.load = function(pack){
 		utils.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
 		Firera.onGridCreatedStack[this.app_id].push(pack.onGridCreated);
 	}
+	if(pack.onBranchCreated){
+		utils.init_if_empty(Firera.onBranchCreatedStack, this.app_id, []);
+		Firera.onBranchCreatedStack[this.app_id].push(pack.onBranchCreated);
+	}
 }
 module.exports = PackagePool;

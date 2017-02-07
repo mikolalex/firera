@@ -9,7 +9,7 @@ var filter_attr_in_parents = (parent_node, index, el) => {
 		el = el.parentElement;
 		if(!el) return true;
 		if(el.hasAttribute('data-fr')){
-			return el === parent_node;
+			return el.children[0] === parent_node;
 		}
 	}
 }
@@ -120,7 +120,7 @@ module.exports = {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
-								if(!$now_el) return;
+								if(!Firera.is_def($now_el)) return;
 								if($now_el === Firera.undef) return;
 								$(document).click(function(e, originalTarget){
 									var is_other = !$.contains($now_el.get()[0], originalTarget);
@@ -133,7 +133,7 @@ module.exports = {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
-								if(!$now_el) return;
+								if(!Firera.is_def($now_el)) return;
 								if($now_el === Firera.undef) return;
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
 								if($prev_el && $prev_el !== Firera.undef){
@@ -143,9 +143,9 @@ module.exports = {
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
 								$now_el.on('click', selector, (e) => {
-									if(!filter_attr_in_path(e)){
-										return;
-									}
+									//if(!filter_attr_in_path(e)){
+									//	return;
+									//}
 									make_resp(cb, e);
 									if(e.originalEvent && e.originalEvent.target){
 										$(document).trigger('click', e.originalEvent.target);
@@ -159,7 +159,7 @@ module.exports = {
 						func = function(cb, vals){
 							if(!vals) return;
 							var [$prev_el, $now_el] = vals;
-							if(!$now_el) return;
+							if(!Firera.is_def($now_el)) return;
 							if($prev_el){
 								$prev_el.off('focus', selector);
 							}
@@ -178,7 +178,7 @@ module.exports = {
 					case 'press':
 						func = function(cb, vals){
 							var [$prev_el, $now_el] = vals;
-							if(!$now_el) return;
+							if(!Firera.is_def($now_el)) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
 							if($prev_el){
 								$prev_el.off('keyup', selector);
@@ -231,7 +231,7 @@ module.exports = {
 					break;
 					case 'visibility':
 						func = function($el, val){
-							if(!$el){
+							if(!Firera.is_def($el)){
 								return;
 							}
 							if(val === undefined){
@@ -253,7 +253,7 @@ module.exports = {
 					break;
 					case 'display':
 						func = function($el, val){
-							if(!$el || val === undefined){
+							if(!Firera.is_def($el) || val === undefined){
 								return;
 							}
 							if(val){
@@ -277,8 +277,9 @@ module.exports = {
 						if(!Firera.is_def(a)) return $();
 						if(!selector) return a;
 						if(selector === 'other') return a;
-						return a.find(selector)
+						var node = a.find(selector)
 								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
+						return node;
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {

@@ -4,6 +4,30 @@ body {
 	font-family: 'ProbaPro-Regular';
 }
 
+.main-text {
+	position: relative;
+    max-width: 600px;
+    margin: auto;
+    font-size: 1.3em;
+    margin-top: 15%;
+    border-width: 35px 10px 20px 80px;
+    padding: 50px 70px 40px 30px;
+    border-color: rgb(249, 238, 78);
+    border-style: solid;
+}
+
+.main-text a {
+	color: #e43e34;
+}
+
+.main-copyright {
+    color: white;
+    position: absolute;
+    bottom: -21px;
+    right: 15px;
+    font-size: 0.9em;
+}
+
 * {
 	box-sizing: border-box;
 }
@@ -36,6 +60,22 @@ code {
     padding: 50px 70px 40px 30px;
     text-align: justify;
     border-color: rgb(254, 255, 78);
+}
+#content.ozenfant > * {
+    border-color: #2a926a;
+}
+.ozenfant code {
+    padding: 1.5em;
+}
+
+.oz-image {
+	max-width: 100%;
+    display: inline-block;
+    padding: 6em 1em 3em 3em;
+}
+
+.oz-list > li {
+	padding: 1em;
 }
 
 .tbl td {
