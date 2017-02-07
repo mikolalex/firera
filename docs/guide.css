@@ -14,18 +14,81 @@ body {
     padding: 50px 70px 40px 30px;
     border-color: rgb(249, 238, 78);
     border-style: solid;
+	opacity: 0;
+    border: 1px dotted grey;
+	padding: 40px;
+    text-align: justify;
+}
+
+@keyframes example {
+	0%   {color: #88b2de;}
+    30%  {color: #88ded3;}
+    60%  {color: #bd87c3;}
+    100% {color: #88b2de;}
+}
+
+@keyframes example2 {
+	0%   {color: red;}
+    30%  {color: blue;}
+    60%  {color: #2cdc2c;}
+    100% {color: red;}
+}
+
+.main-text ul {
+	margin: 15px 0px;
+}
+
+.main-text li {
+	margin: 2px 0px;
 }
 
 .main-text a {
 	color: #e43e34;
+	color: #ff602e;
+    color: #88b2de;
+    /*animation-name: example;
+    animation-duration: 10s;
+	animation-iteration-count: infinite;*/
+}
+
+.micro-info {
+    color: #b9b9b9;
+    font-size: 0.6em;
+    padding-left: 0.7em;
+    font-style: italic;
+}
+
+h2.fr-title {
+    margin-top: 0px;
+    text-align: center;
+    font-style: italic;
 }
 
 .main-copyright {
-    color: white;
+    /*color: white;*/
     position: absolute;
     bottom: -21px;
     right: 15px;
     font-size: 0.9em;
+	
+    bottom: 3px;
+    font-size: 0.7em;
+    color: #c1c1c1;
+    font-style: italic;
+}
+
+@media (max-width: 500px) {
+	body {
+		font-size: 13px;
+	}
+	.main-text {
+		text-align: left;
+		padding: 20px;
+	}
+	.micro-info {
+		display: block;
+		font-size: 11px;
+	}
 }
 
 * {
