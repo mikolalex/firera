@@ -989,7 +989,7 @@ describe('Basic Firera functionality', function () {
 					}
 				}],
 				'remove_done': ['.clear-completed|click'],
-				'new_todos': ['.new-todo-text|enterText'],
+				'new_todos': ['.new-todo-text|>enterText'],
 				'display': ['.display > *|click|attr(class)'],
 				'.new-todo-text|setval': [always(''), 'new_todos'],
 				'completed_number': ['count', 'todos/complete'],
@@ -1013,17 +1013,16 @@ describe('Basic Firera functionality', function () {
 
 		type('Write some tests');
 		enter();
-
+		console.log('A', $root.find('ul > *:nth-child(2) .complete'));
 		$root.find('ul > *:nth-child(2) .complete').click();
 
 		type('Listen to music');
 		enter();
 
 		$root.find('ul > *:nth-child(1) .complete').click();
-
 		assert.equal(Number($root.find('span.completed_number').html()), 2);
 		assert.equal(Number($root.find('span.all_number').html()), 4);
-
+		
 		$root.find('.clear-completed').click();
 
 		assert.equal(Number($root.find('span.completed_number').html()), 0);

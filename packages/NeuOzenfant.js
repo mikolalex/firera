@@ -20,7 +20,7 @@ var parse_rec = (app, grid_id, cell) => {
 
 }
 var is_list_without_templates = (struct) => {
-	return !!struct.children[0].val;
+	return struct.children.length && (!struct.children[0].val);
 }
 
 var get_arr_val = (app, grid_id) => {
@@ -35,8 +35,9 @@ var render_rec = (app, struct, closest_existing_template_path, skip) => {
 		var context = Object.assign({}, grid.cell_values);
 		utils.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
+		
 		for(let key in struct.children){
-			if(is_list_without_templates){
+			if(is_list_without_templates(struct.children[key])){
 				context[key] = get_arr_val(app, struct.children[key].grid_id);
 				render_rec(app, struct.children[key], grid.path, true);
 			} else {
@@ -77,7 +78,7 @@ var render_rec = (app, struct, closest_existing_template_path, skip) => {
 		}
 	}
 }
-var set_bindings_rec = (app, struct, el, is_root) => {
+var set_bindings_rec = (app, struct, el, is_root, skip) => {
 	if(!struct) debugger;
 	var grid = app.getGrid(struct.grid_id);
 	if(struct.tmpl){
@@ -91,7 +92,7 @@ var set_bindings_rec = (app, struct, el, is_root) => {
 		for(let key in struct.children){
 			let el = struct.tmpl.bindings[key];
 			if(el){
-				set_bindings_rec(app, struct.children[key], el);
+				set_bindings_rec(app, struct.children[key], el, false, true);
 			}
 		}
 	} else {
@@ -100,7 +101,7 @@ var set_bindings_rec = (app, struct, el, is_root) => {
 		}
 		for(let key in el.children){
 			if(el.children.hasOwnProperty(key) && struct.children[key]){
-				set_bindings_rec(app, struct.children[key], el.children[key], true);
+				set_bindings_rec(app, struct.children[key], el.children[key], true, !skip);
 			}
 		}
 	}
@@ -155,8 +156,9 @@ module.exports = {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
 				if(cell[0] === '$') return;
 				if(!template_path || !app_id || !templates[app_id] || cell.indexOf('/') !== -1) return;
-				var template = templates[app_id][template_path];
+				var template = templates[app_id] ? templates[app_id][template_path] : false;
 				if(!template) {
+					if(!closest_templates[app_id]) return;
 					var dt = closest_templates[app_id][template_path];
 					var path = dt.path + '/' + cell;
 					dt.template.set(path, val);
