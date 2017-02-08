@@ -9,7 +9,7 @@ body {
     max-width: 600px;
     margin: auto;
     font-size: 1.3em;
-    margin-top: 15%;
+    margin-top: calc(5% - 10px);
     border-width: 35px 10px 20px 80px;
     padding: 50px 70px 40px 30px;
     border-color: rgb(249, 238, 78);

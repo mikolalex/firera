@@ -164,29 +164,7 @@ describe('Basic Firera functionality', function () {
         app.set('a', 20);
         assert.equal(app.get('d'), 28);
     });
-    /*it('Testing async', function () {
-        var handler = function(e, cb){
-            cb($(this).val());
-        }
-        var app = Firera({
-            __root: {
-                '$el': $(".dummy"),
-                'inp': ['async', function (done, [$prev_el, $now_el]) {
-                        //console.log('ATTACHING HANDLERS', $now_el);
-                        if($prev_el){
-                            $prev_el.unbind('keyup');
-                        }
-                        $now_el.bind('keyup', function(){
-                            done($(this).val());
-                            console.log('KEYUP', app);
-                        });
-                    }, '^$el']
-            }
-        });
-        //console.log('SETTING VALUES FROM DOM');
-        app.set('$el', $(".async-ex input"));
-        //console.log(app.root);
-    });*/
+
     it('Testing passive listening', function () {
         var app = Firera({
             __root: {
@@ -439,23 +417,6 @@ describe('Basic Firera functionality', function () {
 		}
 	}
     
-    /*it('Testing html val set & get', function(){
-        var app = Firera({
-            __root: {
-                $el: ['just', $(".test-input-setget")],
-                "foo": [(a) => { console.log('New todo:', a)}, 'new_todo'],
-                "new_todo": [second, 'input|press(Enter,Esc)', '-input|getval'],
-                "input|setval": [always(''), 'new_todo']
-            },
-            'item': {
-				text: '',
-                completed: ['map', {
-					'.done|click': true
-				}, false]
-            }
-        })
-        
-    });*/
     it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
         var app = Firera({
@@ -1425,6 +1386,44 @@ describe('Basic Firera functionality', function () {
 		})
 		app.set('a', 20);
 		// no asserts needed - if it doesn't throw an error, it's ok!
+	})
+	it('Nested Oz loops', () => {
+		
+	   
+		var app = Firera({
+			__root: {
+				$el: $(".test-nested-loops"),
+				$template: `
+			.
+				h1
+					"Nested loops"
+				.
+					.
+						"Locomotives"
+					ul.{$items}
+						li.item
+							.title$.title
+				`,
+				$child_items: ['list', {
+					type: 'item',
+					data: [{
+						title: '2TE10M',
+					}, {
+						title: 'DR1A',
+					}, {
+						title: 'VL8',
+					}, {
+						title: 'ChS8'
+					}]
+				}]
+			},
+			item: {},
+			$packages: ['neu_ozenfant', 'htmlCells']
+		})
+		app.set('title', 'ChS11', 'items/0');
+		//console.log('app', app);
+	   
+		   
 	})
 })
 describe('Che', function () {

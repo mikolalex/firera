@@ -1,6 +1,7 @@
 
 var rendered = {};
 var templates = {};
+var closest_templates = {};
 var utils = require('../utils');
 var $ = require('jquery');
 
@@ -18,23 +19,62 @@ var parse_rec = (app, grid_id, cell) => {
 	return res;
 
 }
-var render_rec = (app, struct) => {
+var is_list_without_templates = (struct) => {
+	return !!struct.children[0].val;
+}
+
+var get_arr_val = (app, grid_id) => {
+	var vals = app.getGrid(grid_id).getChildrenValues();
+	return vals;
+}
+
+var render_rec = (app, struct, closest_existing_template_path, skip) => {
 	var grid = app.getGrid(struct.grid_id);
 	utils.init_if_empty(rendered, app.id, {}, grid.id, true);
 	if(struct.val){
 		var context = Object.assign({}, grid.cell_values);
-		for(let key in struct.children){
-				context[key] = render_rec(app, struct.children[key])
-		}
 		utils.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
+		for(let key in struct.children){
+			if(is_list_without_templates){
+				context[key] = get_arr_val(app, struct.children[key].grid_id);
+				render_rec(app, struct.children[key], grid.path, true);
+			} else {
+				context[key] = render_rec(app, struct.children[key], grid.path);
+			}
+		}
 		return struct.tmpl.getHTML(context);
 	} else {
-		var res = [];
-		for(let key in struct.children){
-				res.push(render_rec(app, struct.children[key]));
+		
+		
+		if(!skip){
+			var res = [];
+			for(let key in struct.children){
+					res.push(render_rec(app, struct.children[key]));
+			}
+			return res.join('');
+		} else {
+			utils.init_if_empty(closest_templates, app.id, {});
+			var path0 = grid.path.replace(closest_existing_template_path, '/');
+			var p0 = path0.split('/');
+			var res = '';
+			for(let p of p0){
+				if(p === '') continue;
+				if(Number(p) == p){
+					res += '[' + p + ']';
+				} else {
+					res += '/' + p;
+				}
+			}
+			//console.log('R', res);
+			closest_templates[app.id][grid.path] = {
+				template: templates[app.id][closest_existing_template_path],
+				path: res
+			};
+			for(let key in struct.children){
+				render_rec(app, struct.children[key], closest_existing_template_path, true);
+			}
 		}
-		return res.join('');
 	}
 }
 var set_bindings_rec = (app, struct, el, is_root) => {
@@ -54,8 +94,11 @@ var set_bindings_rec = (app, struct, el, is_root) => {
 			}
 		}
 	} else {
+		if(el){
+			grid.set('$real_el', $(el));
+		}
 		for(let key in el.children){
-			if(el.children.hasOwnProperty(key)){
+			if(el.children.hasOwnProperty(key) && struct.children[key]){
 				set_bindings_rec(app, struct.children[key], el.children[key], true);
 			}
 		}
@@ -109,9 +152,13 @@ var get_root_node_from_html = (html) => {
 module.exports = {
 	eachGridMixin: {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
+				if(cell[0] === '$') return;
 				if(!template_path || !app_id || !templates[app_id] || cell.indexOf('/') !== -1) return;
 				var template = templates[app_id][template_path];
 				if(!template) {
+					var dt = closest_templates[app_id][template_path];
+					var path = dt.path + '/' + cell;
+					dt.template.set(path, val);
 					return;
 				}
 				//console.log('Set', cell, val, template.state[cell]);

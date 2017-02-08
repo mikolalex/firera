@@ -29,6 +29,12 @@ var create_provider = (app, self) => {
 			
 			return id ? app.grids[id] : false;
 		},
+		eachChild(cb) {
+			for(let child in this.pool){
+				if(child === '..') continue;
+				cb(this.pool[child], child);
+			}
+		},
 		remove(name) {
 			var id = this.pool[name];
 			delete this.pool[name];
@@ -262,6 +268,13 @@ Grid.prototype.linkChild = function(type, link_as, free_vals){
 
 Grid.prototype.unlinkChild = function(link_as){
 	this.linked_grids_provider.unlinkChildCells(link_as);
+}
+Grid.prototype.getChildrenValues = function(){
+	var res = [];
+	this.linked_grids_provider.eachChild((child, key) => {
+		res[key] = this.app.getGrid(child).cell_values;
+	})
+	return res;
 }
 
 Grid.prototype.doRecursive = function(func, cell, skip, parent_cell, already_counted_cells = {}, run_async){
