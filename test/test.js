@@ -1425,6 +1425,53 @@ describe('Basic Firera functionality', function () {
 	   
 		   
 	})
+	
+	it('DOM events - all subtree', () => {
+		var $root =  $(".test-DOM");
+		var c = 0;
+		var d = 0;
+		var app = Firera({
+			__root: {
+				$el: $root,
+				listen_a_click: [(e) => {
+					++c;
+				}, 'a|click'],
+				listen_any_click: [(e) => {
+					++d;
+				}, 'a|>click'],
+				$template: `
+			.
+				h1
+					"Dom events"
+				.links
+					a.foo
+						"Foo"
+					a.bar
+						"Bar"
+				.items$
+
+				`,
+				$child_items: ['list', {
+						type: 'item',
+						data: [{}, {}, {}]
+				}]
+			},
+			item: {
+				$template: `
+					li
+						a.item(data-num: $name)
+							"item"
+				
+				`
+			},
+			$packages: ['neu_ozenfant', 'htmlCells'],
+		})
+		$root.find("a.item").click();
+		$root.find("a.foo").click();
+		assert.equal(c, 1);
+		assert.equal(d, 4);
+		// no asserts needed - if it doesn't throw an error, it's ok!
+	})
 })
 describe('Che', function () {
 	it('Simple example', function(){

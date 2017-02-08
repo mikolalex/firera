@@ -2,6 +2,18 @@ var Parser = require('../Parser');
 var $ = require('jquery');
 
 var filter_attr_in_path = (e) => {
+	if(e){
+		var el = e.target;
+		while(el){
+			if(el.getAttribute('data-fr-grid-root')){
+				return false;
+			}
+			el = el.parentNode;
+			if(el === e.delegateTarget){
+				break;
+			}
+		}
+	}
 	return true;
 }
 var filter_attr_in_parents = (parent_node, index, el) => {
@@ -58,9 +70,14 @@ module.exports = {
 					return cb(res);
 				}
 				var selector = matches[2];
+				var all_subtree = false;
 				var func, params;
 				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
                 [aspect, params] = get_params(aspect);
+				if(aspect[0] === '>'){
+					all_subtree = true;
+					aspect = aspect.substr(1);
+				}
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
 				if(
@@ -85,13 +102,13 @@ module.exports = {
 								make_resp(cb, val);
 							}
 							var onChange = function(e){
-								if(!filter_attr_in_path(e)){
+								if(!all_subtree && !filter_attr_in_path(e)){
 									return;
 								}
 								onch($(this));
 							};
 							var onKeyup = function(e){
-								if(!filter_attr_in_path(e)){
+								if(!all_subtree && !filter_attr_in_path(e)){
 									return;
 								}
 								var el = $(this);
@@ -143,9 +160,9 @@ module.exports = {
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
 								$now_el.on('click', selector, (e) => {
-									//if(!filter_attr_in_path(e)){
-									//	return;
-									//}
+									if(!all_subtree && !filter_attr_in_path(e)){
+										return;
+									}
 									make_resp(cb, e);
 									if(e.originalEvent && e.originalEvent.target){
 										$(document).trigger('click', e.originalEvent.target);
@@ -167,7 +184,7 @@ module.exports = {
 								console.log('Assigning handlers to nothing', $now_el);
 							}
 							$now_el.on('focus', selector, (e) => {
-								if(!filter_attr_in_path(e)){
+								if(!all_subtree && !filter_attr_in_path(e)){
 									return;
 								}
 								make_resp(cb, e);
@@ -184,7 +201,7 @@ module.exports = {
 								$prev_el.off('keyup', selector);
 							}
 							$now_el.on('keyup', selector, function(e){
-								if(!filter_attr_in_path(e)){
+								if(!all_subtree && !filter_attr_in_path(e)){
 									return;
 								}
 								var btn_map = {
@@ -219,7 +236,7 @@ module.exports = {
 							var el = $now_el[0];
 							el.onkeyup = function(e) {
 								if(e.target === $now_el.find(selector)[0]){
-									if(!filter_attr_in_path(e)){
+									if(!all_subtree && !filter_attr_in_path(e)){
 										return;
 									}
 									if(e.keyCode == 13){

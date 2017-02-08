@@ -81,6 +81,7 @@ var set_bindings_rec = (app, struct, el, is_root) => {
 	if(!struct) debugger;
 	var grid = app.getGrid(struct.grid_id);
 	if(struct.tmpl){
+		$(el).attr('data-fr-grid-root', 1);
 		if(is_root){
 			struct.tmpl.setFirstNode(el).updateBindings();
 		} else {
