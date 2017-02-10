@@ -20,7 +20,7 @@ var parse_rec = (app, grid_id, cell) => {
 
 }
 var is_list_without_templates = (struct) => {
-	return struct.children.length && (!struct.children[0].val);
+	return Object.keys(struct.children).length && (!struct.children[0].val);
 }
 
 var get_arr_val = (app, grid_id) => {
@@ -96,7 +96,7 @@ var set_bindings_rec = (app, struct, el, is_root, skip) => {
 			}
 		}
 	} else {
-		if(el){
+		if(el && !skip){
 			grid.set('$real_el', $(el));
 		}
 		for(let key in el.children){

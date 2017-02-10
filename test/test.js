@@ -1013,12 +1013,11 @@ describe('Basic Firera functionality', function () {
 
 		type('Write some tests');
 		enter();
-		console.log('A', $root.find('ul > *:nth-child(2) .complete'));
 		$root.find('ul > *:nth-child(2) .complete').click();
 
 		type('Listen to music');
 		enter();
-
+		
 		$root.find('ul > *:nth-child(1) .complete').click();
 		assert.equal(Number($root.find('span.completed_number').html()), 2);
 		assert.equal(Number($root.find('span.all_number').html()), 4);
@@ -1419,7 +1418,9 @@ describe('Basic Firera functionality', function () {
 			item: {},
 			$packages: ['neu_ozenfant', 'htmlCells']
 		})
-		app.set('title', 'ChS11', 'items/0');
+		var chs = 'ChS11';
+		app.set('title', chs, 'items/0');
+		assert.equal($(".test-nested-loops ul > li:nth-child(1) .title").html(), chs);
 		//console.log('app', app);
 	   
 		   
