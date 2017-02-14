@@ -28,10 +28,10 @@ body {
 }
 
 @keyframes example2 {
-	0%   {color: red;}
+	0%   {color: #88b2de;}
     30%  {color: blue;}
     60%  {color: #2cdc2c;}
-    100% {color: red;}
+    100% {color: #88b2de;}
 }
 
 .main-text ul {
@@ -46,9 +46,9 @@ body {
 	color: #e43e34;
 	color: #ff602e;
     color: #88b2de;
-    /*animation-name: example;
-    animation-duration: 10s;
-	animation-iteration-count: infinite;*/
+    animation-name: example2;
+    animation-duration: 20s;
+	animation-iteration-count: infinite;
 }
 
 .micro-info {
@@ -75,20 +75,6 @@ h2.fr-title {
     font-size: 0.7em;
     color: #c1c1c1;
     font-style: italic;
-}
-
-@media (max-width: 500px) {
-	body {
-		font-size: 13px;
-	}
-	.main-text {
-		text-align: left;
-		padding: 20px;
-	}
-	.micro-info {
-		display: block;
-		font-size: 11px;
-	}
 }
 
 * {
@@ -227,4 +213,32 @@ mn {
 }
 .cooltable td.empty {
 	background-color: grey;
+}
+
+
+@media (max-width: 600px) {
+	body {
+		font-size: 13px;
+	}
+	.main-text {
+		text-align: left;
+		padding: 20px;
+	}
+	.micro-info {
+		display: block;
+		font-size: 11px;
+	}
+	
+	#content > * {
+		max-width: 1000px;
+		margin: auto;
+		margin-top: 2em;
+		margin-bottom: 2em;
+
+		border-style: solid;
+		border-width: 0px;
+		padding: 10px;
+		text-align: justify;
+		border-color: rgb(254, 255, 78);
+	}
 }

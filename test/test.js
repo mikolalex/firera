@@ -135,6 +135,48 @@ var fromMap = function(map, def){
 	}
 }
 
+function toggle_checkbox(el){
+	if(el instanceof $){
+		for(let element of el){
+			toggle_checkbox(element);
+		}
+		return;
+	}
+	if(el.hasAttribute('checked')){
+		el.removeAttribute('checked');
+	} else {
+		el.setAttribute('checked', true);
+	}
+}
+
+window.trigger_event = function(name, element){
+	var event; // The custom event that will be created
+	if(element instanceof $){
+		for(let el of element){
+			trigger_event(name, el);
+		}
+		return;
+	}
+	if (document.createEvent) {
+		event = document.createEvent("HTMLEvents");
+		event.initEvent(name, true, true);
+	} else {
+		event = document.createEventObject();
+		event.eventType = name;
+	}
+
+	event.eventName = name;
+
+	if (document.createEvent) {
+		element.dispatchEvent(event);
+	} else {
+		element.fireEvent("on" + event.eventType, event);
+	}
+}
+
+var trigger_click = trigger_event.bind(null, 'click');
+var raw = a => a[0];
+
 describe('Basic Firera functionality', function () {
 
     it('Testing simple grid', function () {
@@ -222,7 +264,8 @@ describe('Basic Firera functionality', function () {
             },
 			$packages: ['simpleHtmlTemplates', 'htmlCells']
         });
-        $('.test-html input').val('ololo').keyup();
+        $('.test-html input').val('ololo');
+		trigger_event('keyup', raw($('.test-html input')));
         assert.equal(app.get('someval'), 'ololo');
     });
     it('Testing basic html functionality: click', function () {
@@ -457,8 +500,8 @@ describe('Basic Firera functionality', function () {
             }
         })
 		var add_item = function(str = 'ololo'){
-			$root.find('input[type=text]').val(str).change();
-			$root.find('button').click();
+			trigger_event('change', $root.find('input[type=text]').val(str));
+			trigger_click($root.find('button'));
 		}
 		//console.log('app', app);
 		add_item();
@@ -469,13 +512,14 @@ describe('Basic Firera functionality', function () {
         assert.equal(app.get('$arr_data.length', 'todos'), 3);
         assert.equal(app.get('completed_number', 'todos'), 0);
 		
-		$root.find('input[type=checkbox]').click();
+		toggle_checkbox($root.find('input[type=checkbox]'));
+		trigger_event('change', $root.find('input[type=checkbox]'));
         assert.equal(app.get('completed_number', 'todos'), 3);
 		
-		$root.find('[data-fr=todos] > *:first-child .remove').click();
+		trigger_click($root.find('[data-fr=todos] > *:first-child .remove'));
         assert.equal($root.find('input[type=checkbox]:checked').length, 2);
         assert.equal(app.get('completed_number', 'todos'), 2);
-		$root.find('[data-fr=todos] > *:first-child .remove').click();
+		trigger_click($root.find('[data-fr=todos] > *:first-child .remove'));
         assert.equal(app.get('completed_number', 'todos'), 1);
         assert.equal($root.find('input[type=checkbox]:checked').length, 1);
 		add_item();
@@ -538,12 +582,12 @@ describe('Basic Firera functionality', function () {
 		add_item();
 		assert.equal(app.get('arr', 'trains').length, 2);
 		
-		$root.find('[data-fr=trains] > *:first-child .remove').click();
+		trigger_click($root.find('[data-fr=trains] > *:first-child .remove'));
 		//console.log('TRAINS', app.get('arr', 'trains'));
 		assert.equal(Arr.realLength(app.get('arr', 'trains')), 1);
 		
 		var inp = $root.find('[data-fr=trains] > *:first-child input');
-		inp.val('ololo').keyup();
+		trigger_event('keyup', inp.val('ololo'));
 		assert.deepEqual(app.get('arr', 'trains'), [{
 				name: 'ololo'
 		}]);
@@ -706,7 +750,7 @@ describe('Basic Firera functionality', function () {
 	it('Testing indices predicate', function(){
 		var $root = $(".test-indices");
 		var app = Firera({
-			$packages: ['ozenfant_new', 'htmlCells'],
+			$packages: ['neu_ozenfant', 'htmlCells'],
 			__root: {
 				$init: {
 					undone_num: 0,
@@ -903,10 +947,10 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['ozenfant_new', 'htmlCells']
 		})
-		$(".test-new-children .add").click();
+		trigger_click($(".test-new-children .add"));
 		//console.log('app', app);
 		assert.equal($(".test-new-children .todosya").length, 1);
-		$(".test-new-children .remove").click();
+		trigger_click($(".test-new-children .remove"));
 		assert.equal($(".test-new-children .todosya").length, 0);
 	})
 	it('Test todo mvc', function(){
@@ -1013,21 +1057,21 @@ describe('Basic Firera functionality', function () {
 
 		type('Write some tests');
 		enter();
-		$root.find('ul > *:nth-child(2) .complete').click();
+		trigger_click($root.find('ul > *:nth-child(2) .complete'));
 
 		type('Listen to music');
 		enter();
 		
-		$root.find('ul > *:nth-child(1) .complete').click();
+		trigger_click($root.find('ul > *:nth-child(1) .complete'));
 		assert.equal(Number($root.find('span.completed_number').html()), 2);
 		assert.equal(Number($root.find('span.all_number').html()), 4);
 		
-		$root.find('.clear-completed').click();
+		trigger_click($root.find('.clear-completed'));
 
 		assert.equal(Number($root.find('span.completed_number').html()), 0);
 		assert.equal(Number($root.find('span.all_number').html()), 2);
 
-		$root.find('.clear-completed').click();
+		trigger_click($root.find('.clear-completed'));
 
 		assert.equal(Number($root.find('span.completed_number').html()), 0);
 		assert.equal(Number($root.find('span.all_number').html()), 2);
@@ -1466,8 +1510,8 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['neu_ozenfant', 'htmlCells'],
 		})
-		$root.find("a.item").click();
-		$root.find("a.foo").click();
+		trigger_click($root.find("a.item"));
+		trigger_click($root.find("a.foo"));
 		assert.equal(c, 1);
 		assert.equal(d, 4);
 		// no asserts needed - if it doesn't throw an error, it's ok!
