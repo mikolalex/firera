@@ -543,7 +543,7 @@ var create_provider = function create_provider(app, self) {
 		unlinkChildCells: function unlinkChildCells(name) {
 			var hsh = this.get(name);
 			if (!hsh) {
-				//console.warn('removing unexisting grid!', name);
+				//utils.warn('removing unexisting grid!', name);
 				return;
 			}
 			this.remove(name);
@@ -626,7 +626,7 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 		}
 	}
 	if (!parsed_pb) {
-		console.error('Cannot find grid to parse:', parsed_pb_name);
+		utils.error('Cannot find grid to parse:', parsed_pb_name);
 		return;
 	}
 	this.cell_types = parsed_pb.cell_types;
@@ -764,7 +764,7 @@ Grid.prototype.linkGrid = function (cellname, val) {
 		grid = val;
 	}
 	if (!grid) {
-		console.warn('Trying to link undefined grid:', grid);
+		utils.warn('Trying to link undefined grid:', grid);
 		return;
 	}
 	var child_id = this.linkChild(grid, cellname, free_vals);
@@ -1003,7 +1003,7 @@ Grid.prototype.get = function (cell, child) {
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			console.warn('Cannot get - no such path', path);
+			utils.warn('Cannot get - no such path', path);
 			return Firera.undef;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1149,7 +1149,7 @@ Grid.prototype.set = function (cells, val, child, no_args, skipsame) {
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			console.warn('Cannot set - no such path', path);
+			utils.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1187,7 +1187,7 @@ Grid.prototype.set2 = function (cell, val, child) {
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			console.warn('Cannot set - no such path', path);
+			utils.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1602,7 +1602,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	}
 	if (path[0] == '**') {
 		if (path.length > 2) {
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -1617,7 +1617,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	}
 	if (path[0] == '^^') {
 		if (path.length > 2) {
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -1628,7 +1628,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	}
 	if (path[0] == '') {
 		if (path.length > 2) {
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -1684,7 +1684,7 @@ var PackagePool = function PackagePool() {
 PackagePool.prototype.load = function (pack) {
 	if (typeof pack === 'string') {
 		if (!Firera.packagesAvailable[pack]) {
-			console.error('Package not found!', pack);
+			utils.error('Package not found!', pack);
 			return;
 		}
 		pack = Firera.packagesAvailable[pack];
@@ -1727,7 +1727,7 @@ var get_random_name = function () {
 }();
 
 var err = function err(text) {
-	console.error(text);
+	utils.error(text);
 };
 
 var predefined_functions = {
@@ -2915,11 +2915,11 @@ module.exports = {
 		list: function list(funcstring) {
 			var props = funcstring[0];
 			if (!props instanceof Object) {
-				console.error('List properties should be an object!');
+				utils.error('List properties should be an object!');
 			}
 			var item_type = props.type;
 			if (!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]) {
-				console.warn('No item source provided for list', funcstring);
+				utils.warn('No item source provided for list', funcstring);
 			}
 			//console.log('List properties', props);
 			var deltas_func;
@@ -3081,13 +3081,14 @@ module.exports = {
 	}
 };
 },{"../Parser":5,"../utils":13}],9:[function(require,module,exports){
-"use strict";
+'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 var Parser = require('../Parser');
+var utils = require('../utils');
 
 /* gator v1.2.4 craig.is/riding/gators */
 (function () {
@@ -3448,7 +3449,7 @@ module.exports = {
 									Gator(prev_el).off('click');
 								}
 								if (!$now_el) {
-									console.warn('Assigning handlers to nothing', $now_el);
+									utils.warn('Assigning handlers to nothing', $now_el);
 								}
 								Gator(now_el).on('click', selector, function (e) {
 									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
@@ -3631,7 +3632,7 @@ module.exports = {
 		}
 	}
 };
-},{"../Parser":5}],10:[function(require,module,exports){
+},{"../Parser":5,"../utils":13}],10:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -4092,6 +4093,7 @@ module.exports = {
 	}
 };
 },{"../utils":13}],13:[function(require,module,exports){
+(function (global){
 'use strict';
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
@@ -4411,6 +4413,16 @@ _F.split_camelcase = function (str) {
 	var others = (str.match(/[A-Z][a-z0-9]*/g) || []).map(toLowerCase);
 	return [first[1]].concat(_toConsumableArray(others));
 };
+_F.warn = function (str) {
+	if (global.firera_debug_mode !== 'off') {
+		console.warn(str);
+	}
+};
+_F.error = function (str) {
+	if (global.firera_debug_mode !== 'off') {
+		console.error(str);
+	}
+};
 
 var copy = _F.copy = function (from, to) {
 	for (var i in from) {
@@ -4423,6 +4435,7 @@ var kcopy = _F.kcopy = function (from, to) {
 	}
 };
 module.exports = _F;
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],14:[function(require,module,exports){
 'use strict';
 

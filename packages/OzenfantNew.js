@@ -140,7 +140,7 @@ Tree.prototype.render = function(root_path){
 		root_el = this.getBindingsRec(root_path);
 	}
 	if(!root_el){
-		console.warn('Root DOM node($el) is undefined');
+		utils.warn('Root DOM node($el) is undefined');
 		return;
 		// oh god...
 	}

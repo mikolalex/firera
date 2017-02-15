@@ -14,7 +14,7 @@ var PackagePool = function(proto = {}, app_id){
 PackagePool.prototype.load = function(pack){
 	if(typeof pack === 'string'){
 		if(!Firera.packagesAvailable[pack]){
-			console.error('Package not found!', pack);
+			utils.error('Package not found!', pack);
 			return;
 		}
 		pack = Firera.packagesAvailable[pack];

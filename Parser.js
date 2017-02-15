@@ -20,7 +20,7 @@ var get_random_name = (function(){
 })()
 
 var err = (text) => {
-	console.error(text);
+	utils.error(text);
 }
 
 var predefined_functions = {

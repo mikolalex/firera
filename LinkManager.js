@@ -197,7 +197,7 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 	}
 	if(path[0] == '**'){
 		if(path.length > 2){
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -212,7 +212,7 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 	}
 	if(path[0] == '^^'){
 		if(path.length > 2){
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -223,7 +223,7 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 	}
 	if(path[0] == ''){
 		if(path.length > 2){
-			console.error('You cannot listen to such path', path.join('/'));
+			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];

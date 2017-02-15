@@ -1,4 +1,5 @@
 var Parser = require('../Parser');
+var utils = require('../utils');
 
 /* gator v1.2.4 craig.is/riding/gators */
 (function(){function t(a){return k?k:a.matches?k=a.matches:a.webkitMatchesSelector?k=a.webkitMatchesSelector:a.mozMatchesSelector?k=a.mozMatchesSelector:a.msMatchesSelector?k=a.msMatchesSelector:a.oMatchesSelector?k=a.oMatchesSelector:k=e.matchesSelector}function q(a,b,c){if("_root"==b)return c;if(a!==c){if(t(a).call(a,b))return a;if(a.parentNode)return m++,q(a.parentNode,b,c)}}function u(a,b,c,e){d[a.id]||(d[a.id]={});d[a.id][b]||(d[a.id][b]={});d[a.id][b][c]||(d[a.id][b][c]=[]);d[a.id][b][c].push(e)}
@@ -238,7 +239,7 @@ module.exports = {
 									Gator(prev_el).off('click');
 								}
 								if(!$now_el){
-									console.warn('Assigning handlers to nothing', $now_el);
+									utils.warn('Assigning handlers to nothing', $now_el);
 								}
 								Gator(now_el).on('click', selector, function(e){
 									if(!all_subtree && !filter_attr_in_path(e, now_el)){

@@ -53,7 +53,7 @@ var create_provider = (app, self) => {
 		unlinkChildCells(name) {
 			var hsh = this.get(name);
 			if(!hsh){
-				//console.warn('removing unexisting grid!', name);
+				//utils.warn('removing unexisting grid!', name);
 				return;
 			}
 			this.remove(name);
@@ -112,7 +112,7 @@ var Grid = function(app, parsed_pb_name, name, free_vals, init_later, parent_id,
 		}
 	}
 	if(!parsed_pb){
-		console.error('Cannot find grid to parse:', parsed_pb_name);
+		utils.error('Cannot find grid to parse:', parsed_pb_name);
 		return;
 	}
 	this.cell_types = parsed_pb.cell_types;
@@ -224,7 +224,7 @@ Grid.prototype.linkGrid = function(cellname, val){
 		grid = val;
 	}
 	if(!grid){
-		console.warn('Trying to link undefined grid:', grid);
+		utils.warn('Trying to link undefined grid:', grid);
 		return;
 	}
 	var child_id = this.linkChild(grid, cellname, free_vals);
@@ -458,7 +458,7 @@ Grid.prototype.get = function(cell, child){
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if(!child){
-			console.warn('Cannot get - no such path', path);
+			utils.warn('Cannot get - no such path', path);
 			return Firera.undef;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -563,7 +563,7 @@ Grid.prototype.set = function(cells, val, child, no_args, skipsame){
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if(!child){
-			console.warn('Cannot set - no such path', path);
+			utils.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -599,7 +599,7 @@ Grid.prototype.set2 = function(cell, val, child){
 		var childname = path[0];
 		var child = this.linked_grids_provider.get(childname);
 		if(!child){
-			console.warn('Cannot set - no such path', path);
+			utils.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;

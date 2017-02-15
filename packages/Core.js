@@ -419,11 +419,11 @@ module.exports = {
 		list(funcstring) {
 			var props = funcstring[0];
 			if(!props instanceof Object){
-				console.error('List properties should be an object!');
+				utils.error('List properties should be an object!');
 			}
 			var item_type = props.type;
 			if(!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]){
-				console.warn('No item source provided for list', funcstring);
+				utils.warn('No item source provided for list', funcstring);
 			}
 			//console.log('List properties', props);
 			var deltas_func;

@@ -254,6 +254,16 @@ _F.split_camelcase = (str) => {
 	var others = (str.match(/[A-Z][a-z0-9]*/g) || []).map(toLowerCase);
 	return [first[1], ...others];
 }
+_F.warn = (str) => {
+	if(global.firera_debug_mode !== 'off'){
+		console.warn(str);
+	}
+}
+_F.error = (str) => {
+	if(global.firera_debug_mode !== 'off'){
+		console.error(str);
+	}
+}
 
 var copy = _F.copy = function(from, to){
 	for(var i in from){
