@@ -42,47 +42,47 @@ var enter = () => {
 }
 
 var main_template = `
-.
-	h1 
-		"Todo MVC"
 	.
-		"Todos"
-	ul$todos
-	.
-		"Display:"
-		ul.display
-			.all
-				"All"
-			.done
-				"Done"
-			.undone
-				"Undone"
-	.
-		span
-			"Completed: "
-			span.completed_number$
-	.
-		span
-			"Total: "
-			span.all_number$
-	.
-		a.clear-completed(href: #)
-			"Clear completed"
-	.
-		h2.add-todo
-			"Add todo"
+		h1 
+			"Todo MVC"
 		.
-			text.new-todo-text
+			"Todos"
+		ul$todos
+		.
+			"Display:"
+			ul.display
+				.all
+					"All"
+				.done
+					"Done"
+				.undone
+					"Undone"
+		.
+			span
+				"Completed: "
+				span.completed_number$
+		.
+			span
+				"Total: "
+				span.all_number$
+		.
+			a.clear-completed(href: #)
+				"Clear completed"
+		.
+			h2.add-todo
+				"Add todo"
+			.
+				text.new-todo-text
 `;
 var todo_template = `
-li.todo
-	.todo-text$text
-	.
-		a.complete(href: #)
-			"Complete"
-	.
-		a.remove(href: #)
-			"Remove"
+	li.todo
+		.todo-text$text
+		.
+			a.complete(href: #)
+				"Complete"
+		.
+			a.remove(href: #)
+				"Remove"
 `;
 
 var app_struct = {

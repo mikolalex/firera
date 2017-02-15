@@ -96,35 +96,35 @@ var templates = {
 
 }
 var obj_or_scalar_template = prep(`
-.level
-	span.name$(font-weight: bold)
-	.(display: inline-block)
-			span.typef$
-			? typeof($val) === 'number'
-				? $isEditing
-					text.number(value: $val)
-					button.change
-						"Change"
-				:
-						span.justvalue.numberval$val
-			* typeof($val) === 'string'
-				? $isEditing
-					text.string(value: $val)
-					button.change
-						"Change"
-				:
-					span.stringval.justvalue
-						"{{val}}"
-			* typeof($val) === 'object'
-				? $isOpened
-					span.close(href: #)
+	.level
+		span.name$(font-weight: bold)
+		.(display: inline-block)
+				span.typef$
+				? typeof($val) === 'number'
+					? $isEditing
+						text.number(value: $val)
+						button.change
+							"Change"
+					:
+							span.justvalue.numberval$val
+				* typeof($val) === 'string'
+					? $isEditing
+						text.string(value: $val)
+						button.change
+							"Change"
+					:
+						span.stringval.justvalue
+							"{{val}}"
+				* typeof($val) === 'object'
+					? $isOpened
+						span.close(href: #)
+							""
+						.keys$
+					:
+						span.open(href: #)
 						""
-					.keys$
 				:
-					span.open(href: #)
-					""
-			:
-				span.val$
+					span.val$
 `);
 var eq = (a) => {
 	return (b) => {
@@ -194,7 +194,7 @@ var app_struct_devtool = {
 			},
 			datasource: ['../cells']
 		}]
-	},
+	}, 
 	cell: {
 			$template: prep(`
 					.cell

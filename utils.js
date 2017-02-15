@@ -73,7 +73,13 @@ var id = _F.id = (a) => a;
 var ids = _F.ids = function(){
 	return arguments;
 }
-
+var raw = _F.raw = function(a){
+	if(a instanceof Node  || !a){
+		return a;
+	} else {
+		return a[0];
+	}
+}
 var arr_remove = _F.arr_remove = (arr, el) => {
 	var pos = arr.indexOf(el);
 	if(pos !== -1){

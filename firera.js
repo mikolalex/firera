@@ -10,7 +10,6 @@ var Grid = require("./Grid");
 var simpleHtmlTemplates = require("./packages/SimpleHtmlTemplates");
 var che_package = require("./packages/Che");
 var ozenfant = require('./packages/OzenfantOld');
-var ozenfant_new = require('./packages/OzenfantNew');
 var htmlCells = require('./packages/HtmlCells');
 var core = require('./packages/Core');
 var neu_ozenfant = require('./packages/NeuOzenfant');
@@ -126,7 +125,7 @@ Firera.join = function(...args){
 }
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);
-Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, ozenfant_new, neu_ozenfant, che: che_package};
+Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, neu_ozenfant, che: che_package};
 Firera.func_test_export = {parse_pb: Parser.parse_pb, parse_fexpr: Parser.parse_fexpr};
 Firera._ = utils;
 

@@ -1,15 +1,18 @@
 var utils = require('../utils');
-var $ = require('jquery');
 
 var search_fr_bindings = function($el){
 	var res = {};
 	if(!Firera.is_def($el)) return res;
-	$el.find('[data-fr]').each(function(){
-		var name = $(this).attr('data-fr-name');
+	$el = utils.raw($el);
+	if(!$el){
+		return res;
+	}
+	$el.querySelectorAll('[data-fr]').forEach(function(node, k){
+		var name = node.getAttribute('data-fr-name');
 		if(!name){
-			name = $(this).attr('data-fr');
+			name = node.getAttribute('data-fr');
 		}
-		res[name] = $(this);
+		res[name] = node;
 	})
 	return res;
 }
@@ -42,17 +45,17 @@ module.exports = {
 		'$html_template': [
 			'skipIf',
 			([$prev_el], [$el]) => {
-				if(Firera.is_def($prev_el) && Firera.is_def($el) && $prev_el[0] && $el[0] && $prev_el[0] === $el[0]){
+				if(Firera.is_def($prev_el) && Firera.is_def($el) && $prev_el === $el){
 					return false;
 				} else {
 					return true;
 				}
 			},
 			function($el){
+				$el = utils.raw($el);
 				var str = '';
 				if(Firera.is_def($el)){
-					str = $el.html();
-					if(str) str = str.trim();
+					str = !$el ? '' : $el.innerHTML.trim();
 				}
 				return str;
 			}, 
@@ -60,15 +63,16 @@ module.exports = {
 		],
 		'$template_writer': [
 			function(real_templ, $html_template, no_auto, keys, $el){
-				if(Firera.is_def(real_templ) && Firera.is_def($el)){
-						$el.html(real_templ);
+				$el = utils.raw($el);
+				if(Firera.is_def(real_templ) && Firera.is_def($el) && $el){
+						$el.innerHTML = real_templ;
 						return true;
 				}	
-				if(!$html_template && Firera.is_def($el) && keys && !no_auto){
+				if(!$html_template && Firera.is_def($el) && keys && !no_auto && $el){
 					var auto_template = keys.map((k) => {
 						return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
 					}).join(' ');
-					$el.html(auto_template);
+					$el.innerHTML = auto_template;
 				}
 			}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'
 		],

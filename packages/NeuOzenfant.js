@@ -3,7 +3,8 @@ var rendered = {};
 var templates = {};
 var closest_templates = {};
 var utils = require('../utils');
-var $ = require('jquery');
+
+var raw = utils.raw;
 
 var parse_rec = (app, grid_id, cell) => {
 	var grid = app.getGrid(grid_id);
@@ -79,16 +80,16 @@ var render_rec = (app, struct, closest_existing_template_path, skip) => {
 	}
 }
 var set_bindings_rec = (app, struct, el, is_root, skip) => {
-	if(!struct) debugger;
 	var grid = app.getGrid(struct.grid_id);
+	el = raw(el);
 	if(struct.tmpl){
-		$(el).attr('data-fr-grid-root', 1);
+		el.setAttribute('data-fr-grid-root', 1);
 		if(is_root){
 			struct.tmpl.setFirstNode(el).updateBindings();
 		} else {
 			struct.tmpl.setRoot(el).updateBindings();
 		}
-		grid.set('$real_el', $(el));
+		grid.set('$real_el', el);
 		for(let key in struct.children){
 			let el = struct.tmpl.bindings[key];
 			if(el){
@@ -97,7 +98,8 @@ var set_bindings_rec = (app, struct, el, is_root, skip) => {
 		}
 	} else {
 		if(el && !skip){
-			grid.set('$real_el', $(el));
+			grid.set('$real_el', el);
+			el.setAttribute('data-fr-grid-root', 1);
 		}
 		for(let key in el.children){
 			if(el.children.hasOwnProperty(key) && struct.children[key]){
@@ -130,9 +132,10 @@ var get_binding = (template, name) => {
 var container;
 
 var get_root_node_from_html = (html) => {
-	var children = container.html(html).children();
+	container.innerHTML = html;
+	var children = container.children;
 	if(children[1]){
-		console.error('Template should have only one root node,', children.length - 1, 'given in', html);
+		console.error('Template should have only one root node,', children, html);
 	}
 	return children[0];
 }
@@ -181,8 +184,14 @@ module.exports = {
 	onBranchCreated: (app, grid_id, path, parent) => {
 		var self = app.getGrid(grid_id);
 		if(!parent){
-			var node = self.cell_values.$el.get()[0];
-			container = $('<div/>').appendTo('body').css('display', 'none').attr('id', 'ozenfant-container-hidden');
+			if(!self.cell_values.$el){
+				return;
+			}
+			var node = raw(self.cell_values.$el);
+			container = document.createElement('div');
+			container.style.display = 'none';
+			container.setAttribute('id', 'ozenfant-container-hidden');
+			document.getElementsByTagName('body')[0].appendChild(container);
 			render(app, self, node);
 		}
 		if(rendered[app.id] && rendered[app.id][parent]){
@@ -207,7 +216,7 @@ module.exports = {
 				var html = render_rec(app, struct);
 				var node = get_root_node_from_html(html);
 				//parpar_binding.insertAdjacentHTML("beforeend", html);
-				$(node).appendTo(parpar_binding);
+				parpar_binding.appendChild(node);
 				set_bindings_rec(app, struct, node, true);
 			}
 		}

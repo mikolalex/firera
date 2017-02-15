@@ -8,6 +8,7 @@ var es2015 = require('babel-preset-es2015');
 var babelify = require('babelify');
 var sourcemaps = require('gulp-sourcemaps');
 var buffer = require('vinyl-buffer');
+var rename = require("gulp-rename");
 
 var entryPoints = {
 	main: ['./', 'firera.js', './dist'],
@@ -78,8 +79,9 @@ var pump = require('pump');
  
 gulp.task('compress', function (cb) {
   pump([
-        gulp.src('firera.js'),
+        gulp.src('dist/firera.js'),
         uglify(),
+		rename('firera.min.js'),
         gulp.dest('dist')
     ],
     cb

@@ -1,5 +1,4 @@
 var Parser = require('../Parser');
-var $ = require('jquery');
 
 /* gator v1.2.4 craig.is/riding/gators */
 (function(){function t(a){return k?k:a.matches?k=a.matches:a.webkitMatchesSelector?k=a.webkitMatchesSelector:a.mozMatchesSelector?k=a.mozMatchesSelector:a.msMatchesSelector?k=a.msMatchesSelector:a.oMatchesSelector?k=a.oMatchesSelector:k=e.matchesSelector}function q(a,b,c){if("_root"==b)return c;if(a!==c){if(t(a).call(a,b))return a;if(a.parentNode)return m++,q(a.parentNode,b,c)}}function u(a,b,c,e){d[a.id]||(d[a.id]={});d[a.id][b]||(d[a.id][b]={});d[a.id][b][c]||(d[a.id][b][c]=[]);d[a.id][b][c].push(e)}
@@ -26,11 +25,11 @@ var filter_attr_in_path = (e, delegateEl) => {
 	}
 	return true;
 }
-var filter_attr_in_parents = (parent_node, index, el) => {
+var filter_attr_in_parents = function(parent_node, index, el){
 	for(;;){
 		el = el.parentElement;
 		if(!el) return true;
-		if(el.hasAttribute('data-fr')){
+		if(el.hasAttribute('data-fr-grid-root')){
 			return el.children[0] === parent_node;
 		}
 	}
@@ -38,11 +37,86 @@ var filter_attr_in_parents = (parent_node, index, el) => {
 var htmlPipeAspects = {
 	attr: (el, attr) => {
 		if(!el) return;
-		return $(el).attr(attr);
+		debugger;
+		for(attrName in attr){
+			el.setAttribute(attrName, attr[attrName]);
+		}
+		return el;
 	}
 }
 
-var raw = a => a[0];
+var raw = a => {
+	if(a instanceof Node  || !a){
+		return a;
+	} else {
+		return a[0];
+	}
+}
+
+var make_resp1 = (cb, val) => { 
+	return cb(val);
+}
+
+var make_resp2 = function(cb, e){
+	var res = e.target;
+	for(const [asp, pars] of pipe){
+		if(!htmlPipeAspects[asp]){
+			console.error('Unknown pipe aspect:', asp);
+			continue;
+		}
+		res = htmlPipeAspects[asp](res, ...pars);
+	}
+	return cb(res);
+}
+
+var toggle_class = (el, clas, val) => {
+	var cls_string = el.getAttribute('class') || '';
+	var cls = cls_string.split(' ');
+	var pos = cls.indexOf(clas);
+	var toggle;
+	if(val !== undefined){
+		toggle = val;
+	} else {
+		toggle = pos === -1;
+	}
+	if(toggle){
+		el.setAttribute('class', cls_string + ' ' + clas);
+	} else {
+		if(pos !== -1){
+			cls.splice(pos, 1);
+		}
+		el.setAttribute('class', cls.join(' '));
+	}
+}
+
+var trigger_event = function(name, element, fakeTarget){
+	var event; // The custom event that will be created
+	if(element instanceof $){
+		for(let el of element){
+			trigger_event(name, el);
+		}
+		return;
+	}
+	if (document.createEvent) {
+		event = document.createEvent("HTMLEvents");
+		event.initEvent(name, true, true);
+	} else {
+		event = document.createEventObject();
+		event.eventType = name;
+	}
+
+	event.eventName = name;
+	if(fakeTarget){
+		e.target = fakeTarget;
+	}
+
+	if (document.createEvent) {
+		element.dispatchEvent(event);
+	} else {
+		element.fireEvent("on" + event.eventType, event);
+	}
+}
+
 
 
 module.exports = {
@@ -69,19 +143,7 @@ module.exports = {
 					pipe = pipe.map(get_params);
 				}
 				
-				var make_resp = !pipe.length ? (cb, val) => { 
-					return cb(val);
-				} : function(cb, e){
-					var res = e.target;
-					for(const [asp, pars] of pipe){
-						if(!htmlPipeAspects[asp]){
-							console.error('Unknown pipe aspect:', asp);
-							continue;
-						}
-						res = htmlPipeAspects[asp](res, ...pars);
-					}
-					return cb(res);
-				}
+				var make_resp = !pipe.length ? make_resp1 : make_resp2;
 				var selector = matches[2];
 				var all_subtree = false;
 				var func, params;
@@ -104,46 +166,47 @@ module.exports = {
 					case 'getval':
 						func = function(cb, vals){
 							var onch = (el) => {
-								var type = el.attr('type');
+								var type = el.getAttribute('type');
 								var val;
 								if(type == 'checkbox'){
-									val = el.prop('checked');
+									val = el.hasAttribute('checked');
 								} else {
-									val = el.val();
+									val = el.value;
 								}
 								//console.log('CHange', el, val, selector);
 								make_resp(cb, val);
 							}
 							var [$prev_el, $now_el] = vals;
+							var prev_el = raw($prev_el);
 							var el = raw($now_el);
 							var onChange = function(e){
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
 								}
-								onch($(e.target));
+								onch(e.target);
 							};
 							var onKeyup = function(e){
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
 								}
-								var elem = $(e.target);
-								var type = elem.attr('type');
+								var elem = e.target;
+								var type = elem.getAttribute('type');
 								var val;
 								if(type == 'checkbox'){
 									return;
 								} else {
-									val = elem.val();
+									val = elem.value;
 								}
 								make_resp(cb, val);
 							};
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
 							if(Firera.is_def($prev_el)){
-								$prev_el.off('keyup', selector);
-								$prev_el.off('change', selector);
+								Gator(prev_el).off('keyup', selector);
+								Gator(prev_el).off('change', selector);
 							}
 							if(Firera.is_def($now_el)){
-								Gator(raw($now_el)).on('keyup', selector, onKeyup);
-								Gator(raw($now_el)).on('change', selector, onChange);
+								Gator(el).on('keyup', selector, onKeyup);
+								Gator(el).on('change', selector, onChange);
 							}
 						}
 					break;
@@ -152,37 +215,38 @@ module.exports = {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
+								$prev_el = raw($prev_el);
+								$now_el = raw($now_el);
 								if(!Firera.is_def($now_el)) return;
-								if($now_el === Firera.undef) return;
-								$(document).click(function(e, originalTarget){
-									var is_other = !$.contains($now_el.get()[0], originalTarget);
+								document.addEventListener('click', function(e){
+									var ot = e.srcElement || e.originalTarget;
+									var is_other = !$.contains($now_el, ot);
 									if(is_other){
 										make_resp(cb, true);
 									}
-								})
+								});
 							}
 						} else {
 							func = function(cb, vals){
 								if(!vals) return;
 								var [$prev_el, $now_el] = vals;
 								if(!Firera.is_def($now_el)) return;
-								if($now_el === Firera.undef) return;
+								var prev_el = raw($prev_el);
+								var now_el = raw($now_el);
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-								if($prev_el && $prev_el !== Firera.undef){
-									$prev_el.off('click', selector);
+								if(prev_el && prev_el !== Firera.undef){
+									Gator(prev_el).off('click');
 								}
 								if($now_el.length === 0){
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
-								var el = raw($now_el);
-								var prev_el = $prev_el ? raw($prev_el) : false;
-								Gator(el).on('click', selector, function(e){
-									if(!all_subtree && !filter_attr_in_path(e, el)){
+								Gator(now_el).on('click', selector, function(e){
+									if(!all_subtree && !filter_attr_in_path(e, now_el)){
 										return;
 									}
 									make_resp(cb, e);
 									if(e.originalEvent && e.originalEvent.target){
-										$(document).trigger('click', e.originalEvent.target);
+										trigger_event('click', document, e.originalEvent.target);
 									}
 									e.preventDefault();
 									//return false;
@@ -196,10 +260,7 @@ module.exports = {
 							var [$prev_el, $now_el] = vals;
 							if(!Firera.is_def($now_el)) return;
 							if($prev_el){
-								
-							}
-							if($now_el.length === 0){
-								console.log('Assigning handlers to nothing', $now_el);
+								// @todo
 							}
 							var el = raw($now_el);
 							Gator(el).on('focus', selector, (e) => {
@@ -213,15 +274,15 @@ module.exports = {
 					break;
 					case 'press':
 						func = function(cb, vals){
-							var [$prev_el, $now_el] = vals;
-							if(!Firera.is_def($now_el)) return;
+							var [prev_el, now_el] = vals;
+							if(!Firera.is_def(now_el)) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if($prev_el){
+							if(prev_el){
 								//$prev_el.off('keyup', selector);
 							}
-							var el = raw($now_el);
-							Gator(el).on('keyup', selector, function(e){
-								if(!all_subtree && !filter_attr_in_path(e, el)){
+							now_el = raw(now_el);
+							Gator(now_el).on('keyup', selector, function(e){
+								if(!all_subtree && !filter_attr_in_path(e, now_el)){
 									return;
 								}
 								var btn_map = {
@@ -240,8 +301,9 @@ module.exports = {
 							if(!Firera.is_def(val)){
 								val = false;
 							}
+							$el = raw($el);
 							var [classname] = params;
-							$el.toggleClass(classname, val);
+							toggle_class($el, classname, val);
 						}
 					break;
 					case 'enterText':
@@ -251,9 +313,9 @@ module.exports = {
 							if($prev_el){
 								//$prev_el.off('keyup', selector);
 							}
-							var el = $now_el[0];
+							var el = raw($now_el);
 							el.onkeyup = function(e) {
-								if(e.target === $now_el.find(selector)[0]){
+								if(e.target === el.querySelector(selector)){
 									if(!all_subtree && !filter_attr_in_path(e, el)){
 										return;
 									}
@@ -265,42 +327,50 @@ module.exports = {
 						}
 					break;
 					case 'visibility':
-						func = function($el, val){
-							if(!Firera.is_def($el)){
+						func = function(el, val){
+							if(!Firera.is_def(el)){
 								return;
 							}
 							if(val === undefined){
 								return;
 							}
+							el = raw(el);
 							if(val){
-								$el.css('visibility', 'visible');
+								el.style.visibility = 'visible';
 							} else {
-								$el.css('visibility', 'hidden');
+								el.style.visibility = 'hidden';
 							}
 						}
 					break;
 					case 'css':
 						var [property] = params;
-						func = function($el, val){
+						func = function(el, val){
 							//console.log('running css setter', $el);
-							$el.css(property, val);
+							el.style[property] = val;
 						}
 					break;
 					case 'display':
-						func = function($el, val){
-							if(!Firera.is_def($el) || val === undefined){
+						func = function(el, val){
+							if(!Firera.is_def(el) || val === undefined){
 								return;
 							}
+							
+							
+							el = raw(el);
 							if(val){
-								$el.css('display', 'block');
+								el.style.display = 'block';
 							} else {
-								$el.css('display', 'none');
+								el.style.display = 'none';
 							}
 						}
 					break;
 					case 'setval':
-						func = function($el, val){
-							$el.val(val);
+						func = function(el, val){
+							if(!Firera.is_def(el) || !Firera.is_def(val)){
+								return;
+							}
+							el = raw(el);
+							el.value = val;
 						}
 					break;
 					default:
@@ -309,12 +379,17 @@ module.exports = {
 				}
 				if(context === 'setter'){
 					Parser.parse_fexpr([func, [(a) => {
-						if(!Firera.is_def(a)) return $();
+						if(!Firera.is_def(a)) return false;
 						if(!selector) return a;
 						if(selector === 'other') return a;
-						var node = a.find(selector)
-								.filter(filter_attr_in_parents.bind(null, a.get()[0]));
-						return node;
+						a = raw(a);
+						if(!a){
+							return a;
+						}
+						var nodz = a.querySelectorAll(selector);
+						/*var node = a.find(selector)
+								.filter(filter_attr_in_parents.bind(null, a));*/
+						return nodz;
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {

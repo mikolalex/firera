@@ -5,13 +5,16 @@ var Arr = utils.Arr;
 
 var get_by_selector = function(name, $el, children = false){
 	if(name === null) return null;
-	if(name === '__root') return $('body');
+	if(name === '__root') return document.querySelector('body');
 	var method = children ? 'children' : 'find';
-	var res = $el 
-			? $el[method]('[data-fr=' + name + ']')
-			: null;
-	//console.info("GBS", '[data-fr=' + name + ']', res ? res.length : null, $el ? $el.html() : '');
-	return res;''
+	$el = utils.raw($el);
+	if(!$el) return null;
+	for(var c of $el.children){
+		if(c.getAttribute('data-fr') == name){
+			return c;
+		}
+	}
+	return null;
 }
 
 var arr_changes_to_child_changes = function(item_hash, arr_change){

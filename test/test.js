@@ -149,7 +149,7 @@ function toggle_checkbox(el){
 	}
 }
 
-window.trigger_event = function(name, element){
+var trigger_event = function(name, element){
 	var event; // The custom event that will be created
 	if(element instanceof $){
 		for(let el of element){
@@ -460,7 +460,7 @@ describe('Basic Firera functionality', function () {
 		}
 	}
     
-    it('Testing removing from list', function(){
+    /*it('Testing removing from list', function(){
         var $root = $(".test-list-remove");
         var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
@@ -470,7 +470,7 @@ describe('Basic Firera functionality', function () {
 					push: [as('text'), '../new_todo'],
 					pop: [function(a){
 						if(a && a[0] !== undefined) return a[0];
-					}, '*/remove'],
+					}, '* /remove'],
 					self: {
 						completed_number: ['count', 'completed']
 					},
@@ -525,7 +525,7 @@ describe('Basic Firera functionality', function () {
 		add_item();
         assert.equal(app.get('completed_number', 'todos'), 1);
         assert.equal($root.find('input[type=checkbox]:checked').length, 1);
-    });
+    });*/
     
     it('Testing async', function(done){
         var app = Firera({
@@ -546,7 +546,7 @@ describe('Basic Firera functionality', function () {
         }, 10)
     })
 	
-	it('Casting list as array', function(){
+	/*it('Casting list as array', function(){
         var $root = $(".test-trains");
 		var add_item = () => {
 			$root.find('button').click();
@@ -558,7 +558,7 @@ describe('Basic Firera functionality', function () {
 				$child_trains: ['list', {
 					type: 'train',
 					push: ['../add_train'],
-					pop: [get(0), '*/.remove|click'],
+					pop: [get(0), '* /.remove|click'],
 					self: {
 						arr: ['asArray', ['name']]
 					},
@@ -591,7 +591,7 @@ describe('Basic Firera functionality', function () {
 		assert.deepEqual(app.get('arr', 'trains'), [{
 				name: 'ololo'
 		}]);
-	})
+	})*/
 	
 	it('$datasource', function(){
 		var app = Firera({
@@ -706,7 +706,7 @@ describe('Basic Firera functionality', function () {
 
 				`
             },
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
         });
 		setTimeout(() => {
 			app.set('text', 'ololo');
@@ -732,18 +732,18 @@ describe('Basic Firera functionality', function () {
             },
 			human: {
 				$template: `
-				.
+				.greeting
 					"Hello, "
 					span$name
 					"!"
 					`
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
         });
 		//console.log('app', app);
 		app.set('text', 'ololo');
 		var ex_res = `Hello,Ivan!`;
-		var res = $.trim($('.test-ozenfant-nested > * > * > ul > *:nth-child(2) ').text()).replace(/(\t|\s)/g, "");
+		var res = $($('.greeting')[1]).text().trim().replace(/(\t|\s)/g, "");
 		assert.equal(res, ex_res);
 	})
 	
@@ -860,7 +860,7 @@ describe('Basic Firera functionality', function () {
 					`,
 				edit_train: ['second', '.edit|click', '-$real_values']
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		//console.log('app', app);
 	})
@@ -945,7 +945,7 @@ describe('Basic Firera functionality', function () {
 						"todo"
 				`,
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		trigger_click($(".test-new-children .add"));
 		//console.log('app', app);
@@ -1096,7 +1096,7 @@ describe('Basic Firera functionality', function () {
 					}, letter + '1', letter + '2', letter + '3']
 				}, 'flag']
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		assert.equal(app.get('val'), 75);
 		app.set('a1', 12);
@@ -1215,7 +1215,7 @@ describe('Basic Firera functionality', function () {
 			block: {
 				$template: block_template,
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		assert.equal(app.get('$template', 'blocks/2'), block_template);
 		assert.equal(app.get('$template', 'blocks/5'), Firera.undef);
@@ -1297,7 +1297,7 @@ describe('Basic Firera functionality', function () {
 						"+1"
 				`,
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		//console.log('**', app);
 		$root.find('.comment .plus-one').click();
@@ -1344,7 +1344,7 @@ describe('Basic Firera functionality', function () {
 						"+1"
 				`,
 			},
-			$packages: ['ozenfant_new', 'htmlCells']
+			$packages: ['neu_ozenfant', 'htmlCells']
 		})
 		//console.log('^^', app);
 		assert.equal($root.find('.comments').children().eq(0).find('.my-comment').length, 1);
