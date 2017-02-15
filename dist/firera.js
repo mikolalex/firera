@@ -2984,7 +2984,7 @@ module.exports = {
 					return function (cb, changes) {
 						if (!changes || !changes.length) return;
 						var chngs = arr_changes_to_child_changes(item_type, changes);
-						//console.log('Got changes:', frozen(chngs), 'from', changes);
+						//console.log('Got changes:', utils.frozen(chngs), 'from', changes);
 						chngs.forEach(function (one) {
 							switch (one[0]) {
 								case 'add':
@@ -3011,12 +3011,12 @@ module.exports = {
 							var key = deltas[i][1];
 							switch (type) {
 								case 'add':
-									$el.append('<div data-fr="' + ++index_c + '" data-fr-name="' + key + '"></div>');
+									$el.insertAdjacentHTML('beforeend', '<div data-fr="' + ++index_c + '" data-fr-name="' + key + '"></div>');
 									index_map[key] = index_c;
 									// I domt know...
 									break;
 								case 'remove':
-									$el.children('[data-fr=' + index_map[key] + ']').remove();
+									$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
 									break;
 							}
 						}
@@ -3426,7 +3426,7 @@ module.exports = {
 								if (!Firera.is_def($now_el)) return;
 								document.addEventListener('click', function (e) {
 									var ot = e.srcElement || e.originalTarget;
-									var is_other = !$.contains($now_el, ot);
+									var is_other = $now_el.contains(ot);
 									if (is_other) {
 										make_resp(cb, true);
 									}
@@ -3447,7 +3447,7 @@ module.exports = {
 								if (prev_el && prev_el !== Firera.undef) {
 									Gator(prev_el).off('click');
 								}
-								if ($now_el.length === 0) {
+								if (!$now_el) {
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
 								Gator(now_el).on('click', selector, function (e) {
@@ -4037,7 +4037,7 @@ var write_changes = function write_changes() {
 			// htmlbindings, obviously
 			for (var i in pool) {
 				if (val && val[i]) {
-					val[i].html(pool[i]);
+					val[i].innerHTML = pool[i];
 				}
 			}
 		}

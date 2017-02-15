@@ -5,6 +5,8 @@ var assert = require('assert');
 var $ = require('jquery');
 var utils = require('../utils');
 var Arr = utils.Arr;
+var qsa = document.querySelectorAll.bind(document);
+var qs = document.querySelector.bind(document);
 
 var id = a => a;
 var not = a => !a;
@@ -142,6 +144,12 @@ function toggle_checkbox(el){
 		}
 		return;
 	}
+	if(el instanceof NodeList){
+		for(let ecl of el){
+			toggle_checkbox(ecl);
+		}
+		return;
+	}
 	if(el.hasAttribute('checked')){
 		el.removeAttribute('checked');
 	} else {
@@ -152,6 +160,12 @@ function toggle_checkbox(el){
 var trigger_event = function(name, element){
 	var event; // The custom event that will be created
 	if(element instanceof $){
+		for(let el of element){
+			trigger_event(name, el);
+		}
+		return;
+	}	
+	if(element instanceof NodeList){
 		for(let el of element){
 			trigger_event(name, el);
 		}
@@ -177,7 +191,7 @@ var trigger_event = function(name, element){
 var trigger_click = trigger_event.bind(null, 'click');
 var raw = a => a[0];
 
-describe('Basic Firera functionality', function () {
+describe('Firera tests', function () {
 
     it('Testing simple grid', function () {
         var app = Firera({
@@ -460,8 +474,8 @@ describe('Basic Firera functionality', function () {
 		}
 	}
     
-    /*it('Testing removing from list', function(){
-        var $root = $(".test-list-remove");
+    it('Testing removing from list', function(){
+        var $root = qs(".test-list-remove");
         var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
             __root: {
@@ -470,7 +484,7 @@ describe('Basic Firera functionality', function () {
 					push: [as('text'), '../new_todo'],
 					pop: [function(a){
 						if(a && a[0] !== undefined) return a[0];
-					}, '* /remove'],
+					}, '*/remove'],
 					self: {
 						completed_number: ['count', 'completed']
 					},
@@ -500,8 +514,9 @@ describe('Basic Firera functionality', function () {
             }
         })
 		var add_item = function(str = 'ololo'){
-			trigger_event('change', $root.find('input[type=text]').val(str));
-			trigger_click($root.find('button'));
+			$root.querySelector('input[type=text]').value = str;
+			trigger_event('change', $root.querySelector('input[type=text]'));
+			trigger_click($root.querySelector('button'));
 		}
 		//console.log('app', app);
 		add_item();
@@ -511,21 +526,20 @@ describe('Basic Firera functionality', function () {
 		add_item('al');
         assert.equal(app.get('$arr_data.length', 'todos'), 3);
         assert.equal(app.get('completed_number', 'todos'), 0);
-		
-		toggle_checkbox($root.find('input[type=checkbox]'));
-		trigger_event('change', $root.find('input[type=checkbox]'));
+		toggle_checkbox($root.querySelectorAll('input[type="checkbox"]'));
+		trigger_event('change', $root.querySelectorAll('input[type=checkbox]'));
         assert.equal(app.get('completed_number', 'todos'), 3);
 		
-		trigger_click($root.find('[data-fr=todos] > *:first-child .remove'));
-        assert.equal($root.find('input[type=checkbox]:checked').length, 2);
+		trigger_click($root.querySelectorAll('[data-fr=todos] > *:first-child .remove'));
+        assert.equal($root.querySelectorAll('input[type=checkbox]:checked').length, 2);
         assert.equal(app.get('completed_number', 'todos'), 2);
-		trigger_click($root.find('[data-fr=todos] > *:first-child .remove'));
+		trigger_click($root.querySelector('[data-fr=todos] > *:first-child .remove'));
         assert.equal(app.get('completed_number', 'todos'), 1);
-        assert.equal($root.find('input[type=checkbox]:checked').length, 1);
+        assert.equal($root.querySelectorAll('input[type=checkbox]:checked').length, 1);
 		add_item();
         assert.equal(app.get('completed_number', 'todos'), 1);
-        assert.equal($root.find('input[type=checkbox]:checked').length, 1);
-    });*/
+        assert.equal($root.querySelectorAll('input[type=checkbox]:checked').length, 1);
+    });
     
     it('Testing async', function(done){
         var app = Firera({
@@ -546,10 +560,10 @@ describe('Basic Firera functionality', function () {
         }, 10)
     })
 	
-	/*it('Casting list as array', function(){
-        var $root = $(".test-trains");
+	it('Casting list as array', function(){
+        var $root = qs(".test-trains");
 		var add_item = () => {
-			$root.find('button').click();
+			trigger_click($root.querySelector('button'));
 		}
 		var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
@@ -558,7 +572,7 @@ describe('Basic Firera functionality', function () {
 				$child_trains: ['list', {
 					type: 'train',
 					push: ['../add_train'],
-					pop: [get(0), '* /.remove|click'],
+					pop: [get(0), '*/.remove|click'],
 					self: {
 						arr: ['asArray', ['name']]
 					},
@@ -582,16 +596,17 @@ describe('Basic Firera functionality', function () {
 		add_item();
 		assert.equal(app.get('arr', 'trains').length, 2);
 		
-		trigger_click($root.find('[data-fr=trains] > *:first-child .remove'));
+		trigger_click($root.querySelector('[data-fr=trains] > *:first-child .remove'));
 		//console.log('TRAINS', app.get('arr', 'trains'));
 		assert.equal(Arr.realLength(app.get('arr', 'trains')), 1);
 		
-		var inp = $root.find('[data-fr=trains] > *:first-child input');
-		trigger_event('keyup', inp.val('ololo'));
+		var inp = $root.querySelector('[data-fr=trains] > *:first-child input');
+		inp.value = 'ololo';
+		trigger_event('keyup', inp);
 		assert.deepEqual(app.get('arr', 'trains'), [{
 				name: 'ololo'
 		}]);
-	})*/
+	})
 	
 	it('$datasource', function(){
 		var app = Firera({
@@ -1464,14 +1479,14 @@ describe('Basic Firera functionality', function () {
 		})
 		var chs = 'ChS11';
 		app.set('title', chs, 'items/0');
-		assert.equal($(".test-nested-loops ul > li:nth-child(1) .title").html(), chs);
+		assert.equal(document.querySelector(".test-nested-loops ul > li:nth-child(1) .title").innerHTML, chs);
 		//console.log('app', app);
 	   
 		   
 	})
 	
 	it('DOM events - all subtree', () => {
-		var $root =  $(".test-DOM");
+		var $root = document.querySelector(".test-DOM");
 		var c = 0;
 		var d = 0;
 		var app = Firera({
@@ -1510,26 +1525,24 @@ describe('Basic Firera functionality', function () {
 			},
 			$packages: ['neu_ozenfant', 'htmlCells'],
 		})
-		trigger_click($root.find("a.item"));
-		trigger_click($root.find("a.foo"));
+		trigger_click($root.querySelectorAll("a.item"));
+		trigger_click($root.querySelectorAll("a.foo"));
 		assert.equal(c, 1);
 		assert.equal(d, 4);
 		// no asserts needed - if it doesn't throw an error, it's ok!
 	})
-})
-describe('Che', function () {
-	it('Simple example', function(){
+	it('Che: simple example', function(){
 		var app = Firera({
 			__root: {
-				$el: $(".test-che"),
+				$el: qs(".test-che"),
 				a: [always('A'), '.a|click'],
 				b: [always('B'), '.b|click'],
 				clicked_both: ['che', '& a, b']
 			},
 			$packages: ['htmlCells', 'simpleHtmlTemplates']
 		})
-		$(".test-che .a").click();
-		$(".test-che .b").click();
+		trigger_click(qsa(".test-che .a"));
+		trigger_click(qsa(".test-che .b"));
 		assert.deepEqual(app.get('clicked_both'), {a: 'A', b: 'B'})
 	})
 })

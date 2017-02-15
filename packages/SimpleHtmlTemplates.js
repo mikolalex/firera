@@ -26,7 +26,7 @@ var write_changes = function(){
 			// htmlbindings, obviously
 			for(let i in pool){
 				if(val && val[i]){
-					val[i].html(pool[i]);
+					val[i].innerHTML = pool[i];
 				}
 			}
 		}

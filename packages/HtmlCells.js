@@ -220,7 +220,7 @@ module.exports = {
 								if(!Firera.is_def($now_el)) return;
 								document.addEventListener('click', function(e){
 									var ot = e.srcElement || e.originalTarget;
-									var is_other = !$.contains($now_el, ot);
+									var is_other = $now_el.contains(ot);
 									if(is_other){
 										make_resp(cb, true);
 									}
@@ -237,7 +237,7 @@ module.exports = {
 								if(prev_el && prev_el !== Firera.undef){
 									Gator(prev_el).off('click');
 								}
-								if($now_el.length === 0){
+								if(!$now_el){
 									console.warn('Assigning handlers to nothing', $now_el);
 								}
 								Gator(now_el).on('click', selector, function(e){

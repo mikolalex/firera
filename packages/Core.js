@@ -468,7 +468,7 @@ module.exports = {
 						return (cb, changes) => {
 							if(!changes || !changes.length) return;
 							var chngs = arr_changes_to_child_changes(item_type, changes);
-							//console.log('Got changes:', frozen(chngs), 'from', changes);
+							//console.log('Got changes:', utils.frozen(chngs), 'from', changes);
 							chngs.forEach((one) => {
 								switch(one[0]){
 									case 'add':
@@ -497,12 +497,12 @@ module.exports = {
 							var key = deltas[i][1];
 							switch(type){
 								case 'add':
-									$el.append('<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
+									$el.insertAdjacentHTML('beforeend', '<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
 									index_map[key] = index_c;
 									// I domt know...
 								break
 								case 'remove':
-									$el.children('[data-fr=' + index_map[key] + ']').remove();
+									$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
 								break
 							}
 						}
