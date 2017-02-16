@@ -1,15 +1,14 @@
-var Parser = require('../Parser');
-var utils = require('../utils');
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+import Parser from '../Parser';
+import utils from '../utils';
+const Obj = utils.Obj;
+const Arr = utils.Arr;
 
 var get_by_selector = function(name, $el, children = false){
 	if(name === null) return null;
 	if(name === '__root') return document.querySelector('body');
-	var method = children ? 'children' : 'find';
 	$el = utils.raw($el);
 	if(!$el) return null;
-	for(var c of $el.children){
+	for(let c of $el.children){
 		if(c.getAttribute('data-fr') == name){
 			return c;
 		}
@@ -223,7 +222,7 @@ module.exports = {
 		},
 		firstDefined(funcstring) {
 			return [function(){
-					for(var i in arguments){
+					for(let i in arguments){
 						if(arguments[i] !== undefined) return arguments[i];
 					}
 			}, ...funcstring]
@@ -231,7 +230,7 @@ module.exports = {
 		firstTrue(funcstring) {
 			return [function(){
 					//console.log('Looking for firstTrue', arguments);
-					for(var i in arguments){
+					for(let i in arguments){
 						if(arguments[i]) return arguments[i];
 					}
 			}, ...funcstring]
@@ -256,7 +255,7 @@ module.exports = {
 			var fncstr = funcstring.slice(1);
 			return [function(){
 					//console.log('Looking for firstTrue', arguments);
-					for(var i in arguments){
+					for(let i in arguments){
 						if(cb(arguments[i])) return arguments[i];
 					}
 			}, ...fncstr]
@@ -492,7 +491,7 @@ module.exports = {
 					return function(cb, deltas, $el){
 						if($el === Firera.undef) return;
 						if(!$el) return;
-						for(var i in deltas){
+						for(let i in deltas){
 							var type = deltas[i][0];
 							var key = deltas[i][1];
 							switch(type){

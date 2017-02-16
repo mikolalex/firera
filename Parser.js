@@ -1,8 +1,8 @@
-var utils = require('./utils');
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+import utils from './utils';
+const Obj = utils.Obj;
+const Arr = utils.Arr;
 
-var system_macros = new Set([
+const system_macros = new Set([
 	'is',
 	'async',
 	'closure',
@@ -11,7 +11,7 @@ var system_macros = new Set([
 	'nested'
 ]);
 
-var get_random_name = (function(){
+const get_random_name = (function(){
 	// temp solution for Symbol
 	var c = 1;
 	return function(){
@@ -19,11 +19,11 @@ var get_random_name = (function(){
 	}
 })()
 
-var err = (text) => {
+const err = (text) => {
 	utils.error(text);
 }
 
-var predefined_functions = {
+const predefined_functions = {
 	'=': {
 		type: 'func', 
 		func: function(a, b){ return a == b;}
@@ -69,12 +69,12 @@ var predefined_functions = {
 	},
 }
 
-var real_cell_name = (str) => str.replace(/^(\:|\-|\=|\~)/, '');
+const real_cell_name = (str) => str.replace(/^(\:|\-|\=|\~)/, '');
 
-var findMatcher = (cellname, packages) => {
-	for(var n in packages.cellMatchers){
-		var m = packages.cellMatchers[n];
-		var matches = cellname.match(m.regexp);
+const findMatcher = (cellname, packages) => {
+	for(let n in packages.cellMatchers){
+		const m = packages.cellMatchers[n];
+		const matches = cellname.match(m.regexp);
 		if(matches){
 			return [m, matches];
 		}
@@ -82,9 +82,9 @@ var findMatcher = (cellname, packages) => {
 }
 
 
-var cell_listening_type = function(str){
+const cell_listening_type = function(str){
 	if(!str.match) debugger;
-	var m = str.match(/^(\:|\-|\=)/);
+	const m = str.match(/^(\:|\-|\=)/);
 	return [{
 		//':': 'change', 
 		'=': 'skip_same',
@@ -93,15 +93,15 @@ var cell_listening_type = function(str){
 	}[m ? m[1] : 'val'], str.replace(/^(\:|\-|\=)/, '')];
 }
 
-var get_cell_type = function(cellname, type, func, parents, additional_type){
+const get_cell_type = function(cellname, type, func, parents, additional_type){
 	//console.log('getting cell type', arguments);
-	var real_cell_types = utils.split_camelcase(type) || [];
+	const real_cell_types = utils.split_camelcase(type) || [];
 
-	var closure = real_cell_types.indexOf('closure') !== -1;
-	var async = real_cell_types.indexOf('async') !== -1;
-	var nested = real_cell_types.indexOf('nested') !== -1;
-	var funnel = real_cell_types.indexOf('funnel') !== -1;
-	var dynamic = real_cell_types.indexOf('dynamic') !== -1;
+	const closure = real_cell_types.indexOf('closure') !== -1;
+	const async = real_cell_types.indexOf('async') !== -1;
+	const nested = real_cell_types.indexOf('nested') !== -1;
+	const funnel = real_cell_types.indexOf('funnel') !== -1;
+	const dynamic = real_cell_types.indexOf('dynamic') !== -1;
 	if((async && nested) || (dynamic && nested)){
 		err('Incompatible cell types: ' + real_cell_types.join(', '));
 	}
@@ -118,19 +118,19 @@ var get_cell_type = function(cellname, type, func, parents, additional_type){
 }
 
 
-var parse_cell_type = (i, row, pool, children) => {
+const parse_cell_type = (i, row, pool, children) => {
 	var additional_type;
 	if(i !== get_real_cell_name(i)){
 		additional_type = i[0];
 		i = get_real_cell_name(i);
 	}
-	var cell_types = pool;
+	const cell_types = pool;
 	let type = 'free';
 	if(i === '$children'){
 		return;
 	}
 	if(i === '$init'){
-		for(var j in row){
+		for(let j in row){
 			cell_types[j] = get_cell_type(i, type);
 		}
 		//console.log('now cell_types j looks like', cell_types);
@@ -141,7 +141,7 @@ var parse_cell_type = (i, row, pool, children) => {
 		return;
 	}
 	var func = row[0];
-	var parents = row.slice(1);
+	const parents = row.slice(1);
 	if(func instanceof Function){
 		// regular sync cell
 		type = 'is';
@@ -151,7 +151,7 @@ var parse_cell_type = (i, row, pool, children) => {
 		func = parents.shift();
 	}
 	cell_types[i] = get_cell_type(i, type, func, parents, additional_type);
-	for(var j in parents){
+	for(let j in parents){
 		var [listening_type, parent_cell_name] = cell_listening_type(parents[j]);
 		if(listening_type !== 'passive'){
 			utils.init_if_empty(children, parent_cell_name, {});
@@ -162,11 +162,11 @@ var parse_cell_type = (i, row, pool, children) => {
 	}
 };
 
-var parse_cell_types = function(pbs){
-	var cell_types = {};
-	var children = {};
+const parse_cell_types = function(pbs){
+	const cell_types = {};
+	const children = {};
 	//console.log('PBS', pbs);
-	var already = {};
+	const already = {};
 	for(let i in pbs){
 		let rc = get_real_cell_name(i);
 		if(already[rc]) continue;
@@ -175,7 +175,7 @@ var parse_cell_types = function(pbs){
 	}
 	for(let cellname in children){
 		if(!cell_types[cellname]){
-			var r_type = utils.is_special(cellname) ? 'free' : 'fake';
+			const r_type = utils.is_special(cellname) ? 'free' : 'fake';
 			cell_types[cellname] = get_cell_type(cellname, r_type);
 		} 
 		cell_types[cellname].children = children[cellname];
@@ -184,7 +184,7 @@ var parse_cell_types = function(pbs){
 	return cell_types;
 }
 
-var parse_arr_funcstring = (a, key, pool, packages) => {
+const parse_arr_funcstring = (a, key, pool, packages) => {
 	var funcstring;
 	a = a.slice();
 	var funcname = a[0];
@@ -196,7 +196,7 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 	if(!funcname) {
 		console.error('wrong func:', funcname);
 	}
-	var cc = utils.split_camelcase(funcname);
+	const cc = utils.split_camelcase(funcname);
 	if(a.length === 1 && (typeof a[0] === 'string')){
 		funcstring = ['is', utils.id, a[0]];
 	} else {
@@ -206,7 +206,7 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 		} else if(system_macros.has(cc[0])){
 			switch(funcname){
 				case 'nested':
-					var dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
+					const dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
 					utils.init_if_empty(pool.plain_base, '$init', {});
 					Obj.each(dependent_cells, (name) => {
 						pool.plain_base.$init[name] = null;
@@ -225,7 +225,7 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 				return;
 			} else {
 				if(predefined_functions[funcname]){
-					var fnc = predefined_functions[funcname];
+					const fnc = predefined_functions[funcname];
 					switch(fnc.type){
 						case 'func':
 							funcstring = ['is', fnc.func].concat(a.slice(1))
@@ -240,14 +240,14 @@ var parse_arr_funcstring = (a, key, pool, packages) => {
 	return funcstring;
 }
 
-var side_effects = {
+const side_effects = {
 	'child': {
 		func: function(cellname, val, type){
 			if(val){
 				this.linkGrid(cellname, val);
 			}
 			if(val === false) {
-				var link_as = cellname.replace('$child_', '');
+				const link_as = cellname.replace('$child_', '');
 				this.unlinkChild(link_as);
 			}
 		},
@@ -261,7 +261,7 @@ var side_effects = {
 			}
 			Obj.eachKey(deltas, (k) => {
 				if(!deltas[k]) return;
-				var [type, key, gridname, free_vals] = deltas[k];
+				const [type, key, gridname, free_vals] = deltas[k];
 				switch(type){
 					case 'remove':
 						this.unlinkChild(key);
@@ -281,7 +281,7 @@ var side_effects = {
 	}
 };
 
-var get_real_cell_name = function(str){
+const get_real_cell_name = function(str){
 	return(str[0] === '-' 
 		   ? 
 				str.slice(1) 
@@ -297,11 +297,11 @@ var get_real_cell_name = function(str){
 					   str)));
 }
 
-var parse_cellname = function(cellname, pool, context, packages, isDynamic){
+const parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	if(cellname.indexOf('/') !== -1){
 		//console.log('Found cellname', cellname);
 		// it's a path - link to other grids
-		var path = cellname.split('/');
+		const path = cellname.split('/');
 		//console.log('Found', cellname, 'in', pool);
 		if(!pool.initLinkChain){
 			utils.init_if_empty(pool, 'link_chains', {}, cellname, path);
@@ -310,10 +310,10 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 		}
 		return;
 	}
-	var real_cellname = get_real_cell_name(cellname);
-	for(var n in side_effects){
-		var m = side_effects[n];
-		var matches = real_cellname.match(m.regexp);
+	const real_cellname = get_real_cell_name(cellname);
+	for(let n in side_effects){
+		const m = side_effects[n];
+		const matches = real_cellname.match(m.regexp);
 		if(matches){
 			utils.init_if_empty(pool, 'side_effects', {}, cellname, []);
 			if(pool.side_effects[cellname].indexOf(n) === -1){
@@ -321,19 +321,19 @@ var parse_cellname = function(cellname, pool, context, packages, isDynamic){
 			}
 		}
 	}
-	var matched = findMatcher(real_cellname, packages);
+	const matched = findMatcher(real_cellname, packages);
 	if(matched){
 		matched[0].func(matched[1], pool, context, packages);
 	}
 }
 
-var parse_pb = function(res, packages){
-	for(var key in res.plain_base) {
+const parse_pb = function(res, packages){
+	for(let key in res.plain_base) {
 		if(key === '$init'){
 			continue;
 		}
 		if(key === '$children'){
-			var value = res.plain_base.$children;
+			const value = res.plain_base.$children;
 			if(value instanceof Array || typeof value === 'string'){
 				// its dynamic children
 				parse_fexpr(value, res, '$all_children', packages);
@@ -350,7 +350,7 @@ var parse_pb = function(res, packages){
 							res.grids_to_link[link_as] = grid_type.type;
 						} else {
 							// console.log('Adding cells for managing dynamic grid', grid_type);
-							var obj = {};
+							const obj = {};
 							if(grid_type.add){
 								obj[grid_type.add] = function(){
 									return {type: grid_type.type, action: 'add'};
@@ -373,7 +373,7 @@ var parse_pb = function(res, packages){
 	return res;
 }
 
-var parse_fexpr = function(a, pool, key, packages){
+const parse_fexpr = function(a, pool, key, packages){
 	var funcstring;
 	key = get_real_cell_name(key);
 	if(a instanceof Array){
@@ -391,14 +391,14 @@ var parse_fexpr = function(a, pool, key, packages){
 		utils.init_if_empty(pool, 'no_args_cells', {}, key, true);
 	}
 	for(let k = 2; k < funcstring.length; ++k){
-		var cellname = funcstring[k];
+		const cellname = funcstring[k];
 		switch(typeof(cellname)){
 			case 'string':
 				parse_cellname(cellname, pool, null, packages);
 			break;
 			case 'object':
 				if(cellname instanceof Array){
-					var some_key = get_random_name();
+					const some_key = get_random_name();
 					//console.log('Random name is', some_key);
 					parse_fexpr(cellname, pool, some_key, packages);
 					funcstring[k] = some_key;
@@ -413,11 +413,11 @@ var parse_fexpr = function(a, pool, key, packages){
 	//console.log('Got funcstring', funcstring);
 	pool.plain_base[key] = funcstring;
 }
-var parse_fexpr2 = function(pool, packages, key, a){
+const parse_fexpr2 = function(pool, packages, key, a){
 	return parse_fexpr(a, pool, key, packages);
 }
 
-var App = {};
+const App = {};
 App.parse_cell_types = parse_cell_types;
 App.parse_pb = parse_pb;
 App.parse_fexpr = parse_fexpr;

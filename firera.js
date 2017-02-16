@@ -2,33 +2,33 @@
 
 import Ozenfant from '../ozenfant/ozenfant';
 import Parser from './Parser';
-var App = require('./App');
-var PackagePool = require('./PackagePool');
-var utils = require('./utils');
-var Obj = utils.Obj;
-var Grid = require("./Grid");
-var simpleHtmlTemplates = require("./packages/SimpleHtmlTemplates");
-var che_package = require("./packages/Che");
-var ozenfant = require('./packages/OzenfantOld');
-var htmlCells = require('./packages/HtmlCells');
-var core = require('./packages/Core');
-var neu_ozenfant = require('./packages/NeuOzenfant');
+import App from './App';
+import PackagePool from './PackagePool';
+import utils from './utils';
+const Obj = utils.Obj;
+import Grid  from "./Grid";
+import simpleHtmlTemplates from "./packages/SimpleHtmlTemplates";
+import che_package from "./packages/Che";
+import ozenfant from './packages/OzenfantOld';
+import htmlCells from './packages/HtmlCells';
+import core from './packages/Core';
+import neu_ozenfant from './packages/Ozenfant';
  
  
-var is_def = (a) => {
+const is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }
 
-var show_performance = function(){
+const show_performance = function(){
 	const res = [];
-	for(var i = 1; i < arguments.length; ++i){
+	for(let i = 1; i < arguments.length; ++i){
 		res.push(i + ': ' + (arguments[i] - arguments[i - 1]).toFixed(3));
 	}
 	res.push('Total: ' + (arguments[i - 1] - arguments[0]).toFixed(3));
 	return res.join(', ');
 }
 
-var get_app = function(packages){
+const get_app = function(packages){
 	const app = new App(packages, root_package_pool);
 	App.apps.push(app);
 	return app;
@@ -39,8 +39,8 @@ window.Firera = function(config){
 		// it's a set of grids we should join
 		config = Firera.join.apply(null, arguments);
 	}
-	var start = performance.now();
-	var app = get_app(config.$packages);
+	const start = performance.now();
+	const app = get_app(config.$packages);
 	// getting real pbs
 	app.cbs = Obj.map(config, app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
@@ -49,7 +49,7 @@ window.Firera = function(config){
 		throw new Error('Cant find root app!');
 	}
 	//console.log(app);
-	//var compilation_finished = performance.now();
+	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
@@ -57,7 +57,7 @@ window.Firera = function(config){
 	if(app.grid_create_counter === 0){
 		app.branchCreated(1);
 	}
-	//var init_finished = performance.now();
+	//const init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 	//	);
@@ -75,8 +75,8 @@ Firera.gridCreated = function(app, grid_id, path, parent){
 	}
 }
 
-var get_vals = (grid) => {
-	var res = Object.assign({}, grid.cell_values);
+const get_vals = (grid) => {
+	const res = Object.assign({}, grid.cell_values);
 	for(let child_name in grid.linked_grids){
 		if(child_name === '..') continue;
 		let child_id = grid.linked_grids[child_name];
@@ -86,7 +86,7 @@ var get_vals = (grid) => {
 	return res;
 }
 
-var root_package_pool = new PackagePool();
+const root_package_pool = new PackagePool();
 
 Firera.undef = new function(){};
 Firera.noop = new function(){};
@@ -102,14 +102,14 @@ Firera.loadPackage = function(pack) {
 	root_package_pool.load(pack);
 }
 Firera.join = function(...args){
-	var join = (a, b) => {
+	const join = (a, b) => {
 		for(let i in b){
 			a[i] = b[i];
 		}
 	}
-	var res = Object.assign({}, args[0]);
+	const res = Object.assign({}, args[0]);
 	for(let key in args){
-		var grid = args[key];
+		const grid = args[key];
 		if(key === 0) continue;
 		for(let k in grid){
 			if(k === '$packages'){
