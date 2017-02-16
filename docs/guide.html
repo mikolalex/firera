@@ -24,15 +24,15 @@ and open the template in the editor.
 
 Розглянемо простий приклад - форму додавання нового коментаря.
 <code class="js">
-var $root = $('#enter-name-and-email-form');
-var simple_email_regex = /\S+@\S+\.\S+/;
-var test_regex = (reg) => {
+const $root = $('#enter-name-and-email-form');
+const simple_email_regex = /\S+@\S+\.\S+/;
+const test_regex = (reg) => {
     return (str) => {
         return reg.test(str);
     }
 }
-var is_email_valid = test_regex(simple_email_regex);
-var app = {
+const is_email_valid = test_regex(simple_email_regex);
+const app = {
     $el: $root,
     email_valid: [is_email_valid, 'input.email|getval'],
     text_entered: [(a) => { return a.length > 2 }, 'textarea.text|getval'],
@@ -97,17 +97,17 @@ is_email_valid - функція, яка буде перевіряти перед
 </code>
 наступний код:
 <code>
-var prop = (a) => {
+const prop = (a) => {
 	return (b) => {
 		return b[a];
 	}
 }
-var gt = (a) => {
+const gt = (a) => {
 	return (b) => {
 		return b > a;
 	}
 }
-var len_gt_2 = _.flow(prop(length), gt(2));
+const len_gt_2 = _.flow(prop(length), gt(2));
 </code>
 Як бачите, тут і карінг, і композиція функцій, усі смачненькі штучки)
 Комірка text_entered буде приймати булеві значення в залежності від того, що ввів юзер.
@@ -126,7 +126,7 @@ var len_gt_2 = _.flow(prop(length), gt(2));
 Однак виникає питання, навіщо перед form_valid стоїь знак мінус? Щоб зрозуміти це, потрібно поглянути на принципи FRP.
 Нехай у нас є приклад:
 <code>
-var app = Firera({__root: {
+const app = Firera({__root: {
     a: 30,
     b: 12,
     c: [(a, b) => a + b, 'a', 'b']
@@ -145,7 +145,7 @@ app.get('c'); // 11
 У нашому прикладі, подія send_form має статись тільки тоді, коли відбувається зміна в комірці 'button.send|click', тобто, коли юзер, фактично, клікає по кнопці. Якщо ж зміна відбудеться в комірці 'form_valid', ми не повинні нічого робити, т.як само по собі те, що форма стала валідною - не привід для її відправки ;) Для таких ситуацій в Ф. є механізм "пасивного слухання": значення змінної буде обраховуватись, однак зміни в цьому значенні не призведуть до перерахування в залежних комірках. В синтаксисі пасивне слухання позначається мінусом перед іменем комірки-аргумента.
 Застосовувати його треба тільки тоді, коли ви знаєте, навіщо це робите. Наприклад, такий код буде працювати погано:
 <code>
-var app = Firera({__root: {
+const app = Firera({__root: {
     a: 30,
     b: 12,
     c: [(a, b) => a + b, '-a', 'b']
@@ -171,7 +171,7 @@ app.get('c'); // 40! значення не змінилось, т.як ми сл
 
 Другий момент - інкоил набагато простіше мислити станами, аніж змінами. Наприклад, нам потрібно додати показ ерор меседжа, якщо юзер ввів некоректний мейл. Припустимо, що у нас в хтмлі є блок .error-msg.email, який містить в собі це повідомлення, однак він прихований. Наша задача - показати його, якщо буде введений невалідний мейл і приховати, коли він стане валідним.
 <code>
-var app = {
+const app = {
     $el: $root,
     email_valid: [is_email_valid, 'input.email|getval'],
     text_entered: [(a) => { return a.length > 2 }, 'textarea.text|getval'],
@@ -200,10 +200,10 @@ var app = {
 				Для зручності і уникнення плутатини, говорячи про Фіреру ми будемо називати певні речі усталеними назвами, така собі внутрішня термінологія.
 				Розберемо на прикладі:
 <code>
-var minus = (v) => {
+const minus = (v) => {
 	return v * (-1);
 }
-var app_base = {
+const app_base = {
 	'a': 10,
 	'b': 20,
 	'foo': [
@@ -215,7 +215,7 @@ var app_base = {
 	]
 	...
 }
-var app = Firera({
+const app = Firera({
 	__root: app_base
 })
 </code>
@@ -268,7 +268,7 @@ var app = Firera({
 			Існує кілька різних способів обрахування значення комірки на основі її "батьків" - комірок-аргументів.
 			Найпростіший, базовий спосіб - це т.зв. формула.
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				a: 30,
 				b: 12,
 				c: [(a, b) => a + b, 'a', 'b']
@@ -282,7 +282,7 @@ var app = Firera({
 			Однак такий принцип роботи підходить не для усіх випадків. Припустимо, ми хочемо написати комірку, яка б слухала зміни в кількох інших комірках
 			і логувала їх. Приблизно так:
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				a: 30,
 				b: 12,
 				c: [(a, b) => {
@@ -300,7 +300,7 @@ var app = Firera({
 			Тож буде не ясно, яка з них змінилась, зрештою. Для таких випадків є тип чарунок - "лійка", або ж funnel.
 			Погляньмо:
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				a: 30,
 				b: 12,
 				c: ['funnel', (cell_name, cell_value) => {
@@ -318,8 +318,8 @@ var app = Firera({
 			Як бачите, слухаючи батьківські комірки способом funnel, при кожній зміні батьківської комірки ми отримуємо її ім"я і значення.
 			Це широко застосовується, наприклад, при роботі з DOM-подіями. Наприклад, якщо нам потрібно "об"єднати" два "потоки".
 			<code>
-			var second = (_, a) => a;
-			var app = Firera({__root: {
+			const second = (_, a) => a;
+			const app = Firera({__root: {
 				'click_on_form_or_div_or_button': ['funnel', second, 'form|click', 'div|click', 'button|click'],
 			}})
 			</code>
@@ -328,7 +328,7 @@ var app = Firera({
 			Однак, що якщо ми захочемо записувати зміни в якийсь "журнал"? Так щоб результатом комірки "c" був список усіх змін її батьківських комірок, які відбувалися раніше.
 			Нам хочеться щоб було так:
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				a: 30,
 				b: 12,
 				c: ['funnel', (cell, val) => {
@@ -349,11 +349,11 @@ var app = Firera({
 			В цьому типі функція-формула спочатку запускається, і перший її запуск повинен повернути нову функцію, яка буде використовуватись як формула.
 			Простіше це побачити по коду:
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				a: 30,
 				b: 12,
 				c: ['closureFunnel', () => {
-					var log = [];
+					const log = [];
 					return (cell, val) => {
 						log.push([cell, val]);
 						return log;
@@ -376,7 +376,7 @@ var app = Firera({
 			тобто, повертає потрібний результат не одразу, а за якийсь час) Для цього в типі async першим аргументом завжди є функція-колбек, за допомогою якої можна "повернути" результат виконання.
 			Приклад:
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				'user': 'Mikolalex',
 				'posts: ['async', (returner, username) => {
 					$.get('/posts/' + username, function(data) {
@@ -389,7 +389,7 @@ var app = Firera({
 			Тут я спеціально називаю перший параметр словом returner, щоб підкреслити його аналогію із оператором return, т.як вони виконують ту саму задачу.
 			Якщо ж така аналогія видається вам такою, що збиває з толку, ви можете використовувати інші назви, наприклад, прийняту в спільноті Node.js назву cb.
 			<code>
-			var app = Firera({__root: {
+			const app = Firera({__root: {
 				'time': 3,
 				'await': ['async', (cb, time) => {
 					setTimeout(() => {
@@ -408,14 +408,14 @@ var app = Firera({
 			Ця, в цілому шкідлива, поведінка може бути інколи корисною. У Фірері для цього є окремий тип - nested, який дозволяє реалізувати подібний підхід, при цьому дотримуючись політики SDP(single definition point).
 			Ми можемо за результатами обчислення класти значення в те чи інше, наперед обумовлене місце - таку собі "підкомірку"
 			<code>
-			var get_sum = () => {
+			const get_sum = () => {
 				var sum = 0;
 				return (num) => {
 					sum += num;
 					return sum;
 				}
 			}
-			var app = Firera({
+			const app = Firera({
 				__root: {
 					num: 1,
 					nums: ['nested', function(cb, a){
@@ -455,7 +455,7 @@ var app = Firera({
 					Однак, цього буде достатньо лише для найпростіших випадків. Firera є в першу чергу бібліотекою для GUI. DOM має деревовидну структуру, і працюючи з ним буде зручно, щоб наші гріди теж були вкладені один в оден.
 					Для цього існує простий механізм, базований на внутрішніх ковенціях: значення усіх комірок, ім"я яких починається з $child_, буде трактуватись як вкладений грід.
 <code>
-var app = Firera({__root: {
+const app = Firera({__root: {
 	foo: 10,
 	$child_crane: {
 		width: 40,
@@ -479,7 +479,7 @@ console.log(app.get('weight', '/crane')); // 16
 			також і шлях до неї, який в даному випадку буде простим - /crane.
 			Щоб краще зрозуміти, як працює система шляхів і вкладеності, зробимо ще один рівень вкладеності.
 <code>
-var app = Firera({__root: {
+const app = Firera({__root: {
 	foo: 10,
 	$child_crane: {
 		width: 40,
@@ -510,7 +510,7 @@ console.log(app.get('name', '/crane/2')); // 'Buska'
 		</h3>
 		Однак ізольовані гріди, навіть вкладені один в оден, мало що нам дадуть. Потрібен механізм зв"язку, щоб дані могли циркулювати між ними.
 		<code>
-var app = Firera({__root: {
+const app = Firera({__root: {
 	multiplier: 10,
 	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: {
@@ -567,12 +567,12 @@ console.log(app.get('weight', '/crane_2')); // 13
 		Перший і другий вкладені гріди відрізняються тільки статичними даними, структура ж їх динамічних комірок однакова.
 		Ми можемо трохи спростити цей вираз:
 <code>
-var crane = {
+const crane = {
 		weight: [(w, h, m) => {
 			return (w+h)/m;
 		}, 'width', 'height', '../multiplier']
 }
-var cranes = [
+const cranes = [
 	{
 		width: 40,
 		height: 120,
@@ -582,7 +582,7 @@ var cranes = [
 		height: 80,
 	},
 ]
-var app = Firera({__root: {
+const app = Firera({__root: {
 	multiplier: 10,
 	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: Object.assign({}, cranes[0], crane),
@@ -594,7 +594,7 @@ var app = Firera({__root: {
 		Припустимо, нам хочеться створити наперед невідому кількість вкладених грідів типу crane, в залежності від масиву вхідних даних.
 		Для цього існує конструкція "список".
 <code>
-var cranes = [
+const cranes = [
 	{
 		width: 40,
 		height: 120,
@@ -608,7 +608,7 @@ var cranes = [
 		height: 160,
 	},
 ]
-var app = Firera({
+const app = Firera({
 	__root: {
 		multiplier: 10,
 		$child_cranes: ['list', {
@@ -650,7 +650,7 @@ console.log(app.get('height', '/cranes/2'); // 160
 				</h3>
 				Для того, щоб список cranes змінювався в процесі роботи програми, ми можемо зробити так:
 				<code>
-var cranes = [
+const cranes = [
 	{
 		width: 40,
 		height: 120,
@@ -664,7 +664,7 @@ var cranes = [
 		height: 160,
 	},
 ]
-var app = Firera({
+const app = Firera({
 	__root: {
 		multiplier: 10,
 		cranes: ['just', cranes],

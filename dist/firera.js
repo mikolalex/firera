@@ -1,13 +1,30 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
-var PackagePool = require('./PackagePool');
-var LinkManager = require('./LinkManager');
-var Parser = require('./Parser');
-var utils = require('./utils');
-var Grid = require("./Grid");
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+var _PackagePool = require('./PackagePool');
+
+var _PackagePool2 = _interopRequireDefault(_PackagePool);
+
+var _LinkManager = require('./LinkManager');
+
+var _LinkManager2 = _interopRequireDefault(_LinkManager);
+
+var _Parser = require('./Parser');
+
+var _Parser2 = _interopRequireDefault(_Parser);
+
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+var _Grid = require('./Grid');
+
+var _Grid2 = _interopRequireDefault(_Grid);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Obj = _utils2.default.Obj;
+var Arr = _utils2.default.Arr;
 var apps = [];
 var appIds = 0;
 var type_map = {
@@ -36,7 +53,7 @@ var get_grid_struct = function get_grid_struct(grid) {
 				types = ['free'];
 				type = 'free';
 			} else {
-				types = utils.split_camelcase(grid.cell_types[cell].type);
+				types = _utils2.default.split_camelcase(grid.cell_types[cell].type);
 				type = grid.cell_types[cell].type;
 			}
 			var props = {};
@@ -49,7 +66,7 @@ var get_grid_struct = function get_grid_struct(grid) {
 				for (var _iterator2 = types[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
 					var subtype = _step2.value;
 
-					if (Parser.system_macros.has(subtype) && subtype !== 'is') {
+					if (_Parser2.default.system_macros.has(subtype) && subtype !== 'is') {
 						props[subtype] = true;
 						once = true;
 					}
@@ -133,7 +150,7 @@ var get_grid_struct = function get_grid_struct(grid) {
 		}
 	}
 
-	var by_types = utils.group_by(cells, function (obj) {
+	var by_types = _utils2.default.group_by(cells, function (obj) {
 		if (obj.name.indexOf('/') !== -1) {
 			return 'linked';
 		}
@@ -178,7 +195,7 @@ var get_app_struct = function get_app_struct(app) {
 var App = function App(packages, root_package_pool) {
 	this.id = ++appIds;
 	this.grid_create_counter = 0;
-	this.packagePool = new PackagePool(root_package_pool, this.id);
+	this.packagePool = new _PackagePool2.default(root_package_pool, this.id);
 	if (packages) {
 		var _iteratorNormalCompletion4 = true;
 		var _didIteratorError4 = false;
@@ -207,7 +224,7 @@ var App = function App(packages, root_package_pool) {
 	}
 	this.grids = {};
 	this.gridIds = 0;
-	this.linkManager = new LinkManager(this);
+	this.linkManager = new _LinkManager2.default(this);
 };
 
 App.prototype.onChangeFinished = function (cb) {
@@ -313,16 +330,16 @@ var cb_prot = {
 
 		try {
 			for (var _iterator6 = this.cell_parents(cellname)[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-				var cell = _step6.value;
+				var _cell = _step6.value;
 
-				cell = Parser.real_cell_name(cell);
-				if (this.levels[cell] === undefined) {
-					if (pool.indexOf(cell) === -1) {
-						this.setLevelsIterable(cell, pool);
+				_cell = _Parser2.default.real_cell_name(_cell);
+				if (this.levels[_cell] === undefined) {
+					if (pool.indexOf(_cell) === -1) {
+						this.setLevelsIterable(_cell, pool);
 					}
 				}
-				if (this.levels[cell] > max_level) {
-					max_level = this.levels[cell];
+				if (this.levels[_cell] > max_level) {
+					max_level = this.levels[_cell];
 				}
 			}
 		} catch (err) {
@@ -363,15 +380,15 @@ var cb_prot = {
 
 		try {
 			for (var _iterator7 = this.cell_parents(cellname)[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-				var cell = _step7.value;
+				var _cell3 = _step7.value;
 
-				cell = Parser.real_cell_name(cell);
+				_cell3 = _Parser2.default.real_cell_name(_cell3);
 				//if(cell[0] === '-') debugger;
-				if (this.levels[cell] === undefined) {
+				if (this.levels[_cell3] === undefined) {
 					//this.setLevelsRec(cell, already_set);
 				}
-				if (this.levels[cell] > max_level) {
-					max_level = this.levels[cell];
+				if (this.levels[_cell3] > max_level) {
+					max_level = this.levels[_cell3];
 				}
 			}
 		} catch (err) {
@@ -407,10 +424,10 @@ var cb_prot = {
 			this.levels[cellname] = max_level + 1;
 		}
 		//console.log('New level for', cellname, 'is', max_level + 1);
-		for (var cell in this.cell_children(cellname)) {
-			if (!already_set.has(cell)) {
-				already_set.add(cell);
-				this.setLevelsRec(cell, already_set);
+		for (var _cell2 in this.cell_children(cellname)) {
+			if (!already_set.has(_cell2)) {
+				already_set.add(_cell2);
+				this.setLevelsRec(_cell2, already_set);
 			}
 		}
 	}
@@ -424,9 +441,9 @@ App.prototype.parse_cbs = function (a) {
 	res.grids_to_link = {};
 	res.no_args_cells = {};
 
-	Parser.parse_pb(res, this.packagePool);
-	utils.init_if_empty(res.plain_base, '$init', {}, '$name', null);
-	res.cell_types = Parser.parse_cell_types(res.plain_base);
+	_Parser2.default.parse_pb(res, this.packagePool);
+	_utils2.default.init_if_empty(res.plain_base, '$init', {}, '$name', null);
+	res.cell_types = _Parser2.default.parse_cell_types(res.plain_base);
 	res.setLevels();
 	return res;
 };
@@ -475,7 +492,7 @@ App.prototype.createGrid = function (type, link_as, free_vals, parent_id) {
 	free_vals = parent.init_values[link_as] ? Object.assign({}, parent.init_values[link_as], free_vals || {}) : free_vals;
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/') + link_as;
-	var child = new Grid(this, type, link_as, free_vals, true, parent_id, path);
+	var child = new _Grid2.default(this, type, link_as, free_vals, true, parent_id, path);
 	Firera.gridCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;
@@ -483,15 +500,25 @@ App.prototype.createGrid = function (type, link_as, free_vals, parent_id) {
 App.apps = apps;
 App.get_app_struct = get_app_struct;
 module.exports = App;
-},{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":13}],2:[function(require,module,exports){
+},{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":12}],2:[function(require,module,exports){
 'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _Parser = require('./Parser');
+
+var _Parser2 = _interopRequireDefault(_Parser);
+
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-var Parser = require('./Parser');
-var utils = require('./utils');
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+var Obj = _utils2.default.Obj;
+var Arr = _utils2.default.Arr;
 
 var unusual_cell = function unusual_cell(cellname) {
 	return !cellname.match(/^([a-zA-Z0-9\_]*)$/);
@@ -502,7 +529,7 @@ var create_provider = function create_provider(app, self) {
 		pool: {},
 		create: function create(self, type, link_as, free_vals) {
 			var child_id = self.app.createGrid(type, link_as, free_vals, self.id);
-			utils.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
+			_utils2.default.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
 			this.set(link_as, child_id);
 			this.get(link_as).linked_grids_provider.set('..', self.id);
 			app.linkManager.onNewGridAdded(self.id, child_id);
@@ -516,7 +543,6 @@ var create_provider = function create_provider(app, self) {
 		},
 		get: function get(name) {
 			var id = this.pool[name];
-
 			return id ? app.grids[id] : false;
 		},
 		eachChild: function eachChild(cb) {
@@ -563,7 +589,7 @@ var create_provider = function create_provider(app, self) {
 };
 
 var add_dynamic_link = function add_dynamic_link(pool, cell, grid, slave_cell, type) {
-	utils.init_if_empty(pool, cell, {}, grid, []);
+	_utils2.default.init_if_empty(pool, cell, {}, grid, []);
 	var links = pool[cell][grid];
 	var _iteratorNormalCompletion = true;
 	var _didIteratorError = false;
@@ -626,7 +652,7 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 		}
 	}
 	if (!parsed_pb) {
-		utils.error('Cannot find grid to parse:', parsed_pb_name);
+		_utils2.default.error('Cannot find grid to parse:', parsed_pb_name);
 		return;
 	}
 	this.cell_types = parsed_pb.cell_types;
@@ -646,40 +672,23 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 	this.cell_values = Object.assign({}, this.plain_base.$init || {});
 	this.init_values = Object.assign({}, this.plain_base.$init, free_vals || {});
 	this.asterisk_omit_list = this.all_cell_children('*');
-	//////////////////////////
-	//bm.stop('init', '2', id);
-	//bm.start('init', '1', id);
 	Obj.each(this.grids_to_link, function (grid_name, link_as) {
 		return _this.linkChild(grid_name, link_as);
 	});
 	// @todo: refactor, make this set in one step
-	//console.log('Setting $init values', this.init_values);
-	//////////////////////////
-	//bm.stop('init', '1', id);
-	//bm.start('init', '3', id);
 
 	if (this.plain_base.$init && !init_later) {
 		this.init();
 	}
-	//////////////////////////
-	//bm.stop('init', '3', id);
-	//bm.start('init', '4', id);
 	if (parsed_pb.no_args_cells) {
 		//this.set(parsed_pb.no_args_cells);
-		var min_level = Number.POSITIVE_INFINITY;
-		var cell_vals = {};
 		this.updateTree(parsed_pb.no_args_cells, false, true);
 	}
-	//////////////////////////
-	//bm.stop('init', '4', id);
-	//bm.start('init', '5', id);
 	if (this.link_chains) {
 		for (var link in this.link_chains) {
 			this.initLinkChain(link);
 		}
 	}
-	//////////////////////////
-	//bm.stop('init', '5', id);
 };
 
 Grid.prototype.changesFinished = function () {
@@ -688,9 +697,9 @@ Grid.prototype.changesFinished = function () {
 
 Grid.prototype.initIfSideEffectCell = function (cell) {
 	if (!this.cellExists(cell) && unusual_cell(cell)) {
-		Parser.parse_cellname(cell, this, 'getter', this.app.packagePool, this);
-		this.cell_types = Parser.parse_cell_types(this.plain_base);
-		var matched = Parser.findMatcher(cell, this.app.packagePool);
+		_Parser2.default.parse_cellname(cell, this, 'getter', this.app.packagePool, this);
+		this.cell_types = _Parser2.default.parse_cell_types(this.plain_base);
+		var matched = _Parser2.default.findMatcher(cell, this.app.packagePool);
 		if (matched) {
 			this.compute(cell);
 		}
@@ -735,7 +744,7 @@ Grid.prototype.hasChild = function (name) {
 
 Grid.prototype.init = function () {
 	for (var cell in this.init_values) {
-		Parser.parse_cellname(cell, this, 'setter', this.app.packagePool);
+		_Parser2.default.parse_cellname(cell, this, 'setter', this.app.packagePool);
 	}
 	this.set(this.init_values);
 };
@@ -764,7 +773,7 @@ Grid.prototype.linkGrid = function (cellname, val) {
 		grid = val;
 	}
 	if (!grid) {
-		utils.warn('Trying to link undefined grid:', grid);
+		_utils2.default.warn('Trying to link undefined grid:', grid);
 		return;
 	}
 	var child_id = this.linkChild(grid, cellname, free_vals);
@@ -885,20 +894,20 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 	var args;
 	switch (arg_num) {
 		case 1:
-			args = [this.cell_value(Parser.get_real_cell_name(parents[0]))];
+			args = [this.cell_value(_Parser2.default.get_real_cell_name(parents[0]))];
 			break;
 		case 2:
-			args = [this.cell_value(Parser.get_real_cell_name(parents[0])), this.cell_value(Parser.get_real_cell_name(parents[1]))];
+			args = [this.cell_value(_Parser2.default.get_real_cell_name(parents[0])), this.cell_value(_Parser2.default.get_real_cell_name(parents[1]))];
 			break;
 		case 3:
-			args = [this.cell_value(Parser.get_real_cell_name(parents[0])), this.cell_value(Parser.get_real_cell_name(parents[1])), this.cell_value(Parser.get_real_cell_name(parents[2]))];
+			args = [this.cell_value(_Parser2.default.get_real_cell_name(parents[0])), this.cell_value(_Parser2.default.get_real_cell_name(parents[1])), this.cell_value(_Parser2.default.get_real_cell_name(parents[2]))];
 			break;
 		case 4:
-			args = [this.cell_value(Parser.get_real_cell_name(parents[0])), this.cell_value(Parser.get_real_cell_name(parents[1])), this.cell_value(Parser.get_real_cell_name(parents[2])), this.cell_value(Parser.get_real_cell_name(parents[3]))];
+			args = [this.cell_value(_Parser2.default.get_real_cell_name(parents[0])), this.cell_value(_Parser2.default.get_real_cell_name(parents[1])), this.cell_value(_Parser2.default.get_real_cell_name(parents[2])), this.cell_value(_Parser2.default.get_real_cell_name(parents[3]))];
 			break;
 		default:
-			var args = this.cell_parents(real_cell_name).map(function (parent_cell_name) {
-				return _this5.cell_value(Parser.get_real_cell_name(parent_cell_name));
+			args = this.cell_parents(real_cell_name).map(function (parent_cell_name) {
+				return _this5.cell_value(_Parser2.default.get_real_cell_name(parent_cell_name));
 			});
 			break;
 	}
@@ -906,7 +915,7 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 		if (!parent_cell_name) {
 			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
 		}
-		parent_cell_name = Parser.get_real_cell_name(parent_cell_name);
+		parent_cell_name = _Parser2.default.get_real_cell_name(parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];
 	}
 	if (props.nested) {
@@ -923,17 +932,17 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 			_this5.changesFinished();
 		});
 	}
-	/*for(var n of args){
+	/*for(let n of args){
  	if(n === Firera.undef){
  		//console.log('UNDEF FOUND!', cell);
  		return;
  	}
  }*/
 	// counting value
+	var val;
 	if (props.hasOwnProperty('map') && props.map) {
-		var val = func instanceof Function ? func(this.cell_value(Parser.get_real_cell_name(parent_cell_name))) : func;
+		val = func instanceof Function ? func(this.cell_value(_Parser2.default.get_real_cell_name(parent_cell_name))) : func;
 	} else {
-		var val;
 		switch (args.num) {
 			case 1:
 				val = func(args[0]);
@@ -960,8 +969,8 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 		}
 	}
 	if (props.async || props.nested) {} else if (props.dynamic && !dynamic) {
-		var fs = Parser.parse_arr_funcstring(val, cell, { plain_base: {} }, this.app.packagePool);
-		Parser.parse_cell_type(cell, fs, this.dynamic_cells_props, []);
+		var fs = _Parser2.default.parse_arr_funcstring(val, cell, { plain_base: {} }, this.app.packagePool);
+		_Parser2.default.parse_cell_type(cell, fs, this.dynamic_cells_props, []);
 		parents = this.dynamic_cells_props[cell].parents;
 		var _iteratorNormalCompletion3 = true;
 		var _didIteratorError3 = false;
@@ -1001,9 +1010,9 @@ Grid.prototype.get = function (cell, child) {
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_grids_provider.get(childname);
+		child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			utils.warn('Cannot get - no such path', path);
+			_utils2.default.warn('Cannot get - no such path', path);
 			return Firera.undef;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1099,15 +1108,15 @@ Grid.prototype.updateTree = function (cells) {
 					continue;
 				}
 				for (var child in children) {
-					var lvl = this.levels[child];
-					if (!levels[lvl]) {
-						levels[lvl] = new Set();
+					var _lvl = this.levels[child];
+					if (!levels[_lvl]) {
+						levels[_lvl] = new Set();
 					}
 					if (!cells[child]) {
-						levels[lvl].add(child);
+						levels[_lvl].add(child);
 					}
 					parents[child] = _cell;
-					for (var j = lvl - 1; j > x; j--) {
+					for (var j = _lvl - 1; j > x; j--) {
 						if (!levels[j]) {
 							levels[j] = new Set();
 						}
@@ -1138,7 +1147,7 @@ Grid.prototype.updateTree = function (cells) {
 };
 
 Grid.prototype.cellExists = function (cn) {
-	cn = Parser.get_real_cell_name(cn);
+	cn = _Parser2.default.get_real_cell_name(cn);
 	return this.cell_values.hasOwnProperty(cn) || this.cell_types.hasOwnProperty(cn) && this.cell_types[cn].type !== 'fake' || this.fake_cells.indexOf(cn) !== -1;
 };
 
@@ -1147,9 +1156,9 @@ Grid.prototype.set = function (cells, val, child, no_args, skipsame) {
 		// setting value for some linked child grid
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_grids_provider.get(childname);
+		child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			utils.warn('Cannot set - no such path', path);
+			_utils2.default.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1185,9 +1194,9 @@ Grid.prototype.set2 = function (cell, val, child) {
 		//log('Trying to set', child, cell, val);
 		var path = child.split('/');
 		var childname = path[0];
-		var child = this.linked_grids_provider.get(childname);
+		child = this.linked_grids_provider.get(childname);
 		if (!child) {
-			utils.warn('Cannot set - no such path', path);
+			_utils2.default.warn('Cannot set - no such path', path);
 			return;
 		}
 		var child_path = path[1] ? path.slice(1).join('/') : undefined;
@@ -1289,47 +1298,64 @@ Grid.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '
 Grid.prototype.cell_value = function (cell) {
 	var _this9 = this;
 
-	switch (cell) {
-		case '$real_keys':
-			return [].concat(_toConsumableArray(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))).filter(function (k) {
-				return k.match(/^(\w|\d|\_|\-)*$/);
-			});
-			break;
-		case '$real_values':
-			var res = {};
-			Obj.each([].concat(_toConsumableArray(new Set(Object.keys(this.cell_values).concat(Object.keys(this.init_values))))).filter(function (k) {
-				return k.match(/^(\w|\d|\_|\-)*$/);
-			}), function (k, v) {
-				res[k] = _this9.cell_value(k);
-			});
-			return res;
-			break;
-		case '$path':
-			return this.path;
-			break;
-		case '$app_id':
-			return this.app.id;
-			break;
-		case '$name':
-			return this.name;
-			break;
-		default:
-			if (this.cell_values.hasOwnProperty(cell)) {
-				return this.cell_values[cell];
-			} else {
-				return Firera.undef;
-				//return this.cell_values[cell];
-			}
-	}
+	var _ret = function () {
+		switch (cell) {
+			case '$real_keys':
+				return {
+					v: [].concat(_toConsumableArray(new Set(Object.keys(_this9.plain_base).concat(Object.keys(_this9.plain_base.$init))))).filter(function (k) {
+						return k.match(/^(\w|\d|\_|\-)*$/);
+					})
+				};
+				break;
+			case '$real_values':
+				var res = {};
+				Obj.each([].concat(_toConsumableArray(new Set(Object.keys(_this9.cell_values).concat(Object.keys(_this9.init_values))))).filter(function (k) {
+					return k.match(/^(\w|\d|\_|\-)*$/);
+				}), function (k, v) {
+					res[k] = _this9.cell_value(k);
+				});
+				return {
+					v: res
+				};
+				break;
+			case '$path':
+				return {
+					v: _this9.path
+				};
+				break;
+			case '$app_id':
+				return {
+					v: _this9.app.id
+				};
+				break;
+			case '$name':
+				return {
+					v: _this9.name
+				};
+				break;
+			default:
+				if (_this9.cell_values.hasOwnProperty(cell)) {
+					return {
+						v: _this9.cell_values[cell]
+					};
+				} else {
+					return {
+						v: Firera.undef
+					};
+					//return this.cell_values[cell];
+				}
+		}
+	}();
+
+	if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 };
 Grid.prototype.set_cell_value = function (cell, val) {
 	var _this10 = this;
 
-	var same_song = val === this.cell_values[cell];
 	this.cell_values[cell] = val;
 	if (this.side_effects[cell]) {
-		if (!Parser.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], Parser.side_effects);
-		Parser.side_effects[this.side_effects[cell]].func.call(this, cell, val);
+		if (!_Parser2.default.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], _Parser2.default.side_effects);
+		_Parser2.default.side_effects[this.side_effects[cell]].func.call(this, cell, val);
 		//console.log('Child', real_cell_name, 'val is', val);
 	}
 	//if(cell === 'text' || cell === '*') console.log('Set cell value', cell, val, this.dynamic_cell_links[cell]);
@@ -1381,10 +1407,17 @@ Grid.prototype.set_cell_value = function (cell, val) {
 };
 
 module.exports = Grid;
-},{"./Parser":5,"./utils":13}],3:[function(require,module,exports){
+},{"./Parser":5,"./utils":12}],3:[function(require,module,exports){
 'use strict';
 
-var utils = require('./utils');
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var LinkManager = function LinkManager(app) {
 	this.app = app;
 	this.links = [];
@@ -1431,7 +1464,7 @@ LinkManager.prototype.refreshPointers = function (link_id) {
 		for (var _iterator = data.pointers[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 			var pointer = _step.value;
 
-			utils.init_if_empty(this.pointers, pointer.grid_id, {}, link_id, data.path[pointer.pos]);
+			_utils2.default.init_if_empty(this.pointers, pointer.grid_id, {}, link_id, data.path[pointer.pos]);
 			//log('considering pointer', link_id, data.str, pointer);
 		}
 	} catch (err) {
@@ -1493,7 +1526,7 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 };
 
 LinkManager.prototype.addWorkingLink = function (master_grid_id, master_cellname, slave_grid_id, slave_cellname, link_id, path) {
-	utils.init_if_empty(this.workingLinks, master_grid_id, {}, master_cellname, {}, slave_grid_id, {}, slave_cellname, { link_id: link_id, path: path });
+	_utils2.default.init_if_empty(this.workingLinks, master_grid_id, {}, master_cellname, {}, slave_grid_id, {}, slave_cellname, { link_id: link_id, path: path });
 	//this.app.getGrid(slave_grid_id).set(slave_cellname, val);
 	this.app.getGrid(master_grid_id).initIfSideEffectCell(master_cellname);
 	this.checkUpdate(master_grid_id, master_cellname);
@@ -1502,10 +1535,8 @@ LinkManager.prototype.addWorkingLink = function (master_grid_id, master_cellname
 LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
 	var _this = this;
 
-	var gridname, current_pointer;
+	var current_pointer;
 	var data = this.links[link_id];
-	var curr_grid_id = data.grid_id,
-	    curr_grid;
 
 	var move_further = function move_further(curr_grid_id, i, start_pos, path) {
 		if (!path) debugger;
@@ -1558,9 +1589,9 @@ LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
 					fixed: true,
 					path: path
 				});
-				for (var child_name in curr_grid.linked_grids) {
-					var child_id = curr_grid.linked_grids[child_name];
-					move_further(child_id, i + 1, start_pos, path);
+				for (var _child_name in curr_grid.linked_grids) {
+					var _child_id = curr_grid.linked_grids[_child_name];
+					move_further(_child_id, i + 1, start_pos, path);
 				}
 				return;
 			}
@@ -1578,7 +1609,7 @@ LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
 	};
 
 	for (var pointer_index in data.pointers) {
-		var current_pointer = data.pointers[pointer_index];
+		current_pointer = data.pointers[pointer_index];
 		move_further(current_pointer.grid_id, current_pointer.pos, pointer_index, current_pointer.path);
 	}
 	this.refreshPointers(link_id);
@@ -1589,8 +1620,8 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 
 	var path = link.split('/');
 	if (path.length == 2 && path[0] === '..') {
-		/*var curr_grid = this.app.getGrid(grid_id);
-  var parent = curr_grid.parent;
+		/*const curr_grid = this.app.getGrid(grid_id);
+  const parent = curr_grid.parent;
   if(parent === undefined) {
   	console.log('parent undefined! child', curr_grid);
   	return;
@@ -1601,34 +1632,50 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
   return;*/
 	}
 	if (path[0] == '**') {
-		if (path.length > 2) {
-			utils.error('You cannot listen to such path', path.join('/'));
-			return;
-		}
-		var cellname = path[1];
-		var grid_path = this.app.getGrid(grid_id).path;
-		this.pathToId[grid_path] = grid_id;
-		utils.init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
-		// check already added grids
-		this.app.eachChild(grid_id, function (child) {
-			_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
-		});
-		return;
+		var _ret = function () {
+			if (path.length > 2) {
+				_utils2.default.error('You cannot listen to such path', path.join('/'));
+				return {
+					v: void 0
+				};
+			}
+			var cellname = path[1];
+			var grid_path = _this2.app.getGrid(grid_id).path;
+			_this2.pathToId[grid_path] = grid_id;
+			_utils2.default.init_if_empty(_this2.doubleAsterisk, grid_path, {}, cellname, true);
+			// check already added grids
+			_this2.app.eachChild(grid_id, function (child) {
+				_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
+			});
+			return {
+				v: void 0
+			};
+		}();
+
+		if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 	}
 	if (path[0] == '^^') {
-		if (path.length > 2) {
-			utils.error('You cannot listen to such path', path.join('/'));
-			return;
-		}
-		var cellname = path[1];
-		this.app.eachParent(grid_id, function (grid) {
-			_this2.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
-		});
-		return;
+		var _ret2 = function () {
+			if (path.length > 2) {
+				_utils2.default.error('You cannot listen to such path', path.join('/'));
+				return {
+					v: void 0
+				};
+			}
+			var cellname = path[1];
+			_this2.app.eachParent(grid_id, function (grid) {
+				_this2.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
+			});
+			return {
+				v: void 0
+			};
+		}();
+
+		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
 	}
 	if (path[0] == '') {
 		if (path.length > 2) {
-			utils.error('You cannot listen to such path', path.join('/'));
+			_utils2.default.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
@@ -1650,7 +1697,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 		grid_id: grid_id,
 		status: null
 	};
-	utils.init_if_empty(this.linkStruct, grid_id, {});
+	_utils2.default.init_if_empty(this.linkStruct, grid_id, {});
 	if (this.linkStruct[grid_id][link] == undefined) {
 		var link_id = this.links.push(obj) - 1;
 		this.linkStruct[grid_id][link] = link_id;
@@ -1662,10 +1709,14 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 };
 
 module.exports = LinkManager;
-},{"./utils":13}],4:[function(require,module,exports){
+},{"./utils":12}],4:[function(require,module,exports){
 'use strict';
 
-var utils = require('./utils');
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var kcopy = function kcopy(from, to) {
 	for (var i in from) {
@@ -1684,7 +1735,7 @@ var PackagePool = function PackagePool() {
 PackagePool.prototype.load = function (pack) {
 	if (typeof pack === 'string') {
 		if (!Firera.packagesAvailable[pack]) {
-			utils.error('Package not found!', pack);
+			_utils2.default.error('Package not found!', pack);
 			return;
 		}
 		pack = Firera.packagesAvailable[pack];
@@ -1696,25 +1747,30 @@ PackagePool.prototype.load = function (pack) {
 		Object.assign(this.eachGridMixin, pack.eachGridMixin);
 	}
 	if (pack.onGridCreated) {
-		utils.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
+		_utils2.default.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
 		Firera.onGridCreatedStack[this.app_id].push(pack.onGridCreated);
 	}
 	if (pack.onBranchCreated) {
-		utils.init_if_empty(Firera.onBranchCreatedStack, this.app_id, []);
+		_utils2.default.init_if_empty(Firera.onBranchCreatedStack, this.app_id, []);
 		Firera.onBranchCreatedStack[this.app_id].push(pack.onBranchCreated);
 	}
 };
 module.exports = PackagePool;
-},{"./utils":13}],5:[function(require,module,exports){
+},{"./utils":12}],5:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var utils = require('./utils');
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Obj = _utils2.default.Obj;
+var Arr = _utils2.default.Arr;
 
 var system_macros = new Set(['is', 'async', 'closure', 'funnel', 'dynamic', 'nested']);
 
@@ -1727,7 +1783,7 @@ var get_random_name = function () {
 }();
 
 var err = function err(text) {
-	utils.error(text);
+	_utils2.default.error(text);
 };
 
 var predefined_functions = {
@@ -1821,7 +1877,7 @@ var cell_listening_type = function cell_listening_type(str) {
 
 var get_cell_type = function get_cell_type(cellname, type, func, parents, additional_type) {
 	//console.log('getting cell type', arguments);
-	var real_cell_types = utils.split_camelcase(type) || [];
+	var real_cell_types = _utils2.default.split_camelcase(type) || [];
 
 	var closure = real_cell_types.indexOf('closure') !== -1;
 	var async = real_cell_types.indexOf('async') !== -1;
@@ -1876,14 +1932,14 @@ var parse_cell_type = function parse_cell_type(i, row, pool, children) {
 		func = parents.shift();
 	}
 	cell_types[i] = get_cell_type(i, type, func, parents, additional_type);
-	for (var j in parents) {
-		var _cell_listening_type = cell_listening_type(parents[j]),
+	for (var _j in parents) {
+		var _cell_listening_type = cell_listening_type(parents[_j]),
 		    _cell_listening_type2 = _slicedToArray(_cell_listening_type, 2),
 		    listening_type = _cell_listening_type2[0],
 		    parent_cell_name = _cell_listening_type2[1];
 
 		if (listening_type !== 'passive') {
-			utils.init_if_empty(children, parent_cell_name, {});
+			_utils2.default.init_if_empty(children, parent_cell_name, {});
 			children[parent_cell_name][i] = true;
 		} else {
 			//console.info('Omit setting', i, 'as child for', parent_cell_name, ' - its passive!');
@@ -1904,7 +1960,7 @@ var parse_cell_types = function parse_cell_types(pbs) {
 	}
 	for (var cellname in children) {
 		if (!cell_types[cellname]) {
-			var r_type = utils.is_special(cellname) ? 'free' : 'fake';
+			var r_type = _utils2.default.is_special(cellname) ? 'free' : 'fake';
 			cell_types[cellname] = get_cell_type(cellname, r_type);
 		}
 		cell_types[cellname].children = children[cellname];
@@ -1925,9 +1981,9 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 	if (!funcname) {
 		console.error('wrong func:', funcname);
 	}
-	var cc = utils.split_camelcase(funcname);
+	var cc = _utils2.default.split_camelcase(funcname);
 	if (a.length === 1 && typeof a[0] === 'string') {
-		funcstring = ['is', utils.id, a[0]];
+		funcstring = ['is', _utils2.default.id, a[0]];
 	} else {
 		if (funcname instanceof Function) {
 			// it's "is" be default
@@ -1938,7 +1994,7 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 					var dependent_cells = a[2].map(function (cellname) {
 						return key + '.' + cellname;
 					});
-					utils.init_if_empty(pool.plain_base, '$init', {});
+					_utils2.default.init_if_empty(pool.plain_base, '$init', {});
 					Obj.each(dependent_cells, function (name) {
 						pool.plain_base.$init[name] = null;
 					});
@@ -1951,7 +2007,7 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 			}
 		} else {
 			if (funcname === 'just') {
-				utils.init_if_empty(pool.plain_base, '$init', {});
+				_utils2.default.init_if_empty(pool.plain_base, '$init', {});
 				pool.plain_base.$init[key] = a[1];
 				return;
 			} else {
@@ -2031,7 +2087,7 @@ var parse_cellname = function parse_cellname(cellname, pool, context, packages, 
 		var path = cellname.split('/');
 		//console.log('Found', cellname, 'in', pool);
 		if (!pool.initLinkChain) {
-			utils.init_if_empty(pool, 'link_chains', {}, cellname, path);
+			_utils2.default.init_if_empty(pool, 'link_chains', {}, cellname, path);
 		} else {
 			pool.initLinkChain(cellname);
 		}
@@ -2042,7 +2098,7 @@ var parse_cellname = function parse_cellname(cellname, pool, context, packages, 
 		var m = side_effects[n];
 		var matches = real_cellname.match(m.regexp);
 		if (matches) {
-			utils.init_if_empty(pool, 'side_effects', {}, cellname, []);
+			_utils2.default.init_if_empty(pool, 'side_effects', {}, cellname, []);
 			if (pool.side_effects[cellname].indexOf(n) === -1) {
 				pool.side_effects[cellname].push(n);
 			}
@@ -2055,11 +2111,11 @@ var parse_cellname = function parse_cellname(cellname, pool, context, packages, 
 };
 
 var parse_pb = function parse_pb(res, packages) {
-	for (var key in res.plain_base) {
-		if (key === '$init') {
-			continue;
+	var _loop = function _loop(_key) {
+		if (_key === '$init') {
+			return 'continue';
 		}
-		if (key === '$children') {
+		if (_key === '$children') {
 			var value = res.plain_base.$children;
 			if (value instanceof Array || typeof value === 'string') {
 				// its dynamic children
@@ -2067,9 +2123,9 @@ var parse_pb = function parse_pb(res, packages) {
 			} else {
 				Obj.each(value, function (grid_type, link_as) {
 					if (grid_type instanceof Array) {
-						key = '$child_' + link_as;
+						_key = '$child_' + link_as;
 						//console.log('Child', grid_type, link_as, key);
-						parse_fexpr(grid_type, res, key, packages);
+						parse_fexpr(grid_type, res, _key, packages);
 					} else {
 						if (typeof grid_type === 'string') {
 							res.grids_to_link[link_as] = grid_type;
@@ -2093,9 +2149,16 @@ var parse_pb = function parse_pb(res, packages) {
 					}
 				});
 			}
-			continue;
+			return 'continue';
 		}
-		parse_fexpr(res.plain_base[key], res, key, packages);
+		parse_fexpr(res.plain_base[_key], res, _key, packages);
+		key = _key;
+	};
+
+	for (var key in res.plain_base) {
+		var _ret = _loop(key);
+
+		if (_ret === 'continue') continue;
 	}
 	return res;
 };
@@ -2108,14 +2171,14 @@ var parse_fexpr = function parse_fexpr(a, pool, key, packages) {
 		if (funcstring === undefined) return;
 	} else {
 		// it's primitive value
-		utils.init_if_empty(pool.plain_base, '$init', {});
+		_utils2.default.init_if_empty(pool.plain_base, '$init', {});
 		parse_cellname(key, pool, 'setter', packages);
 		pool.plain_base.$init[key] = a;
 		return;
 	}
 	if (!funcstring[2]) {
 		// function with no dependancy
-		utils.init_if_empty(pool, 'no_args_cells', {}, key, true);
+		_utils2.default.init_if_empty(pool, 'no_args_cells', {}, key, true);
 	}
 	for (var k = 2; k < funcstring.length; ++k) {
 		var cellname = funcstring[k];
@@ -2158,7 +2221,7 @@ App.parse_cell_type = parse_cell_type;
 App.findMatcher = findMatcher;
 App.system_macros = system_macros;
 module.exports = App;
-},{"./utils":13}],6:[function(require,module,exports){
+},{"./utils":12}],6:[function(require,module,exports){
 'use strict';
 
 var _ozenfant = require('../ozenfant/ozenfant');
@@ -2169,19 +2232,46 @@ var _Parser = require('./Parser');
 
 var _Parser2 = _interopRequireDefault(_Parser);
 
+var _App = require('./App');
+
+var _App2 = _interopRequireDefault(_App);
+
+var _PackagePool = require('./PackagePool');
+
+var _PackagePool2 = _interopRequireDefault(_PackagePool);
+
+var _utils = require('./utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+var _Grid = require('./Grid');
+
+var _Grid2 = _interopRequireDefault(_Grid);
+
+var _SimpleHtmlTemplates = require('./packages/SimpleHtmlTemplates');
+
+var _SimpleHtmlTemplates2 = _interopRequireDefault(_SimpleHtmlTemplates);
+
+var _Che = require('./packages/Che');
+
+var _Che2 = _interopRequireDefault(_Che);
+
+var _HtmlCells = require('./packages/HtmlCells');
+
+var _HtmlCells2 = _interopRequireDefault(_HtmlCells);
+
+var _Core = require('./packages/Core');
+
+var _Core2 = _interopRequireDefault(_Core);
+
+var _Ozenfant = require('./packages/Ozenfant');
+
+var _Ozenfant2 = _interopRequireDefault(_Ozenfant);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var App = require('./App');
-var PackagePool = require('./PackagePool');
-var utils = require('./utils');
-var Obj = utils.Obj;
-var Grid = require("./Grid");
-var simpleHtmlTemplates = require("./packages/SimpleHtmlTemplates");
-var che_package = require("./packages/Che");
-var ozenfant = require('./packages/OzenfantOld');
-var htmlCells = require('./packages/HtmlCells');
-var core = require('./packages/Core');
-var neu_ozenfant = require('./packages/NeuOzenfant');
+var Obj = _utils2.default.Obj;
+
 
 var is_def = function is_def(a) {
 	return a !== undefined && a !== Firera.undef;
@@ -2189,16 +2279,16 @@ var is_def = function is_def(a) {
 
 var show_performance = function show_performance() {
 	var res = [];
-	for (var i = 1; i < arguments.length; ++i) {
-		res.push(i + ': ' + (arguments[i] - arguments[i - 1]).toFixed(3));
+	for (var _i = 1; _i < arguments.length; ++_i) {
+		res.push(_i + ': ' + (arguments[_i] - arguments[_i - 1]).toFixed(3));
 	}
 	res.push('Total: ' + (arguments[i - 1] - arguments[0]).toFixed(3));
 	return res.join(', ');
 };
 
 var get_app = function get_app(packages) {
-	var app = new App(packages, root_package_pool);
-	App.apps.push(app);
+	var app = new _App2.default(packages, root_package_pool);
+	_App2.default.apps.push(app);
 	return app;
 };
 
@@ -2217,15 +2307,15 @@ window.Firera = function (config) {
 		throw new Error('Cant find root app!');
 	}
 	//console.log(app);
-	//var compilation_finished = performance.now();
+	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
-	app.root = new Grid(app, '__root', false, { $app_id: app.id }, null, null, '/');
+	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
 	if (app.grid_create_counter === 0) {
 		app.branchCreated(1);
 	}
-	//var init_finished = performance.now();
+	//const init_finished = performance.now();
 	//if(1 > 0){
 	//	console.info('App run, it took ' + (init_finished - compilation_finished).toFixed(3) + ' milliseconds.'
 	//	);
@@ -2275,25 +2365,25 @@ var get_vals = function get_vals(grid) {
 	return res;
 };
 
-var root_package_pool = new PackagePool();
+var root_package_pool = new _PackagePool2.default();
 
 Firera.undef = new function () {}();
 Firera.noop = new function () {}();
-Firera.apps = App.apps;
+Firera.apps = _App2.default.apps;
 Firera.run = Firera;
 Firera.Ozenfant = _ozenfant2.default;
 Firera.is_def = is_def;
 
 Firera.getAppStruct = function () {
-	return Firera.apps.map(App.get_app_struct);
+	return Firera.apps.map(_App2.default.get_app_struct);
 };
 Firera.loadPackage = function (pack) {
 	root_package_pool.load(pack);
 };
 Firera.join = function () {
 	var join = function join(a, b) {
-		for (var i in b) {
-			a[i] = b[i];
+		for (var _i2 in b) {
+			a[_i2] = b[_i2];
 		}
 	};
 
@@ -2307,31 +2397,35 @@ Firera.join = function () {
 		if (key === 0) continue;
 		for (var k in grid) {
 			if (k === '$packages') {
-				utils.init_if_empty(res, k, []);
+				_utils2.default.init_if_empty(res, k, []);
 				res.$packages = res.$packages.concat(grid[k]);
 				continue;
 			}
-			utils.init_if_empty(res, k, {});
+			_utils2.default.init_if_empty(res, k, {});
 			join(res[k], grid[k]);
 		}
 	}
 	return res;
 };
-Firera.loadPackage(core);
-Firera.loadPackage(che_package);
-Firera.packagesAvailable = { simpleHtmlTemplates: simpleHtmlTemplates, htmlCells: htmlCells, ozenfant: ozenfant, neu_ozenfant: neu_ozenfant, che: che_package };
+Firera.loadPackage(_Core2.default);
+Firera.loadPackage(_Che2.default);
+Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, neu_ozenfant: _Ozenfant2.default, che: _Che2.default };
 Firera.func_test_export = { parse_pb: _Parser2.default.parse_pb, parse_fexpr: _Parser2.default.parse_fexpr };
-Firera._ = utils;
+Firera._ = _utils2.default;
 
 module.exports = Firera;
-},{"../ozenfant/ozenfant":16,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/NeuOzenfant":10,"./packages/OzenfantOld":11,"./packages/SimpleHtmlTemplates":12,"./utils":13}],7:[function(require,module,exports){
+},{"../ozenfant/ozenfant":15,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/Ozenfant":10,"./packages/SimpleHtmlTemplates":11,"./utils":12}],7:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+var _shche = require('../../shche/shche');
 
-var _che = require('../../shche/shche');
+var _shche2 = _interopRequireDefault(_shche);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 module.exports = {
 	macros: {
@@ -2342,7 +2436,7 @@ module.exports = {
 
 			cbs = cbs || [];
 			var succ_cb;
-			var obj = _che.create.apply(_che, [expr, {
+			var obj = _shche2.default.create.apply(_shche2.default, [expr, {
 				onOutput: function onOutput(key, val) {
 					//console.log('outputting from che', key, val);
 				},
@@ -2364,27 +2458,34 @@ module.exports = {
 		}
 	}
 };
-},{"../../shche/shche":18}],8:[function(require,module,exports){
+},{"../../shche/shche":17}],8:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _Parser = require('../Parser');
+
+var _Parser2 = _interopRequireDefault(_Parser);
+
+var _utils = require('../utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
-var Parser = require('../Parser');
-var utils = require('../utils');
-var Obj = utils.Obj;
-var Arr = utils.Arr;
+var Obj = _utils2.default.Obj;
+var Arr = _utils2.default.Arr;
 
 var get_by_selector = function get_by_selector(name, $el) {
 	var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
 	if (name === null) return null;
 	if (name === '__root') return document.querySelector('body');
-	var method = children ? 'children' : 'find';
-	$el = utils.raw($el);
+	$el = _utils2.default.raw($el);
 	if (!$el) return null;
 	var _iteratorNormalCompletion = true;
 	var _didIteratorError = false;
@@ -2435,21 +2536,21 @@ var get_arr_changes = function get_arr_changes() {
 	var map = {};
 	return function (new_arr) {
 		var changes = [];
-		utils.arr_different(new_arr, arr, function (key) {
+		_utils2.default.arr_different(new_arr, arr, function (key) {
 			// create new element
 			map[key] = ++id;
 			changes.push(['add', id, new_arr[key]]);
 		});
 		//console.log('Computing changes between new an old arrays', new_arr, arr);
-		utils.arr_different(arr, new_arr, function (key) {
+		_utils2.default.arr_different(arr, new_arr, function (key) {
 			// create new element
 			changes.push(['remove', map[key]]);
 			delete map[key];
 		});
-		utils.arr_common(arr, new_arr, function (key) {
+		_utils2.default.arr_common(arr, new_arr, function (key) {
 			changes.push(['change', map[key], new_arr[key]]);
 		});
-		arr = utils.sh_copy(new_arr);
+		arr = _utils2.default.sh_copy(new_arr);
 		return changes;
 	};
 };
@@ -2463,7 +2564,7 @@ module.exports = {
 			func: function func(matches, pool, context, packages) {
 				if (context == 'setter') return;
 				var cellname = matches[2];
-				Parser.parse_fexpr(['closure', function () {
+				_Parser2.default.parse_fexpr(['closure', function () {
 					var val;
 					//console.log('Returning closure func!');
 					return function (a) {
@@ -2698,7 +2799,7 @@ module.exports = {
 				var fields = funcstring[0].map(function (a) {
 					return '*/' + a;
 				});
-				subscribe_to = ['funnel', utils.ids].concat(_toConsumableArray(fields));
+				subscribe_to = ['funnel', _utils2.default.ids].concat(_toConsumableArray(fields));
 			}
 			return ['closureFunnel', function () {
 				var arr = [];
@@ -2750,16 +2851,16 @@ module.exports = {
 						if (values) {
 							var _values = _slicedToArray(values, 2),
 							    _fieldname = _values[0],
-							    _val = _values[1];
+							    val = _values[1];
 
 							_fieldname = _fieldname.replace("*/", "");
-							if (_val) {
+							if (val) {
 								//console.log('?', val, arr, fieldname, arr[val[0]]);
-								arr[_val[0]][_fieldname] = _val[1];
+								arr[val[0]][_fieldname] = val[1];
 							}
 						}
 					}
-					return utils.arr_fix_keys(arr);
+					return _utils2.default.arr_fix_keys(arr);
 				};
 			}, subscribe_to, '$arr_data.changes'];
 		},
@@ -2768,7 +2869,7 @@ module.exports = {
 			var field = '*/' + funcstring[1];
 			if (!funcstring[1]) {
 				field = '*/' + func;
-				func = utils.id;
+				func = _utils2.default.id;
 			}
 			return ['closureFunnel', function () {
 				var indices = new Set();
@@ -2872,7 +2973,7 @@ module.exports = {
 				var count = 0;
 				var vals = {};
 				return function (cell, chng) {
-					if (utils.path_cellname(cell) == '$arr_data.changes') {
+					if (_utils2.default.path_cellname(cell) == '$arr_data.changes') {
 						// finding deletion
 						Obj.each(chng.filter(function (a) {
 							return a[0] === 'remove';
@@ -2910,16 +3011,16 @@ module.exports = {
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes'];
 		},
 		join: function join(funcstring) {
-			return ['funnel', utils.second].concat(funcstring);
+			return ['funnel', _utils2.default.second].concat(funcstring);
 		},
 		list: function list(funcstring) {
 			var props = funcstring[0];
 			if (!props instanceof Object) {
-				utils.error('List properties should be an object!');
+				_utils2.default.error('List properties should be an object!');
 			}
 			var item_type = props.type;
 			if (!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]) {
-				utils.warn('No item source provided for list', funcstring);
+				_utils2.default.warn('No item source provided for list', funcstring);
 			}
 			//console.log('List properties', props);
 			var deltas_func;
@@ -3039,13 +3140,13 @@ module.exports = {
 			if (props.push) {
 				all_lists_mixin.$push = props.push;
 				if (!props.push instanceof Array) {
-					console.error('List\'s PUSH property should be a F-expression(array), given', props.push);
+					_utils2.default.error('List\'s PUSH property should be a F-expression(array), given', props.push);
 				}
 			}
 			if (props.pop) {
 				all_lists_mixin.$pop = props.pop;
 				if (!props.pop instanceof Array) {
-					console.error('List\'s POP property should be a F-expression(array), given', props.pop);
+					_utils2.default.error('List\'s POP property should be a F-expression(array), given', props.pop);
 				}
 			}
 			if (props.datasource) {
@@ -3062,7 +3163,7 @@ module.exports = {
 					}
 				}, props.create_destroy];
 			} else {
-				fnc = [utils.always(list_own_type)];
+				fnc = [_utils2.default.always(list_own_type)];
 			}
 			return fnc;
 		},
@@ -3071,7 +3172,7 @@ module.exports = {
 			return ['closure', function () {
 				var val = [];
 				return function (new_arr) {
-					var deltas = utils.arr_deltas(val, new_arr);
+					var deltas = _utils2.default.arr_deltas(val, new_arr);
 					val = new_arr;
 					//console.info('deltas are', deltas);
 					return deltas;
@@ -3080,15 +3181,22 @@ module.exports = {
 		}
 	}
 };
-},{"../Parser":5,"../utils":13}],9:[function(require,module,exports){
+},{"../Parser":5,"../utils":12}],9:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+var _Parser = require('../Parser');
 
-var Parser = require('../Parser');
-var utils = require('../utils');
+var _Parser2 = _interopRequireDefault(_Parser);
+
+var _utils = require('../utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 /* gator v1.2.4 craig.is/riding/gators */
 (function () {
@@ -3102,8 +3210,8 @@ var utils = require('../utils');
 		d[a.id] || (d[a.id] = {});d[a.id][b] || (d[a.id][b] = {});d[a.id][b][c] || (d[a.id][b][c] = []);d[a.id][b][c].push(e);
 	}
 	function v(a, b, c, e) {
-		if (d[a.id]) if (!b) for (var f in d[a.id]) {
-			d[a.id].hasOwnProperty(f) && (d[a.id][f] = {});
+		if (d[a.id]) if (!b) for (var _f in d[a.id]) {
+			d[a.id].hasOwnProperty(_f) && (d[a.id][_f] = {});
 		} else if (!e && !c) d[a.id][b] = {};else if (!e) delete d[a.id][b][c];else if (d[a.id][b][c]) for (f = 0; f < d[a.id][b][c].length; f++) {
 			if (d[a.id][b][c][f] === e) {
 				d[a.id][b][c].splice(f, 1);break;
@@ -3361,251 +3469,255 @@ module.exports = {
 				if (context === 'setter' && !setters.has(aspect) || context !== 'setter' && setters.has(aspect)) {
 					return;
 				}
-				switch (aspect) {
-					case 'getval':
-						func = function func(cb, vals) {
-							var onch = function onch(el) {
-								var type = el.getAttribute('type');
-								var val;
-								if (type == 'checkbox') {
-									val = el.hasAttribute('checked');
-								} else {
-									val = el.value;
-								}
-								//console.log('CHange', el, val, selector);
-								make_resp(cb, val);
-							};
 
-							var _vals = _slicedToArray(vals, 2),
-							    $prev_el = _vals[0],
-							    $now_el = _vals[1];
-
-							var prev_el = raw($prev_el);
-							var el = raw($now_el);
-							var onChange = function onChange(e) {
-								if (!all_subtree && !filter_attr_in_path(e, el)) {
-									return;
-								}
-								onch(e.target);
-							};
-							var onKeyup = function onKeyup(e) {
-								if (!all_subtree && !filter_attr_in_path(e, el)) {
-									return;
-								}
-								var elem = e.target;
-								var type = elem.getAttribute('type');
-								var val;
-								if (type == 'checkbox') {
-									return;
-								} else {
-									val = elem.value;
-								}
-								make_resp(cb, val);
-							};
-							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
-							if (Firera.is_def($prev_el)) {
-								Gator(prev_el).off('keyup', selector);
-								Gator(prev_el).off('change', selector);
-							}
-							if (Firera.is_def($now_el)) {
-								Gator(el).on('keyup', selector, onKeyup);
-								Gator(el).on('change', selector, onChange);
-							}
-						};
-						break;
-					case 'click':
-						if (selector === 'other') {
+				(function () {
+					switch (aspect) {
+						case 'getval':
 							func = function func(cb, vals) {
-								if (!vals) return;
-
-								var _vals2 = _slicedToArray(vals, 2),
-								    $prev_el = _vals2[0],
-								    $now_el = _vals2[1];
-
-								$prev_el = raw($prev_el);
-								$now_el = raw($now_el);
-								if (!Firera.is_def($now_el)) return;
-								document.addEventListener('click', function (e) {
-									var ot = e.srcElement || e.originalTarget;
-									var is_other = $now_el.contains(ot);
-									if (is_other) {
-										make_resp(cb, true);
+								var onch = function onch(el) {
+									var type = el.getAttribute('type');
+									var val;
+									if (type == 'checkbox') {
+										val = el.hasAttribute('checked');
+									} else {
+										val = el.value;
 									}
-								});
-							};
-						} else {
-							func = function func(cb, vals) {
-								if (!vals) return;
-
-								var _vals3 = _slicedToArray(vals, 2),
-								    $prev_el = _vals3[0],
-								    $now_el = _vals3[1];
-
-								if (!Firera.is_def($now_el)) return;
-								var prev_el = raw($prev_el);
-								var now_el = raw($now_el);
-								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-								if (prev_el && prev_el !== Firera.undef) {
-									Gator(prev_el).off('click');
-								}
-								if (!$now_el) {
-									utils.warn('Assigning handlers to nothing', $now_el);
-								}
-								Gator(now_el).on('click', selector, function (e) {
-									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
-										return;
-									}
-									make_resp(cb, e);
-									if (e.originalEvent && e.originalEvent.target) {
-										trigger_event('click', document, e.originalEvent.target);
-									}
-									e.preventDefault();
-									//return false;
-								});
-							};
-						}
-						break;
-					case 'focus':
-						func = function func(cb, vals) {
-							if (!vals) return;
-
-							var _vals4 = _slicedToArray(vals, 2),
-							    $prev_el = _vals4[0],
-							    $now_el = _vals4[1];
-
-							if (!Firera.is_def($now_el)) return;
-							if ($prev_el) {
-								// @todo
-							}
-							var el = raw($now_el);
-							Gator(el).on('focus', selector, function (e) {
-								if (!all_subtree && !filter_attr_in_path(e, el)) {
-									return;
-								}
-								make_resp(cb, e);
-								return false;
-							});
-						};
-						break;
-					case 'press':
-						func = function func(cb, vals) {
-							var _vals5 = _slicedToArray(vals, 2),
-							    prev_el = _vals5[0],
-							    now_el = _vals5[1];
-
-							if (!Firera.is_def(now_el)) return;
-							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if (prev_el) {
-								//$prev_el.off('keyup', selector);
-							}
-							now_el = raw(now_el);
-							Gator(now_el).on('keyup', selector, function (e) {
-								if (!all_subtree && !filter_attr_in_path(e, now_el)) {
-									return;
-								}
-								var btn_map = {
-									'13': 'Enter',
-									'27': 'Esc'
+									//console.log('CHange', el, val, selector);
+									make_resp(cb, val);
 								};
-								if (params.indexOf(btn_map[e.keyCode]) !== -1) {
-									make_resp(cb, e);
-								}
-							});
-						};
-						break;
-					case 'hasClass':
-						func = function func($el, val) {
-							if (!Firera.is_def($el)) return;
-							if (!Firera.is_def(val)) {
-								val = false;
-							}
-							$el = raw($el);
 
-							var _params = params,
-							    _params2 = _slicedToArray(_params, 1),
-							    classname = _params2[0];
+								var _vals = _slicedToArray(vals, 2),
+								    $prev_el = _vals[0],
+								    $now_el = _vals[1];
 
-							toggle_class($el, classname, val);
-						};
-						break;
-					case 'enterText':
-						func = function func(cb, vals) {
-							var _vals6 = _slicedToArray(vals, 2),
-							    $prev_el = _vals6[0],
-							    $now_el = _vals6[1];
-
-							if (!$now_el) return;
-							if ($prev_el) {
-								//$prev_el.off('keyup', selector);
-							}
-							var el = raw($now_el);
-							el.onkeyup = function (e) {
-								if (e.target === el.querySelector(selector)) {
+								var prev_el = raw($prev_el);
+								var el = raw($now_el);
+								var onChange = function onChange(e) {
 									if (!all_subtree && !filter_attr_in_path(e, el)) {
 										return;
 									}
-									if (e.keyCode == 13) {
-										make_resp(cb, e.target.value);
+									onch(e.target);
+								};
+								var onKeyup = function onKeyup(e) {
+									if (!all_subtree && !filter_attr_in_path(e, el)) {
+										return;
 									}
+									var elem = e.target;
+									var type = elem.getAttribute('type');
+									var val;
+									if (type == 'checkbox') {
+										return;
+									} else {
+										val = elem.value;
+									}
+									make_resp(cb, val);
+								};
+								//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
+								if (Firera.is_def($prev_el)) {
+									Gator(prev_el).off('keyup', selector);
+									Gator(prev_el).off('change', selector);
+								}
+								if (Firera.is_def($now_el)) {
+									Gator(el).on('keyup', selector, onKeyup);
+									Gator(el).on('change', selector, onChange);
 								}
 							};
-						};
-						break;
-					case 'visibility':
-						func = function func(el, val) {
-							if (!Firera.is_def(el)) {
-								return;
-							}
-							if (val === undefined) {
-								return;
-							}
-							el = raw(el);
-							if (val) {
-								el.style.visibility = 'visible';
-							} else {
-								el.style.visibility = 'hidden';
-							}
-						};
-						break;
-					case 'css':
-						var _params3 = params,
-						    _params4 = _slicedToArray(_params3, 1),
-						    property = _params4[0];
+							break;
+						case 'click':
+							if (selector === 'other') {
+								func = function func(cb, vals) {
+									if (!vals) return;
 
-						func = function func(el, val) {
-							//console.log('running css setter', $el);
-							el.style[property] = val;
-						};
-						break;
-					case 'display':
-						func = function func(el, val) {
-							if (!Firera.is_def(el) || val === undefined) {
-								return;
-							}
+									var _vals2 = _slicedToArray(vals, 2),
+									    $prev_el = _vals2[0],
+									    $now_el = _vals2[1];
 
-							el = raw(el);
-							if (val) {
-								el.style.display = 'block';
+									$prev_el = raw($prev_el);
+									$now_el = raw($now_el);
+									if (!Firera.is_def($now_el)) return;
+									document.addEventListener('click', function (e) {
+										var ot = e.srcElement || e.originalTarget;
+										var is_other = $now_el.contains(ot);
+										if (is_other) {
+											make_resp(cb, true);
+										}
+									});
+								};
 							} else {
-								el.style.display = 'none';
+								func = function func(cb, vals) {
+									if (!vals) return;
+
+									var _vals3 = _slicedToArray(vals, 2),
+									    $prev_el = _vals3[0],
+									    $now_el = _vals3[1];
+
+									if (!Firera.is_def($now_el)) return;
+									var prev_el = raw($prev_el);
+									var now_el = raw($now_el);
+									//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+									if (prev_el && prev_el !== Firera.undef) {
+										Gator(prev_el).off('click');
+									}
+									if (!$now_el) {
+										_utils2.default.warn('Assigning handlers to nothing', $now_el);
+									}
+									Gator(now_el).on('click', selector, function (e) {
+										if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+											return;
+										}
+										make_resp(cb, e);
+										if (e.originalEvent && e.originalEvent.target) {
+											trigger_event('click', document, e.originalEvent.target);
+										}
+										e.preventDefault();
+										//return false;
+									});
+								};
 							}
-						};
-						break;
-					case 'setval':
-						func = function func(el, val) {
-							if (!Firera.is_def(el) || !Firera.is_def(val)) {
-								return;
-							}
-							el = raw(el);
-							el.value = val;
-						};
-						break;
-					default:
-						throw new Error('unknown HTML aspect: ' + aspect);
-						break;
-				}
+							break;
+						case 'focus':
+							func = function func(cb, vals) {
+								if (!vals) return;
+
+								var _vals4 = _slicedToArray(vals, 2),
+								    $prev_el = _vals4[0],
+								    $now_el = _vals4[1];
+
+								if (!Firera.is_def($now_el)) return;
+								if ($prev_el) {
+									// @todo
+								}
+								var el = raw($now_el);
+								Gator(el).on('focus', selector, function (e) {
+									if (!all_subtree && !filter_attr_in_path(e, el)) {
+										return;
+									}
+									make_resp(cb, e);
+									return false;
+								});
+							};
+							break;
+						case 'press':
+							func = function func(cb, vals) {
+								var _vals5 = _slicedToArray(vals, 2),
+								    prev_el = _vals5[0],
+								    now_el = _vals5[1];
+
+								if (!Firera.is_def(now_el)) return;
+								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+								if (prev_el) {
+									//$prev_el.off('keyup', selector);
+								}
+								now_el = raw(now_el);
+								Gator(now_el).on('keyup', selector, function (e) {
+									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+										return;
+									}
+									var btn_map = {
+										'13': 'Enter',
+										'27': 'Esc'
+									};
+									if (params.indexOf(btn_map[e.keyCode]) !== -1) {
+										make_resp(cb, e);
+									}
+								});
+							};
+							break;
+						case 'hasClass':
+							func = function func($el, val) {
+								if (!Firera.is_def($el)) return;
+								if (!Firera.is_def(val)) {
+									val = false;
+								}
+								$el = raw($el);
+
+								var _params = params,
+								    _params2 = _slicedToArray(_params, 1),
+								    classname = _params2[0];
+
+								toggle_class($el, classname, val);
+							};
+							break;
+						case 'enterText':
+							func = function func(cb, vals) {
+								var _vals6 = _slicedToArray(vals, 2),
+								    $prev_el = _vals6[0],
+								    $now_el = _vals6[1];
+
+								if (!$now_el) return;
+								if ($prev_el) {
+									//$prev_el.off('keyup', selector);
+								}
+								var el = raw($now_el);
+								el.onkeyup = function (e) {
+									if (e.target === el.querySelector(selector)) {
+										if (!all_subtree && !filter_attr_in_path(e, el)) {
+											return;
+										}
+										if (e.keyCode == 13) {
+											make_resp(cb, e.target.value);
+										}
+									}
+								};
+							};
+							break;
+						case 'visibility':
+							func = function func(el, val) {
+								if (!Firera.is_def(el)) {
+									return;
+								}
+								if (val === undefined) {
+									return;
+								}
+								el = raw(el);
+								if (val) {
+									el.style.visibility = 'visible';
+								} else {
+									el.style.visibility = 'hidden';
+								}
+							};
+							break;
+						case 'css':
+							var _params3 = params,
+							    _params4 = _slicedToArray(_params3, 1),
+							    property = _params4[0];
+
+							func = function func(el, val) {
+								//console.log('running css setter', $el);
+								el.style[property] = val;
+							};
+							break;
+						case 'display':
+							func = function func(el, val) {
+								if (!Firera.is_def(el) || val === undefined) {
+									return;
+								}
+
+								el = raw(el);
+								if (val) {
+									el.style.display = 'block';
+								} else {
+									el.style.display = 'none';
+								}
+							};
+							break;
+						case 'setval':
+							func = function func(el, val) {
+								if (!Firera.is_def(el) || !Firera.is_def(val)) {
+									return;
+								}
+								el = raw(el);
+								el.value = val;
+							};
+							break;
+						default:
+							throw new Error('unknown HTML aspect: ' + aspect);
+							break;
+					}
+				})();
+
 				if (context === 'setter') {
-					Parser.parse_fexpr([func, [function (a) {
+					_Parser2.default.parse_fexpr([func, [function (a) {
 						if (!Firera.is_def(a)) return false;
 						if (!selector) return a;
 						if (selector === 'other') return a;
@@ -3613,14 +3725,13 @@ module.exports = {
 						if (!a) {
 							return a;
 						}
-						var nodz = a.querySelectorAll(selector);
-						/*var node = a.find(selector)
+						return a.querySelectorAll(selector);
+						/*var node = a.find(selector) @todo
       		.filter(filter_attr_in_parents.bind(null, a));*/
-						return nodz;
-					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
+					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, _Parser2.default.get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
-					Parser.parse_fexpr(['asyncClosure', function () {
+					_Parser2.default.parse_fexpr(['asyncClosure', function () {
 						var el;
 						return function (cb, val) {
 							func(cb, [el, val]);
@@ -3632,17 +3743,22 @@ module.exports = {
 		}
 	}
 };
-},{"../Parser":5,"../utils":13}],10:[function(require,module,exports){
+},{"../Parser":5,"../utils":12}],10:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
+var _utils = require('../utils');
+
+var _utils2 = _interopRequireDefault(_utils);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var rendered = {};
 var templates = {};
 var closest_templates = {};
-var utils = require('../utils');
 
-var raw = utils.raw;
+var raw = _utils2.default.raw;
 
 var parse_rec = function parse_rec(app, grid_id, cell) {
 	var grid = app.getGrid(grid_id);
@@ -3668,10 +3784,10 @@ var get_arr_val = function get_arr_val(app, grid_id) {
 
 var render_rec = function render_rec(app, struct, closest_existing_template_path, skip) {
 	var grid = app.getGrid(struct.grid_id);
-	utils.init_if_empty(rendered, app.id, {}, grid.id, true);
+	_utils2.default.init_if_empty(rendered, app.id, {}, grid.id, true);
 	if (struct.val) {
 		var context = Object.assign({}, grid.cell_values);
-		utils.init_if_empty(templates, app.id, {});
+		_utils2.default.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
 
 		for (var key in struct.children) {
@@ -3686,13 +3802,13 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 	} else {
 
 		if (!skip) {
-			var res = [];
+			var _res = [];
 			for (var _key in struct.children) {
-				res.push(render_rec(app, struct.children[_key]));
+				_res.push(render_rec(app, struct.children[_key]));
 			}
-			return res.join('');
+			return _res.join('');
 		} else {
-			utils.init_if_empty(closest_templates, app.id, {});
+			_utils2.default.init_if_empty(closest_templates, app.id, {});
 			var path0 = grid.path.replace(closest_existing_template_path, '/');
 			var p0 = path0.split('/');
 			var res = '';
@@ -3860,12 +3976,12 @@ module.exports = {
 			var parent_path = app.getGrid(parent).path;
 			var parent_tmpl = templates[app.id][parent_path];
 			if (parent_tmpl) {
-				var node = parent_tmpl.bindings[self.name];
-				if (!node) {
+				var _node = parent_tmpl.bindings[self.name];
+				if (!_node) {
 					console.error('No binding found for', self.name, 'in path', parent_path);
 					return;
 				}
-				render(app, self, node);
+				render(app, self, _node);
 			} else {
 				// it's a list
 				var parpar_template = get_template(app, get_parent_grid(app, parent).path);
@@ -3876,146 +3992,29 @@ module.exports = {
 				}
 				var struct = parse_rec(app, grid_id, '$template');
 				var html = render_rec(app, struct);
-				var node = get_root_node_from_html(html);
+				var _node2 = get_root_node_from_html(html);
 				//parpar_binding.insertAdjacentHTML("beforeend", html);
-				parpar_binding.appendChild(node);
-				set_bindings_rec(app, struct, node, true);
+				parpar_binding.appendChild(_node2);
+				set_bindings_rec(app, struct, _node2, true);
 			}
 		}
 	}
 };
-},{"../utils":13}],11:[function(require,module,exports){
+},{"../utils":12}],11:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+var _utils = require('../utils');
 
-var get_ozenfant_template = function get_ozenfant_template(str, context) {
-	if (str) {
-		var template = new Ozenfant(str);
-		var filtered_context = {};
-		for (var k in context) {
-			if (context[k] instanceof Object) {
-				// dont write objects to html!
-			} else {
-				filtered_context[k] = context[k];
-			}
-		}
-		//template.state = filtered_context;
-		return template;
-	}
-};
+var _utils2 = _interopRequireDefault(_utils);
 
-var get_fields_map = function get_fields_map() {
-	var map = {};
-	return function (_ref) {
-		var _ref2 = _slicedToArray(_ref, 2),
-		    key = _ref2[0],
-		    val = _ref2[1];
-
-		map[key] = val;
-		return val;
-	};
-};
-
-var write_ozenfant_changes = function write_ozenfant_changes(change, template) {
-	if (!template) return;
-
-	var _change = _slicedToArray(change, 2),
-	    k = _change[0],
-	    v = _change[1];
-
-	if (unusual_cell(k)) return;
-	if (v instanceof Object) {
-		// lol dont write objects to html!
-		return;
-	}
-	template.set.apply(template, _toConsumableArray(change));
-};
-
-var collect_map = function collect_map() {
-	var map = {};
-	return function (_ref3) {
-		var _ref4 = _slicedToArray(_ref3, 2),
-		    key = _ref4[0],
-		    val = _ref4[1];
-
-		map[key] = val;
-		return map;
-	};
-};
-
-module.exports = {
-	eachHashMixin: {
-		'$ozenfant_el': [function (searcher, name) {
-			var res;
-			if (searcher instanceof Function) {
-				res = searcher(name);
-			}
-			return res ? $(res) : false;
-		}, '../$ozenfant.bindings_search', '$name'],
-		'$list_el': [function (name, $el, map) {
-			//console.log('search list', name, $el, map);
-			if (name === null || name === undefined || !map) return;
-			var num = map[name];
-			return get_by_selector(num, $el, true);
-		}, '$name', '../$real_el', '../$list_template_writer.index_map'],
-		'$real_el': ['firstTrueCb', function ($el) {
-			return $el && $el.length;
-		}, '$el', '$list_el', '$ozenfant_el'],
-		'$ozenfant_template2': [get_ozenfant_template, '$template', '-$real_values'],
-		'$ozenfant': ['nested', function (cb, template, $el, context) {
-			if (!template || !is_def($el)) return;
-			var filtered_context = {};
-			for (var k in context) {
-				if (context[k] instanceof Object) {
-					// dont write objects to html!
-				} else {
-					filtered_context[k] = context[k];
-				}
-			}
-			if ($el) {
-				template.render($el.get(0), filtered_context);
-			}
-			cb('bindings_search', function (str) {
-				return template.bindings ? template.bindings[str] : false;
-			});
-			cb('html', template);
-		}, ['html', 'bindings_search'], '$ozenfant_template2', '$real_el', '-$real_values'],
-		//'$ozenfant_nested_templates': ['closure', get_fields_map, '*/$ozenfant.template'],
-		'$ozenfant_writer': [write_ozenfant_changes, '*', '-$ozenfant_template2'],
-		/*'$ozenfant_something': [(a, b) => {
-  	return {
-  		template: a,
-  		children: b,
-  	}
-  }, '$ozenfant_template2', '$templates_map'],*/
-		'$ozenfant_first_render': [function (_, struct, $el) {
-			//var html = ozenfant_to_html_rec(struct);
-			//console.log('First render!', struct, $el, html);
-			//$el.html(html);				
-		}, '$inited', '-$ozenfant_something', '-$real_el'],
-		//'$templates_map': ['closure', collect_map, '*/$ozenfant_something'],
-		'$html_skeleton_changes': ['$ozenfant.html'],
-		'$ozenfant_remove': [function (_, $el) {
-			if ($el) {
-				$el.html('');
-			}
-		}, '$remove', '-$real_el']
-	}
-};
-},{}],12:[function(require,module,exports){
-'use strict';
-
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
-var utils = require('../utils');
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var search_fr_bindings = function search_fr_bindings($el) {
 	var res = {};
 	if (!Firera.is_def($el)) return res;
-	$el = utils.raw($el);
+	$el = _utils2.default.raw($el);
 	if (!$el) {
 		return res;
 	}
@@ -4067,7 +4066,7 @@ module.exports = {
 				return true;
 			}
 		}, function ($el) {
-			$el = utils.raw($el);
+			$el = _utils2.default.raw($el);
 			var str = '';
 			if (Firera.is_def($el)) {
 				str = !$el ? '' : $el.innerHTML.trim();
@@ -4075,7 +4074,7 @@ module.exports = {
 			return str;
 		}, '$real_el'],
 		'$template_writer': [function (real_templ, $html_template, no_auto, keys, $el) {
-			$el = utils.raw($el);
+			$el = _utils2.default.raw($el);
 			if (Firera.is_def(real_templ) && Firera.is_def($el) && $el) {
 				$el.innerHTML = real_templ;
 				return true;
@@ -4087,12 +4086,12 @@ module.exports = {
 				$el.innerHTML = auto_template;
 			}
 		}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'],
-		'$html_skeleton_changes': [utils.id, '$template_writer'],
+		'$html_skeleton_changes': [_utils2.default.id, '$template_writer'],
 		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 };
-},{"../utils":13}],13:[function(require,module,exports){
+},{"../utils":12}],12:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -4436,7 +4435,7 @@ var kcopy = _F.kcopy = function (from, to) {
 };
 module.exports = _F;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 /* 
@@ -4797,7 +4796,7 @@ module.exports = {
 		return rec(struct, 0);
 	}
 };
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 'use strict';
 
 var fields = ['classnames', 'tagname', 'str', 'quoted_str'];
@@ -5125,7 +5124,7 @@ module.exports = {
 		}
 	}
 };
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -5156,6 +5155,16 @@ var last = function last(arr) {
 var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value']);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
+};
+
+var traverse_tree = function traverse_tree(root_node, cb) {
+	var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'children';
+
+	for (var b in root_node[key]) {
+		var leaf = root_node[key][b];
+		cb(leaf);
+		traverse_tree(leaf, cb, key);
+	}
 };
 
 var text_var_regexp = /\{\{([a-zA-Z0-9]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
@@ -5372,6 +5381,10 @@ var register_loop = function register_loop(varname, level, pool, parent_loop) {
 		name: varname,
 		level: level
 	};
+	if (parent_loop) {
+		init_if_empty(parent_loop, 'nested_loops', []);
+		parent_loop.nested_loops.push(lp);
+	}
 	pool[varname] = lp;
 	return lp;
 };
@@ -6003,7 +6016,7 @@ Ozenfant.prototype._setVarVal = function (key, val, binding) {
 Ozenfant.prototype._setValByPath = function (path, val, root_node) {
 	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
 };
-Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, context) {
 	var loop = this.loop_pool[loopname];
 	var prefix = new Array(loop.level + 2).join('.');
 	for (var k in val) {
@@ -6013,7 +6026,7 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
 		}
 		var varname = prefix + k;
 		if (loop.paths[varname]) {
-			this.set(varname, val[k], loop, binding, old_val[k]);
+			this.set(varname, val[k], loop, binding, old_val[k], false, context);
 		}
 	}
 };
@@ -6021,30 +6034,34 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
 Ozenfant.prototype.removeLoopItem = function (binding, i) {
 	binding.children[i].remove();
 };
-Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding) {
+Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding, context) {
 	var res = [];
 	var func = this.var_types[loop].func;
 	for (var i = from; i <= to; ++i) {
-		res.push(func(this.state, val[i]));
+		res.push(func.apply(null, context.concat(val[i])));
 	}
 	// !!! should be rewritten!
 	binding.insertAdjacentHTML("beforeend", res.join(''));
 };
 
-Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
 	for (var i in val) {
 		if (old_val[i]) {
 			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
 		} else {
-			this.addLoopItems(loopname, i, val.length - 1, val, binding);
+			this.addLoopItems(loopname, i, val.length - 1, val, binding, parent_context);
 			break;
 		}
 	}
 	++i;
 	if (old_val[i]) {
+		var init_i = i;
+		var del_count = 0;
 		for (; old_val[i]; i++) {
+			++del_count;
 			this.removeLoopItem(binding, i);
 		}
+		old_val.splice(init_i, del_count);
 	}
 };
 
@@ -6080,6 +6097,8 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 };
 
 Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_val) {
+	var _this2 = this;
+
 	var level = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
 
 	var pth = path.split('/');
@@ -6087,12 +6106,24 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 	if (!first) {
 		var keyname = new Array(level + 1).join('.') + pth[0];
 		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
-		var binding = Ozenfant.xpOne(paths_hash[keyname], el);
-		old_val = old_val[trim_dots(keyname)];
-		if (this.loop_pool[keyname]) {
-			this.setLoop(keyname, val, old_val, binding);
+		if (paths_hash[keyname]) {
+			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
+			old_val = old_val[trim_dots(keyname)];
+			if (this.loop_pool[keyname]) {
+				this.setLoop(keyname, val, old_val, binding, context);
+			} else {
+				this.__set(keyname, val, old_val, binding);
+			}
 		} else {
-			this.__set(keyname, val, old_val, binding);
+			var key = new Array(parent_loop.level + 2).join('.') + path;
+			traverse_tree(parent_loop, function (loop) {
+				if (loop.paths[key]) {
+					_this2.eachLoopBinding(loop, function (bnd) {
+						var bind = Ozenfant.xpOne(loop.paths[key], bnd);
+						_this2.__set(key, val, null, bind, loop);
+					});
+				}
+			}, 'nested_loops');
 		}
 		return;
 	}
@@ -6111,7 +6142,7 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 		var new_context = last(context)[first[1]][index];
 		if (new_context) {
 			// already exists
-			this.updateLoopVals(loopname, val, new_context, bnd);
+			this.updateLoopVals(loopname, val, new_context, bnd, context);
 		} else {}
 		// @todO!
 		//this.addLoopItems(loopname, index, index, val, binding);
@@ -6121,13 +6152,13 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 };
 
 Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_context) {
-	var _this2 = this;
+	var _this3 = this;
 
 	if (this.nodes_vars[this.text_vars_paths[key]]) {
 		var template = this.nodes_vars[this.text_vars_paths[key]];
 		//console.log('template!', template);
 		var new_str = template.replace(text_var_regexp, function (_, key) {
-			return _this2.state[key];
+			return _this3.state[key];
 		});
 		this._setVarVal(key, new_str, binding);
 		binding.innerHTML = new_str;
@@ -6141,7 +6172,7 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					binding.style[this.var_types[key].name] = val;
 					break;
 				case 'LOOP':
-					this.setLoop(key, val, old_val, binding);
+					this.setLoop(key, val, old_val, binding, loop_context);
 					break;
 				default:
 					var func;
@@ -6167,7 +6198,7 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 };
 
 Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force, loop_context) {
-	var _this3 = this;
+	var _this4 = this;
 
 	var binding;
 	if (key.indexOf('/') !== -1) {
@@ -6197,7 +6228,7 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 		for (var cn in this.varname_pool.loop_var_links[key]) {
 			var l_loop = this.varname_pool.loop_var_links[key][cn];
 			this.eachLoopBinding(l_loop, function (node, val, i) {
-				_this3.set(cn, val, l_loop, node, old_val, true, val);
+				_this4.set(cn, val, l_loop, node, old_val, true, val);
 			});
 		}
 	}
@@ -6256,7 +6287,7 @@ Ozenfant.xpOne = function (path) {
 };
 
 module.exports = Ozenfant;
-},{"../ooo_oo_o/parser":14,"./config":15}],17:[function(require,module,exports){
+},{"../ooo_oo_o/parser":13,"./config":14}],16:[function(require,module,exports){
 'use strict';
 
 var divide = function divide(delim, str) {
@@ -6704,7 +6735,7 @@ module.exports = {
 		}
 	}
 };
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -7211,5 +7242,5 @@ module.exports = {
 		return state;
 	}
 };
-},{"../ooo_oo_o/parser":14,"./config":17}]},{},[6])
+},{"../ooo_oo_o/parser":13,"./config":16}]},{},[6])
 

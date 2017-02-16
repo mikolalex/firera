@@ -102,9 +102,9 @@ and open the template in the editor.
 
 &lt;/div&gt;
 &lt;script&gt;
-	var node = document.getElementById('main');
+	const node = document.getElementById('main');
 	// create empty template
-	var template_str = `
+	const template_str = `
 		.
 			.user(data-id: $id)
 				.name$
@@ -113,14 +113,14 @@ and open the template in the editor.
 			.
 				"Hello, {{name}}!"
 	`;
-	var context = {
+	const context = {
 		id: 37,
 		name: 'Mykola',
 		email: 'laaazyyy@gmail.com',
 		info: 'Ene bene raba'
 	};
 	
-	var t = new Firera.Ozenfant(template_str);
+	const t = new Firera.Ozenfant(template_str);
 	t.render(node, context);
 	console.log(node.innerHTML);
 &lt;/script&gt;
@@ -158,8 +158,8 @@ and open the template in the editor.
 				</p>
 <code>
 &lt;script&gt;
-	var node = document.getElementById('main');
-	var template_str = `
+	const node = document.getElementById('main');
+	const template_str = `
 		.
 			.user(data-id: $id)
 				.name$
@@ -168,14 +168,14 @@ and open the template in the editor.
 			.
 				"Hello, {{name}}!"
 	`;
-	var context = {
+	const context = {
 		id: 37,
 		name: 'Mykola',
 		email: 'laaazyyy@gmail.com',
 		info: 'Ene bene raba'
 	};
 	
-	var t = new Firera.Ozenfant(template_str);
+	const t = new Firera.Ozenfant(template_str);
 	t.render(node, context);
 	
 	// Спробуємо щось змінити!

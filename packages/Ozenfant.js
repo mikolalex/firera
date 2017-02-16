@@ -1,39 +1,39 @@
+import utils from '../utils';
 
-var rendered = {};
-var templates = {};
-var closest_templates = {};
-var utils = require('../utils');
+const rendered = {};
+const templates = {};
+const closest_templates = {};
 
-var raw = utils.raw;
+const raw = utils.raw;
 
-var parse_rec = (app, grid_id, cell) => {
-	var grid = app.getGrid(grid_id);
-	var res = {
+const parse_rec = (app, grid_id, cell) => {
+	const grid = app.getGrid(grid_id);
+	const res = {
 		val: grid.cell_values[cell],
 		grid_id,
 		children: {},
 	};
 	for(let gridname in grid.linked_grids){
-			var gr_id = grid.linked_grids[gridname];
+			const gr_id = grid.linked_grids[gridname];
 			res.children[gridname] = parse_rec(app, gr_id, cell);
 	}
 	return res;
 
 }
-var is_list_without_templates = (struct) => {
+const is_list_without_templates = (struct) => {
 	return Object.keys(struct.children).length && (!struct.children[0].val);
 }
 
-var get_arr_val = (app, grid_id) => {
-	var vals = app.getGrid(grid_id).getChildrenValues();
+const get_arr_val = (app, grid_id) => {
+	const vals = app.getGrid(grid_id).getChildrenValues();
 	return vals;
 }
 
-var render_rec = (app, struct, closest_existing_template_path, skip) => {
-	var grid = app.getGrid(struct.grid_id);
+const render_rec = (app, struct, closest_existing_template_path, skip) => {
+	const grid = app.getGrid(struct.grid_id);
 	utils.init_if_empty(rendered, app.id, {}, grid.id, true);
 	if(struct.val){
-		var context = Object.assign({}, grid.cell_values);
+		const context = Object.assign({}, grid.cell_values);
 		utils.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
 		
@@ -50,15 +50,15 @@ var render_rec = (app, struct, closest_existing_template_path, skip) => {
 		
 		
 		if(!skip){
-			var res = [];
+			const res = [];
 			for(let key in struct.children){
 					res.push(render_rec(app, struct.children[key]));
 			}
 			return res.join('');
 		} else {
 			utils.init_if_empty(closest_templates, app.id, {});
-			var path0 = grid.path.replace(closest_existing_template_path, '/');
-			var p0 = path0.split('/');
+			const path0 = grid.path.replace(closest_existing_template_path, '/');
+			const p0 = path0.split('/');
 			var res = '';
 			for(let p of p0){
 				if(p === '') continue;
@@ -79,8 +79,8 @@ var render_rec = (app, struct, closest_existing_template_path, skip) => {
 		}
 	}
 }
-var set_bindings_rec = (app, struct, el, is_root, skip) => {
-	var grid = app.getGrid(struct.grid_id);
+const set_bindings_rec = (app, struct, el, is_root, skip) => {
+	const grid = app.getGrid(struct.grid_id);
 	el = raw(el);
 	if(struct.tmpl){
 		el.setAttribute('data-fr-grid-root', 1);
@@ -108,32 +108,32 @@ var set_bindings_rec = (app, struct, el, is_root, skip) => {
 		}
 	}
 }
-var render = function(app, start, node){
-		var struct = parse_rec(app, start.id, '$template');
-		var html = render_rec(app, struct);
+const render = function(app, start, node){
+		const struct = parse_rec(app, start.id, '$template');
+		const html = render_rec(app, struct);
 		if(!node) debugger; 
 		node.innerHTML = html;
 		set_bindings_rec(app, struct, node);
 		//console.log('html', html);
 }
 
-var get_parent_grid = (app, grid_id) => {
+const get_parent_grid = (app, grid_id) => {
 	return app.getGrid(app.getGrid(grid_id).parent);
 }
 
-var get_template = (app, path) => {
+const get_template = (app, path) => {
 	return templates[app.id][path];
 }
 
-var get_binding = (template, name) => {
+const get_binding = (template, name) => {
 	return template.bindings[name];
 }
 
 var container;
 
-var get_root_node_from_html = (html) => {
+const get_root_node_from_html = (html) => {
 	container.innerHTML = html;
-	var children = container.children;
+	const children = container.children;
 	if(children[1]){
 		console.error('Template should have only one root node,', children, html);
 	}
@@ -159,11 +159,11 @@ module.exports = {
 		'$ozenfant.writer': [([cell, val], template_path, app_id) => {
 				if(cell[0] === '$') return;
 				if(!template_path || !app_id || !templates[app_id] || cell.indexOf('/') !== -1) return;
-				var template = templates[app_id] ? templates[app_id][template_path] : false;
+				const template = templates[app_id] ? templates[app_id][template_path] : false;
 				if(!template) {
 					if(!closest_templates[app_id]) return;
-					var dt = closest_templates[app_id][template_path];
-					var path = dt.path + '/' + cell;
+					const dt = closest_templates[app_id][template_path];
+					const path = dt.path + '/' + cell;
 					dt.template.set(path, val);
 					return;
 				}
@@ -182,12 +182,12 @@ module.exports = {
 		}, '$remove', '-$path', '-$app_id']
 	},
 	onBranchCreated: (app, grid_id, path, parent) => {
-		var self = app.getGrid(grid_id);
+		const self = app.getGrid(grid_id);
 		if(!parent){
 			if(!self.cell_values.$el){
 				return;
 			}
-			var node = raw(self.cell_values.$el);
+			const node = raw(self.cell_values.$el);
 			container = document.createElement('div');
 			container.style.display = 'none';
 			container.setAttribute('id', 'ozenfant-container-hidden');
@@ -195,10 +195,10 @@ module.exports = {
 			render(app, self, node);
 		}
 		if(rendered[app.id] && rendered[app.id][parent]){
-			var parent_path = app.getGrid(parent).path;
-			var parent_tmpl = templates[app.id][parent_path];
+			const parent_path = app.getGrid(parent).path;
+			const parent_tmpl = templates[app.id][parent_path];
 			if(parent_tmpl) {
-				var node = parent_tmpl.bindings[self.name];
+				const node = parent_tmpl.bindings[self.name];
 				if(!node){
 					console.error('No binding found for', self.name, 'in path', parent_path);
 					return;
@@ -206,15 +206,15 @@ module.exports = {
 				render(app, self, node);
 			} else {
 				// it's a list
-				var parpar_template = get_template(app, get_parent_grid(app, parent).path);
-				var parpar_binding = get_binding(parpar_template, app.getGrid(parent).name);
+				const parpar_template = get_template(app, get_parent_grid(app, parent).path);
+				const parpar_binding = get_binding(parpar_template, app.getGrid(parent).name);
 				if(!parpar_binding) {
 					console.log('parent binding is absent!', get_parent_grid(app, parent).path);
 					return;
 				}
-				var struct = parse_rec(app, grid_id, '$template');
-				var html = render_rec(app, struct);
-				var node = get_root_node_from_html(html);
+				const struct = parse_rec(app, grid_id, '$template');
+				const html = render_rec(app, struct);
+				const node = get_root_node_from_html(html);
 				//parpar_binding.insertAdjacentHTML("beforeend", html);
 				parpar_binding.appendChild(node);
 				set_bindings_rec(app, struct, node, true);

@@ -1,16 +1,16 @@
-var Parser = require('../Parser');
-var utils = require('../utils');
+import Parser from '../Parser';
+import utils from '../utils';
 
 /* gator v1.2.4 craig.is/riding/gators */
 (function(){function t(a){return k?k:a.matches?k=a.matches:a.webkitMatchesSelector?k=a.webkitMatchesSelector:a.mozMatchesSelector?k=a.mozMatchesSelector:a.msMatchesSelector?k=a.msMatchesSelector:a.oMatchesSelector?k=a.oMatchesSelector:k=e.matchesSelector}function q(a,b,c){if("_root"==b)return c;if(a!==c){if(t(a).call(a,b))return a;if(a.parentNode)return m++,q(a.parentNode,b,c)}}function u(a,b,c,e){d[a.id]||(d[a.id]={});d[a.id][b]||(d[a.id][b]={});d[a.id][b][c]||(d[a.id][b][c]=[]);d[a.id][b][c].push(e)}
-function v(a,b,c,e){if(d[a.id])if(!b)for(var f in d[a.id])d[a.id].hasOwnProperty(f)&&(d[a.id][f]={});else if(!e&&!c)d[a.id][b]={};else if(!e)delete d[a.id][b][c];else if(d[a.id][b][c])for(f=0;f<d[a.id][b][c].length;f++)if(d[a.id][b][c][f]===e){d[a.id][b][c].splice(f,1);break}}function w(a,b,c){if(d[a][c]){var k=b.target||b.srcElement,f,g,h={},n=g=0;m=0;for(f in d[a][c])d[a][c].hasOwnProperty(f)&&(g=q(k,f,l[a].element))&&e.matchesEvent(c,l[a].element,g,"_root"==f,b)&&(m++,d[a][c][f].match=g,h[m]=d[a][c][f]);
+function v(a,b,c,e){if(d[a.id])if(!b)for(let f in d[a.id])d[a.id].hasOwnProperty(f)&&(d[a.id][f]={});else if(!e&&!c)d[a.id][b]={};else if(!e)delete d[a.id][b][c];else if(d[a.id][b][c])for(f=0;f<d[a.id][b][c].length;f++)if(d[a.id][b][c][f]===e){d[a.id][b][c].splice(f,1);break}}function w(a,b,c){if(d[a][c]){var k=b.target||b.srcElement,f,g,h={},n=g=0;m=0;for(f in d[a][c])d[a][c].hasOwnProperty(f)&&(g=q(k,f,l[a].element))&&e.matchesEvent(c,l[a].element,g,"_root"==f,b)&&(m++,d[a][c][f].match=g,h[m]=d[a][c][f]);
 b.stopPropagation=function(){b.cancelBubble=!0};for(g=0;g<=m;g++)if(h[g])for(n=0;n<h[g].length;n++){if(!1===h[g][n].call(h[g].match,b)){e.cancel(b);return}if(b.cancelBubble)return}}}function r(a,b,c,k){function f(a){return function(b){w(g,b,a)}}if(this.element){a instanceof Array||(a=[a]);c||"function"!=typeof b||(c=b,b="_root");var g=this.id,h;for(h=0;h<a.length;h++)k?v(this,a[h],b,c):(d[g]&&d[g][a[h]]||e.addEvent(this,a[h],f(a[h])),u(this,a[h],b,c));return this}}function e(a,b){if(!(this instanceof
-e)){for(var c in l)if(l[c].element===a)return l[c];p++;l[p]=new e(a,p);return l[p]}this.element=a;this.id=b}var k,m=0,p=0,d={},l={};e.prototype.on=function(a,b,c){return r.call(this,a,b,c)};e.prototype.off=function(a,b,c){return r.call(this,a,b,c,!0)};e.matchesSelector=function(){};e.cancel=function(a){a.preventDefault();a.stopPropagation()};e.addEvent=function(a,b,c){a.element.addEventListener(b,c,"blur"==b||"focus"==b)};e.matchesEvent=function(){return!0};"undefined"!==typeof module&&module.exports&&
+e)){for(let c in l)if(l[c].element===a)return l[c];p++;l[p]=new e(a,p);return l[p]}this.element=a;this.id=b}var k,m=0,p=0,d={},l={};e.prototype.on=function(a,b,c){return r.call(this,a,b,c)};e.prototype.off=function(a,b,c){return r.call(this,a,b,c,!0)};e.matchesSelector=function(){};e.cancel=function(a){a.preventDefault();a.stopPropagation()};e.addEvent=function(a,b,c){a.element.addEventListener(b,c,"blur"==b||"focus"==b)};e.matchesEvent=function(){return!0};"undefined"!==typeof module&&module.exports&&
 (module.exports=e);window.Gator=e})();
 
 
 
-var filter_attr_in_path = (e, delegateEl) => {
+const filter_attr_in_path = (e, delegateEl) => {
 	if(!delegateEl) debugger;
 	if(e){
 		var el = e.target;
@@ -26,7 +26,7 @@ var filter_attr_in_path = (e, delegateEl) => {
 	}
 	return true;
 }
-var filter_attr_in_parents = function(parent_node, index, el){
+const filter_attr_in_parents = function(parent_node, index, el){
 	for(;;){
 		el = el.parentElement;
 		if(!el) return true;
@@ -35,7 +35,7 @@ var filter_attr_in_parents = function(parent_node, index, el){
 		}
 	}
 }
-var htmlPipeAspects = {
+const htmlPipeAspects = {
 	attr: (el, attr) => {
 		if(!el) return;
 		debugger;
@@ -46,7 +46,7 @@ var htmlPipeAspects = {
 	}
 }
 
-var raw = a => {
+const raw = a => {
 	if(a instanceof Node  || !a){
 		return a;
 	} else {
@@ -54,11 +54,11 @@ var raw = a => {
 	}
 }
 
-var make_resp1 = (cb, val) => { 
+const make_resp1 = (cb, val) => { 
 	return cb(val);
 }
 
-var make_resp2 = function(cb, e){
+const make_resp2 = function(cb, e){
 	var res = e.target;
 	for(const [asp, pars] of pipe){
 		if(!htmlPipeAspects[asp]){
@@ -70,10 +70,10 @@ var make_resp2 = function(cb, e){
 	return cb(res);
 }
 
-var toggle_class = (el, clas, val) => {
-	var cls_string = el.getAttribute('class') || '';
-	var cls = cls_string.split(' ');
-	var pos = cls.indexOf(clas);
+const toggle_class = (el, clas, val) => {
+	const cls_string = el.getAttribute('class') || '';
+	const cls = cls_string.split(' ');
+	const pos = cls.indexOf(clas);
 	var toggle;
 	if(val !== undefined){
 		toggle = val;
@@ -90,7 +90,7 @@ var toggle_class = (el, clas, val) => {
 	}
 }
 
-var trigger_event = function(name, element, fakeTarget){
+const trigger_event = function(name, element, fakeTarget){
 	var event; // The custom event that will be created
 	if(element instanceof $){
 		for(let el of element){
@@ -127,7 +127,7 @@ module.exports = {
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
 			func(matches, pool, context, packages) {
-				var get_params = (aspect) => {
+				const get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if(params && params[1]){
 						aspect = params[1];
@@ -135,8 +135,8 @@ module.exports = {
 					}  
 					return [aspect, params || []];
 				}
-				var cellname = matches[0];
-				var aspects = matches[3].split('|');
+				const cellname = matches[0];
+				const aspects = matches[3].split('|');
 				//console.log('Got following aspects', aspects);
 				var aspect = aspects[0];
 				var pipe = aspects.slice(1);
@@ -144,11 +144,11 @@ module.exports = {
 					pipe = pipe.map(get_params);
 				}
 				
-				var make_resp = !pipe.length ? make_resp1 : make_resp2;
-				var selector = matches[2];
+				const make_resp = !pipe.length ? make_resp1 : make_resp2;
+				const selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
+				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -166,8 +166,8 @@ module.exports = {
 				switch(aspect){
 					case 'getval':
 						func = function(cb, vals){
-							var onch = (el) => {
-								var type = el.getAttribute('type');
+							const onch = (el) => {
+								const type = el.getAttribute('type');
 								var val;
 								if(type == 'checkbox'){
 									val = el.hasAttribute('checked');
@@ -177,21 +177,21 @@ module.exports = {
 								//console.log('CHange', el, val, selector);
 								make_resp(cb, val);
 							}
-							var [$prev_el, $now_el] = vals;
-							var prev_el = raw($prev_el);
-							var el = raw($now_el);
-							var onChange = function(e){
+							const [$prev_el, $now_el] = vals;
+							const prev_el = raw($prev_el);
+							const el = raw($now_el);
+							const onChange = function(e){
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
 								}
 								onch(e.target);
 							};
-							var onKeyup = function(e){
+							const onKeyup = function(e){
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
 								}
-								var elem = e.target;
-								var type = elem.getAttribute('type');
+								const elem = e.target;
+								const type = elem.getAttribute('type');
 								var val;
 								if(type == 'checkbox'){
 									return;
@@ -220,8 +220,8 @@ module.exports = {
 								$now_el = raw($now_el);
 								if(!Firera.is_def($now_el)) return;
 								document.addEventListener('click', function(e){
-									var ot = e.srcElement || e.originalTarget;
-									var is_other = $now_el.contains(ot);
+									const ot = e.srcElement || e.originalTarget;
+									const is_other = $now_el.contains(ot);
 									if(is_other){
 										make_resp(cb, true);
 									}
@@ -230,10 +230,10 @@ module.exports = {
 						} else {
 							func = function(cb, vals){
 								if(!vals) return;
-								var [$prev_el, $now_el] = vals;
+								const [$prev_el, $now_el] = vals;
 								if(!Firera.is_def($now_el)) return;
-								var prev_el = raw($prev_el);
-								var now_el = raw($now_el);
+								const prev_el = raw($prev_el);
+								const now_el = raw($now_el);
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
 								if(prev_el && prev_el !== Firera.undef){
 									Gator(prev_el).off('click');
@@ -258,12 +258,12 @@ module.exports = {
 					case 'focus':
 						func = function(cb, vals){
 							if(!vals) return;
-							var [$prev_el, $now_el] = vals;
+							const [$prev_el, $now_el] = vals;
 							if(!Firera.is_def($now_el)) return;
 							if($prev_el){
 								// @todo
 							}
-							var el = raw($now_el);
+							const el = raw($now_el);
 							Gator(el).on('focus', selector, (e) => {
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
@@ -286,7 +286,7 @@ module.exports = {
 								if(!all_subtree && !filter_attr_in_path(e, now_el)){
 									return;
 								}
-								var btn_map = {
+								const btn_map = {
 									'13': 'Enter',
 									'27': 'Esc',
 								}
@@ -303,18 +303,18 @@ module.exports = {
 								val = false;
 							}
 							$el = raw($el);
-							var [classname] = params;
+							const [classname] = params;
 							toggle_class($el, classname, val);
 						}
 					break;
 					case 'enterText':
 						func = function(cb, vals){
-							var [$prev_el, $now_el] = vals;
+							const [$prev_el, $now_el] = vals;
 							if(!$now_el) return;
 							if($prev_el){
 								//$prev_el.off('keyup', selector);
 							}
-							var el = raw($now_el);
+							const el = raw($now_el);
 							el.onkeyup = function(e) {
 								if(e.target === el.querySelector(selector)){
 									if(!all_subtree && !filter_attr_in_path(e, el)){
@@ -344,7 +344,7 @@ module.exports = {
 						}
 					break;
 					case 'css':
-						var [property] = params;
+						const [property] = params;
 						func = function(el, val){
 							//console.log('running css setter', $el);
 							el.style[property] = val;
@@ -387,10 +387,9 @@ module.exports = {
 						if(!a){
 							return a;
 						}
-						var nodz = a.querySelectorAll(selector);
-						/*var node = a.find(selector)
+						return a.querySelectorAll(selector);
+						/*var node = a.find(selector) @todo
 								.filter(filter_attr_in_parents.bind(null, a));*/
-						return nodz;
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
 					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {

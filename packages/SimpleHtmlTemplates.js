@@ -1,7 +1,7 @@
-var utils = require('../utils');
+import utils from '../utils';
 
-var search_fr_bindings = function($el){
-	var res = {};
+const search_fr_bindings = function($el){
+	const res = {};
 	if(!Firera.is_def($el)) return res;
 	$el = utils.raw($el);
 	if(!$el){
@@ -17,8 +17,8 @@ var search_fr_bindings = function($el){
 	return res;
 }
 
-var write_changes = function(){
-	var pool = {};
+const write_changes = function(){
+	const pool = {};
 	return (cell, val) => {
 		if(cell === '*'){
 			pool[val[0]] = val[1];
@@ -69,7 +69,7 @@ module.exports = {
 						return true;
 				}	
 				if(!$html_template && Firera.is_def($el) && keys && !no_auto && $el){
-					var auto_template = keys.map((k) => {
+					const auto_template = keys.map((k) => {
 						return '<div>' + k + ':<div data-fr="' + k + '"></div></div>';
 					}).join(' ');
 					$el.innerHTML = auto_template;

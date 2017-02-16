@@ -3,7 +3,7 @@ import utils from '../utils';
 const Obj = utils.Obj;
 const Arr = utils.Arr;
 
-var get_by_selector = function(name, $el, children = false){
+const get_by_selector = function(name, $el, children = false){
 	if(name === null) return null;
 	if(name === '__root') return document.querySelector('body');
 	$el = utils.raw($el);
@@ -16,25 +16,25 @@ var get_by_selector = function(name, $el, children = false){
 	return null;
 }
 
-var arr_changes_to_child_changes = function(item_hash, arr_change){
+const arr_changes_to_child_changes = function(item_hash, arr_change){
 	//console.log('beyond the reals of death', item_hash, arr_change);
 	if(!arr_change){
 		return;
 	}
 	return arr_change.map((val, key) => {
-		var new_val = val.slice();
+		const new_val = val.slice();
 		new_val[3] = new_val[2];
 		new_val[2] = item_hash;
 		return new_val;
 	});
 }
 
-var get_arr_changes = () => {
+const get_arr_changes = () => {
 	var arr = [];
 	var id = -1;
-	var map = {};
+	const map = {};
 	return (new_arr) => {
-		var changes = [];
+		const changes = [];
 		utils.arr_different(new_arr, arr, (key) => {
 			// create new element
 			map[key] = ++id;
@@ -62,13 +62,13 @@ module.exports = {
 			regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
 			func(matches, pool, context, packages) {
 				if(context == 'setter') return;
-				var cellname = matches[2];
+				const cellname = matches[2];
 				Parser.parse_fexpr(['closure', function(){
 					var val;
 					//console.log('Returning closure func!');
 					return function(a){
 						//console.log('getting prev val');
-						var old_val = val;
+						const old_val = val;
 						val = a;
 						return [old_val, a];
 					}
@@ -78,7 +78,7 @@ module.exports = {
 	},
 	macros: {
 		interval: (fs) => {
-			var [interval_ms, flag] = fs;
+			const [interval_ms, flag] = fs;
 			if(flag){
 				return ['asyncClosure', () => {
 					var intervalId;
@@ -104,7 +104,7 @@ module.exports = {
 			}
 		},
 		toggle: (fs) => {
-			var [cell, def] = fs;
+			const [cell, def] = fs;
 			return ['closure', () => {
 				var now = def !== undefined ? def : true;
 				return function(cb){
@@ -118,12 +118,12 @@ module.exports = {
 			}, cell];
 		},
 		skipIf: (fs) => {
-			var [compare_func, func, ...args] = fs;
+			const [compare_func, func, ...args] = fs;
 			return ['asyncClosure', () => {
 				var prev = [];
 				return function(cb, ...inner_args){
 					if(compare_func(prev, inner_args)){
-						var res = func.apply(null, inner_args);
+						const res = func.apply(null, inner_args);
 						prev = inner_args;
 						cb(res);
 					}
@@ -144,9 +144,9 @@ module.exports = {
 			}].concat(fs);
 		},
 		map: (fs) => {
-			var [map] = fs;
-			var cells = Object.keys(map);
-			var func = (cellname, val) => {
+			const [map] = fs;
+			const cells = Object.keys(map);
+			const func = (cellname, val) => {
 				if(!(map[cellname] instanceof Function)){
 					return map[cellname];
 				}
@@ -155,7 +155,7 @@ module.exports = {
 			return ['funnel', func, ...cells];
 		},
 		transistAll: (fs) => {
-			var [func, ...rest] = fs;
+			const [func, ...rest] = fs;
 			return [(cellA, ...restArgs) => {
 				if(cellA){
 					return func.apply(restArgs);
@@ -207,7 +207,7 @@ module.exports = {
 		},
 		accum: (funcstring) => {
 			return ['closure', () => {
-				var arr = [];
+				const arr = [];
 				return (a) => {
 					arr.push(a);
 					return arr;
@@ -245,14 +245,14 @@ module.exports = {
 				valMap[funcstring[0]] = true;
 				valMap[funcstring[1]] = false;
 			}
-			var func = (cell, val) => {
+			const func = (cell, val) => {
 				return valMap[cell];
 			}
 			return ['funnel', func, ...funcstring];
 		},
 		firstTrueCb(funcstring) {
-			var cb = funcstring[0];
-			var fncstr = funcstring.slice(1);
+			const cb = funcstring[0];
+			const fncstr = funcstring.slice(1);
 			return [function(){
 					//console.log('Looking for firstTrue', arguments);
 					for(let i in arguments){
@@ -273,9 +273,9 @@ module.exports = {
 					return (cell, values) => {
 						if(cell === '$arr_data.changes'){
 							for(let i in values){
-								var [type, index, _, val] = values[i];
+								const [type, index, _, val] = values[i];
 								if(type === 'add'){
-									var added_obj = {};
+									const added_obj = {};
 									for(let fieldname of fields){
 										fieldname = fieldname.replace("*/", "");
 										added_obj[fieldname] = val[fieldname];
@@ -308,11 +308,11 @@ module.exports = {
 				func = utils.id;
 			}
 			return ['closureFunnel', () => {
-				var indices = new Set();
+				const indices = new Set();
 				return (fieldname, vl) => {
 					if(field === fieldname){
-						var [index, val] = vl;
-						var res = func(val);
+						const [index, val] = vl;
+						const res = func(val);
 						if(res){
 							indices.add(index);
 						} else {
@@ -331,10 +331,10 @@ module.exports = {
 			}, field, '$arr_data.changes'];
 		},
 		reduce(funcstring) {
-			var field = '*/' + funcstring[0];
-			var config = funcstring[1];
+			const field = '*/' + funcstring[0];
+			const config = funcstring[1];
 			var res = config.def;
-			var vals = {};
+			const vals = {};
 			return ['closureFunnel', () => {
 				return (cell, chng) => {
 					var key, val;
@@ -342,7 +342,7 @@ module.exports = {
 						if(chng instanceof Array){
 							for(let i in chng) {
 								if(!chng[i] instanceof Array) return;
-								var type = chng[i][0];
+								const type = chng[i][0];
 								key = chng[i][1];
 								val = chng[i][3] ? chng[i][3][funcstring[0]] : undefined;
 								if(type === 'add'){
@@ -368,16 +368,16 @@ module.exports = {
 		},
 		count(funcstring) {
 			var fieldname = funcstring[0];
-			var pieces = fieldname.split('/');
+			const pieces = fieldname.split('/');
 			fieldname = pieces.pop();
-			var prefix = pieces.length ? pieces.join('/') + '/' : '';
+			const prefix = pieces.length ? pieces.join('/') + '/' : '';
 			if(fieldname === '*'){
 				// just count all
 				return [ prefix + '$arr_data.length'];
 			}
 			return ['closureFunnel', () => {
 				var count = 0;
-				var vals = {};
+				const vals = {};
 				return (cell, chng) => {
 					if(utils.path_cellname(cell) == '$arr_data.changes'){
 						// finding deletion
@@ -393,8 +393,8 @@ module.exports = {
 						return count;
 					}
 					if(!chng) return count;
-					var [key, val] = chng;
-					var prev_val = vals[key];
+					const [key, val] = chng;
+					const prev_val = vals[key];
 					if(prev_val === undefined) {
 						if(val) count++
 					} else {
@@ -416,11 +416,11 @@ module.exports = {
 			return ['funnel', utils.second].concat(funcstring);
 		},
 		list(funcstring) {
-			var props = funcstring[0];
+			const props = funcstring[0];
 			if(!props instanceof Object){
 				utils.error('List properties should be an object!');
 			}
-			var item_type = props.type;
+			const item_type = props.type;
 			if(!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]){
 				utils.warn('No item source provided for list', funcstring);
 			}
@@ -436,7 +436,7 @@ module.exports = {
 					$pop: (key) => {
 						if(key || key === 0 || key === '0'){
 							if(key instanceof Array || key instanceof Set){
-								var arr = [];
+								const arr = [];
 								for(let k of key){
 									arr.push(['remove', k]);
 								}
@@ -453,7 +453,7 @@ module.exports = {
 			} else {
 				deltas_func = ['closure', get_arr_changes, '$datasource']
 			}
-			var all_lists_mixin = {
+			const all_lists_mixin = {
 				$no_auto_template: true,
 				$deltas: deltas_func,
 				/*$init: {
@@ -466,7 +466,7 @@ module.exports = {
 						var length = 0;
 						return (cb, changes) => {
 							if(!changes || !changes.length) return;
-							var chngs = arr_changes_to_child_changes(item_type, changes);
+							const chngs = arr_changes_to_child_changes(item_type, changes);
 							//console.log('Got changes:', utils.frozen(chngs), 'from', changes);
 							chngs.forEach((one) => {
 								switch(one[0]){
@@ -487,13 +487,13 @@ module.exports = {
 				],
 				$list_template_writer: ['nestedClosure', () => {
 					var index_c = 3;
-					var index_map = {};
+					const index_map = {};
 					return function(cb, deltas, $el){
 						if($el === Firera.undef) return;
 						if(!$el) return;
 						for(let i in deltas){
-							var type = deltas[i][0];
-							var key = deltas[i][1];
+							const type = deltas[i][0];
+							const key = deltas[i][1];
 							switch(type){
 								case 'add':
 									$el.insertAdjacentHTML('beforeend', '<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
@@ -513,7 +513,7 @@ module.exports = {
 				$htmlbindings: ['closure', () => {
 					return ($el, map) => {
 						if(!$el || !map) return;
-						var res = Obj.map(map, (n, i) => {
+						const res = Obj.map(map, (n, i) => {
 							return get_by_selector(map[i], $el);
 						})
 						return res;
@@ -524,20 +524,20 @@ module.exports = {
 			if(props.push){
 				all_lists_mixin.$push = props.push;
 				if(!props.push instanceof Array){
-					console.error('List\'s PUSH property should be a F-expression(array), given', props.push);
+					utils.error('List\'s PUSH property should be a F-expression(array), given', props.push);
 				}
 			}
 			if(props.pop){
 				all_lists_mixin.$pop = props.pop;
 				if(!props.pop instanceof Array){
-					console.error('List\'s POP property should be a F-expression(array), given', props.pop);
+					utils.error('List\'s POP property should be a F-expression(array), given', props.pop);
 				}
 			}
 			if(props.datasource){
 				all_lists_mixin.$datasource = props.datasource;
 			}
 			var fnc;
-			var list_own_type = Object.assign(all_lists_mixin, props.self || {});
+			const list_own_type = Object.assign(all_lists_mixin, props.self || {});
 			if(props.create_destroy){
 				fnc = [(a) => { 
 					if(a){ 
@@ -552,11 +552,11 @@ module.exports = {
 			return fnc;
 		},
 		arr_deltas(funcstring) {
-			var cell = funcstring[0];
+			const cell = funcstring[0];
 			return ['closure', function(){
 				var val = [];
 				return function(new_arr){
-					var deltas = utils.arr_deltas(val, new_arr);
+					const deltas = utils.arr_deltas(val, new_arr);
 					val = new_arr;
 					//console.info('deltas are', deltas);
 					return deltas;

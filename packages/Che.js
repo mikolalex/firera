@@ -1,4 +1,4 @@
-var che = require('../../shche/shche');
+import che from '../../shche/shche';
 
 module.exports = {
 	macros: {
@@ -6,7 +6,7 @@ module.exports = {
 			var [expr, cbs] = expr;
 			cbs = cbs || [];
 			var succ_cb;
-			var obj = che.create(expr, {
+			const obj = che.create(expr, {
 				onOutput(key, val){
 					//console.log('outputting from che', key, val);
 				},
@@ -15,7 +15,7 @@ module.exports = {
 					succ_cb(obj.state);
 				}
 			}, ...cbs);
-			var str = ['asyncClosureFunnel', () => {
+			const str = ['asyncClosureFunnel', () => {
 				return (cb, cell, val) => {
 					//console.log('something dripped', cb, cell, val);
 					succ_cb = cb;
