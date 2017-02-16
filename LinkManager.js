@@ -1,5 +1,5 @@
-var utils = require('./utils');
-var LinkManager = function(app){
+import utils from './utils';
+const LinkManager = function(app){
 	this.app = app;
 	this.links = [];
 	this.linkStruct = {};
@@ -10,33 +10,33 @@ var LinkManager = function(app){
 };
 
 LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id){
-	var child_path = this.app.getGrid(child_id).path
+	const child_path = this.app.getGrid(child_id).path
 	//console.log('new grid added to', parent_grid_id, 'as', child_id, child_path);
 	// add doubleAsterisk links
 	for(let path in this.doubleAsterisk){
 		if(child_path.indexOf(path) === 0){
 			// it's a child of master grid
-			for(var cellname in this.doubleAsterisk[path]){
+			for(let cellname in this.doubleAsterisk[path]){
 				this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path);
 			}
 		}
 	}
 	//
-	for(var link_id in this.pointers[parent_grid_id]){
+	for(let link_id in this.pointers[parent_grid_id]){
 		this.actualizeLink(link_id, child_id);
 	}
 }
 
 LinkManager.prototype.refreshPointers = function(link_id){
 	for(let grid_id in this.pointers){
-		var links = this.pointers[grid_id];
+		const links = this.pointers[grid_id];
 		for(let i in links){
 			if(links[i] == link_id){
 				links.splice(i, 1);
 			}
 		}
 	}
-	var data = this.links[link_id];
+	const data = this.links[link_id];
 	for(let pointer of data.pointers){
 		utils.init_if_empty(this.pointers, pointer.grid_id, {}, link_id, data.path[pointer.pos]);
 		//log('considering pointer', link_id, data.str, pointer);
@@ -51,18 +51,18 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 		if(val === Firera.undef){
 			return;
 		}
-		var lnks = this.workingLinks[master_grid_id][master_cell];
-		for(var slave_grid_id in lnks){
-			for(var slave_cellname in lnks[slave_grid_id]){
+		const lnks = this.workingLinks[master_grid_id][master_cell];
+		for(let slave_grid_id in lnks){
+			for(let slave_cellname in lnks[slave_grid_id]){
 				var cell_val = val;
 				if(lnks[slave_grid_id] && lnks[slave_grid_id][slave_cellname]){
 					var link_data = lnks[slave_grid_id][slave_cellname];
 					if(link_data.link_id === '**'){
 						cell_val = [cell_val, link_data.path];
 					} else {
-						var data = this.links[link_data.link_id];
+						const data = this.links[link_data.link_id];
 						if(data){
-							for(var i = data.path.length - 1; i > -1; i--){
+							for(let i = data.path.length - 1; i > -1; i--){
 								if(data.path[i] === '*'){
 									//console.log('A', i, data.path, link_data.path[i+1]);
 									cell_val = [link_data.path[i+1], cell_val];
@@ -72,9 +72,9 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 					}
 				}
 				// the very meaning of this method
-				var slave_grid = this.app.getGrid(slave_grid_id);
+				const slave_grid = this.app.getGrid(slave_grid_id);
 				if(!slave_grid){
-					var lnk = this.links[link_data.link_id];
+					const lnk = this.links[link_data.link_id];
 					//log('obsolete link!', lnk);
 				} else {
 					//log('!set', slave_cellname, cell_val);
@@ -95,20 +95,19 @@ LinkManager.prototype.addWorkingLink = function(master_grid_id, master_cellname,
 }
 
 LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
-	var gridname, current_pointer;
-	var data = this.links[link_id];
-	var curr_grid_id = data.grid_id, curr_grid;
+	var current_pointer;
+	const data = this.links[link_id];
 	
-	var move_further = (curr_grid_id, i, start_pos, path) => {
+	const move_further = (curr_grid_id, i, start_pos, path) => {
 		if(!path) debugger;
 		path = path.slice();
-		var curr_grid = this.app.getGrid(curr_grid_id);
+		const curr_grid = this.app.getGrid(curr_grid_id);
 		if(path.indexOf(curr_grid.name) !== -1){
 			//console.log('hm', path, curr_grid.name);
 		} else {
 			path.push(curr_grid.name);
 		}
-		var gridname = data.path[i];
+		const gridname = data.path[i];
 		var next_grid_id;
 		if(!data.path[i + 1]){
 			//log('~~~ success!', data.str, path);
@@ -133,8 +132,8 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 					data.pointers[start_pos].fixed = true;
 					data.pointers[start_pos].grid_id = curr_grid_id;
 					//log('--- what to do then?', link_id, 1, curr_grid.linked_grids);
-					for(var child_name in curr_grid.linked_grids){
-						var child_id = curr_grid.linked_grids[child_name];
+					for(let child_name in curr_grid.linked_grids){
+						const child_id = curr_grid.linked_grids[child_name];
 						move_further(child_id, i+1, start_pos, path);
 					}
 				}
@@ -150,8 +149,8 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 					fixed: true,
 					path
 				})
-				for(var child_name in curr_grid.linked_grids){
-					var child_id = curr_grid.linked_grids[child_name];
+				for(let child_name in curr_grid.linked_grids){
+					const child_id = curr_grid.linked_grids[child_name];
 					move_further(child_id, i+1, start_pos, path);
 				}
 				return;
@@ -169,8 +168,8 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 		}
 	}
 	
-	for(var pointer_index in data.pointers){
-		var current_pointer = data.pointers[pointer_index];
+	for(let pointer_index in data.pointers){
+		current_pointer = data.pointers[pointer_index];
 		move_further(
 				current_pointer.grid_id, 
 				current_pointer.pos, 
@@ -182,10 +181,10 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 }
 
 LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
-	var path = link.split('/');
+	const path = link.split('/');
 	if(path.length == 2 && path[0] === '..'){
-		/*var curr_grid = this.app.getGrid(grid_id);
-		var parent = curr_grid.parent;
+		/*const curr_grid = this.app.getGrid(grid_id);
+		const parent = curr_grid.parent;
 		if(parent === undefined) {
 			console.log('parent undefined! child', curr_grid);
 			return;
@@ -200,8 +199,8 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
-		var cellname = path[1];
-		var grid_path = this.app.getGrid(grid_id).path;
+		const cellname = path[1];
+		const grid_path = this.app.getGrid(grid_id).path;
 		this.pathToId[grid_path] = grid_id;
 		utils.init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
 		// check already added grids
@@ -215,7 +214,7 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
-		var cellname = path[1];
+		const cellname = path[1];
 		this.app.eachParent(grid_id, (grid) => {
 			this.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
 		})
@@ -226,12 +225,12 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 			utils.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
-		var cellname = path[1];
-		var grid_path = this.app.getGrid(grid_id).path;
+		const cellname = path[1];
+		const grid_path = this.app.getGrid(grid_id).path;
 		this.addWorkingLink(this.app.grids[1].id, cellname, grid_id, '/' + cellname);
 		return;
 	}
-	var obj = {
+	const obj = {
 		path: path,
 		target: path[path.length - 1],
 		pointers: [{
@@ -247,7 +246,7 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 	};
 	utils.init_if_empty(this.linkStruct, grid_id, {});
 	if(this.linkStruct[grid_id][link] == undefined){
-		var link_id = this.links.push(obj) - 1;
+		const link_id = this.links.push(obj) - 1;
 		this.linkStruct[grid_id][link] = link_id;
 		this.actualizeLink(link_id);
 	} else {

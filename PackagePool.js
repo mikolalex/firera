@@ -1,11 +1,11 @@
-var utils = require('./utils');
+import utils from './utils';
 
-var kcopy = function(from, to){
+const kcopy = function(from, to){
 	for(let i in from){
 		to[i] = from[i];
 	}
 }
-var PackagePool = function(proto = {}, app_id){
+const PackagePool = function(proto = {}, app_id){
 	this.app_id = app_id;
 	this.cellMatchers = Object.assign({}, proto.cellMatchers);
 	this.macros = Object.assign({}, proto.macros);

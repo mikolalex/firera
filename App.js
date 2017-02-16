@@ -1,23 +1,23 @@
-var PackagePool = require('./PackagePool');
-var LinkManager = require('./LinkManager');
-var Parser = require('./Parser');
-var utils = require('./utils');
-var Grid = require("./Grid");
-var Obj = utils.Obj;
-var Arr = utils.Arr;
-var apps = [];
+import PackagePool from './PackagePool';
+import LinkManager from './LinkManager';
+import Parser from './Parser';
+import utils from './utils';
+import Grid from "./Grid";
+const Obj = utils.Obj;
+const Arr = utils.Arr;
+const apps = [];
 var appIds = 0;
-var type_map = {
+const type_map = {
 	'is': 'formula',
 	'free': 'free',
 	'fake': 'fake',
 }
 
-var get_grid_struct = (grid) => {
-	var cells_1 = Object.keys(grid.cell_types);
-	var cells_2 = Object.keys(grid.cell_values);
-	var cells_3 = Arr.unique(cells_1.concat(cells_2));
-	var cells = [];
+const get_grid_struct = (grid) => {
+	const cells_1 = Object.keys(grid.cell_types);
+	const cells_2 = Object.keys(grid.cell_values);
+	const cells_3 = Arr.unique(cells_1.concat(cells_2));
+	const cells = [];
 	for(let cell of cells_3){
 		let types, type;
 		if(!grid.cell_types[cell]){
@@ -28,7 +28,7 @@ var get_grid_struct = (grid) => {
 		    types = utils.split_camelcase(grid.cell_types[cell].type);
 		    type = grid.cell_types[cell].type;
 		}
-		var props = {};
+		const props = {};
 		var once = false;
 		for(let subtype of types){
 			if(Parser.system_macros.has(subtype) && subtype !== 'is'){
@@ -43,14 +43,14 @@ var get_grid_struct = (grid) => {
 			console.log('unmapped type!', type);
 		}
 		type = type_map[type];
-		var parents = grid.cell_parents(cell);
-		var wrong_links = {};
+		const parents = grid.cell_parents(cell);
+		const wrong_links = {};
 		for(let cn of parents){
 			if(!grid.cellExists(cn)){
 				wrong_links[cn] = true;
 			}
 		}
-		var obj = {
+		const obj = {
 			name: cell,
 			val: grid.cell_values[cell],
 			parents,
@@ -63,7 +63,7 @@ var get_grid_struct = (grid) => {
 		}
 		cells.push(obj)
 	}
-	var by_types = utils.group_by(cells, (obj) => {
+	const by_types = utils.group_by(cells, (obj) => {
 		if(obj.name.indexOf('/') !== -1){
 			return 'linked';
 		}
@@ -83,8 +83,8 @@ var get_grid_struct = (grid) => {
 		
 	});
 	
-	var childs = grid.linked_grids_provider.pool;
-	var children = {};
+	const childs = grid.linked_grids_provider.pool;
+	const children = {};
 	for(let child_name in childs){
 		if(child_name === '..') continue;
 		let child_id = childs[child_name];
@@ -102,11 +102,11 @@ var get_grid_struct = (grid) => {
 	};
 }
 
-var get_app_struct = (app) => {
+const get_app_struct = (app) => {
 	return get_grid_struct(app.root);
 }
 
-var App = function(packages, root_package_pool){
+const App = function(packages, root_package_pool){
 	this.id = ++appIds;
 	this.grid_create_counter = 0;
 	this.packagePool = new PackagePool(root_package_pool, this.id);
@@ -151,22 +151,22 @@ App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
 }
 App.prototype.eachChild = function(parent_grid_id, cb){
-	var grid = this.getGrid(parent_grid_id);
-	for(var l in grid.linked_grids){
-		var child = this.getGrid(grid.linked_grids[l]);
+	const grid = this.getGrid(parent_grid_id);
+	for(let l in grid.linked_grids){
+		const child = this.getGrid(grid.linked_grids[l]);
 		cb(child);
 		this.eachChild(grid.linked_grids[l], cb);
 	}
 }
 App.prototype.eachParent = function(grid_id, cb){
 	while(grid_id){
-		var grid = this.getGrid(grid_id);
+		const grid = this.getGrid(grid_id);
 		cb(grid);
 		grid_id = grid.parent;
 	}
 }
 
-var cb_prot = {
+const cb_prot = {
 	cell_parents(cell) {
 		return this.cell_types[cell] ? this.cell_types[cell].parents : [];
 	},
@@ -177,12 +177,12 @@ var cb_prot = {
 		var level = 1;
 		this.levels = {};
 		var max_level = 1;
-		var already_set = new Set();
-		var pool = [];
+		const already_set = new Set();
+		const pool = [];
 		for(let i in this.cell_types){
 			if(this.cell_types[i].parents.length === 0){
 				this.levels[i] = 1;
-				for(var j in this.cell_types[i].children){
+				for(let j in this.cell_types[i].children){
 					pool.push(j);
 					this.setLevelsRec(j, already_set);
 				}
@@ -196,7 +196,7 @@ var cb_prot = {
 	},
 	setLevelsIterable(cellname, pool) {
 		var max_level = 1;
-		for(var cell of this.cell_parents(cellname)){
+		for(let cell of this.cell_parents(cellname)){
 			cell = Parser.real_cell_name(cell);
 			if(this.levels[cell] === undefined){
 				if(pool.indexOf(cell) === -1){
@@ -215,7 +215,7 @@ var cb_prot = {
 		} else {
 			this.levels[cellname] = max_level + 1;
 		}
-		for(var cell in this.cell_children(cellname)){
+		for(let cell in this.cell_children(cellname)){
 			if(pool.indexOf(cell) === -1){
 				pool.push(cell);
 				//this.setLevelsRec(cell, already_set);
@@ -224,7 +224,7 @@ var cb_prot = {
 	},
 	setLevelsRec(cellname, already_set) {
 		var max_level = 1;
-		for(var cell of this.cell_parents(cellname)){
+		for(let cell of this.cell_parents(cellname)){
 			cell = Parser.real_cell_name(cell);
 			//if(cell[0] === '-') debugger;
 			if(this.levels[cell] === undefined){
@@ -238,7 +238,7 @@ var cb_prot = {
 			if(max_level + 1 > this.levels[cellname]){
 				this.levels[cellname] = max_level + 1;
 			}
-			for(var cell in this.cell_children(cellname)){
+			for(let cell in this.cell_children(cellname)){
 				if(this.levels[cell] <= this.levels[cellname]){
 					already_set.add(cell);
 					this.setLevelsRec(cell, already_set);
@@ -252,7 +252,7 @@ var cb_prot = {
 			this.levels[cellname] = max_level + 1;
 		}
 		//console.log('New level for', cellname, 'is', max_level + 1);
-		for(var cell in this.cell_children(cellname)){
+		for(let cell in this.cell_children(cellname)){
 			if(!(already_set.has(cell))){
 				already_set.add(cell);
 				this.setLevelsRec(cell, already_set);
@@ -262,8 +262,8 @@ var cb_prot = {
 }
 
 App.prototype.parse_cbs = function(a){
-	var eachMixin = Object.assign({}, this.packagePool.eachGridMixin);
-	var res = Object.create(cb_prot);
+	const eachMixin = Object.assign({}, this.packagePool.eachGridMixin);
+	const res = Object.create(cb_prot);
 	res.plain_base = Object.assign(eachMixin, a); 
 	res.side_effects = {};
 	res.grids_to_link = {};
@@ -285,8 +285,8 @@ App.prototype.setGrid = function(id, grid){
 }
 
 App.prototype.branchCreated = function(grid_id){
-	var grid = this.getGrid(grid_id);
-	var path = grid.path;
+	const grid = this.getGrid(grid_id);
+	const path = grid.path;
 	if(Firera.onBranchCreatedStack[this.id]){
 		for(let cb of Firera.onBranchCreatedStack[this.id]){
 			cb(this, grid_id, path, grid.parent);
@@ -295,13 +295,13 @@ App.prototype.branchCreated = function(grid_id){
 }
 
 App.prototype.createGrid = function(type, link_as, free_vals, parent_id) {
-	var parent = this.getGrid(parent_id);
+	const parent = this.getGrid(parent_id);
 	free_vals = parent.init_values[link_as] 
 				? Object.assign({}, parent.init_values[link_as], free_vals || {}) 
 				: free_vals;
-	var parent_path = parent.path;
-	var path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
-	var child = new Grid(this, type, link_as, free_vals, true, parent_id, path);
+	const parent_path = parent.path;
+	const path = (parent_path !== '/' ? parent_path + '/' : '/')  + link_as;
+	const child = new Grid(this, type, link_as, free_vals, true, parent_id, path);
 	Firera.gridCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;
