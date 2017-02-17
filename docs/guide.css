@@ -1,7 +1,8 @@
 body {
-	font-size: 15px;
-	font-family: sans-serif;
-	font-family: 'ProbaPro-Regular';
+	font-size: 17px;
+    font-family: sans-serif;
+    font-family: 'ProbaPro-Regular';
+    line-height: 23px;
 }
 
 .main-text {
@@ -17,6 +18,8 @@ body {
     border: 1px dotted grey;
 	padding: 40px;
     text-align: justify;
+    font-size: 19px;
+    line-height: 25px;
 }
 
 @keyframes example {
@@ -41,7 +44,7 @@ body {
 	margin: 2px 0px;
 }
 
-.main-text a {
+a {
 	color: #e43e34;
 	color: #ff602e;
     color: #88b2de;
@@ -58,9 +61,10 @@ body {
 }
 
 h2.fr-title {
-    margin-top: 0px;
     text-align: center;
     font-style: italic;
+	font-size: 25px;
+	margin: 15px 0px 30px;
 }
 
 .main-copyright {
@@ -98,10 +102,10 @@ code {
 }
 
 .hljs-string.hljs-string {
-	color: #e4462a;
+	color: #2f8e09;
 }
 .hljs-number.hljs-number {
-	color: #e4462a;
+	color: #2f8e09;
 }
 
 #content.min > * {
@@ -115,6 +119,7 @@ code {
 }
 
 .to-main {
+	text-indent: 0px;
 	position: fixed;
 	top: 0px;
 	left: 0px;
@@ -122,10 +127,15 @@ code {
 	background-color: rgba(255, 255, 255, 0.84);
 }
 
+#content > * > div {
+	margin: 20px 0;
+	text-indent: 30px; 
+}
+
 #content > * {
 	max-width: 800px;
 	margin: auto;
-	margin-top: 6em;
+	margin-top: 3em;
 	margin-bottom: 6em;
 	
 	border-style: solid;
@@ -133,6 +143,10 @@ code {
     padding: 50px 70px 40px 30px;
     text-align: justify;
     border-color: #b7d1e4;
+	
+	
+	border-width: 25px 60px 40px 20px;
+    padding: 50px 30px 40px 66px;
 }
 #content.ozenfant > * {
     border-color: #2a926a;
@@ -157,7 +171,7 @@ code {
 }
 
 .doc-root {
-	max-width: 1000px;
+	max-width: 800px;
 	margin: auto;
 }
 
@@ -166,9 +180,40 @@ code {
     border-width: 35px 10px 20px 80px;
     padding: 50px 70px 40px 30px;
     text-align: justify;
-    border-color: rgb(42, 186, 255);
+    border-color: #b7d1e4;
     margin: 5px;
 }
+
+.mn {
+	color: grey;
+	font-style: italic;
+}
+
+.nb::before {
+	content: '!';
+	font-size: 35px;
+	position: absolute;
+    margin-left: -53px;
+    top: 28px;
+	color: #ababab;
+	font-size: 35px;
+}
+
+#content .nb.nb {
+	text-indent:0px;
+	position: relative;
+	background-color: whitesmoke;
+	color: grey;
+	padding: 1em;
+	margin: 1em 0;
+	
+}
+
+.subcode {
+	color: black;
+	padding: 10px;
+}
+
 .doc-root2 > * {
 	border-style: solid;
     border-width: 35px 10px 20px 80px;
@@ -186,6 +231,7 @@ code {
     padding: 10px;
     margin: 10px 0;
     font-size: 12px;
+	border: 1px dotted grey;
 }
 
 h1, h2, h3 {

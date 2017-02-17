@@ -6,7 +6,7 @@ and open the template in the editor.
 -->
 <html>
 		<head>
-				<title>Firera - intro</title>
+				<title>Firera tutorial</title>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link rel="stylesheet" href="guide.css" />
@@ -22,17 +22,18 @@ and open the template in the editor.
 				</div>
 				<div id="content">
 				<div>
-				<h1>Firera</h1>
-				<h2>Getting started with Firera: declarative FRP</h2>
-				Let's start with a simple example:
+				<h1>Firera tutorial</h1>
+				<hr>
+				<h2>Getting started: declarative FRP</h2>
+				<div>Let's start with a simple example:</div>
 <code>
-var base = {
+const base = {
 	a: 10,
 	b: 20,
 	c: [(n, m) => n + m, 'a', 'b']
 }
 // Create a Firera app instance
-var app = Firera({
+const app = Firera({
 	__root: base
 })
 app.get('c'); // 30
@@ -41,31 +42,69 @@ app.get('c'); // 30
 app.set('b', 32);
 app.get('c'); // 42
 </code>
-	<p>
+	<div>
 		It's a typical example for introducing functional reactive programming priciples.
 		Here 'a' and 'b' are just values, and 'c' is a computable cell.
 		It means that the value of "c" will <b>always</b> be the sum of "a" and "b", and we don't need to update it manually.
 		There is no proactive intrusion: you cannot change the value of "c" manually, it's changed based on the values of other cells(in this case "a" and "b").
+		Here a, b and c are <span class="mn">data streams</span>. Their values can change over time.
+	</div>
+	<div>
+		What's special about Firera is that it has completely declarative syntax.
+		While other FRP libraries(Rx, Most) use method chains, the Firera app is described with a plain object(POJO: plain old JS object). It gives a lot of advantages that will be described later.
+	</div>
+	<div>
+		We instanciate a Firera app by passing this object to Firera function. Than we can change some input values(like "a" or "b") with <span class="mn">set(key, val)</span> method.
+	</div>
+	<div class="nb">
+		Note that you couldn't change "c", because it violates the main FRP priciple: a cell value should be computed only based on it's arguments, and never set manually.
+	</div>
+	<div>
+		In Firera language, "app_base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, and the expression [(n, m) => n + m, 'a', 'b'] is called <b>formula</b>.
+	</div>
+	</div>
+	<div>
+	<h2>Working with DOM</h2>
+	<div>
+		Firera works as a browser GUI library. We need to include some Firera packages to work with DOM.
+		Let's include <span class="mn">HtmlCells</span> package that allows to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
+		add it's name to <span class="mn">$packages</span> parameter of our app.
 		
-		Instead of most other JS FRP libraries like Rx or Most, which has method chains, Firera's approach is declarative.
-	</p>
-	<p>
-			In Firera language, "app_base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, and the expression [(n, m) => n + m, 'a', 'b'] is called <b>formula</b>.
-	</p>
-				</div>
-				<div>
-					Firera works as a browser GUI library. We need to include some Firera packages to work with DOM.
-					Let's consider more useful example. Say we need to validate adding a comment to a comments' list.
-					
 <code>
-var base = {
+var is_long = a => a.length > 2;
 
+var base = {
+	$real_el: document.getElementById('fr-app'),
+	login: ['input[name=login]|val'],
+	is_form_valid: [is_long, 'login'],
+	"form|hasClass(valid)": ['is_from_valid'],
 }
+var app = Firera({
+	__root: base,
+	$packages: ['HtmlCells']
+});
 </code>
-					
-				</div>
-			</div>
+		<div>
+			<span class="mn">is_long</span> is a pure function that checks whether a given string is long enough to be a login.
+			The cell "input[name=login]|val" is a data stream of values of nodes which match the selector "input[name=login]" in scope of "$real_el".
+			It's name consist of two parts: a selector(input[name=login], can be any valid HTML selector) and so-called "aspect", divided by "|". The aspect shows what exactly we should
+			listed about selected node(-s). SO when yoyu only mention a cell like this, Firera looks for it and start listeting it's changes.
 		</div>
+		<div>
+			The "is_form_valid" computable cell depends on "login" cell. It's value is calculated with is_email_valid function and it's definitely a Boolean.
+			Than, if the form is valid, we set the class "valid" to nodes found with "form" selector in scope of "$real_el".
+		</div>
+		<div class="nb">
+			Notice that if you write like this: <div class="subcode">login: 'input[name=login]|val',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|val'.
+			We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
+		</div>
+		<div>
+			
+		</div>
+					
+	</div>
+	</div>
+	</div>
 			<script>
 					$(document).ready(function() {
 							$('code').each(function(i, block) {
