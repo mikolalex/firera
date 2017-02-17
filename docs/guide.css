@@ -14,7 +14,6 @@ body {
     padding: 50px 70px 40px 30px;
     border-color: rgb(249, 238, 78);
     border-style: solid;
-	opacity: 0;
     border: 1px dotted grey;
 	padding: 40px;
     text-align: justify;
@@ -46,9 +45,9 @@ body {
 	color: #e43e34;
 	color: #ff602e;
     color: #88b2de;
-    animation-name: example2;
+    /*animation-name: example2;
     animation-duration: 20s;
-	animation-iteration-count: infinite;
+	animation-iteration-count: infinite;*/
 }
 
 .micro-info {
@@ -98,8 +97,33 @@ code {
 	padding: 2em;
 }
 
+.hljs-string.hljs-string {
+	color: #e4462a;
+}
+.hljs-number.hljs-number {
+	color: #e4462a;
+}
+
+#content.min > * {
+	max-width: 800px;
+}
+
+.to-main a {
+	color: #9c9c9c;
+	font-style: italic;
+	text-decoration: none;
+}
+
+.to-main {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	padding: 1px 15px 3px 10px;
+	background-color: rgba(255, 255, 255, 0.84);
+}
+
 #content > * {
-	max-width: 1000px;
+	max-width: 800px;
 	margin: auto;
 	margin-top: 6em;
 	margin-bottom: 6em;
@@ -108,7 +132,7 @@ code {
     border-width: 35px 10px 20px 80px;
     padding: 50px 70px 40px 30px;
     text-align: justify;
-    border-color: rgb(254, 255, 78);
+    border-color: #b7d1e4;
 }
 #content.ozenfant > * {
     border-color: #2a926a;
@@ -144,6 +168,24 @@ code {
     text-align: justify;
     border-color: rgb(42, 186, 255);
     margin: 5px;
+}
+.doc-root2 > * {
+	border-style: solid;
+    border-width: 35px 10px 20px 80px;
+    padding: 50px 70px 40px 30px;
+    text-align: justify;
+    margin: 5px;
+    border-color: #ff6d12;
+}
+
+.bash::before {
+    content: '>';
+}
+.bash {
+    font-family: courier;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 12px;
 }
 
 h1, h2, h3 {
@@ -216,7 +258,7 @@ mn {
 }
 
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
 	body {
 		font-size: 13px;
 	}
