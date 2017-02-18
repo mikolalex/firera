@@ -13,6 +13,69 @@ and open the template in the editor.
 				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
 				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+				<style>
+					#content > * {
+						padding: 50px 40px 40px 66px;
+						background-color: white;
+						margin-top: 3em;
+						margin-bottom: 3em;
+					}
+					
+						html {
+							/*min-height: 100%;
+							background-color: #b7d1e4;*/
+						}
+						
+						.exp {
+							width: 100%;
+							background-color: white;
+							border-top: 1px solid #b7d1e4;
+							border-bottom: 1px solid #b7d1e4;
+							margin-top: 50px;
+						}
+						
+						.sub-exp {
+							max-width: 800px;
+							margin: auto;
+						}
+						.sub-exp > ul {
+							margin: 0px;
+							padding-left: 120px;
+						}
+						.sub-exp > ul > li a {
+							color: black;
+							text-decoration: none;
+						}
+						.sub-exp > ul > li {
+							float: right;
+							list-style: none;
+							width: 167px;
+							text-align: center;
+							height: 20px;
+							padding-top: 60px;
+						}
+						
+						.titl a {
+							color: white;
+							text-decoration: none;
+							font-style: italic;
+						}
+						
+						.titl {
+							width: 120px;
+							text-align: center;
+							background-color: #b7d1e4;
+							color: white;
+							text-transform: uppercase;
+							padding: 30px 0px;
+							font-size: 15px;
+							line-height: 15px;
+						}
+						
+						body {
+							margin: 0px;
+						}
+				</style>
 		</head>
 		<body>
 				<div class="to-main">
@@ -20,6 +83,33 @@ and open the template in the editor.
 								<span style="font-size:11px">&larr;</span> &nbsp;&nbsp;to main page
 						</a>
 				</div>
+			<!--<div class="exp">
+				<div class="sub-exp">
+					<ul>
+						<li>
+							Discussion
+						</li>
+						<li>
+							Repo
+						</li>
+						<li>
+							<a href="install.html">Install</a>
+						</li>
+						<li>
+							<a href="guide.html">Tutorial</a>
+						</li>
+					</ul>
+					<div class="titl">
+						<a href="index.html">Firera -
+						Javascript
+						Functional
+						Reactive
+						Declarative
+						Framework</a>
+					</div>
+				</div>-->
+				
+			</div>
 				<div id="content">
 				<div>
 				<h1>Firera tutorial</h1>
@@ -48,36 +138,50 @@ app.get('c'); // 42
 		It means that the value of "c" will <b>always</b> be the sum of "a" and "b", and we don't need to update it manually.
 		There is no proactive intrusion: you cannot change the value of "c" manually, it's changed based on the values of other cells(in this case "a" and "b").
 		Here a, b and c are <span class="mn">data streams</span>. Their values can change over time.
-	</div>
-	<div>
+	</div><div>
 		What's special about Firera is that it has completely declarative syntax.
 		While other FRP libraries(Rx, Most) use method chains, the Firera app is described with a plain object(POJO: plain old JS object). It gives a lot of advantages that will be described later.
-	</div>
-	<div>
+	</div><div>
 		We instanciate a Firera app by passing this object to Firera function. Than we can change some input values(like "a" or "b") with <span class="mn">set(key, val)</span> method.
-	</div>
-	<div class="nb">
+	</div><div class="nb">
 		Note that you couldn't change "c", because it violates the main FRP priciple: a cell value should be computed only based on it's arguments, and never set manually.
-	</div>
-	<div>
+	</div><div>
 		In Firera language, "app_base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, and the expression [(n, m) => n + m, 'a', 'b'] is called <b>formula</b>.
-	</div>
+	</div><ul class="pq">
+		<li>
+			<div class="q">Why do you call it "data stream"?</div>
+			<div class="answer">
+				Because
+			</div>
+		</li>
+		<li>
+			<div class="q">Why do you write "__root: ..."?</div>
+			<div class="answer">
+				Because
+			</div>
+		</li>
+		
+	</ul>
 	</div>
 	<div>
 	<h2>Working with DOM</h2>
 	<div>
 		Firera works as a browser GUI library. We need to include some Firera packages to work with DOM.
-		Let's include <span class="mn">HtmlCells</span> package that allows to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
+		We can include <span class="mn">HtmlCells</span> package that allows to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
 		add it's name to <span class="mn">$packages</span> parameter of our app.
+	</div><div>
 		
+		Say we need to validate adding a new comment. User enters his login, email and comment text and presses submit button.
+		Let's start with validating login.
+	</div>
 <code>
 var is_long = a => a.length > 2;
 
 var base = {
 	$real_el: document.getElementById('fr-app'),
 	login: ['input[name=login]|val'],
-	is_form_valid: [is_long, 'login'],
-	"form|hasClass(valid)": ['is_from_valid'],
+	is_login_valid: [is_long, 'login'],
+	"form|hasClass(valid)": ['is_login_valid'],
 }
 var app = Firera({
 	__root: base,
@@ -89,20 +193,93 @@ var app = Firera({
 			The cell "input[name=login]|val" is a data stream of values of nodes which match the selector "input[name=login]" in scope of "$real_el".
 			It's name consist of two parts: a selector(input[name=login], can be any valid HTML selector) and so-called "aspect", divided by "|". The aspect shows what exactly we should
 			listed about selected node(-s). SO when yoyu only mention a cell like this, Firera looks for it and start listeting it's changes.
-		</div>
-		<div>
+		</div><div>
 			The "is_form_valid" computable cell depends on "login" cell. It's value is calculated with is_email_valid function and it's definitely a Boolean.
 			Than, if the form is valid, we set the class "valid" to nodes found with "form" selector in scope of "$real_el".
-		</div>
-		<div class="nb">
+		</div><div class="nb">
 			Notice that if you write like this: <div class="subcode">login: 'input[name=login]|val',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|val'.
 			We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
+		</div><div>
+			Frankly speaking, we could write the same a bit simpler:
+		</div>
+<code class="js">
+{
+	$real_el: document.getElementById('fr-app'),
+	"form|hasClass(valid)": [is_long, 'input[name=login]|val'],
+}
+</code>
+		<div>
+			...but the field <span class="mn">is_login_valid</span> will help us later.
+		</div>
+		<ul class="pq">
+			<li>
+				<div class="q">Will it work without $real_el defined?</div>
+				<div class="answer">
+					No
+				</div>
+			</li>
+		</ul>
+	</div>
+	<div>
+		<h2>"Total FRP" concept</h2>
+		<div>
+			One may associate "event streams" with something that is naturally look like this. E.g., mouse clicks. But if you look closer to previous example, you can see that every values that depens on event is also an event stream!
+			'input[name=login]|val' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
+		</div><div>This table how the values of these cells change as user enters something into input:</div><div>
+			<table class="tbl">
+			<tr><td>"input[name=login]" DOM node value        </td><td>"input[name=login]" cell </td><td> "is_login_valid" cell </td></tr>
+			<tr><td> M     </td><td> M </td><td> false </td></tr>
+			<tr><td> My      </td><td>  My  </td><td>   false </td></tr>
+			<tr><td> Myk </td><td> Myk   </td><td>    true </td></tr>
+			<tr><td> Myko </td><td> Myko    </td><td>    true </td></tr>
+			<tr><td> Mykol </td><td> Mykol    </td><td>    true </td></tr>
+			<tr><td> Mykola </td><td> Mykola   </td><td>    true </td></tr>
+			</table>
 		</div>
 		<div>
-			
+			This is an example how one stream depens on other with formula. I call this "Total FRP" concept, which means that all values in application should be event streams which depend on each other.
 		</div>
-					
 	</div>
+	<div>
+		<h2>Managing streams</h2>
+		<div>
+			We need to validate also user's email(with RegExp) and text(it' should be not empty).
+		</div>
+<code>
+const simple_email_regex = /\S+@\S+\.\S+/;
+const is_email_valid = (str) => {
+	return simple_email_regex.test(str);
+}
+var is_long = a => a.length > 2;
+
+var base = {
+	$real_el: document.getElementById('fr-app'),
+	login: ['input[name=login]|val'],
+	is_login_valid: [is_long, 'login'],
+	email: ['input[type=email]|val'],
+	is_email_valid: [is_email_valid, 'email'],
+	is_form_valid: ['&&', 'is_email_valid', 'is_login_valid'],
+	"form|hasClass(valid)": ['is_form_valid'],
+}
+var app = Firera({
+	__root: base,
+	$packages: ['HtmlCells']
+});
+</code>
+		<div>
+		The form is valid when both login and email are valid.
+		We implement this by using '&&'. It's a built-in Firera function that works like '&&' operator in JS, but on data streams instead of simple values.
+		The equivalent is to write:
+		</div>
+<code>
+	is_form_valid: [(a, b) => {
+		return Boolean(a && b);
+	}, 'is_email_valid', 'is_login_valid'],
+</code>
+		<div>
+			Each time the values of 'is_email_valid' or 'is_login_valid' changes, the function is run passing both arguments.
+			The '&&' built-it function is just a kind of 'syntactic sugar' that shortens your code.
+		</div>
 	</div>
 	</div>
 			<script>
