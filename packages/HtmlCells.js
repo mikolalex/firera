@@ -361,9 +361,17 @@ module.exports = {
 						}
 					break;
 					case 'css':
-						const [property] = params;
+						var [property, unit] = params;
+						if(unit){
+							unit = unit.trim();
+						}
 						func = function(el, val){
-							el[0].style[property] = val + 'px';
+							if(unit){
+								val = val + unit;
+							}
+							if(el && el[0]){
+								el[0].style[property] = val;
+							}
 						}
 					break;
 					case 'display':

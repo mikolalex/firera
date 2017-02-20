@@ -3469,277 +3469,282 @@ module.exports = {
 				if (context === 'setter' && !setters.has(aspect) || context !== 'setter' && setters.has(aspect)) {
 					return;
 				}
-
-				(function () {
-					switch (aspect) {
-						case 'getval':
-							func = function func(cb, vals) {
-								var onch = function onch(el) {
-									var type = el.getAttribute('type');
-									var val;
-									if (type == 'checkbox') {
-										val = el.hasAttribute('checked');
-									} else {
-										val = el.value;
-									}
-									//console.log('CHange', el, val, selector);
-									make_resp(cb, val);
-								};
-
-								var _vals = _slicedToArray(vals, 2),
-								    $prev_el = _vals[0],
-								    $now_el = _vals[1];
-
-								var prev_el = raw($prev_el);
-								var el = raw($now_el);
-								var onChange = function onChange(e) {
-									if (!all_subtree && !filter_attr_in_path(e, el)) {
-										return;
-									}
-									onch(e.target);
-								};
-								var onKeyup = function onKeyup(e) {
-									if (!all_subtree && !filter_attr_in_path(e, el)) {
-										return;
-									}
-									var elem = e.target;
-									var type = elem.getAttribute('type');
-									var val;
-									if (type == 'checkbox') {
-										return;
-									} else {
-										val = elem.value;
-									}
-									make_resp(cb, val);
-								};
-								//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
-								if (Firera.is_def($prev_el)) {
-									Gator(prev_el).off('keyup', selector);
-									Gator(prev_el).off('change', selector);
+				switch (aspect) {
+					case 'getval':
+						func = function func(cb, vals) {
+							var onch = function onch(el) {
+								var type = el.getAttribute('type');
+								var val;
+								if (type == 'checkbox') {
+									val = el.hasAttribute('checked');
+								} else {
+									val = el.value;
 								}
-								if (Firera.is_def($now_el)) {
-									Gator(el).on('keyup', selector, onKeyup);
-									Gator(el).on('change', selector, onChange);
-								}
+								//console.log('CHange', el, val, selector);
+								make_resp(cb, val);
 							};
-							break;
-						case 'click':
-							if (selector === 'other') {
-								func = function func(cb, vals) {
-									if (!vals) return;
 
-									var _vals2 = _slicedToArray(vals, 2),
-									    $prev_el = _vals2[0],
-									    $now_el = _vals2[1];
+							var _vals = _slicedToArray(vals, 2),
+							    $prev_el = _vals[0],
+							    $now_el = _vals[1];
 
-									$prev_el = raw($prev_el);
-									$now_el = raw($now_el);
-									if (!Firera.is_def($now_el)) return;
-									document.addEventListener('click', function (e) {
-										var ot = e.srcElement || e.originalTarget;
-										var is_other = $now_el.contains(ot);
-										if (is_other) {
-											make_resp(cb, true);
-										}
-									});
-								};
-							} else {
-								func = function func(cb, vals) {
-									if (!vals) return;
-
-									var _vals3 = _slicedToArray(vals, 2),
-									    $prev_el = _vals3[0],
-									    $now_el = _vals3[1];
-
-									if (!Firera.is_def($now_el)) return;
-									var prev_el = raw($prev_el);
-									var now_el = raw($now_el);
-									//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-									if (prev_el && prev_el !== Firera.undef) {
-										Gator(prev_el).off('click');
-									}
-									if (!$now_el) {
-										_utils2.default.warn('Assigning handlers to nothing', $now_el);
-									}
-									Gator(now_el).on('click', selector, function (e) {
-										if (!all_subtree && !filter_attr_in_path(e, now_el)) {
-											return;
-										}
-										make_resp(cb, e);
-										if (e.originalEvent && e.originalEvent.target) {
-											trigger_event('click', document, e.originalEvent.target);
-										}
-										e.preventDefault();
-										//return false;
-									});
-								};
+							var prev_el = raw($prev_el);
+							var el = raw($now_el);
+							var onChange = function onChange(e) {
+								if (!all_subtree && !filter_attr_in_path(e, el)) {
+									return;
+								}
+								onch(e.target);
+							};
+							var onKeyup = function onKeyup(e) {
+								if (!all_subtree && !filter_attr_in_path(e, el)) {
+									return;
+								}
+								var elem = e.target;
+								var type = elem.getAttribute('type');
+								var val;
+								if (type == 'checkbox') {
+									return;
+								} else {
+									val = elem.value;
+								}
+								make_resp(cb, val);
+							};
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
+							if (Firera.is_def($prev_el)) {
+								Gator(prev_el).off('keyup', selector);
+								Gator(prev_el).off('change', selector);
 							}
-							break;
-						case 'focus':
+							if (Firera.is_def($now_el)) {
+								Gator(el).on('keyup', selector, onKeyup);
+								Gator(el).on('change', selector, onChange);
+							}
+						};
+						break;
+					case 'click':
+						if (selector === 'other') {
 							func = function func(cb, vals) {
 								if (!vals) return;
 
-								var _vals4 = _slicedToArray(vals, 2),
-								    $prev_el = _vals4[0],
-								    $now_el = _vals4[1];
+								var _vals2 = _slicedToArray(vals, 2),
+								    $prev_el = _vals2[0],
+								    $now_el = _vals2[1];
 
+								$prev_el = raw($prev_el);
+								$now_el = raw($now_el);
 								if (!Firera.is_def($now_el)) return;
-								if ($prev_el) {
-									// @todo
-								}
-								var el = raw($now_el);
-								Gator(el).on('focus', selector, function (e) {
-									if (!all_subtree && !filter_attr_in_path(e, el)) {
-										return;
+								document.addEventListener('click', function (e) {
+									var ot = e.srcElement || e.originalTarget;
+									var is_other = $now_el.contains(ot);
+									if (is_other) {
+										make_resp(cb, true);
 									}
-									make_resp(cb, e);
-									return false;
 								});
 							};
-							break;
-						case 'scrollPos':
+						} else {
 							func = function func(cb, vals) {
 								if (!vals) return;
 
-								var _vals5 = _slicedToArray(vals, 2),
-								    $prev_el = _vals5[0],
-								    $now_el = _vals5[1];
+								var _vals3 = _slicedToArray(vals, 2),
+								    $prev_el = _vals3[0],
+								    $now_el = _vals3[1];
 
 								if (!Firera.is_def($now_el)) return;
-								if ($prev_el) {
-									// @todo
-								}
-								var el = raw($now_el);
-								var element = el.querySelector(selector);
-
-								var _params = params,
-								    _params2 = _slicedToArray(_params, 1),
-								    direction = _params2[0];
-
-								var mn = { 'Y': 'scrollTop', 'X': 'scrollLeft' }[direction];
-								element.addEventListener('scroll', function (e) {
-									make_resp(cb, e.target[mn]);
-								});
-							};
-							break;
-						case 'press':
-							func = function func(cb, vals) {
-								var _vals6 = _slicedToArray(vals, 2),
-								    prev_el = _vals6[0],
-								    now_el = _vals6[1];
-
-								if (!Firera.is_def(now_el)) return;
+								var prev_el = raw($prev_el);
+								var now_el = raw($now_el);
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-								if (prev_el) {
-									//$prev_el.off('keyup', selector);
+								if (prev_el && prev_el !== Firera.undef) {
+									Gator(prev_el).off('click');
 								}
-								now_el = raw(now_el);
-								Gator(now_el).on('keyup', selector, function (e) {
+								if (!$now_el) {
+									_utils2.default.warn('Assigning handlers to nothing', $now_el);
+								}
+								Gator(now_el).on('click', selector, function (e) {
 									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
 										return;
 									}
-									var btn_map = {
-										'13': 'Enter',
-										'27': 'Esc'
-									};
-									if (params.indexOf(btn_map[e.keyCode]) !== -1) {
-										make_resp(cb, e);
+									make_resp(cb, e);
+									if (e.originalEvent && e.originalEvent.target) {
+										trigger_event('click', document, e.originalEvent.target);
 									}
+									e.preventDefault();
+									//return false;
 								});
 							};
-							break;
-						case 'hasClass':
-							func = function func($el, val) {
-								if (!Firera.is_def($el)) return;
-								if (!Firera.is_def(val)) {
-									val = false;
+						}
+						break;
+					case 'focus':
+						func = function func(cb, vals) {
+							if (!vals) return;
+
+							var _vals4 = _slicedToArray(vals, 2),
+							    $prev_el = _vals4[0],
+							    $now_el = _vals4[1];
+
+							if (!Firera.is_def($now_el)) return;
+							if ($prev_el) {
+								// @todo
+							}
+							var el = raw($now_el);
+							Gator(el).on('focus', selector, function (e) {
+								if (!all_subtree && !filter_attr_in_path(e, el)) {
+									return;
 								}
-								$el = raw($el);
+								make_resp(cb, e);
+								return false;
+							});
+						};
+						break;
+					case 'scrollPos':
+						func = function func(cb, vals) {
+							if (!vals) return;
 
-								var _params3 = params,
-								    _params4 = _slicedToArray(_params3, 1),
-								    classname = _params4[0];
+							var _vals5 = _slicedToArray(vals, 2),
+							    $prev_el = _vals5[0],
+							    $now_el = _vals5[1];
 
-								toggle_class($el, classname, val);
-							};
-							break;
-						case 'enterText':
-							func = function func(cb, vals) {
-								var _vals7 = _slicedToArray(vals, 2),
-								    $prev_el = _vals7[0],
-								    $now_el = _vals7[1];
+							if (!Firera.is_def($now_el)) return;
+							if ($prev_el) {
+								// @todo
+							}
+							var el = raw($now_el);
+							var element = el.querySelector(selector);
 
-								if (!$now_el) return;
-								if ($prev_el) {
-									//$prev_el.off('keyup', selector);
+							var _params = params,
+							    _params2 = _slicedToArray(_params, 1),
+							    direction = _params2[0];
+
+							var mn = { 'Y': 'scrollTop', 'X': 'scrollLeft' }[direction];
+							element.addEventListener('scroll', function (e) {
+								make_resp(cb, e.target[mn]);
+							});
+						};
+						break;
+					case 'press':
+						func = function func(cb, vals) {
+							var _vals6 = _slicedToArray(vals, 2),
+							    prev_el = _vals6[0],
+							    now_el = _vals6[1];
+
+							if (!Firera.is_def(now_el)) return;
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+							if (prev_el) {
+								//$prev_el.off('keyup', selector);
+							}
+							now_el = raw(now_el);
+							Gator(now_el).on('keyup', selector, function (e) {
+								if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+									return;
 								}
-								var el = raw($now_el);
-								el.onkeyup = function (e) {
-									if (e.target === el.querySelector(selector)) {
-										if (!all_subtree && !filter_attr_in_path(e, el)) {
-											return;
-										}
-										if (e.keyCode == 13) {
-											make_resp(cb, e.target.value);
-										}
-									}
+								var btn_map = {
+									'13': 'Enter',
+									'27': 'Esc'
 								};
-							};
-							break;
-						case 'visibility':
-							func = function func(el, val) {
-								if (!Firera.is_def(el)) {
-									return;
+								if (params.indexOf(btn_map[e.keyCode]) !== -1) {
+									make_resp(cb, e);
 								}
-								if (val === undefined) {
-									return;
-								}
-								el = raw(el);
-								if (val) {
-									el.style.visibility = 'visible';
-								} else {
-									el.style.visibility = 'hidden';
-								}
-							};
-							break;
-						case 'css':
-							var _params5 = params,
-							    _params6 = _slicedToArray(_params5, 1),
-							    property = _params6[0];
+							});
+						};
+						break;
+					case 'hasClass':
+						func = function func($el, val) {
+							if (!Firera.is_def($el)) return;
+							if (!Firera.is_def(val)) {
+								val = false;
+							}
+							$el = raw($el);
 
-							func = function func(el, val) {
-								el[0].style[property] = val + 'px';
-							};
-							break;
-						case 'display':
-							func = function func(el, val) {
-								if (!Firera.is_def(el) || val === undefined) {
-									return;
-								}
+							var _params3 = params,
+							    _params4 = _slicedToArray(_params3, 1),
+							    classname = _params4[0];
 
-								el = raw(el);
-								if (val) {
-									el.style.display = 'block';
-								} else {
-									el.style.display = 'none';
-								}
-							};
-							break;
-						case 'setval':
-							func = function func(el, val) {
-								if (!Firera.is_def(el) || !Firera.is_def(val)) {
-									return;
-								}
-								el = raw(el);
-								el.value = val;
-							};
-							break;
-						default:
-							throw new Error('unknown HTML aspect: ' + aspect);
-							break;
-					}
-				})();
+							toggle_class($el, classname, val);
+						};
+						break;
+					case 'enterText':
+						func = function func(cb, vals) {
+							var _vals7 = _slicedToArray(vals, 2),
+							    $prev_el = _vals7[0],
+							    $now_el = _vals7[1];
 
+							if (!$now_el) return;
+							if ($prev_el) {
+								//$prev_el.off('keyup', selector);
+							}
+							var el = raw($now_el);
+							el.onkeyup = function (e) {
+								if (e.target === el.querySelector(selector)) {
+									if (!all_subtree && !filter_attr_in_path(e, el)) {
+										return;
+									}
+									if (e.keyCode == 13) {
+										make_resp(cb, e.target.value);
+									}
+								}
+							};
+						};
+						break;
+					case 'visibility':
+						func = function func(el, val) {
+							if (!Firera.is_def(el)) {
+								return;
+							}
+							if (val === undefined) {
+								return;
+							}
+							el = raw(el);
+							if (val) {
+								el.style.visibility = 'visible';
+							} else {
+								el.style.visibility = 'hidden';
+							}
+						};
+						break;
+					case 'css':
+						var _params5 = params,
+						    _params6 = _slicedToArray(_params5, 2),
+						    property = _params6[0],
+						    unit = _params6[1];
+
+						if (unit) {
+							unit = unit.trim();
+						}
+						func = function func(el, val) {
+							if (unit) {
+								val = val + unit;
+							}
+							if (el && el[0]) {
+								el[0].style[property] = val;
+							}
+						};
+						break;
+					case 'display':
+						func = function func(el, val) {
+							if (!Firera.is_def(el) || val === undefined) {
+								return;
+							}
+
+							el = raw(el);
+							if (val) {
+								el.style.display = 'block';
+							} else {
+								el.style.display = 'none';
+							}
+						};
+						break;
+					case 'setval':
+						func = function func(el, val) {
+							if (!Firera.is_def(el) || !Firera.is_def(val)) {
+								return;
+							}
+							el = raw(el);
+							el.value = val;
+						};
+						break;
+					default:
+						throw new Error('unknown HTML aspect: ' + aspect);
+						break;
+				}
 				if (context === 'setter') {
 					_Parser2.default.parse_fexpr([func, [function (a) {
 						if (!Firera.is_def(a)) return false;

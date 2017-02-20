@@ -29,11 +29,9 @@ function handleErrors() {
 // Based on: http://blog.avisi.nl/2014/04/25/how-to-keep-a-fast-build-with-browserify-and-reactjs/
 function buildScript(ep, watch) {
   var props = {entries: [ep[0] + ep[1]]};
-  var bundler = watchify(browserify(props).transform(babelify, {
-		// Use all of the ES2015 spec
-		presets: [es2015],
-		sourceMaps: false
-	}));
+  var bundler = watchify(browserify(props)
+		.transform(babelify, {presets: [es2015], sourceMaps: false})
+  );
   function rebundle() {
     return bundler
 			.bundle({debug: true})
