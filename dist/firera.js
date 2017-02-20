@@ -5196,7 +5196,7 @@ var traverse_tree = function traverse_tree(root_node, cb) {
 	}
 };
 
-var text_var_regexp = /\{\{([a-zA-Z0-9]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
+var text_var_regexp = /\{\{([a-zA-Z0-9\_]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
 
 var Ozenfant = function Ozenfant(str) {
 	if (str instanceof Object) {
@@ -6145,6 +6145,7 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 			for (var c in binding.children) {
 				if (Number(c) != c) continue;
 				var child = binding.children[c];
+				if (!val_arr) debugger;
 				cb(child, val_arr.concat(scope[c]), c);
 			}
 		});
@@ -6237,7 +6238,8 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					binding.style[this.var_types[key].name] = val;
 					break;
 				case 'LOOP':
-					this.setLoop(key, val, old_val, binding, loop_context);
+					var ct = loop_context || [this.state];
+					this.setLoop(key, val, old_val, binding, ct);
 					break;
 				default:
 					var func;
@@ -6292,8 +6294,8 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 	if (this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop) {
 		for (var cn in this.varname_pool.loop_var_links[key]) {
 			var l_loop = this.varname_pool.loop_var_links[key][cn];
-			this.eachLoopBinding(l_loop, function (node, val, i) {
-				_this4.set(cn, val, l_loop, node, old_val, true, val);
+			this.eachLoopBinding(l_loop, function (node, loop_ctx, i) {
+				_this4.set(cn, val, l_loop, node, old_val, true, loop_ctx);
 			});
 		}
 	}
@@ -6347,6 +6349,9 @@ Ozenfant.xpOne = function (path) {
 
 	if (node !== document && path[0] === '/') {
 		path = path.substr(1);
+	}
+	if (path === '') {
+		return node;
 	}
 	return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
 };

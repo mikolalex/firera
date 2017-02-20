@@ -23,6 +23,8 @@ and open the template in the editor.
 					.row {
 						background-color: #b7d1e4;
 						border: 2px solid white;
+						clear: left;
+						overflow: hidden;
 					}
 					
 					.row > * {
@@ -40,20 +42,9 @@ and open the template in the editor.
 				</style>
 		</head>
 		<body>
-				<div id="main"></div>
-				<div id="content"></div>
-				<div class="test-ozenfant"></div>
-				<div class="test-vgrid">
-					<div class="outer">
-						<div class="inner"></div>
-						<div class="vtable">
-							wd
-						</div>
-					</div>
-					<input type="range" min="10" max="40" step="1" value="30"/>
-				</div>
-				<script src="../../dist/firera.js"></script>
-				<script src="../../FireraInspector/jquery.js"></script>
-				<script src="index.js"></script>
+			<div class="test-vgrid"></div>
+			<script src="../../dist/firera.js"></script>
+			<script src="../../FireraInspector/jquery.js"></script>
+			<script src="index.js"></script>
 		</body>
 </html>

@@ -1,3 +1,4 @@
+// pure functions section
 const generate_data = (len) => {
 	var res = [];
 	for(let i = 0; i <= len; i++){
@@ -14,33 +15,35 @@ const add_px = (h) => h + 'px';
 const floorDiv = (a, b) => Math.floor(a/b);
 const ceilDiv = (v, l) => Math.ceil(v/l);
 
+// template section
 const $template = `
-	.(max-width: 600px, margin: auto, a:b)
+	.(max-width: 600px, margin: auto)
+		style
+			".row {height: {{line_height_px}} }"
 		.outer
 			.inner
 			.vtable
 				.prokl(margin-top: $top_offset){$data}
-					.row(height: $line_height_px)
+					.row
 						.id$.id
 						.num$.num
 		form
-			range(min: 10, max: 30, step: 1, value: 10)
-			" - line height"
-
+			range(min: 20, max: 60, step: 1, value: 20)
+			" - line height" 
 `;
+// init data section
 const $init = {
-	line_height: 30,
+	line_height: 20,
 	from: 0,
 	viewport_heigth: 600,
 	dataRowsLength: 100000,
+	posY: 0,
+	$el: document.getElementsByClassName('test-vgrid')[0]
 }
-
-const $el = document.getElementsByClassName('test-vgrid')[0];
-
-var app = Firera({
+// app itself
+const app = Firera({
 	__root: {
 		$template,
-		$el,
 		$init,
 		line_height: ['[type=range]|getval'],
 		posY: ['.outer|scrollPos(Y)'],
