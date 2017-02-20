@@ -273,6 +273,23 @@ module.exports = {
 							});
 						}
 					break;
+					case 'scrollPos':
+						func = function(cb, vals){
+							if(!vals) return;
+							const [$prev_el, $now_el] = vals;
+							if(!Firera.is_def($now_el)) return;
+							if($prev_el){
+								// @todo
+							}
+							const el = raw($now_el);
+							const element = el.querySelector(selector);
+							const [direction] = params;
+							const mn = {'Y': 'scrollTop', 'X': 'scrollLeft'}[direction];
+							element.addEventListener('scroll', function(e) {
+								make_resp(cb, e.target[mn]);
+							});
+						}
+					break;
 					case 'press':
 						func = function(cb, vals){
 							var [prev_el, now_el] = vals;
@@ -346,8 +363,7 @@ module.exports = {
 					case 'css':
 						const [property] = params;
 						func = function(el, val){
-							//console.log('running css setter', $el);
-							el.style[property] = val;
+							el[0].style[property] = val + 'px';
 						}
 					break;
 					case 'display':

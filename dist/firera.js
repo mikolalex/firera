@@ -3597,11 +3597,36 @@ module.exports = {
 								});
 							};
 							break;
+						case 'scrollPos':
+							func = function func(cb, vals) {
+								if (!vals) return;
+
+								var _vals5 = _slicedToArray(vals, 2),
+								    $prev_el = _vals5[0],
+								    $now_el = _vals5[1];
+
+								if (!Firera.is_def($now_el)) return;
+								if ($prev_el) {
+									// @todo
+								}
+								var el = raw($now_el);
+								var element = el.querySelector(selector);
+
+								var _params = params,
+								    _params2 = _slicedToArray(_params, 1),
+								    direction = _params2[0];
+
+								var mn = { 'Y': 'scrollTop', 'X': 'scrollLeft' }[direction];
+								element.addEventListener('scroll', function (e) {
+									make_resp(cb, e.target[mn]);
+								});
+							};
+							break;
 						case 'press':
 							func = function func(cb, vals) {
-								var _vals5 = _slicedToArray(vals, 2),
-								    prev_el = _vals5[0],
-								    now_el = _vals5[1];
+								var _vals6 = _slicedToArray(vals, 2),
+								    prev_el = _vals6[0],
+								    now_el = _vals6[1];
 
 								if (!Firera.is_def(now_el)) return;
 								//console.log('Assigning handlers for ', cellname, arguments, $now_el);
@@ -3631,18 +3656,18 @@ module.exports = {
 								}
 								$el = raw($el);
 
-								var _params = params,
-								    _params2 = _slicedToArray(_params, 1),
-								    classname = _params2[0];
+								var _params3 = params,
+								    _params4 = _slicedToArray(_params3, 1),
+								    classname = _params4[0];
 
 								toggle_class($el, classname, val);
 							};
 							break;
 						case 'enterText':
 							func = function func(cb, vals) {
-								var _vals6 = _slicedToArray(vals, 2),
-								    $prev_el = _vals6[0],
-								    $now_el = _vals6[1];
+								var _vals7 = _slicedToArray(vals, 2),
+								    $prev_el = _vals7[0],
+								    $now_el = _vals7[1];
 
 								if (!$now_el) return;
 								if ($prev_el) {
@@ -3678,13 +3703,12 @@ module.exports = {
 							};
 							break;
 						case 'css':
-							var _params3 = params,
-							    _params4 = _slicedToArray(_params3, 1),
-							    property = _params4[0];
+							var _params5 = params,
+							    _params6 = _slicedToArray(_params5, 1),
+							    property = _params6[0];
 
 							func = function func(el, val) {
-								//console.log('running css setter', $el);
-								el.style[property] = val;
+								el[0].style[property] = val + 'px';
 							};
 							break;
 						case 'display':
@@ -5152,7 +5176,7 @@ var last = function last(arr) {
 	return arr[arr.length - 1];
 };
 
-var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value']);
+var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value', 'min', 'max', 'step']);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
 };
@@ -5286,6 +5310,7 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 	var original_varname = varname;
 	if (varname_pool.vars[varname]) {
 		// already exists!
+		//console.log('VAR', varname, 'already exists!');
 		init_if_empty(varname_pool.var_aliases, varname, []);
 		var new_name = prefix + varname + '_' + varname_pool.var_aliases[varname].length;
 		varname_pool.var_aliases[varname].push(new_name);
@@ -5536,7 +5561,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 	}
 };
 
-var input_types = new Set(['text', 'submit', 'checkbox', 'radio']);
+var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range']);
 
 var toHTML = function toHTML(node, context, parent_tag) {};
 
@@ -6025,6 +6050,34 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, c
 			continue;
 		}
 		var varname = prefix + k;
+		if (this.varname_pool.var_aliases[varname]) {
+			var _iteratorNormalCompletion9 = true;
+			var _didIteratorError9 = false;
+			var _iteratorError9 = undefined;
+
+			try {
+				for (var _iterator9 = this.varname_pool.var_aliases[varname][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+					var vn = _step9.value;
+
+					if (loop.paths[vn]) {
+						this.set(vn, val[k], loop, binding, old_val[k], false, context);
+					}
+				}
+			} catch (err) {
+				_didIteratorError9 = true;
+				_iteratorError9 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion9 && _iterator9.return) {
+						_iterator9.return();
+					}
+				} finally {
+					if (_didIteratorError9) {
+						throw _iteratorError9;
+					}
+				}
+			}
+		}
 		if (loop.paths[varname]) {
 			this.set(varname, val[k], loop, binding, old_val[k], false, context);
 		}
@@ -6032,12 +6085,17 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, c
 };
 
 Ozenfant.prototype.removeLoopItem = function (binding, i) {
-	binding.children[i].remove();
+	if (binding.children[i]) {
+		binding.children[i].remove();
+	} else {
+		console.warn('Cannot remove unexisting', i);
+	}
 };
-Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding, context) {
+Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, binding, context) {
 	var res = [];
 	var func = this.var_types[loop].func;
 	for (var i = from; i <= to; ++i) {
+		old_val[i] = val[i];
 		res.push(func.apply(null, context.concat(val[i])));
 	}
 	// !!! should be rewritten!
@@ -6045,16 +6103,18 @@ Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding, contex
 };
 
 Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
+	var skip_removing = false;
 	for (var i in val) {
 		if (old_val[i]) {
 			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
 		} else {
-			this.addLoopItems(loopname, i, val.length - 1, val, binding, parent_context);
+			skip_removing = true;
+			this.addLoopItems(loopname, i, val.length - 1, val, old_val, binding, parent_context);
 			break;
 		}
 	}
 	++i;
-	if (old_val[i]) {
+	if (old_val[i] && !skip_removing) {
 		var init_i = i;
 		var del_count = 0;
 		for (; old_val[i]; i++) {
@@ -6233,27 +6293,27 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 		}
 	}
 	if (this.varname_pool.var_aliases[key]) {
-		var _iteratorNormalCompletion9 = true;
-		var _didIteratorError9 = false;
-		var _iteratorError9 = undefined;
+		var _iteratorNormalCompletion10 = true;
+		var _didIteratorError10 = false;
+		var _iteratorError10 = undefined;
 
 		try {
-			for (var _iterator9 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-				var k = _step9.value;
+			for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+				var k = _step10.value;
 
 				this.set(k, val, loop, loop_binding, old_data, true);
 			}
 		} catch (err) {
-			_didIteratorError9 = true;
-			_iteratorError9 = err;
+			_didIteratorError10 = true;
+			_iteratorError10 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion9 && _iterator9.return) {
-					_iterator9.return();
+				if (!_iteratorNormalCompletion10 && _iterator10.return) {
+					_iterator10.return();
 				}
 			} finally {
-				if (_didIteratorError9) {
-					throw _iteratorError9;
+				if (_didIteratorError10) {
+					throw _iteratorError10;
 				}
 			}
 		}

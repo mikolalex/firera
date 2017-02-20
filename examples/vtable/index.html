@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+		<head>
+				<title>Virtual table</title>
+				<meta charset="windows-1251">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<style>
+					.outer {
+						width: 400px;
+						border: 1px solid grey;
+						overflow-y: scroll;
+						overflow-x: hidden;
+						height: 400px;
+						position: relative;
+					}
+					
+					.inner {
+						height: 1000px;
+						background-color: whitesmoke;
+					}
+					
+					.row {
+						border-top: 1px solid black;
+					}
+					
+					.row > * {
+						float: left;
+						padding: 0px 10px;
+					}
+					
+					.vtable {
+						position: absolute;
+						top: 0px;
+						left: 0px;
+						right: 0px;
+						overflow-y: hidden;
+						height: 400px;
+						background-color: green;
+					}
+				</style>
+		</head>
+		<body>
+				<div id="main"></div>
+				<div id="content"></div>
+				<div class="test-ozenfant"></div>
+				<div class="test-vgrid">
+					<div class="outer">
+						<div class="inner"></div>
+						<div class="vtable">
+							wd
+						</div>
+					</div>
+					<input type="range" min="10" max="40" step="1" value="30"/>
+				</div>
+				<script src="../../dist/firera.js"></script>
+				<script src="../../FireraInspector/jquery.js"></script>
+				<script src="index.js"></script>
+		</body>
+</html>
