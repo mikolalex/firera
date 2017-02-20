@@ -11,8 +11,7 @@ var buffer = require('vinyl-buffer');
 var rename = require("gulp-rename");
 
 var entryPoints = {
-	main: ['./', 'firera.js', './dist'],
-	inspector: ['./', 'firera.js', './FireraInspector'],
+	main: ['./', 'firera.js', ['./dist', './FireraInspector', './examples']],
 	test: ['./test/', 'test.js', './test/br'],
 	benchmarks: ['./benchmarks/', 'index.js', './benchmarks/br']
 }
@@ -33,13 +32,20 @@ function buildScript(ep, watch) {
 		.transform(babelify, {presets: [es2015], sourceMaps: false})
   );
   function rebundle() {
-    return bundler
+    const b = bundler
 			.bundle({debug: true})
 			.on('error', handleErrors)
 			.pipe(source(ep[1]))
 			.pipe(buffer())
-			.pipe(sourcemaps.init({loadMaps: true}))
-			.pipe(gulp.dest(ep[2] + '/'));
+			.pipe(sourcemaps.init({loadMaps: true}));
+	if(ep[2] instanceof Array){
+		for(var p of ep[2]){
+			b.pipe(gulp.dest(p + '/'));
+		}
+	} else {
+		b.pipe(gulp.dest(ep[2] + '/'));
+	}
+	return b;
   }
   bundler.on('update', function() {
     rebundle();

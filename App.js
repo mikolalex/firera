@@ -173,6 +173,9 @@ const cb_prot = {
 	cell_children(cell) {
 		return this.cell_types[cell] ? this.cell_types[cell].children : {};
 	}, 
+	setLevel(cell, level) {
+		this.levels[cell] = level;
+	},
 	setLevels() {
 		var level = 1;
 		this.levels = {};
@@ -181,7 +184,7 @@ const cb_prot = {
 		const pool = [];
 		for(let i in this.cell_types){
 			if(this.cell_types[i].parents.length === 0){
-				this.levels[i] = 1;
+				this.setLevel(i, 1);
 				for(let j in this.cell_types[i].children){
 					pool.push(j);
 					this.setLevelsRec(j, already_set);
@@ -209,11 +212,11 @@ const cb_prot = {
 		}
 		if(this.levels[cellname]){
 			if(max_level + 1 > this.levels[cellname]){
-				this.levels[cellname] = max_level + 1;
+				this.setLevel(cellname, max_level + 1);
 			}
 			return;
 		} else {
-			this.levels[cellname] = max_level + 1;
+			this.setLevel(cellname, max_level + 1);
 		}
 		for(let cell in this.cell_children(cellname)){
 			if(pool.indexOf(cell) === -1){
@@ -236,7 +239,7 @@ const cb_prot = {
 		}
 		if(this.levels[cellname]){
 			if(max_level + 1 > this.levels[cellname]){
-				this.levels[cellname] = max_level + 1;
+				this.setLevel(cellname, max_level + 1);
 			}
 			for(let cell in this.cell_children(cellname)){
 				if(this.levels[cell] <= this.levels[cellname]){
@@ -249,13 +252,17 @@ const cb_prot = {
 			}
 			return;
 		} else {
-			this.levels[cellname] = max_level + 1;
+			this.setLevel(cellname, max_level + 1);
 		}
 		//console.log('New level for', cellname, 'is', max_level + 1);
 		for(let cell in this.cell_children(cellname)){
 			if(!(already_set.has(cell))){
 				already_set.add(cell);
 				this.setLevelsRec(cell, already_set);
+			} else {
+				if(this.levels[cell] <= this.levels[cellname]){
+					this.setLevelsRec(cell, already_set);
+				}
 			}
 		}
 	}
