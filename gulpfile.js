@@ -11,7 +11,7 @@ var buffer = require('vinyl-buffer');
 var rename = require("gulp-rename");
 
 var entryPoints = {
-	main: ['./', 'firera.js', ['./dist', './FireraInspector', './examples']],
+	main: ['./', 'firera.js', ['./dist', './FireraInspector', './examples', './docs']],
 	test: ['./test/', 'test.js', './test/br'],
 	benchmarks: ['./benchmarks/', 'index.js', './benchmarks/br']
 }
