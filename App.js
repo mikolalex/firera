@@ -109,6 +109,9 @@ const get_app_struct = (app) => {
 const App = function(config, root_package_pool){
 	this.id = ++appIds;
 	this.config = config;
+	if(this.config.storeChanges){
+		this.changesPool = [];
+	}
 	this.grid_create_counter = 0;
 	this.packagePool = new PackagePool(root_package_pool, this.id);
 	if(config.packages){
@@ -295,21 +298,22 @@ App.prototype.startChange = function() {
 	if(this.changeObj){
 		utils.warn('old change not released!', this.changeObj);
 	}
-	this.changeObj = {};
+	this.changeObj = [];
 }
 App.prototype.endChange = function() {
 	if(!this.config.trackChanges) return;
 	if(!this.changeObj){
 		utils.warn('change doesnt exist!');
 	}
+	if(this.config.storeChanges){
+		this.changesPool.push(changeObj);
+	}
 	if(this.config.trackChangesType === 'log'){
-		console.log('==========================');
-		for(let gridId in this.changeObj){
-			console.log('__________________________', this.getGrid(gridId).name);
-			for(let [cell, val] of this.changeObj[gridId]){
-				const cellname = cell + (new Array(Math.max(0, 23 - cell.length)).join(' '));
-				console.log('|', cellname, '|', val, '|');
-			}
+		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+		for(let [path, cell, val] of this.changeObj){
+			const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
+			const cellname = cell + (new Array(Math.max(0, 23 - cell.length)).join(' '));
+			console.log('|', pathname, '|', cellname, '|', val, '|');
 		}
 	} else {
 		console.log(this.changeObj);

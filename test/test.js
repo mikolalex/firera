@@ -1060,8 +1060,11 @@ describe('Firera tests', function () {
 				$template: todo_template,
 				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
-			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			}
+		}, {
+			packages: ['neu_ozenfant', 'htmlCells'],
+			trackChanges: true,//['pos_y', 'top_offset'],
+			trackChangesType: 'log',
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');

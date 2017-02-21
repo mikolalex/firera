@@ -728,8 +728,7 @@ Grid.prototype.set_cell_value = function(cell, val){
 			(this.app.config.trackChanges.indexOf(cell) === -1)){
 			return;
 		}
-		utils.init_if_empty(this.app.changeObj, this.id, []);
-		this.app.changeObj[this.id].push([cell, val]);
+		this.app.changeObj.push([this.path, cell, val]);
 	}
 	if(this.side_effects[cell]){	
 		if(!Parser.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], Parser.side_effects);

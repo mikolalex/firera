@@ -197,6 +197,9 @@ var get_app_struct = function get_app_struct(app) {
 var App = function App(config, root_package_pool) {
 	this.id = ++appIds;
 	this.config = config;
+	if (this.config.storeChanges) {
+		this.changesPool = [];
+	}
 	this.grid_create_counter = 0;
 	this.packagePool = new _PackagePool2.default(root_package_pool, this.id);
 	if (config.packages) {
@@ -469,42 +472,44 @@ App.prototype.startChange = function () {
 	if (this.changeObj) {
 		_utils2.default.warn('old change not released!', this.changeObj);
 	}
-	this.changeObj = {};
+	this.changeObj = [];
 };
 App.prototype.endChange = function () {
 	if (!this.config.trackChanges) return;
 	if (!this.changeObj) {
 		_utils2.default.warn('change doesnt exist!');
 	}
+	if (this.config.storeChanges) {
+		this.changesPool.push(changeObj);
+	}
 	if (this.config.trackChangesType === 'log') {
-		console.log('==========================');
-		for (var gridId in this.changeObj) {
-			console.log('__________________________', this.getGrid(gridId).name);
-			var _iteratorNormalCompletion8 = true;
-			var _didIteratorError8 = false;
-			var _iteratorError8 = undefined;
+		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+		var _iteratorNormalCompletion8 = true;
+		var _didIteratorError8 = false;
+		var _iteratorError8 = undefined;
 
+		try {
+			for (var _iterator8 = this.changeObj[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+				var _step8$value = _slicedToArray(_step8.value, 3),
+				    path = _step8$value[0],
+				    cell = _step8$value[1],
+				    val = _step8$value[2];
+
+				var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
+				var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
+				console.log('|', pathname, '|', cellname, '|', val, '|');
+			}
+		} catch (err) {
+			_didIteratorError8 = true;
+			_iteratorError8 = err;
+		} finally {
 			try {
-				for (var _iterator8 = this.changeObj[gridId][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-					var _step8$value = _slicedToArray(_step8.value, 2),
-					    cell = _step8$value[0],
-					    val = _step8$value[1];
-
-					var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
-					console.log('|', cellname, '|', val, '|');
+				if (!_iteratorNormalCompletion8 && _iterator8.return) {
+					_iterator8.return();
 				}
-			} catch (err) {
-				_didIteratorError8 = true;
-				_iteratorError8 = err;
 			} finally {
-				try {
-					if (!_iteratorNormalCompletion8 && _iterator8.return) {
-						_iterator8.return();
-					}
-				} finally {
-					if (_didIteratorError8) {
-						throw _iteratorError8;
-					}
+				if (_didIteratorError8) {
+					throw _iteratorError8;
 				}
 			}
 		}
@@ -1421,8 +1426,7 @@ Grid.prototype.set_cell_value = function (cell, val) {
 		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {
 			return;
 		}
-		_utils2.default.init_if_empty(this.app.changeObj, this.id, []);
-		this.app.changeObj[this.id].push([cell, val]);
+		this.app.changeObj.push([this.path, cell, val]);
 	}
 	if (this.side_effects[cell]) {
 		if (!_Parser2.default.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], _Parser2.default.side_effects);
