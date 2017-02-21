@@ -136,9 +136,13 @@ code, code.hljs {
 	background-color: rgba(255, 255, 255, 0.84);
 }
 
+#content > * > div li {
+    text-indent: 0px; 
+}
+
 #content > * > div {
 	margin: 20px 0;
-	text-indent: 30px; 
+	text-indent: 0px; 
 }
 
 #content > * {
