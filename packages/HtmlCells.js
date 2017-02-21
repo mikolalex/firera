@@ -11,16 +11,16 @@ e)){for(let c in l)if(l[c].element===a)return l[c];p++;l[p]=new e(a,p);return l[
 
 
 const filter_attr_in_path = (e, delegateEl) => {
-	if(!delegateEl) debugger;
-	if(e){
-		var el = e.target;
-		while(el){
-			if(el.getAttribute('data-fr-grid-root')){
-				return false;
+	if(e && e.path){
+		for(let nd of e.path){
+			if(nd === e.target){
+				continue;
 			}
-			el = el.parentNode;
-			if(el === delegateEl){
+			if(nd === delegateEl){
 				break;
+			}
+			if(nd.getAttribute('data-fr-grid-root')){
+				return false;
 			}
 		}
 	}

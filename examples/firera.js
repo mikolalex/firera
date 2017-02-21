@@ -1,6 +1,8 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _PackagePool = require('./PackagePool');
 
 var _PackagePool2 = _interopRequireDefault(_PackagePool);
@@ -192,17 +194,18 @@ var get_app_struct = function get_app_struct(app) {
 	return get_grid_struct(app.root);
 };
 
-var App = function App(packages, root_package_pool) {
+var App = function App(config, root_package_pool) {
 	this.id = ++appIds;
+	this.config = config;
 	this.grid_create_counter = 0;
 	this.packagePool = new _PackagePool2.default(root_package_pool, this.id);
-	if (packages) {
+	if (config.packages) {
 		var _iteratorNormalCompletion4 = true;
 		var _didIteratorError4 = false;
 		var _iteratorError4 = undefined;
 
 		try {
-			for (var _iterator4 = packages[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+			for (var _iterator4 = config.packages[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 				var pack = _step4.value;
 
 				this.packagePool.load(pack);
@@ -276,7 +279,9 @@ App.prototype.getGrid = function (id) {
 	return this.grids[id];
 };
 App.prototype.set = function (cell, val, child) {
+	this.startChange();
 	this.root.set(cell, val, child);
+	this.endChange();
 };
 App.prototype.eachChild = function (parent_grid_id, cb) {
 	var grid = this.getGrid(parent_grid_id);
@@ -459,6 +464,56 @@ App.prototype.loadPackage = function (pack) {
 	this.packagePool.load(pack);
 };
 
+App.prototype.startChange = function () {
+	if (!this.config.trackChanges) return;
+	if (this.changeObj) {
+		_utils2.default.warn('old change not released!', this.changeObj);
+	}
+	this.changeObj = {};
+};
+App.prototype.endChange = function () {
+	if (!this.config.trackChanges) return;
+	if (!this.changeObj) {
+		_utils2.default.warn('change doesnt exist!');
+	}
+	if (this.config.trackChangesType === 'log') {
+		console.log('==========================');
+		for (var gridId in this.changeObj) {
+			console.log('__________________________', this.getGrid(gridId).name);
+			var _iteratorNormalCompletion8 = true;
+			var _didIteratorError8 = false;
+			var _iteratorError8 = undefined;
+
+			try {
+				for (var _iterator8 = this.changeObj[gridId][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+					var _step8$value = _slicedToArray(_step8.value, 2),
+					    cell = _step8$value[0],
+					    val = _step8$value[1];
+
+					var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
+					console.log('|', cellname, '|', val, '|');
+				}
+			} catch (err) {
+				_didIteratorError8 = true;
+				_iteratorError8 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion8 && _iterator8.return) {
+						_iterator8.return();
+					}
+				} finally {
+					if (_didIteratorError8) {
+						throw _iteratorError8;
+					}
+				}
+			}
+		}
+	} else {
+		console.log(this.changeObj);
+	}
+	delete this.changeObj;
+};
+
 App.prototype.setGrid = function (id, grid) {
 	this.grids[id] = grid;
 };
@@ -467,27 +522,27 @@ App.prototype.branchCreated = function (grid_id) {
 	var grid = this.getGrid(grid_id);
 	var path = grid.path;
 	if (Firera.onBranchCreatedStack[this.id]) {
-		var _iteratorNormalCompletion8 = true;
-		var _didIteratorError8 = false;
-		var _iteratorError8 = undefined;
+		var _iteratorNormalCompletion9 = true;
+		var _didIteratorError9 = false;
+		var _iteratorError9 = undefined;
 
 		try {
-			for (var _iterator8 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-				var cb = _step8.value;
+			for (var _iterator9 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+				var cb = _step9.value;
 
 				cb(this, grid_id, path, grid.parent);
 			}
 		} catch (err) {
-			_didIteratorError8 = true;
-			_iteratorError8 = err;
+			_didIteratorError9 = true;
+			_iteratorError9 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion8 && _iterator8.return) {
-					_iterator8.return();
+				if (!_iteratorNormalCompletion9 && _iterator9.return) {
+					_iterator9.return();
 				}
 			} finally {
-				if (_didIteratorError8) {
-					throw _iteratorError8;
+				if (_didIteratorError9) {
+					throw _iteratorError9;
 				}
 			}
 		}
@@ -934,9 +989,11 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 	} else if (props.async) {
 		args.unshift(function (val) {
 			//console.log('ASYNC callback called!',val); 
+			_this5.app.startChange();
 			_this5.set_cell_value(real_cell_name, val);
 			_this5.doRecursive(_this5.compute.bind(_this5), real_cell_name, true, null, {}, true);
 			_this5.changesFinished();
+			_this5.app.endChange();
 		});
 	}
 	/*for(let n of args){
@@ -1360,6 +1417,13 @@ Grid.prototype.set_cell_value = function (cell, val) {
 	var _this10 = this;
 
 	this.cell_values[cell] = val;
+	if (this.app.config.trackChanges && this.app.changeObj && this.asterisk_omit_list.indexOf(cell) === -1 && cell !== '*') {
+		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {
+			return;
+		}
+		_utils2.default.init_if_empty(this.app.changeObj, this.id, []);
+		this.app.changeObj[this.id].push([cell, val]);
+	}
 	if (this.side_effects[cell]) {
 		if (!_Parser2.default.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], _Parser2.default.side_effects);
 		_Parser2.default.side_effects[this.side_effects[cell]].func.call(this, cell, val);
@@ -2293,21 +2357,26 @@ var show_performance = function show_performance() {
 	return res.join(', ');
 };
 
-var get_app = function get_app(packages) {
-	var app = new _App2.default(packages, root_package_pool);
+var get_app = function get_app(config) {
+	var app = new _App2.default(config, root_package_pool);
 	_App2.default.apps.push(app);
 	return app;
 };
 
-window.Firera = function (config) {
+window.Firera = function (apps) {
+	var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+	if (apps.$packages) {
+		config.packages = apps.$packages;
+	}
 	if (arguments.length > 1) {
 		// it's a set of grids we should join
-		config = Firera.join.apply(null, arguments);
+		apps = Firera.join.apply(null, arguments);
 	}
 	var start = performance.now();
-	var app = get_app(config.$packages);
+	var app = get_app(config);
 	// getting real pbs
-	app.cbs = Obj.map(config, app.parse_cbs.bind(app), { except: ['$packages'] });
+	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), { except: ['$packages'] });
 	// now we should instantiate each pb
 	if (!app.cbs.__root) {
 		// no root grid
@@ -2316,7 +2385,9 @@ window.Firera = function (config) {
 	//console.log(app);
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
+	app.startChange();
 	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
+	app.endChange();
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
 	if (app.grid_create_counter === 0) {
@@ -3108,40 +3179,7 @@ module.exports = {
 						cb('length', length);
 					};
 				}, '$deltas'],
-				$list_template_writer: ['nestedClosure', function () {
-					var index_c = 3;
-					var index_map = {};
-					return function (cb, deltas, $el) {
-						if ($el === Firera.undef) return;
-						if (!$el) return;
-						for (var i in deltas) {
-							var type = deltas[i][0];
-							var key = deltas[i][1];
-							switch (type) {
-								case 'add':
-									$el.insertAdjacentHTML('beforeend', '<div data-fr="' + ++index_c + '" data-fr-name="' + key + '"></div>');
-									index_map[key] = index_c;
-									// I domt know...
-									break;
-								case 'remove':
-									$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
-									break;
-							}
-						}
-						cb('dummy', true);
-						cb('index_map', index_map);
-						return true;
-					};
-				}, '$arr_data.changes', '$real_el'],
-				$htmlbindings: ['closure', function () {
-					return function ($el, map) {
-						if (!$el || !map) return;
-						var res = Obj.map(map, function (n, i) {
-							return get_by_selector(map[i], $el);
-						});
-						return res;
-					};
-				}, '$real_el', '$list_template_writer.index_map'],
+				$is_list: true,
 				$children: ['$arr_data.changes']
 			};
 			if (props.push) {
@@ -3277,16 +3315,37 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 })();
 
 var filter_attr_in_path = function filter_attr_in_path(e, delegateEl) {
-	if (!delegateEl) debugger;
-	if (e) {
-		var el = e.target;
-		while (el) {
-			if (el.getAttribute('data-fr-grid-root')) {
-				return false;
+	if (e && e.path) {
+		var _iteratorNormalCompletion = true;
+		var _didIteratorError = false;
+		var _iteratorError = undefined;
+
+		try {
+			for (var _iterator = e.path[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+				var nd = _step.value;
+
+				if (nd === e.target) {
+					continue;
+				}
+				if (nd === delegateEl) {
+					break;
+				}
+				if (nd.getAttribute('data-fr-grid-root')) {
+					return false;
+				}
 			}
-			el = el.parentNode;
-			if (el === delegateEl) {
-				break;
+		} catch (err) {
+			_didIteratorError = true;
+			_iteratorError = err;
+		} finally {
+			try {
+				if (!_iteratorNormalCompletion && _iterator.return) {
+					_iterator.return();
+				}
+			} finally {
+				if (_didIteratorError) {
+					throw _iteratorError;
+				}
 			}
 		}
 	}
@@ -3326,15 +3385,15 @@ var make_resp1 = function make_resp1(cb, val) {
 
 var make_resp2 = function make_resp2(cb, e) {
 	var res = e.target;
-	var _iteratorNormalCompletion = true;
-	var _didIteratorError = false;
-	var _iteratorError = undefined;
+	var _iteratorNormalCompletion2 = true;
+	var _didIteratorError2 = false;
+	var _iteratorError2 = undefined;
 
 	try {
-		for (var _iterator = pipe[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-			var _step$value = _slicedToArray(_step.value, 2),
-			    asp = _step$value[0],
-			    pars = _step$value[1];
+		for (var _iterator2 = pipe[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+			var _step2$value = _slicedToArray(_step2.value, 2),
+			    asp = _step2$value[0],
+			    pars = _step2$value[1];
 
 			if (!htmlPipeAspects[asp]) {
 				console.error('Unknown pipe aspect:', asp);
@@ -3343,16 +3402,16 @@ var make_resp2 = function make_resp2(cb, e) {
 			res = htmlPipeAspects[asp].apply(htmlPipeAspects, [res].concat(_toConsumableArray(pars)));
 		}
 	} catch (err) {
-		_didIteratorError = true;
-		_iteratorError = err;
+		_didIteratorError2 = true;
+		_iteratorError2 = err;
 	} finally {
 		try {
-			if (!_iteratorNormalCompletion && _iterator.return) {
-				_iterator.return();
+			if (!_iteratorNormalCompletion2 && _iterator2.return) {
+				_iterator2.return();
 			}
 		} finally {
-			if (_didIteratorError) {
-				throw _iteratorError;
+			if (_didIteratorError2) {
+				throw _iteratorError2;
 			}
 		}
 	}
@@ -3383,27 +3442,27 @@ var toggle_class = function toggle_class(el, clas, val) {
 var trigger_event = function trigger_event(name, element, fakeTarget) {
 	var event; // The custom event that will be created
 	if (element instanceof $) {
-		var _iteratorNormalCompletion2 = true;
-		var _didIteratorError2 = false;
-		var _iteratorError2 = undefined;
+		var _iteratorNormalCompletion3 = true;
+		var _didIteratorError3 = false;
+		var _iteratorError3 = undefined;
 
 		try {
-			for (var _iterator2 = element[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-				var el = _step2.value;
+			for (var _iterator3 = element[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+				var el = _step3.value;
 
 				trigger_event(name, el);
 			}
 		} catch (err) {
-			_didIteratorError2 = true;
-			_iteratorError2 = err;
+			_didIteratorError3 = true;
+			_iteratorError3 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion2 && _iterator2.return) {
-					_iterator2.return();
+				if (!_iteratorNormalCompletion3 && _iterator3.return) {
+					_iterator3.return();
 				}
 			} finally {
-				if (_didIteratorError2) {
-					throw _iteratorError2;
+				if (_didIteratorError3) {
+					throw _iteratorError3;
 				}
 			}
 		}
@@ -4047,6 +4106,7 @@ var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+var Obj = _utils2.default.Obj;
 var search_fr_bindings = function search_fr_bindings($el) {
 	var res = {};
 	if (!Firera.is_def($el)) return res;
@@ -4082,6 +4142,30 @@ var write_changes = function write_changes() {
 
 module.exports = {
 	eachGridMixin: {
+		$list_template_writer: ['nestedClosure', function () {
+			var index_c = 3;
+			var index_map = {};
+			return function (cb, is_list, deltas, $el) {
+				if ($el === Firera.undef || !is_list || !$el) return;
+				for (var i in deltas) {
+					var type = deltas[i][0];
+					var key = deltas[i][1];
+					switch (type) {
+						case 'add':
+							$el.insertAdjacentHTML('beforeend', '<div data-fr="' + ++index_c + '" data-fr-name="' + key + '"></div>');
+							index_map[key] = index_c;
+							// I domt know...
+							break;
+						case 'remove':
+							$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
+							break;
+					}
+				}
+				cb('dummy', true);
+				cb('index_map', index_map);
+				return true;
+			};
+		}, '-$is_list', '$arr_data.changes', '$real_el'],
 		$el: ['closure', function () {
 			var prev_el;
 			return function (name, map) {
@@ -4123,7 +4207,17 @@ module.exports = {
 			}
 		}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'],
 		'$html_skeleton_changes': [_utils2.default.id, '$template_writer'],
-		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
+		'$htmlbindings': [function (is_list, a, b, c) {
+			if (!is_list) {
+				return search_fr_bindings(a, b);
+			} else {
+				if (!a || !c) return;
+				var res = Obj.map(c, function (n, i) {
+					return get_by_selector(c[i], a);
+				});
+				return res;
+			}
+		}, '-$is_list', '-$real_el', '$template_writer', '$list_template_writer.index_map'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 };

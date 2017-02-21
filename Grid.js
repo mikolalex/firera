@@ -365,9 +365,11 @@ Grid.prototype.compute = function(cell, parent_cell_name){
 	} else if(props.async){
 		args.unshift((val) => {
 			//console.log('ASYNC callback called!',val); 
+			this.app.startChange();
 			this.set_cell_value(real_cell_name, val);
 			this.doRecursive(this.compute.bind(this), real_cell_name, true, null, {}, true);
 			this.changesFinished();
+			this.app.endChange();
 		});
 	}
 	/*for(let n of args){
@@ -717,6 +719,18 @@ Grid.prototype.cell_value = function(cell){
 }
 Grid.prototype.set_cell_value = function(cell, val){
 	this.cell_values[cell] = val;
+	if(this.app.config.trackChanges 
+			&& this.app.changeObj 
+			&& (this.asterisk_omit_list.indexOf(cell) === -1) 
+			&& (cell !== '*')){
+		if((this.app.config.trackChanges instanceof Array)
+			&& 
+			(this.app.config.trackChanges.indexOf(cell) === -1)){
+			return;
+		}
+		utils.init_if_empty(this.app.changeObj, this.id, []);
+		this.app.changeObj[this.id].push([cell, val]);
+	}
 	if(this.side_effects[cell]){	
 		if(!Parser.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], Parser.side_effects);
 		Parser.side_effects[this.side_effects[cell]].func.call(this, cell, val);

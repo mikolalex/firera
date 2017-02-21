@@ -485,40 +485,7 @@ module.exports = {
 					},
 					'$deltas'
 				],
-				$list_template_writer: ['nestedClosure', () => {
-					var index_c = 3;
-					const index_map = {};
-					return function(cb, deltas, $el){
-						if($el === Firera.undef) return;
-						if(!$el) return;
-						for(let i in deltas){
-							const type = deltas[i][0];
-							const key = deltas[i][1];
-							switch(type){
-								case 'add':
-									$el.insertAdjacentHTML('beforeend', '<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
-									index_map[key] = index_c;
-									// I domt know...
-								break
-								case 'remove':
-									$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
-								break
-							}
-						}
-						cb('dummy', true);
-						cb('index_map', index_map);
-						return true;
-					}
-				}, '$arr_data.changes', '$real_el'],
-				$htmlbindings: ['closure', () => {
-					return ($el, map) => {
-						if(!$el || !map) return;
-						const res = Obj.map(map, (n, i) => {
-							return get_by_selector(map[i], $el);
-						})
-						return res;
-					}
-				}, '$real_el', '$list_template_writer.index_map'],
+				$is_list: true,
 				$children: ['$arr_data.changes']
 			};
 			if(props.push){

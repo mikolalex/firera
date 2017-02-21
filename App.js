@@ -106,12 +106,13 @@ const get_app_struct = (app) => {
 	return get_grid_struct(app.root);
 }
 
-const App = function(packages, root_package_pool){
+const App = function(config, root_package_pool){
 	this.id = ++appIds;
+	this.config = config;
 	this.grid_create_counter = 0;
 	this.packagePool = new PackagePool(root_package_pool, this.id);
-	if(packages){
-		for(let pack of packages){
+	if(config.packages){
+		for(let pack of config.packages){
 			this.packagePool.load(pack);
 		}
 	}
@@ -148,7 +149,9 @@ App.prototype.getGrid = function(id){
 	return this.grids[id];
 }
 App.prototype.set = function(cell, val, child){
+	this.startChange();
 	this.root.set(cell, val, child);
+	this.endChange();
 }
 App.prototype.eachChild = function(parent_grid_id, cb){
 	const grid = this.getGrid(parent_grid_id);
@@ -285,6 +288,33 @@ App.prototype.parse_cbs = function(a){
 
 App.prototype.loadPackage = function(pack) {
 	this.packagePool.load(pack);
+}
+
+App.prototype.startChange = function() {
+	if(!this.config.trackChanges) return;
+	if(this.changeObj){
+		utils.warn('old change not released!', this.changeObj);
+	}
+	this.changeObj = {};
+}
+App.prototype.endChange = function() {
+	if(!this.config.trackChanges) return;
+	if(!this.changeObj){
+		utils.warn('change doesnt exist!');
+	}
+	if(this.config.trackChangesType === 'log'){
+		console.log('==========================');
+		for(let gridId in this.changeObj){
+			console.log('__________________________', this.getGrid(gridId).name);
+			for(let [cell, val] of this.changeObj[gridId]){
+				const cellname = cell + (new Array(Math.max(0, 23 - cell.length)).join(' '));
+				console.log('|', cellname, '|', val, '|');
+			}
+		}
+	} else {
+		console.log(this.changeObj);
+	}
+	delete this.changeObj;
 }
 
 App.prototype.setGrid = function(id, grid){

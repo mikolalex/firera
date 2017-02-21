@@ -27,21 +27,24 @@ const show_performance = function(){
 	return res.join(', ');
 }
 
-const get_app = function(packages){
-	const app = new App(packages, root_package_pool);
+const get_app = function(config){
+	const app = new App(config, root_package_pool);
 	App.apps.push(app);
 	return app;
 }
  
-window.Firera = function(config){
+window.Firera = function(apps, config = {}){
+	if(apps.$packages){
+		config.packages = apps.$packages;
+	}
 	if(arguments.length > 1){
 		// it's a set of grids we should join
-		config = Firera.join.apply(null, arguments);
+		apps = Firera.join.apply(null, arguments);
 	}
 	const start = performance.now();
-	const app = get_app(config.$packages);
+	const app = get_app(config);
 	// getting real pbs
-	app.cbs = Obj.map(config, app.parse_cbs.bind(app), {except: ['$packages']});
+	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
 	if(!app.cbs.__root){
 		// no root grid
@@ -50,7 +53,9 @@ window.Firera = function(config){
 	//console.log(app);
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
+	app.startChange();
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
+	app.endChange();
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
 	if(app.grid_create_counter === 0){

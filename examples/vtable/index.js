@@ -1,4 +1,4 @@
-// (almost)pure functions section
+// generating random data
 const generate_data = (len) => {
 	const res = [];
 	for(let i = 0; i <= len; i++){
@@ -9,25 +9,11 @@ const generate_data = (len) => {
 	}
 	return res;
 }
-const top_offset = (height, one) => (-1 * (height - (Math.floor(height/one) * one)) + 'px');
-const arr_slice = (from, how_much, data) => data.slice(from, from + how_much);
-const add_px = (h) => (h - 4) + 'px';
-const floorDiv = (a, b) => Math.floor(a/b);
-const ceilDiv = (v, l) => Math.ceil(v/l) + 1;
-const add = (a, b) => a + b;
-/*const logger = function(func, msg){
-	return function(){
-		const res = func.apply(this, arguments);
-		console.log('got', msg, res);
-		return res;
-	}
-}*/
-
 // template section
 const $template = `
 	.(max-width: 600px, margin: auto)
 		style
-			".row {height: {{line_height_px}} }"
+			".row {height: {{line_height}}px }"
 		.outer
 			.inner
 			.vtable
@@ -43,13 +29,20 @@ const $template = `
 				range(name: th, min: 400, max: 1000, step: 10, value: 600)
 				" - table height" 
 `;
+// pure functions section
+const top_offset = (height, one) => (-1 * (height - (Math.floor(height/one) * one)) + 'px');
+const arr_slice = (arr, from, how_much) => arr.slice(from, from + how_much);
+const floorDiv = (a, b) => Math.floor(a/b);
+const ceilDiv = (a, b) => Math.ceil(a/b);
+const adder = (a) => { return (b) => Number(b) + Number(a); };
+const max_scrollTop = (data, lh, vh) => data.length*lh - vh;
 // init data section
 const $init = {
 	line_height: 20,
 	from: 0,
 	dataRowsLength: 100000,
 	viewport_heigth: 600,
-	posY: 0,
+	'.outer|scrollPos(Y)': 0,
 	$el: document.querySelector('.test-vgrid')
 }
 // app itself
@@ -57,18 +50,21 @@ const app = Firera({
 	__root: {
 		$template,
 		$init,
-		line_height: ['[name=lh]|getval'],
+		line_height: [adder(4), '[name=lh]|getval'],
 		viewport_heigth: ['[name=th]|getval'],
-		posY: ['.outer|scrollPos(Y)'],
-		top_offset: [top_offset, 'posY', 'line_height'],
+		pos_y: [Math.min, '.outer|scrollPos(Y)', 'max_scrollTop'],
+		top_offset: [top_offset, 'pos_y', 'line_height'],
+		max_scrollTop: [max_scrollTop, 'source_data', 'line_height', 'viewport_heigth'],
 		source_data: [generate_data, 'dataRowsLength'],
-		from: [floorDiv, 'posY', 'line_height'],
-		data: [arr_slice, 'from', 'items_shown', 'source_data'],
-		'.inner|css(height, px)': ['*', 'dataRowsLength', 'line_height'],
+		from: [floorDiv, 'pos_y', 'line_height'],
+		data: [arr_slice, 'source_data', 'from', 'items_shown'],
 		items_shown: [ceilDiv, 'viewport_heigth', 'line_height'],
-		line_height_px: [add_px, 'line_height'],
-		'.vtable|css(top,px)': ['posY'],
+		'.inner|css(height,px)': ['*', 'dataRowsLength', 'line_height'],
+		'.vtable|css(top,px)': ['pos_y'],
 		'.outer|css(height,px)': ['viewport_heigth'],
-	},
-	$packages: ['htmlCells', 'neu_ozenfant']
+	}
+}, {
+	packages: ['htmlCells', 'neu_ozenfant'],
+	//trackChanges: true,//['pos_y', 'top_offset'],
+	//trackChangesType: 'log',
 })

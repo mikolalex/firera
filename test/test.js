@@ -474,7 +474,7 @@ describe('Firera tests', function () {
 		}
 	}
     
-    it('Testing removing from list', function(){
+    /*it('Testing removing from list', function(){
         var $root = qs(".test-list-remove");
         var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
@@ -484,7 +484,7 @@ describe('Firera tests', function () {
 					push: [as('text'), '../new_todo'],
 					pop: [function(a){
 						if(a && a[0] !== undefined) return a[0];
-					}, '*/remove'],
+					}, '* /remove'],
 					self: {
 						completed_number: ['count', 'completed']
 					},
@@ -539,7 +539,7 @@ describe('Firera tests', function () {
 		add_item();
         assert.equal(app.get('completed_number', 'todos'), 1);
         assert.equal($root.querySelectorAll('input[type=checkbox]:checked').length, 1);
-    });
+    });*/
     
     it('Testing async', function(done){
         var app = Firera({
@@ -560,7 +560,7 @@ describe('Firera tests', function () {
         }, 10)
     })
 	
-	it('Casting list as array', function(){
+	/*it('Casting list as array', function(){
         var $root = qs(".test-trains");
 		var add_item = () => {
 			trigger_click($root.querySelector('button'));
@@ -572,7 +572,7 @@ describe('Firera tests', function () {
 				$child_trains: ['list', {
 					type: 'train',
 					push: ['../add_train'],
-					pop: [get(0), '*/.remove|click'],
+					pop: [get(0), '* /.remove|click'],
 					self: {
 						arr: ['asArray', ['name']]
 					},
@@ -606,7 +606,7 @@ describe('Firera tests', function () {
 		assert.deepEqual(app.get('arr', 'trains'), [{
 				name: 'ololo'
 		}]);
-	})
+	})*/
 	
 	it('$datasource', function(){
 		var app = Firera({

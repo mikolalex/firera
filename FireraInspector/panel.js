@@ -5,11 +5,19 @@ var request_data = () => {
 	chrome.devtools.inspectedWindow.eval(
 		"JSON.stringify(Firera.getAppStruct())",
 		function(result, isException) {
-			result = JSON.parse(result);
+			if(!result) return;
+			try {
+				result = JSON.parse(result);
+			}
+			catch(e){
+				console.log('Error in JSON:' + e.message);
+			}
 			if(result instanceof Array){
 				app_devtool.set('data', [result[0]]);
+			} else {
+				console.log('result is not array');
 			}
 		}
 	);
 }
-setInterval(request_data, 700);
+setInterval(request_data, 100);

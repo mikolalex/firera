@@ -1,5 +1,5 @@
 import utils from '../utils';
-
+const Obj = utils.Obj;
 const search_fr_bindings = function($el){
 	const res = {};
 	if(!Firera.is_def($el)) return res;
@@ -35,6 +35,30 @@ const write_changes = function(){
 
 module.exports = {
 	eachGridMixin: {
+		$list_template_writer: ['nestedClosure', () => {
+			var index_c = 3;
+			const index_map = {};
+			return function(cb, is_list, deltas, $el){
+				if($el === Firera.undef || !is_list || !$el) return;
+				for(let i in deltas){
+					const type = deltas[i][0];
+					const key = deltas[i][1];
+					switch(type){
+						case 'add':
+							$el.insertAdjacentHTML('beforeend', '<div data-fr="' + (++index_c) + '" data-fr-name="' + key + '"></div>');
+							index_map[key] = index_c;
+							// I domt know...
+						break
+						case 'remove':
+							$el.querySelector('[data-fr="' + index_map[key] + '"]').remove();
+						break
+					}
+				}
+				cb('dummy', true);
+				cb('index_map', index_map);
+				return true;
+			}
+		}, '-$is_list', '$arr_data.changes', '$real_el'],
 		$el: ['closure', () => {
 			var prev_el;
 			return (name, map) => {
@@ -77,7 +101,17 @@ module.exports = {
 			}, '$template', '$html_template', '$no_auto_template', '-$real_keys', '-$real_el'
 		],
 		'$html_skeleton_changes': [utils.id, '$template_writer'],
-		'$htmlbindings': [search_fr_bindings, '-$real_el', '$template_writer'],
+		'$htmlbindings': [(is_list, a, b, c) => {
+			if(!is_list){
+				return search_fr_bindings(a, b);
+			} else {
+				if(!a || !c) return;
+				const res = Obj.map(c, (n, i) => {
+					return get_by_selector(c[i], a);
+				})
+				return res;
+			}
+		}, '-$is_list', '-$real_el', '$template_writer', '$list_template_writer.index_map'],
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 }
