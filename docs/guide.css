@@ -254,6 +254,7 @@ code, code.hljs {
 }
 .answer {
 	display: none;
+	padding: 10px 30px 0px;
 }
 
 #content .nb.nb, #content .pq.pq {

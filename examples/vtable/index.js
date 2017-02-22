@@ -34,7 +34,6 @@ const top_offset = (height, one) => (-1 * (height - (Math.floor(height/one) * on
 const arr_slice = (arr, from, how_much) => arr.slice(from, from + how_much);
 const floorDiv = (a, b) => Math.floor(a/b);
 const ceilDiv = (a, b) => Math.ceil(a/b);
-const adder = (a) => { return (b) => Number(b) + Number(a); };
 const max_scrollTop = (data, lh, vh) => data.length*lh - vh;
 // init data section
 const $init = {
@@ -50,14 +49,14 @@ const app = Firera({
 	__root: {
 		$template,
 		$init,
-		line_height: [adder(4), '[name=lh]|getval'],
+		line_height: ['[name=lh]|getval'],
 		viewport_heigth: ['[name=th]|getval'],
 		pos_y: [Math.min, '.outer|scrollPos(Y)', 'max_scrollTop'],
 		top_offset: [top_offset, 'pos_y', 'line_height'],
 		max_scrollTop: [max_scrollTop, 'source_data', 'line_height', 'viewport_heigth'],
 		source_data: [generate_data, 'dataRowsLength'],
 		from: [floorDiv, 'pos_y', '-line_height'],
-		data: [arr_slice, 'source_data', 'from', '-items_shown'],
+		data: [arr_slice, 'source_data', 'from', 'items_shown'],
 		items_shown: [ceilDiv, 'viewport_heigth', 'line_height'],
 		'.inner|css(height,px)': ['*', 'dataRowsLength', 'line_height'],
 		'.vtable|css(top,px)': ['pos_y'],

@@ -214,6 +214,7 @@ app.get('d'); // 900
 		<div>
 			The grid could be as big as you need. E.g. something like this:
 			<img src="img/grid_2.png" alt=""/>
+			The idea of Firera is you can build the whole app as a big grid of computable cells.
 		</div>
 	</div><!--<ul class="pq">
 		<li>
@@ -234,16 +235,77 @@ app.get('d'); // 900
 	<div>
 	<h2>Working with DOM</h2>
 	<div>
-		Manual setting of free vals is not what Firera is done for.
-		When working with DOM we can treat DOM events e.g. click, focus etc. as event streams.
-		By default Firera has no special tools for working with DOM.
-		We can include <span class="mn">HtmlCells</span> package that allows us to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
-		add it's name to <span class="mn">packages</span> parameter of our app's config.
-	</div><div>
-		
+		Let's move to more real-world examples.
 		Say we need to validate adding a new comment to a comments' list. User enters his login, email and comment text and presses submit button.
 		Let's start with validating login.
 	</div>
+	<div>
+		At first glance, for getting a stream of what user inputs as an email, we could write something like this:
+<code>
+// function to validate login by length
+var is_long = a => a.length > 2;
+
+var base = {
+	login: '',
+	is_login_valid: [is_long, 'login'],
+}
+var app = Firera({
+	__root: base,
+});
+document.querySelector('input[name=login]')
+	.addEventListener('change', function(e){
+		app.set('login', e.target.value);
+	})
+</code>	
+	Each time user changes the value of input, we update of cell "login". And the value of cell "is_login_valid" will be true or false, depending on length of "login". 
+	This will work as expected, but	it'a verbose and too imperative approach. We don't like to assign event handlers manually.
+	</div><div>In Firera we can include special package to work with DOM, which is called HtmlCells. It allows us to create event streams of DOM events in a declarative manner.
+	HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
+	add it's name to <span class="mn">packages</span> parameter of our app's config.
+	</div>
+<code>
+// function to validate login by length
+var is_long = a => a.length > 2;
+
+var base = {
+	$real_el: document.getElementById('fr-app'),
+	login: ['input[name=login]|getval'],
+	is_login_valid: [is_long, 'login'],
+}
+var app = Firera({
+	__root: base,
+}, {
+	packages: ['HtmlCells']
+});
+</code>
+	<div>
+		A mandatory thing for HtmlCells to work is to define a cell named "$real_el" which should contain the root DOM node of our app.
+		Then we just mention the name of cell "'input[name=login]|getval" - and that's all! Firera automatically creates handler for the input.
+		How it works step-by-step:
+		<ul>
+			<li>
+				Firera founds the definition of "login" cell, which refers to the cell named "input[name=login]|getval"
+			</li>
+			<li>
+				The cell "input[name=login]|getval" seems to be uninitialized(as there is no definition of it in our plain base), looks like Firera need to create an empty free cell, but...
+			</li>
+			<li>
+				HtmlCells parses each cell name by regexp: <selector>|<aspect>. "input[name=login]|getval" matches this expression. <selector> is any valid CSS selector, and <aspect> appoints what
+					exactly we want to listen from this DOM node(the full list os aspects see on the HtmlCells package page).
+			</li>
+			<li>
+				HtmlCells package founds that we need to get values of DOM node by selector "input[name=login]". It assigns delegated event handler to $real_el, which listens 
+				"change" and "keyup" events in all subtree.
+			</li>
+			<li>
+				Each time user inputs something in input field, the DOM handler is fired and "input[name=login]" is updated with the value of input field.
+			</li>
+		</ul>
+		
+	</div>
+	<div>
+		There is two kinds of html cells: getters and setters. Getters listen for changes in DOM, e.g. events. Setters update the DOM with it's value.
+		Let's add a class to form to indicate it's valid with a help of html setter.
 <code>
 var is_long = a => a.length > 2;
 
@@ -259,28 +321,14 @@ var app = Firera({
 	packages: ['HtmlCells']
 });
 </code>
-	<div>
-		At first we should set a value that will be used as a root DOM node for our Firera app.
-		It should have a name "$real_el".
-		
+		"form|hasClass(valid)" is an example of setter. If the value of 'is_login_valid' cell is true, it will add class "valid" to nodes found with "form" selector in scope of "$real_el".
+		It uses "hasClass" aspect, which requires one parameter: the name of class("valid").
+	</div><div class="nb">
+		Notice that if you write like this: <div class="subcode">login: 'input[name=login]|val',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|val'.
+		We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
+	</div><div>
+		Frankly speaking, we could write the same a bit simpler:
 	</div>
-	<div>
-		That we create an event stream of ...
-	</div>
-	<div>
-			<span class="mn">is_long</span> is a pure function that checks whether a given string is long enough to be a login.
-			The cell "input[name=login]|val" is a data stream of values of nodes which match the selector "input[name=login]" in scope of "$real_el".
-			It's name consist of two parts: a selector(input[name=login], can be any valid HTML selector) and so-called "aspect", divided by "|". The aspect shows what exactly we should
-			listed about selected node(-s). SO when yoyu only mention a cell like this, Firera looks for it and start listeting it's changes.
-		</div><div>
-			The "is_form_valid" computable cell depends on "login" cell. It's value is calculated with is_email_valid function and it's definitely a Boolean.
-			Than, if the form is valid, we set the class "valid" to nodes found with "form" selector in scope of "$real_el".
-		</div><div class="nb">
-			Notice that if you write like this: <div class="subcode">login: 'input[name=login]|val',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|val'.
-			We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
-		</div><div>
-			Frankly speaking, we could write the same a bit simpler:
-		</div>
 <code class="js">
 {
 	$real_el: document.getElementById('fr-app'),
@@ -288,7 +336,12 @@ var app = Firera({
 }
 </code>
 		<div>
-			...but the field <span class="mn">is_login_valid</span> will help us later.
+			...but we require the field <span class="mn">is_login_valid</span> to be present to help us later.
+		</div>
+		<div>
+			We write a small example that shows how to work with DOM without pain of assigning handlers etc.
+			Our app is almost completely declarative. The only proactive intrusion is using html setter "hasClass", which changes the property of DOM node.
+			We can escape from this later by using cool Ozenfant templates.
 		</div>
 		<ul class="pq">
 			<li>
@@ -302,7 +355,7 @@ var app = Firera({
 	<div>
 		<h2>"Total FRP" concept</h2>
 		<div>
-			One may associate "event streams" with something that is naturally look like this. E.g., mouse clicks. But if you look closer to previous example, you can see that every values that depens on event is also an event stream!
+			If you look closer to previous example, you can see that every values that depend on event is also an event stream!
 			'input[name=login]|val' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
 		</div><div>This table how the values of these cells change as user enters something into input:</div><div>
 			<table class="tbl">
@@ -316,7 +369,7 @@ var app = Firera({
 			</table>
 		</div>
 		<div>
-			This is an example how one stream depens on other with formula. I call this "Total FRP" concept, which means that all values in application should be event streams which depend on each other.
+			This is an example how one stream depends on other with formula. I call this "Total FRP" concept, which means that all values in application should be event streams which depend on each other.
 		</div>
 	</div>
 	<div>
