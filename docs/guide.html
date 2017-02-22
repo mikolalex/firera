@@ -193,17 +193,27 @@ const base = {
 	b: 20,
 	c: [(n, m) => n + m, 'a', 'b'],
 <span class="add">	exp: 2,</span>
-	c_exp: [Math.pow, 'c', 'exp']
+<span class="add">	d: [Math.pow, 'c', 'exp']</span>
 }
 // Create a Firera app instance
 const app = Firera({
 	__root: base
 })
-app.get('c_exp'); // 900
+app.get('d'); // 900
 </code>
-		Here "c_exp" depends both on "free" and "computable" cells(exp and c respectively).
-		If you change the value of "a", Firera will compute the other cells in following order: c, c_exp.
+		Here "d" depends both on "free" and "computable" cells(exp and c respectively).
+		If you change the value of "a", Firera will compute the other cells in following order: c, d.
 		
+		</div>
+		<div>
+			A sef of cells, described with one plain base, is called <b>grid</b>. In our example we have only one grid which is called "__root".
+			It can be visualized like this:<br>
+			<img src="img/grid_1.png" alt=""/>
+			The lines display dependencies between cells. Squares mean "free" cells, rounds are "computable".
+		</div>
+		<div>
+			The grid could be as big as you need. E.g. something like this:
+			<img src="img/grid_2.png" alt=""/>
 		</div>
 	</div><!--<ul class="pq">
 		<li>
@@ -224,12 +234,14 @@ app.get('c_exp'); // 900
 	<div>
 	<h2>Working with DOM</h2>
 	<div>
-		Firera works as a browser GUI library. We need to include some Firera packages to work with DOM.
-		We can include <span class="mn">HtmlCells</span> package that allows to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
-		add it's name to <span class="mn">$packages</span> parameter of our app.
+		Manual setting of free vals is not what Firera is done for.
+		When working with DOM we can treat DOM events e.g. click, focus etc. as event streams.
+		By default Firera has no special tools for working with DOM.
+		We can include <span class="mn">HtmlCells</span> package that allows us to read DOM events as data streams. HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
+		add it's name to <span class="mn">packages</span> parameter of our app's config.
 	</div><div>
 		
-		Say we need to validate adding a new comment. User enters his login, email and comment text and presses submit button.
+		Say we need to validate adding a new comment to a comments' list. User enters his login, email and comment text and presses submit button.
 		Let's start with validating login.
 	</div>
 <code>
@@ -243,10 +255,19 @@ var base = {
 }
 var app = Firera({
 	__root: base,
-	$packages: ['HtmlCells']
+}, {
+	packages: ['HtmlCells']
 });
 </code>
-		<div>
+	<div>
+		At first we should set a value that will be used as a root DOM node for our Firera app.
+		It should have a name "$real_el".
+		
+	</div>
+	<div>
+		That we create an event stream of ...
+	</div>
+	<div>
 			<span class="mn">is_long</span> is a pure function that checks whether a given string is long enough to be a login.
 			The cell "input[name=login]|val" is a data stream of values of nodes which match the selector "input[name=login]" in scope of "$real_el".
 			It's name consist of two parts: a selector(input[name=login], can be any valid HTML selector) and so-called "aspect", divided by "|". The aspect shows what exactly we should

@@ -111,10 +111,10 @@ code, code.hljs {
 }
 
 .hljs-string.hljs-string {
-	color: #2f8e09;
+	color: #a94801;
 }
 .hljs-number.hljs-number {
-	color: #2f8e09;
+	color: #a94801;
 }
 
 #content.min > * {
@@ -126,6 +126,20 @@ code, code.hljs {
 	font-style: italic;
 	text-decoration: none;
 }
+
+.hljs .add {
+    background-color: #e6e6e6;
+    display: inline-block;
+    width: 100%;
+	position: relative;
+}
+
+/*.hljs .add::before {
+	content: '+';
+	position: absolute;
+	left: -20px;
+	color: green;
+}*/
 
 .to-main {
 	text-indent: 0px;
@@ -143,6 +157,12 @@ code, code.hljs {
 #content > * > div {
 	margin: 20px 0;
 	text-indent: 0px; 
+}
+
+#content img {
+	border: 1px solid #b7d1e4;
+	display: block;
+	margin: 1em 0;
 }
 
 #content > * {
