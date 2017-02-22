@@ -153,7 +153,8 @@ app.get('c'); // 42
 		the expression [(n, m) => n + m, 'a', 'b'] is called <b>F-expression</b>, 
 		and the function used in F-expression is called <b>formula</b>.
 		Cells "a" and "b" relatively to cell "c" are called <b>arguments</b>.
-		Cells which can be manually changed, like a or b, are called <b>free</b>
+		Cells which can be manually changed, like a or b, are called <b>free</b>.
+		A set of cells is called <b>grid</b>(in all examples at the beginning we'll have only one grid called "__root". This is a conventional name which indicates this grid is the root grid of the app).
 	</div><div>
 		How Firera works is pretty easy to understand: when some of the observable cells changes, the values of arguments are being taken and passed to formula.
 		The result of the formula invocation becomes the value of the cell.
