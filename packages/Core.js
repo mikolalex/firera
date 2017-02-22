@@ -155,18 +155,32 @@ module.exports = {
 			return ['funnel', func, ...cells];
 		},
 		transistAll: (fs) => {
-			const [func, ...rest] = fs;
+			//const [func, ...rest] = fs;
+			var func;
+			if(fs[0] instanceof Function){
+				func = fs.shift();
+			}
 			return [(cellA, ...restArgs) => {
 				if(cellA){
-					return func.apply(restArgs);
+					if(func){
+						return func.apply(null, restArgs);
+					} else {
+						return restArgs;
+					}
 				} else {
 					return Firera.noop;
 				}
-			}].concat(rest);
+			}].concat(fs);
 		},
 		'&&': (fs) => {
 			return [(cellA, cellB) => {
-				return cellA && cellB;
+					console.log('&&', cellA, cellB);
+				return !Firera.is_falsy(cellA) && !Firera.is_falsy(cellB);
+			}].concat(fs);
+		},
+		'||': (fs) => {
+			return [(cellA, cellB) => {
+				return !Firera.is_falsy(cellA) || !Firera.is_falsy(cellB);
 			}].concat(fs);
 		},
 		'==': (fs) => {

@@ -17,6 +17,9 @@ import neu_ozenfant from './packages/Ozenfant';
 const is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }
+const falsy = (a) => {
+	return (!a) || (a === Firera.undef);
+}
 
 const show_performance = function(){
 	const res = [];
@@ -98,6 +101,7 @@ Firera.apps = App.apps;
 Firera.run = Firera;
 Firera.Ozenfant = Ozenfant;
 Firera.is_def = is_def;
+Firera.is_falsy = falsy;
 
 Firera.getAppStruct = function() {
 	return Firera.apps.map(App.get_app_struct);

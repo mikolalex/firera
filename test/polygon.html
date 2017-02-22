@@ -10,12 +10,34 @@ and open the template in the editor.
 				<meta charset="windows-1251">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<style>
-
+					form {
+						border: 1px solid red;
+					}
+					form.valid {
+						border-color: green;
+					}
 				</style>
 		</head>
 		<body>
 				<div id="main"></div>
 				<div id="content"></div>
+				<div id="fr-app">
+					<h2>Add comment</h2>
+					<form>
+						<div>
+							<input type="text" name="login"> - enter your login
+						</div>
+						<div>
+							<input type="email" name="email"> - enter your email
+						</div>
+						<div>
+							<textarea name="text"></textarea>
+						</div>
+						<button class="send">
+							Send
+						</button>
+					</form>
+				</div>
 				<div class="test-ozenfant"></div>
 				<script src="../dist/firera.js"></script>
 				<script src="../FireraInspector/jquery.js"></script>

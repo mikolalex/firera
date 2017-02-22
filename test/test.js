@@ -1063,8 +1063,8 @@ describe('Firera tests', function () {
 			}
 		}, {
 			packages: ['neu_ozenfant', 'htmlCells'],
-			trackChanges: true,//['pos_y', 'top_offset'],
-			trackChangesType: 'log',
+			//trackChanges: true,//['pos_y', 'top_offset'],
+			//trackChangesType: 'log',
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');

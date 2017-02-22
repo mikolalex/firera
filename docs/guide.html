@@ -149,7 +149,7 @@ app.get('c'); // 42
 	</div><div class="nb">
 		Note that you couldn't change "c", because it violates the main FRP priciple: a computable cell value should be computed only based on it's arguments, and never set manually.
 	</div><div>
-		In Firera language, "app_base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, 
+		In Firera language, "base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, 
 		the expression [(n, m) => n + m, 'a', 'b'] is called <b>F-expression</b>, 
 		and the function used in F-expression is called <b>formula</b>.
 		Cells "a" and "b" relatively to cell "c" are called <b>arguments</b>.
@@ -240,7 +240,7 @@ app.get('d'); // 900
 		Let's start with validating login.
 	</div>
 	<div>
-		At first glance, for getting a stream of what user inputs as an email, we could write something like this:
+		At first glance, for getting a stream of what user inputs as a login, we could write something like this:
 <code>
 // function to validate login by length
 var is_long = a => a.length > 2;
@@ -252,14 +252,15 @@ var base = {
 var app = Firera({
 	__root: base,
 });
+// assigning handler that will change the "login" cell
 document.querySelector('input[name=login]')
 	.addEventListener('change', function(e){
 		app.set('login', e.target.value);
 	})
 </code>	
 	Each time user changes the value of input, we update of cell "login". And the value of cell "is_login_valid" will be true or false, depending on length of "login". 
-	This will work as expected, but	it'a verbose and too imperative approach. We don't like to assign event handlers manually.
-	</div><div>In Firera we can include special package to work with DOM, which is called HtmlCells. It allows us to create event streams of DOM events in a declarative manner.
+	This will work as expected, but	it's a verbose and too imperative approach. We don't like to assign event handlers manually.
+	</div><div>We can include special package to work with DOM, which is called HtmlCells instead. It allows us to create event streams of DOM events in a declarative manner.
 	HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
 	add it's name to <span class="mn">packages</span> parameter of our app's config.
 	</div>
@@ -311,7 +312,7 @@ var is_long = a => a.length > 2;
 
 var base = {
 	$real_el: document.getElementById('fr-app'),
-	login: ['input[name=login]|val'],
+	login: ['input[name=login]|getval'],
 	is_login_valid: [is_long, 'login'],
 	"form|hasClass(valid)": ['is_login_valid'],
 }
@@ -324,15 +325,15 @@ var app = Firera({
 		"form|hasClass(valid)" is an example of setter. If the value of 'is_login_valid' cell is true, it will add class "valid" to nodes found with "form" selector in scope of "$real_el".
 		It uses "hasClass" aspect, which requires one parameter: the name of class("valid").
 	</div><div class="nb">
-		Notice that if you write like this: <div class="subcode">login: 'input[name=login]|val',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|val'.
+		Notice that if you write like this: <div class="subcode">login: 'input[name=login]|getval',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|getval'.
 		We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
 	</div><div>
-		Frankly speaking, we could write the same a bit simpler:
+		Of course, we could write the same a bit simpler:
 	</div>
 <code class="js">
 {
 	$real_el: document.getElementById('fr-app'),
-	"form|hasClass(valid)": [is_long, 'input[name=login]|val'],
+	"form|hasClass(valid)": [is_long, 'input[name=login]|getval'],
 }
 </code>
 		<div>
@@ -356,7 +357,7 @@ var app = Firera({
 		<h2>"Total FRP" concept</h2>
 		<div>
 			If you look closer to previous example, you can see that every values that depend on event is also an event stream!
-			'input[name=login]|val' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
+			'input[name=login]|getval' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
 		</div><div>This table how the values of these cells change as user enters something into input:</div><div>
 			<table class="tbl">
 			<tr><td>"input[name=login]" DOM node value        </td><td>"input[name=login]" cell </td><td> "is_login_valid" cell </td></tr>
@@ -375,27 +376,36 @@ var app = Firera({
 	<div>
 		<h2>Managing streams</h2>
 		<div>
-			We need to validate also user's email(with RegExp) and text(it' should be not empty).
+			We need to validate also user's email(with RegExp). If the form is valid, and user clicks "Send" button, we should do some useful work, e.g. and AJAX request.
 		</div>
 <code>
 const simple_email_regex = /\S+@\S+\.\S+/;
 const is_email_valid = (str) => {
 	return simple_email_regex.test(str);
 }
-var is_long = a => a.length > 2;
+const is_long = a => a.length > 2;
 
-var base = {
+const base = {
 	$real_el: document.getElementById('fr-app'),
-	login: ['input[name=login]|val'],
+	
+	login: ['input[name=login]|getval'],
+	email: ['input[type=email]|getval'],
+	
 	is_login_valid: [is_long, 'login'],
-	email: ['input[type=email]|val'],
 	is_email_valid: [is_email_valid, 'email'],
 	is_form_valid: ['&&', 'is_email_valid', 'is_login_valid'],
 	"form|hasClass(valid)": ['is_form_valid'],
+	
+	send_form: ['&&', '-is_form_valid', 'button.send|click'],
+	add_comment_request: ['transistAll', (email, name, text) => {
+		// ... some ajax request here...
+		console.log('It works!', email, name, text);
+	}, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
 }
-var app = Firera({
+const app = Firera({
 	__root: base,
-	$packages: ['HtmlCells']
+}, {
+	packages: ['htmlCells']
 });
 </code>
 		<div>
@@ -411,6 +421,55 @@ var app = Firera({
 		<div>
 			Each time the values of 'is_email_valid' or 'is_login_valid' changes, the function is run passing both arguments.
 			The '&&' built-it function is just a kind of 'syntactic sugar' that shortens your code.
+		</div>
+		<div>
+			Now we should understand, when are form is ready to be sent. It happens when:<br>
+			a) user clicks "Send" button<br>
+			b) The value of cell "is_form_valid" is truthy.<br>
+		</div>
+		<div>
+			The naive approach will look like this:
+<code>
+	send_form: ['&&', 'is_form_valid', 'button.send|click'],
+</code>
+			but this will not work.
+			Imagine the following scenario:
+			<ul>
+				<li>
+					User inputs something in text fields, but leaves email empty, and clicks "Send"
+				</li>
+				<li>
+					The value of "is_form_valid" will be "false", the value of "button.send|click" is an Event object. It's truthy, but the result will be false. Everything is right so far.
+				</li>
+				<li>
+					User enters valid email. The value of "is_form_valid" becomes "true".
+				</li>
+				<li>
+					As the value of "is_form_valid" changes, Firera calculates the "send_from" cell. true && Event => true! So the form is being sent immediately when email becomes valid... FAIL!
+				</li>
+			</ul>
+			Hence we understand, that we should run the "send_form" function only when "Send" button is clicked, and do nothing when the value of "is_form_valid" changes.
+			In Firera it's called "passive listening". One cell depends on the other, but the change in parent cell doesn't invoke recalculation of child.
+			The syntax for this is simple - add a minus "-" before the name of argument in F-expression.
+<code>
+	send_form: ['&&', '-is_form_valid', 'button.send|click'],
+</code>
+			This small changes makes our app work correct!
+			<div class="nb">
+				Note that this can be used only when you have at least one active argument.
+<code>
+	foo: ['-bar'],
+</code>
+				or
+<code>
+	foo: ['-bar', '-baz'],
+</code>
+				are pointless as "foo" will be never computed!
+			</div>
+		</div>
+		<div>
+			Cell types
+			
 		</div>
 	</div>
 	</div>

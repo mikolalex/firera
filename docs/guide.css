@@ -281,17 +281,6 @@ code, code.hljs {
     border-color: #ff6d12;
 }
 
-.bash::before {
-    content: '>';
-}
-.bash {
-    font-family: courier;
-    padding: 10px;
-    margin: 10px 0;
-    font-size: 12px;
-	border: 1px dotted grey;
-}
-
 h1, h2, h3 {
 	font-weight: normal;
 	text-align: center;

@@ -121,6 +121,9 @@ const trigger_event = function(name, element, fakeTarget){
 
 
 module.exports = {
+	eachGridMixin: {
+		'$html_skeleton_changes': ['$real_el'],
+	},
 	cellMatchers: {
 		HTMLAspects: {
 			// ^foo -> previous values of 'foo'
@@ -415,7 +418,6 @@ module.exports = {
 						/*var node = a.find(selector) @todo
 								.filter(filter_attr_in_parents.bind(null, a));*/
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
-					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
 					Parser.parse_fexpr(['asyncClosure', () => {
 						var el;

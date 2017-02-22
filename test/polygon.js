@@ -185,3 +185,37 @@ function trigger_event(name, element){
 
 var trigger_click = trigger_event.bind(null, 'click');
 var raw = a => a[0];
+
+
+
+const simple_email_regex = /\S+@\S+\.\S+/;
+const is_email_valid = (str) => {
+	return simple_email_regex.test(str);
+}
+const is_long = a => a.length > 2;
+
+const base = {
+	//$html_skeleton_changes: true,
+	$real_el: document.getElementById('fr-app'),
+	
+	login: ['input[name=login]|getval'],
+	email: ['input[type=email]|getval'],
+	
+	is_login_valid: [is_long, 'login'],
+	is_email_valid: [is_email_valid, 'email'],
+	is_form_valid: ['&&', 'is_email_valid', 'is_login_valid'],
+	"form|hasClass(valid)": ['is_form_valid'],
+	
+	send_form: ['&&', '-is_form_valid', 'button.send|click'],
+    add_comment_request: ['transistAll', (email, name, text) => {
+		// ... some ajax request here...
+        console.log('It works!', email, name, text);
+    }, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
+}
+const app = Firera({
+	__root: base,
+}, {
+	packages: ['htmlCells'],
+	trackChanges: true,//['pos_y', 'top_offset'],
+	trackChangesType: 'log',
+});
