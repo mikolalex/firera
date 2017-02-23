@@ -87,9 +87,9 @@ h2.fr-title {
 @font-face {font-family: 'ProbaPro-Regular';src: url('webfonts/2C7715_0_0.eot');src: url('webfonts/2C7715_0_0.eot?#iefix') format('embedded-opentype'),url('webfonts/2C7715_0_0.woff2') format('woff2'),url('webfonts/2C7715_0_0.woff') format('woff'),url('webfonts/2C7715_0_0.ttf') format('truetype');}
 
 code, code.hljs {
-	padding: 0px 30px 20px;
-	display: block;
-	background-color: whitesmoke;
+    padding: 0px 0px 20px 20px;
+    display: block;
+    background-color: whitesmoke;
     font-family: monospace;
     white-space: pre;
 	margin: 1em 0;

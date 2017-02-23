@@ -383,7 +383,7 @@ const app = Firera({__root: {
 	'posts: ['async', (cb, username) => {
 		$.get('/posts/' + username, function(data) {
 			console.log('data received!');
-			returner(data);
+			cb(data);
 		})
 	}, 'user']
 }})

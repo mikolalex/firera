@@ -468,10 +468,225 @@ const app = Firera({
 				are pointless as "foo" will be never computed!
 			</div>
 		</div>
-		<div>
-			Cell types
+	</div><div>
+<div>
+			<h2>
+				Cell types
+			</h2>
+			<h3>
+				Funnel
+			</h3>
+			In Firera there are a few ways to calculate the value of cell according to it's arguments.
+			For now we knew only one, default type.
+<code>
+const app = Firera({__root: {
+	a: 30,
+	b: 12,
+	c: [(a, b) => a + b, 'a', 'b']
+}})
+app.get('c'); // 42
+app.set('b', 100);
+app.get('c'); // 130
+</code>
+			The principle is: when one of arguments is changed, we take the values of all cells-arguments and pass them to our formula.
+			But this way doesn't suit for all cases.
+			Say we need our cell to listen to changes in few cells and console.log them.
+<code>
+const app = Firera({__root: {
+	a: 30,
+	b: 12,
+	c: [(a, b) => {
+		console.log('Some cell changed!', a, b);
+	}, 'a', 'b']
+}})
+app.set('b', 100);
+// Some cell changed 30, 100
+app.set('a', 22);
+// Some cell changed 22, 100
+app.set('a', 22); // same value
+// Some cell changed 22, 100
+</code>
+			As you see, this way cannot help us: each time some parent cell changes, we receive values of all parent cells.
+			Therefore we don't know which one have changed actually.
+			We have a special cell type for such cases called "funnel".
+<code>
+const app = Firera({__root: {
+	a: 30,
+	b: 12,
+	c: ['funnel', (cell_name, cell_value) => {
+		console.log('Cell', cell_name, 'changed to', cell_value);
+	}, 'a', 'b']
+}})
+app.set('b', 100);
+// Cell b changed to 100
+app.set('a', 22);
+// Cell a changed to 22
+app.set('a', 22); // same value
+// Cell a changed to 22
+</code>
+			Cell type is written first in our F-expression. We can omit writing default cell type, but if we use funnel, we should write it.
+			As you see, when using funnel type, we get the name and value of the very cell that changed, and only this.
+			Only two arguments will be passed to formula each time: a name and a value of cell that changed.
+			<div class="nb">
+				You can use any number of arguments with funnel type, but, obviously, it has sense for ar least two arguments.
+			</div>
+			This cell type is used when we need to "join" several "streams".
+<code>
+const second = (_, a) => a;
+const app = Firera({__root: {
+	'input_changed': [
+		'funnel', 
+		second, 
+		'input|keyup', 
+		'input|change', 
+		'input|focus'
+	],
+}})
+</code>
+			In this example "input_changed" will be the union of three other cells.
 			
+			<h3>
+				Closure
+			</h3>
+			But what if we need to log all the history of changes in cells?
+			We want to get this:
+<code>
+const app = Firera({__root: {
+	a: 30,
+	b: 12,
+	c: ['funnel', (cell, val) => {
+		// SOME MAGIC!
+	}, 'a', 'b']
+}})
+app.set('b', 100);
+app.get('c'); // [['b', 100]]
+app.set('a', 22);
+app.get('c'); // [['b', 100], ['a', 22]]
+app.set('a', 22);
+app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
+</code>
+			... and so on. Obviously we need some way to store previous data.
+			We used to use pure functions as formulas in Firera. Using some global variables 
+			inside Firera formulas is a dedly sin! Our code becomes dirty and fragile, this eleminates all the advantages Firera gives us.
+			Luckily there is another cell type called "closure".
+			In this type, our formula should return another function, which becomes a formula for a cell.
+			It's easier to understand it in code:
+<code>
+const app = Firera({__root: {
+	a: 30,
+	b: 12,
+	c: ['closureFunnel', () => {
+		// this function will be run only once, when the grid is initiated.
+		const log = [];
+		// this function will be returned once and used as formula for "c" cell
+		return (cell, val) => {
+			log.push([cell, val]);
+			return log;
+		}
+	}, 'a', 'b']
+}})
+app.set('b', 100);
+app.get('c'); // [['b', 100]]
+app.set('a', 22);
+app.get('c'); // [['b', 100], ['a', 22]]
+app.set('a', 22);
+app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
+</code>
+			When run for the first time, your formula function should return another function, which becomes an actual formula!
+			The main advantage here is you can create and use some closure variabled, while your code remains clean(because this 
+			variables could be accessed only from this particular function). 
+			This helps you to avoid using global variables and falling into shared mutable state abyss.
 		</div>
+		<div class="nb">
+			As you might notice, you can combine "funnel" and "closure" type. 'closureFunnel' or 'funnelClosure' - both ways are correct.
+		</div>
+			<h3>
+				Async
+			</h3>
+		<div>
+			The next useful type is called "async".
+			It's used when we deal with async functions(i.e. function which perform async actions, not the ES6 async functions).
+			It works like default cell types, but the first argument for our formula will be always callback function used to "return" data when async function finishes.
+<code>
+const app = Firera({__root: {
+	'user': 'Mikolalex',
+	'posts: ['async', (cb, username) => {
+		$.get('/posts/' + username, function(data) {
+			console.log('data received!');
+			cb(data);
+		})
+	}, 'user']
+}})
+</code>
+Though 'posts' cell has only one argument, it's formula receives two arguments. First is a callback which we call when our async job is done to return the result.
+<code>
+const app = Firera({__root: {
+	'time': 3,
+	'await': ['async', (cb, time) => {
+		setTimeout(() => {
+			cb(time);
+		}, time * 1000);
+	}, 'time'],
+	'foo': [(t) => {
+		console.log(t, 'seconds passed!');
+	}, 'await']
+}})
+</code>
+			Async type allows us to use async-executed functions in our grid along with others with minimal additional efforts.
+			
+			<h3>
+				Nested
+			</h3>
+			The last useful cell type is nested. 
+			As you might notice, in Firera the result of computaion is always put to only one cell.
+			Form the other hand, in imperative programming we are used to see that [dirty] function can not only eturn some value, but also 
+			change a few other variables. This behaviour, generally harmful, can sometimes help a lot.
+		</div>
+		<div>
+			In Firera we cannot arbitrary change the value of some computed cell. 
+			But "nested" type allows us to put value to a set of predefined cells on our choice.
+			
+<code>
+const get_sum = () => {
+	var sum = 0;
+	return (num) => {
+		sum += num;
+		return sum;
+	}
+}
+const app = Firera({
+	__root: {
+		num: 1,
+		nums: ['nested', function(cb, a){
+				if(a % 2){
+					cb('odd', a);
+				} else {
+					cb('even', a);
+				}
+		}, ['odd', 'even'], 'num'],
+		odd_sum: ['closure', get_sum, 'nums.odd'],
+		even_sum: ['closure', get_sum, 'nums.odd'],
+	}
+});
+app.set('num', 2);
+// odd_sum: undefined, even_sum: 2
+app.set('num', 3);
+// odd_sum: 3, even_sum: 2
+app.set('num', 4);
+// odd_sum: 3, even_sum: 6
+</code>
+			Here we use "nested" cell "nums", which has two subcells: "odd" and "even". Nested types looks like async: we also receive a callback function as a first argument.
+			But we should not only return the value, but also specify the subcell we want to put this value in.
+			Then you can depend on this subcells as on ony other usual cell. The set of subcells is defined in F-expression after the formula.
+			The name of subcell is defined as parent_cell_name + '.' + subcell_name.
+			<div class="nb">
+				Note that you ARE to put the value in some of subcells, you cannot put it to the whole cell(like "nums") and cannot refer to it in other F-expressions.
+			</div>
+			Nested type allows us to divide streams, and in this meaning it's a complementary opposite to "funnel" type, which joins the streams together.
+			<div class="nb">
+				Using callback to return a value allows us to use both sync and async functions, therefore nested type excludes async type.
+			</div>
+			</div>
 	</div>
 	</div>
 			<script>
