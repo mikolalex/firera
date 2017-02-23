@@ -276,6 +276,14 @@ module.exports = {
 							});
 						}
 					break;
+					case '':
+						func = function(cb, vals){
+							if(!vals) return;
+							const [$prev_el, $now_el] = vals;
+							if(!Firera.is_def($now_el)) return;
+							make_resp(cb, $now_el.querySelectorAll(selector));
+						}
+					break;
 					case 'scrollPos':
 						func = function(cb, vals){
 							if(!vals) return;
@@ -402,7 +410,7 @@ module.exports = {
 						}
 					break;
 					default:
-						throw new Error('unknown HTML aspect: ' + aspect);
+						throw new Error('unknown HTML aspect: =' + aspect + '=');
 					break;
 				}
 				if(context === 'setter'){

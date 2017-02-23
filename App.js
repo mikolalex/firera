@@ -310,10 +310,11 @@ App.prototype.endChange = function() {
 	}
 	if(this.config.trackChangesType === 'log'){
 		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
-		for(let [path, cell, val] of this.changeObj){
+		for(let [path, cell, val, level] of this.changeObj){
 			const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
-			const cellname = cell + (new Array(Math.max(0, 23 - cell.length)).join(' '));
-			console.log('|', pathname, '|', cellname, '|', val, '|');
+			level = (level || 0) + 1;
+			const cellname = new Array(Number(level)).join('.') + cell + (new Array(Math.max(0, 29 - cell.length - level)).join(' '));
+			console.log('|', pathname, '|' + level, cellname, '|', val, '|');
 		}
 	} else {
 		console.log(this.changeObj);

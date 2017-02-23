@@ -237,7 +237,10 @@ Grid.prototype.linkChild = function(type, link_as, free_vals){
 	if(this.linked_grids_provider.isLinked(link_as)){
 		const pb = this.getChild(link_as).parsed_pb_name;
 		if(pb === type){
-			this.getChild(link_as).set(free_vals);
+			const chld = this.getChild(link_as);
+			if(free_vals){
+				chld.set(free_vals);
+			}
 			return this.linked_grids_provider.pool[link_as];
 		} else {
 			this.unlinkChild(link_as);
@@ -728,7 +731,7 @@ Grid.prototype.set_cell_value = function(cell, val){
 			(this.app.config.trackChanges.indexOf(cell) === -1)){
 			return;
 		}
-		this.app.changeObj.push([this.path, cell, val]);
+		this.app.changeObj.push([this.path, cell, val, this.levels[cell]]);
 	}
 	if(this.side_effects[cell]){	
 		if(!Parser.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], Parser.side_effects);

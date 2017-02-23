@@ -13,6 +13,7 @@ and open the template in the editor.
 				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
 				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+				<script src="firera.js"></script>
 				<style>
 					#content > * {
 						padding: 50px 40px 40px 66px;
@@ -113,7 +114,7 @@ and open the template in the editor.
 				<div>
 				<h1>Firera tutorial</h1>
 				<hr>
-				<h2>Getting started: declarative FRP</h2>
+				<h2 id="getting-started">Getting started: declarative FRP</h2>
 				<div>Let's start with a simple example:</div>
 <code>
 const base = {
@@ -234,7 +235,7 @@ app.get('d'); // 900
 	</ul>-->
 	</div>
 	<div>
-	<h2>Working with DOM</h2>
+	<h2 id="work-with-dom">Working with DOM</h2>
 	<div>
 		Let's move to more real-world examples.
 		Say we need to validate adding a new comment to a comments' list. User enters his login, email and comment text and presses submit button.
@@ -355,7 +356,7 @@ var app = Firera({
 		</ul>
 	</div>
 	<div>
-		<h2>"Total FRP" concept</h2>
+		<h2 id="total-frp">"Total FRP" concept</h2>
 		<div>
 			If you look closer to previous example, you can see that every values that depend on event is also an event stream!
 			'input[name=login]|getval' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
@@ -375,7 +376,7 @@ var app = Firera({
 		</div>
 	</div>
 	<div>
-		<h2>Managing streams</h2>
+		<h2 id="managing-streams">Managing streams</h2>
 		<div>
 			We need to validate also user's email(with RegExp). If the form is valid, and user clicks "Send" button, we should do some useful work, e.g. and AJAX request.
 		</div>
@@ -470,7 +471,7 @@ const app = Firera({
 		</div>
 	</div><div>
 <div>
-			<h2>
+			<h2 id="cell-types">
 				Cell types
 			</h2>
 			<h3>
@@ -689,16 +690,36 @@ app.set('num', 4);
 			</div>
 	</div>
 	</div>
-			<script>
-					$(document).ready(function() {
-							$('code').each(function(i, block) {
-									hljs.highlightBlock(block);
-							});
+	<script>
+		$(document).ready(function() {
+			$('code').each(function(i, block) {
+				hljs.highlightBlock(block);
+			});
+		});
+
+		$('.q').click(function(){
+			$(this).parent().find('.answer').toggle();
+		})
+
+		
+		const app = Firera({
+			__root: {
+				'$real_el': document.querySelector("#content"),
+				'headers': [(els) => {
+					const arr = Array.prototype.map.call(els, (el) => { 
+						return {
+							title: el.innerHTML,
+							link: el.getAttribute('id')
+						}
 					});
+					console.log('Arr', arr);
+					return arr;
 					
-					$('.q').click(function(){
-						$(this).parent().find('.answer').toggle();
-					})
-			</script>
+				}, 'h2|']
+			}
+		}, {
+			packages: ['htmlCells']
+		});
+	</script>
 		</body>
 </html>
