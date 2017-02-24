@@ -689,6 +689,289 @@ app.set('num', 4);
 			</div>
 			</div>
 	</div>
+					<div>
+					<h2>
+							Nested grids
+					</h2>
+					<h3>
+							Static nested grids
+					</h3>
+			<div>
+				For now we considered examples when only one grid was present.
+				This is obviously not enough for complex applications. 
+				When working with DOM it's natural to have a tree of components that can be hierarchically nested.
+				So we need a way to put one grid into another, make a tree of grids.
+				Each Firera app could have only one root grid, which has nested children.
+			</div>
+				<div>
+					Firera hates procative intrusion into app work, so we could not mnually change the value of computable cell.
+					In the same way, we couln't not force to create a nested grid inside some formula or elsewhere.
+					Instead, there is simple convension: each value of the cell, which name begins with "$child_", will be considered as a plain base for nested grid. 
+				</div>
+<code>
+const app = Firera({__root: {
+	foo: 10,
+	$child_crane: {
+		width: 40,
+		height: 120,
+		weight: [(w, h) => {
+			return (w+h)/10;
+		}, 'width', 'height'],
+	},
+	heron: {
+		b: 10,
+		c: 40,
+	},
+}});
+
+
+console.log(app.get('weight', '/crane')); // 16
+</code>
+						<div>
+		There are two cells with static values(Objects): "$child_crane" and "heron", but there is big defference between them.
+		The name "$child_heron" matches our RegExp, so it means that new nested grid will be created, having the value of this cell as a plain base.
+		While the "heron" will cause no consequences, it will be just an Object.
+						</div>
+						<div>
+							So the grid with a name "crane" will be created as a child of root grid.(prefix "$child_" is cut).
+							To make sure of this, let's get some value from this grid.
+							If we need to retrieve a value of some nested grid cell, we have to pass also a route to it as a second argument to "get()" method.
+							In this case, the route will be "/crane", where means "crane" grid of root("/") grid.
+						</div>
+						<div>
+							Let's make another nested level to learn how it works.
+						</div>
+<code>
+const app = Firera({__root: {
+	foo: 10,
+	$child_crane: {
+		width: 40,
+		height: 120,
+		weight: [(w, h) => {
+			return (w+h)/10;
+		}, 'width', 'height'],
+		$child_1: {
+			name: 'Busol',
+			gender: 'male',
+		},
+		$child_2: {
+			name: 'Buska',
+			gender: 'female',
+		},
+	},
+	heron: {
+		b: 10,
+		c: 40,
+	},
+}});
+console.log(app.get('name', '/crane/1')); // 'Busol'
+console.log(app.get('name', '/crane/2')); // 'Buska'
+</code>
+		You can do as many nested grids as you want.
+		<div class="nb">
+			Note that you can choose any name for your grid, including those which start from numbers, e.g. "1" or "42"
+		</div>
+		<h3>
+			Linking cells between grids
+		</h3>
+		Isolated gris, even when they are nested, could help us a little though.
+		We need a way to link cells from different grids so the data can flow between them in both direction.
+<code>
+const app = Firera({__root: {
+	multiplier: 10,
+	first_crane_weight: ['crane_1/weight'],
+	$child_crane_1: {
+		width: 40,
+		height: 120,
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '../multiplier']
+	},
+	$child_crane_2: {
+		width: 50,
+		height: 80,
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '/multiplier']
+	},
+}});
+console.log(app.get('weight', '/crane_1')); // 16
+console.log(app.get('first_crane_weight')); // 16
+console.log(app.get('weight', '/crane_2')); // 13
+</code>
+		Here you can see a few ways to link cells of different grids.
+		'../multiplier' is linked to the parent's 'multiplier' cell. It means that it gets the same values as it.
+		This syntax is similar to the one is used in file system, but it has some differences which will be described later.
+		And there we refer to the nested grid's cell, using it's name:
+<code>
+	first_crane_weight: ['crane_1/weight'],
+</code>
+		In second nested grid we use addressing "from root": '/mutiplier'. The slash at the beginning means start from root grid.
+		Also there is a way to link to all nested or all parent grids' cells:
+		<code>
+'any_click_in_children': ['*/some_click'], // listen to all 'some_click' cells 
+					// from all immediate-children grids
+'any_click_inside': ['**/some_click'], // listen to all 'some_click' cells 
+					// from all nested grids
+'any_click_upper': ['^^/some_click'], // listen to all 'some_click' cells 
+					// from the whole chain of parent grids
+		</code>
+		The limitation about linking is: it can be only one clash in address. It means you could NOT write like this:
+		../../a, ../foo/b etc.
+		</div>
+		<div>
+		<h2>
+				Списки
+		</h2>
+				<h3>
+						Списки на основі статичних даних
+				</h3>
+		Як ви, мабуть, помітили, наш попередній приклад із двома журавлями дещо порушує принцип DRY - там повторюється багато коду.
+		Перший і другий вкладені гріди відрізняються тільки статичними даними, структура ж їх динамічних комірок однакова.
+		Ми можемо трохи спростити цей вираз:
+<code>
+const crane = {
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '../multiplier']
+}
+const cranes = [
+	{
+		width: 40,
+		height: 120,
+	},
+	{
+		width: 50,
+		height: 80,
+	},
+]
+const app = Firera({__root: {
+	multiplier: 10,
+	first_crane_weight: ['crane_1/weight'],
+	$child_crane_1: Object.assign({}, cranes[0], crane),
+	$child_crane_1: Object.assign({}, cranes[1], crane),
+}});
+</code>
+		Уже вимальовується розрінення двох складових: структури і даних.
+		Структура для обох грідів однакова, а дані різняться.
+		Припустимо, нам хочеться створити наперед невідому кількість вкладених грідів типу crane, в залежності від масиву вхідних даних.
+		Для цього існує конструкція "список".
+<code>
+const cranes = [
+	{
+		width: 40,
+		height: 120,
+	},
+	{
+		width: 50,
+		height: 80,
+	},
+	{
+		width: 70,
+		height: 160,
+	},
+]
+const app = Firera({
+	__root: {
+		multiplier: 10,
+		$child_cranes: ['list', {
+			type: 'crane',
+			data: cranes, 
+		}]
+	},
+	crane: {
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '^^/multiplier']
+	}
+});
+
+console.log(app.get('weight', '/cranes/0'); // 16
+console.log(app.get('height', '/cranes/0'); // 120
+
+console.log(app.get('weight', '/cranes/1'); // 13
+console.log(app.get('height', '/cranes/1'); // 80
+
+console.log(app.get('weight', '/cranes/2'); // 23
+console.log(app.get('height', '/cranes/2'); // 160
+
+</code>
+				Вся "сіль" тут в конструкції ['list', { ... }]
+				Для початку, що ж таке list? Це, вочевидь, не тип комірки. І не функція, так як після її імені не йдуть списки комірок-аргументів.
+				List - це макрос(знову ж таки, можна провести аналогію з макросами ліспа). Зараз ми не будемо детально розглядати, як саме працюють макроси в Фірері, лише звернемо увагу
+				на інтерфейс макроса list. Його задача - будувати набір однотипних вкладених грідів з різними даними. В нашому прикладі тип гріда - це crane, і він описаний в початковій структурі поруч із іншим типом, __root.
+				На кожен елемент в масиві data буде створений вкладений грід типу crane, при цьому значення комірок width і height будуть підставлені в нього з відповідного елемента масива.
+				<br><br>
+				
+				Однак тут є один суттєвий нюанс. Ці гріди не будуть безпосередньо вставлені в наш кореневий грід, в якому ви використали макрос list. Насправді, буде створений один вкладений грід з назвою cranes, а вже всередині нього 
+				будуть вкладені гріди із списку з назвами 0, 1, 2 і так далі. Це можна порівняти із принципом влаштування даних в самому джаваскрипті: масив є водночас і об"єктом, який може містити також і довільні пари ключ-значення.
+				Саме тому ми змінили адресацію до комірки multiplier на '^^/multiplier', що означає "слухати значення комірки multiplier із усіх батьківських грідів".
+				
+				
+				<h3>
+						Списки на основі даних з комірок
+				</h3>
+				Ми можемо зробити так, щоб наш список будувався не на основі статичного масиву, а на основі потоку даних, який містить масиви.
+				Тобто, щоб наш масив змінювався. Для цього у параметрах макросу list ми використаємо параметр datasource замість data.
+				<code>
+const cranes = [
+	{
+		width: 40,
+		height: 120,
+	},
+	{
+		width: 50,
+		height: 80,
+	},
+	{
+		width: 70,
+		height: 160,
+	},
+]
+const app = Firera({
+	__root: {
+		multiplier: 10,
+		cranes: ['just', cranes],
+		$child_cranes: ['list', {
+			type: 'crane',
+			datasource: ['../cranes'], 
+		}]
+	},
+	crane: {
+		weight: [(w, h, m) => {
+			return (w+h)/m;
+		}, 'width', 'height', '^^/multiplier']
+	}
+});
+
+console.log(app.get('weight', '/cranes/0')); // 16
+console.log(app.get('height', '/cranes/0')); // 120
+
+console.log(app.get('weight', '/cranes/1')); // 13
+console.log(app.get('height', '/cranes/1')); // 80
+
+console.log(app.get('weight', '/cranes/2')); // 23
+console.log(app.get('height', '/cranes/2')); // 160
+
+cranes.push({
+	width: 100,
+	height: 100,
+})
+
+cranes[1].weight = 60;
+
+app.set('cranes', cranes);
+
+console.log(app.get('weight', '/cranes/3')); // 100
+console.log(app.get('height', '/cranes/3')); // 
+
+console.log(app.get('weight', '/cranes/1')); // 60
+
+</code>
+				Ключовою тут є строчка: datasource: ['../cranes']
+				На відміну від параметру data, який приймає масив, параметр datasource має бути лінком на комірку з даними.
+				Тепер, якщо ми змінимо значення комірки cranes, зміни будуть внесені і в наші гріди!			
+			</div>
 	</div>
 	<script>
 		$(document).ready(function() {
