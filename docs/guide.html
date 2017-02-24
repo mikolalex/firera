@@ -821,14 +821,14 @@ console.log(app.get('weight', '/crane_2')); // 13
 		</div>
 		<div>
 		<h2>
-				Списки
+				Lists
 		</h2>
 				<h3>
-						Списки на основі статичних даних
+						Static data-based lists
 				</h3>
-		Як ви, мабуть, помітили, наш попередній приклад із двома журавлями дещо порушує принцип DRY - там повторюється багато коду.
-		Перший і другий вкладені гріди відрізняються тільки статичними даними, структура ж їх динамічних комірок однакова.
-		Ми можемо трохи спростити цей вираз:
+		As you might notice, our recent example voilates the DRY principle - we have a lot of code repeated.
+		The first and the second grids differ only in data while the structure is the same.
+		We can simplify this example a bit:
 <code>
 const crane = {
 		weight: [(w, h, m) => {
@@ -852,10 +852,9 @@ const app = Firera({__root: {
 	$child_crane_1: Object.assign({}, cranes[1], crane),
 }});
 </code>
-		Уже вимальовується розрінення двох складових: структури і даних.
-		Структура для обох грідів однакова, а дані різняться.
-		Припустимо, нам хочеться створити наперед невідому кількість вкладених грідів типу crane, в залежності від масиву вхідних даних.
-		Для цього існує конструкція "список".
+		Here we start to divide data and structure.
+		The structure for both nested grids is common.
+		For creating a number of similar grids, which differ only in free cells, we have a "list" expression:
 <code>
 const cranes = [
 	{
@@ -896,24 +895,39 @@ console.log(app.get('weight', '/cranes/2'); // 23
 console.log(app.get('height', '/cranes/2'); // 160
 
 </code>
-				Вся "сіль" тут в конструкції ['list', { ... }]
-				Для початку, що ж таке list? Це, вочевидь, не тип комірки. І не функція, так як після її імені не йдуть списки комірок-аргументів.
-				List - це макрос(знову ж таки, можна провести аналогію з макросами ліспа). Зараз ми не будемо детально розглядати, як саме працюють макроси в Фірері, лише звернемо увагу
-				на інтерфейс макроса list. Його задача - будувати набір однотипних вкладених грідів з різними даними. В нашому прикладі тип гріда - це crane, і він описаний в початковій структурі поруч із іншим типом, __root.
-				На кожен елемент в масиві data буде створений вкладений грід типу crane, при цьому значення комірок width і height будуть підставлені в нього з відповідного елемента масива.
-				<br><br>
-				
-				Однак тут є один суттєвий нюанс. Ці гріди не будуть безпосередньо вставлені в наш кореневий грід, в якому ви використали макрос list. Насправді, буде створений один вкладений грід з назвою cranes, а вже всередині нього 
-				будуть вкладені гріди із списку з назвами 0, 1, 2 і так далі. Це можна порівняти із принципом влаштування даних в самому джаваскрипті: масив є водночас і об"єктом, який може містити також і довільні пари ключ-значення.
-				Саме тому ми змінили адресацію до комірки multiplier на '^^/multiplier', що означає "слухати значення комірки multiplier із усіх батьківських грідів".
-				
-				
-				<h3>
-						Списки на основі даних з комірок
-				</h3>
-				Ми можемо зробити так, щоб наш список будувався не на основі статичного масиву, а на основі потоку даних, який містить масиви.
-				Тобто, щоб наш масив змінювався. Для цього у параметрах макросу list ми використаємо параметр datasource замість data.
-				<code>
+	<div>
+		So what is "list"? It's not a cell type, neither a function. It's a macros. WIll take a closer look at them later, now let's see what parameter has "list" macros.
+		Two parameters are required: "type" and "data" or "datasource". A "type" should be either or name of grid type, or a link to plain base object which describes grid.
+		"Data" should be an array of data used as source for list. List macros creates nested grid for each elemnt of "data" array.
+	</div>
+	<div>
+		In our example, the grid type is "crane". This grid type is described in object which we pass to Firera function.
+		For each element of "data" array a grid of "crane" type will be created, passing "width" and "height" to appropriate cells.
+	</div>
+		
+	<br><br>
+	All these child grids will NOT become immediate descendants of our toor grid! There will be one imtermediate grid which holds all the list items.
+	So the hierarchy will be: 
+	<div style="text-align: center;">
+		"/"<br>
+		|<br>
+		"/cranes"<br>
+		/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\<br>
+		"0" &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"1"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "2"<br>
+	</div>
+	It recalls JavaScript data structure: an array is kind of object, which, along with array items, could have other fields.
+	Here "/"(root grid) has an "array" called "cranes", which has items "0", "1" and "2".
+	<div>
+		That's why we changed our links a bit: now we have "^^/mutiplier" instead of "../multiplier", 
+		because the direct parent of "0", "1" and other grids in list will be an "/cranes" grid and not the root grid.
+	</div>
+	<h3>
+			Cell as datasource for list
+	</h3>
+	Another way to build our list is to use a cell as a source of data. That means, each time a value of cell changes, 
+	our list will be updated(it includes automatic removing and creating grids).
+	To get this, we will use "datasource" parameter instead of "data".
+	<code>
 const cranes = [
 	{
 		width: 40,
@@ -968,9 +982,6 @@ console.log(app.get('height', '/cranes/3')); //
 console.log(app.get('weight', '/cranes/1')); // 60
 
 </code>
-				Ключовою тут є строчка: datasource: ['../cranes']
-				На відміну від параметру data, який приймає масив, параметр datasource має бути лінком на комірку з даними.
-				Тепер, якщо ми змінимо значення комірки cranes, зміни будуть внесені і в наші гріди!			
 			</div>
 	</div>
 	<script>
