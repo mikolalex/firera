@@ -1,119 +1,19 @@
-<!DOCTYPE html>
-<!--
-To change this license header, choose License Headers in Project Properties.
-To change this template file, choose Tools | Templates
-and open the template in the editor.
--->
-<html>
-		<head>
-				<title>Firera tutorial</title>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="guide.css" />
-				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
-				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
-				<script src="firera.js"></script>
-				<style>
-					#content > * {
-						padding: 50px 40px 40px 66px;
-						background-color: white;
-						margin-top: 3em;
-						margin-bottom: 3em;
-					}
-					
-						html {
-							/*min-height: 100%;
-							background-color: #b7d1e4;*/
-						}
-						
-						.exp {
-							width: 100%;
-							background-color: white;
-							border-top: 1px solid #b7d1e4;
-							border-bottom: 1px solid #b7d1e4;
-							margin-top: 50px;
-						}
-						
-						.sub-exp {
-							max-width: 800px;
-							margin: auto;
-						}
-						.sub-exp > ul {
-							margin: 0px;
-							padding-left: 120px;
-						}
-						.sub-exp > ul > li a {
-							color: black;
-							text-decoration: none;
-						}
-						.sub-exp > ul > li {
-							float: right;
-							list-style: none;
-							width: 167px;
-							text-align: center;
-							height: 20px;
-							padding-top: 60px;
-						}
-						
-						.titl a {
-							color: white;
-							text-decoration: none;
-							font-style: italic;
-						}
-						
-						.titl {
-							width: 120px;
-							text-align: center;
-							background-color: #b7d1e4;
-							color: white;
-							text-transform: uppercase;
-							padding: 30px 0px;
-							font-size: 15px;
-							line-height: 15px;
-						}
-						
-						body {
-							margin: 0px;
-						}
-				</style>
-		</head>
-		<body>
-				<div class="to-main">
-						<a href="index.html">
-								<span style="font-size:11px">&larr;</span> &nbsp;&nbsp;to main page
-						</a>
-				</div>
-			<!--<div class="exp">
-				<div class="sub-exp">
-					<ul>
-						<li>
-							Discussion
-						</li>
-						<li>
-							Repo
-						</li>
-						<li>
-							<a href="install.html">Install</a>
-						</li>
-						<li>
-							<a href="guide.html">Tutorial</a>
-						</li>
-					</ul>
-					<div class="titl">
-						<a href="index.html">Firera -
-						Javascript
-						Functional
-						Reactive
-						Declarative
-						Framework</a>
-					</div>
-				</div>-->
-				
-				<div id="content">
+<?php
+
+$chapter = isset($_GET['chapter']) ? $_GET['chapter'] : '';
+
+function chapter($name, $caption){
+    global $chapters;
+    global $chapter;
+    $chapters[$name] = $caption;
+    if($name === $chapter) return true;
+}
+
+ob_start();
+
+?>
+<?php if(chapter('', 'Getting started')){ ?>
 				<div>
-				<h1>Firera tutorial</h1>
-				<hr>
 				<h2 id="getting-started">Getting started: declarative FRP</h2>
 				<div>Let's start with a simple example:</div>
 <code>
@@ -133,31 +33,39 @@ app.set('b', 32);
 app.get('c'); // 42
 </code>
 	<div>
-		This is a simple example for introducing functional reactive programming priciples.
-		Here 'a' and 'b' are <b>observable</b> values, and 'c' is a <b>computable</b> value.
-		Both a, b, and c are called <b>cells</b>. This is because they act like cells in Excel: some cells just have values, while
+		This is a simple example for introducing functional reactive programming principles.
+		Here 'a' and 'b' are <i>observable</i> values, and 'c' is a <i>computable</i> value.
+		Both a, b, and c are called <i>cells</i>. This is because they act like cells in Excel: 
+		some cells just have values, while
 		the other cells are computed automatically according to their formulas.
-		In this case, "a" and "b" have just static values, ad the value of "c" is a sum of "a" and "b". Hence "c" depends on values of "a" and "b".
+		In this case, "a" and "b" have just static values, and the value of "c" is a sum of "a" and "b".
+		Hence "c" depends on values of "a" and "b".
 	</div><div>	
 		The value of "c" will <b>always</b> be the sum of "a" and "b", we don't need to update it manually.
-		There is no proactive intrusion: you cannot change the value of "c" manually, it's changed based on the values of other cells(in this case "a" and "b").
-		Here a, b and c are <span class="mn">data streams</span> as their values can change over time.
+		There is no proactive intrusion: you cannot change the value of "c" arbitrary, it's changed based
+		on the values of other cells(in this case "a" and "b").
+		Here a, b and c are called <i>data streams</i> as their values can change over time.
 	</div><div>
-		What's special about Firera is that it has completely declarative syntax.
-		While other FRP libraries(Rx, Most) use method chains, the Firera app is described with a plain object(POJO: plain old JS object) and pure functions. It gives a lot of advantages that will be discussed later.
+		What's special about Firera is that it has pretty declarative syntax.
+		While other FRP libraries(Rx, Most) use method chains, the Firera app is described as a plain object(POJO: 
+		plain old JS object) and pure functions. It gives a lot of advantages that will be discussed later.
 	</div><div>
-		We instanciate a Firera app by passing this object to Firera function. Than we can change some input values(like "a" or "b") with <span class="mn">set(key, val)</span> method.
+		We instantiate a Firera app by passing this object to Firera function. Then we can change some 
+		input values(like "a" or "b") with <span class="mn">set(key, val)</span> method.
 	</div><div class="nb">
-		Note that you couldn't change "c", because it violates the main FRP priciple: a computable cell value should be computed only based on it's arguments, and never set manually.
+		Note that you couldn't change "c", because it violates the main FRP principle: a computable cell value should be 
+		calculated only based on it's arguments, and never set manually.
 	</div><div>
-		In Firera language, "base" variable is called <b>plain base</b>, "a", "b", "c" are <b>cells</b>, 
-		the expression [(n, m) => n + m, 'a', 'b'] is called <b>F-expression</b>, 
-		and the function used in F-expression is called <b>formula</b>.
-		Cells "a" and "b" relatively to cell "c" are called <b>arguments</b>.
-		Cells which can be manually changed, like a or b, are called <b>free</b>.
-		A set of cells is called <b>grid</b>(in all examples at the beginning we'll have only one grid called "__root". This is a conventional name which indicates this grid is the root grid of the app).
+		In Firera language, "base" variable is called <i>plain base</i>, "a", "b", "c" are <i>cells</i>, 
+		the expression [(n, m) => n + m, 'a', 'b'] is called <i>F-expression</i>, 
+		and the function used in F-expression is called <i>formula</i>.
+		Cells "a" and "b" relatively to cell "c" are called <i>arguments</i>.
+		Cells which can be manually changed, like a or b, are called <i>free</i>.
+		A set of cells is called <i>grid</i>(in all examples at the beginning we'll have only one grid called "__root". 
+		This is a conventional name which indicates this grid is the root grid of the app).
 	</div><div>
-		How Firera works is pretty easy to understand: when some of the observable cells changes, the values of arguments are being taken and passed to formula.
+		How Firera works is pretty easy to understand: when some of the observable cells changes, the values of <i>arguments</i>
+		are being taken and passed to <i>formula</i>.
 		The result of the formula invocation becomes the value of the cell.
 		</div><div>
 		This is what happens when we run "app.set('b', 32);":
@@ -175,7 +83,7 @@ app.get('c'); // 42
 						Firera founds that we need values of "a" and "b" to compute the value of "c"
 					</li>
 					<li>
-						Firera takes the values of "a"(10) and "b"(32) and passes it to the formula function of "c"
+						Firera takes the values of "a"(10) and "b"(32) and passes it to the <i>formula</i> of "c"
 					</li>
 					<li>
 						As the formula of "c" is "(n, m) => n + m", and we pass "10" as the first argument and "32" as the second,
@@ -203,12 +111,13 @@ const app = Firera({
 })
 app.get('d'); // 900
 </code>
-		Here "d" depends both on "free" and "computable" cells(exp and c respectively).
+		Here "d" depends both on "free" and "computable" cells("exp" and "c" respectively).
 		If you change the value of "a", Firera will compute the other cells in following order: c, d.
 		
 		</div>
 		<div>
-			A sef of cells, described with one plain base, is called <b>grid</b>. In our example we have only one grid which is called "__root".
+			A sef of cells, described with one plain base, is called <b>grid</b>. In our example we have only one 
+			grid which is called "__root".
 			It can be visualized like this:<br>
 			<img src="img/grid_1.png" alt=""/>
 			The lines display dependencies between cells. Squares mean "free" cells, rounds are "computable".
@@ -234,11 +143,15 @@ app.get('d'); // 900
 		
 	</ul>-->
 	</div>
+                                    <? } 
+                                    if(chapter('dom', 'Working with DOM')){
+                                    ?>
 	<div>
 	<h2 id="work-with-dom">Working with DOM</h2>
 	<div>
 		Let's move to more real-world examples.
-		Say we need to validate adding a new comment to a comments' list. User enters his login, email and comment text and presses submit button.
+		Say we need to validate adding a new comment to a comments' list. User enters his login, email and comment 
+		text and presses submit button.
 		Let's start with validating login.
 	</div>
 	<div>
@@ -260,9 +173,11 @@ document.querySelector('input[name=login]')
 		app.set('login', e.target.value);
 	})
 </code>	
-	Each time user changes the value of input, we update of cell "login". And the value of cell "is_login_valid" will be true or false, depending on length of "login". 
+	Each time user changes the value of input, we update of cell "login". And the value of cell "is_login_valid" 
+	will be true or false, depending on length of "login". 
 	This will work as expected, but	it's a verbose and too imperative approach. We don't like to assign event handlers manually.
-	</div><div>We can include special package to work with DOM, which is called HtmlCells instead. It allows us to create event streams of DOM events in a declarative manner.
+	</div><div>We can include special package to work with DOM, which is called HtmlCells instead. It allows us 
+		to create event streams of DOM events in a declarative manner.
 	HtmlCells is one of default Firera packages which are included in Firera dist, so we should just 
 	add it's name to <span class="mn">packages</span> parameter of our app's config.
 	</div>
@@ -282,32 +197,40 @@ var app = Firera({
 });
 </code>
 	<div>
-		A mandatory thing for HtmlCells to work is to define a cell named "$real_el" which should contain the root DOM node of our app.
-		Then we just mention the name of cell "'input[name=login]|getval" - and that's all! Firera automatically creates handler for the input.
+		A mandatory thing for HtmlCells to work is to define a cell named "$real_el" which should contain 
+		the root DOM node of our app.
+		Then we just mention the name of cell "'input[name=login]|getval" - and that's all! Firera automatically
+		creates handler for the input.
 		How it works step-by-step:
 		<ul>
 			<li>
 				Firera founds the definition of "login" cell, which refers to the cell named "input[name=login]|getval"
 			</li>
 			<li>
-				The cell "input[name=login]|getval" seems to be uninitialized(as there is no definition of it in our plain base), looks like Firera need to create an empty free cell, but...
+				The cell "input[name=login]|getval" seems to be uninitialized(as there is no definition of it
+				in our plain base), looks like Firera needs to create an empty free cell, but...
 			</li>
 			<li>
-				HtmlCells parses each cell name by regexp: <selector>|<aspect>. "input[name=login]|getval" matches this expression. <selector> is any valid CSS selector, and <aspect> appoints what
-					exactly we want to listen from this DOM node(the full list os aspects see on the HtmlCells package page).
+				HtmlCells parses each cell name by regexp: <selector>|<aspect>. "input[name=login]|getval" 
+				matches this expression. <selector> is any valid CSS selector, and <aspect> appoints what
+					exactly we want to listen from this DOM node(the full list os aspects see on the HtmlCells
+					package page).
 			</li>
 			<li>
-				HtmlCells package founds that we need to get values of DOM node by selector "input[name=login]". It assigns delegated event handler to $real_el, which listens 
+				HtmlCells package founds that we need to get values of DOM node by selector "input[name=login]".
+				It assigns delegated event handler to $real_el, which listens 
 				"change" and "keyup" events in all subtree.
 			</li>
 			<li>
-				Each time user inputs something in input field, the DOM handler is fired and "input[name=login]" is updated with the value of input field.
+				Each time user inputs something in input field, the DOM handler is fired and "input[name=login]"
+				is updated with the value of input field.
 			</li>
 		</ul>
 		
 	</div>
 	<div>
-		There is two kinds of html cells: getters and setters. Getters listen for changes in DOM, e.g. events. Setters update the DOM with it's value.
+		There is two kinds of html cells: getters and setters. Getters listen for changes in DOM, e.g. events.
+		Setters update the DOM with it's value.
 		Let's add a class to form to indicate it's valid with a help of html setter.
 <code>
 var is_long = a => a.length > 2;
@@ -324,11 +247,14 @@ var app = Firera({
 	packages: ['HtmlCells']
 });
 </code>
-		"form|hasClass(valid)" is an example of setter. If the value of 'is_login_valid' cell is true, it will add class "valid" to nodes found with "form" selector in scope of "$real_el".
+		"form|hasClass(valid)" is an example of setter. If the value of 'is_login_valid' cell is true,
+		it will add class "valid" to nodes found with "form" selector in scope of "$real_el".
 		It uses "hasClass" aspect, which requires one parameter: the name of class("valid").
 	</div><div class="nb">
-		Notice that if you write like this: <div class="subcode">login: 'input[name=login]|getval',</div>Firera will consider "login" as static cell with the value of string 'input[name=login]|getval'.
-		We need to listen the other cell instead, that's why we write it in brackets. All the primitive, static values are written as is, and all the computable expressions are written in brackets.
+		Notice that if you write like this: <div class="subcode">login: 'input[name=login]|getval',</div> 
+		Firera will consider "login" as static cell with the value of string 'input[name=login]|getval'.
+		We need to listen the other cell instead, that's why we write it in brackets. All the primitive, 
+		static values are written as is, and all the computable expressions are written in brackets.
 	</div><div>
 		Of course, we could write the same a bit simpler:
 	</div>
@@ -343,7 +269,8 @@ var app = Firera({
 		</div>
 		<div>
 			We write a small example that shows how to work with DOM without pain of assigning handlers etc.
-			Our app is almost completely declarative. The only proactive intrusion is using html setter "hasClass", which changes the property of DOM node.
+			Our app is almost completely declarative. The only proactive intrusion is using html setter "hasClass",
+			which changes the property of DOM node.
 			We can escape from this later by using cool Ozenfant templates.
 		</div>
 		<ul class="pq">
@@ -355,11 +282,16 @@ var app = Firera({
 			</li>
 		</ul>
 	</div>
+                                    <? } 
+                                    if(chapter('total_frp', 'Total FRP')){
+                                    ?>
 	<div>
 		<h2 id="total-frp">"Total FRP" concept</h2>
 		<div>
 			If you look closer to previous example, you can see that every values that depend on event is also an event stream!
-			'input[name=login]|getval' is an original event stream of values of input node in DOM. 'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!(with Boolean values).
+			'input[name=login]|getval' is an original event stream of values of input node in DOM. 
+			'login' field is also an event stream with equvivalent values, and 'is_login_valid' is an event stream too!
+			(with Boolean values).
 		</div><div>This table how the values of these cells change as user enters something into input:</div><div>
 			<table class="tbl">
 			<tr><td>"input[name=login]" DOM node value        </td><td>"input[name=login]" cell </td><td> "is_login_valid" cell </td></tr>
@@ -372,13 +304,18 @@ var app = Firera({
 			</table>
 		</div>
 		<div>
-			This is an example how one stream depends on other with formula. I call this "Total FRP" concept, which means that all values in application should be event streams which depend on each other.
+			This is an example how one stream depends on other with formula. I call this "Total FRP" concept,
+			which means that all values in application should be event streams which depend on each other.
 		</div>
 	</div>
+                                    <? } 
+                                    if(chapter('streams', 'Managing streams')){
+                                    ?>
 	<div>
 		<h2 id="managing-streams">Managing streams</h2>
 		<div>
-			We need to validate also user's email(with RegExp). If the form is valid, and user clicks "Send" button, we should do some useful work, e.g. and AJAX request.
+			We need to validate also user's email(with RegExp). If the form is valid, and user clicks "Send" 
+			button, we should do some useful work, e.g. and AJAX request.
 		</div>
 <code>
 const simple_email_regex = /\S+@\S+\.\S+/;
@@ -412,7 +349,8 @@ const app = Firera({
 </code>
 		<div>
 		The form is valid when both login and email are valid.
-		We implement this by using '&&'. It's a built-in Firera function that works like '&&' operator in JS, but on data streams instead of simple values.
+		We implement this by using '&&'. It's a built-in Firera function that works like '&&' operator in JS, 
+		but on data streams instead of simple values.
 		The equivalent is to write:
 		</div>
 <code>
@@ -441,17 +379,21 @@ const app = Firera({
 					User inputs something in text fields, but leaves email empty, and clicks "Send"
 				</li>
 				<li>
-					The value of "is_form_valid" will be "false", the value of "button.send|click" is an Event object. It's truthy, but the result will be false. Everything is right so far.
+					The value of "is_form_valid" will be "false", the value of "button.send|click" is an Event object. 
+					It's truthy, but the result will be false. Everything is right so far.
 				</li>
 				<li>
 					User enters valid email. The value of "is_form_valid" becomes "true".
 				</li>
 				<li>
-					As the value of "is_form_valid" changes, Firera calculates the "send_from" cell. true && Event => true! So the form is being sent immediately when email becomes valid... FAIL!
+					As the value of "is_form_valid" changes, Firera calculates the "send_from" cell. 
+					true && Event => true! So the form is being sent immediately when email becomes valid... FAIL!
 				</li>
 			</ul>
-			Hence we understand, that we should run the "send_form" function only when "Send" button is clicked, and do nothing when the value of "is_form_valid" changes.
-			In Firera it's called "passive listening". One cell depends on the other, but the change in parent cell doesn't invoke recalculation of child.
+			Hence we understand, that we should run the "send_form" function only when "Send" button is clicked,
+			and do nothing when the value of "is_form_valid" changes.
+			In Firera it's called "passive listening". One cell depends on the other, but the change in parent
+			cell doesn't invoke recalculation of child.
 			The syntax for this is simple - add a minus "-" before the name of argument in F-expression.
 <code>
 	send_form: ['&&', '-is_form_valid', 'button.send|click'],
@@ -469,7 +411,10 @@ const app = Firera({
 				are pointless as "foo" will be never computed!
 			</div>
 		</div>
-	</div><div>
+	</div>
+                                    <? } 
+                                    if(chapter('cell_types', 'Cell types')){
+                                    ?><div>
 <div>
 			<h2 id="cell-types">
 				Cell types
@@ -489,7 +434,8 @@ app.get('c'); // 42
 app.set('b', 100);
 app.get('c'); // 130
 </code>
-			The principle is: when one of arguments is changed, we take the values of all cells-arguments and pass them to our formula.
+			The principle is: when one of arguments is changed, we take the values of all cells-arguments
+			and pass them to our formula.
 			But this way doesn't suit for all cases.
 			Say we need our cell to listen to changes in few cells and console.log them.
 <code>
@@ -525,11 +471,14 @@ app.set('a', 22);
 app.set('a', 22); // same value
 // Cell a changed to 22
 </code>
-			Cell type is written first in our F-expression. We can omit writing default cell type, but if we use funnel, we should write it.
-			As you see, when using funnel type, we get the name and value of the very cell that changed, and only this.
+			Cell type is written first in our F-expression. We can omit writing default cell type,
+			but if we use funnel, we should write it.
+			As you see, when using funnel type, we get the name and value of the very cell that changed, 
+			and only this.
 			Only two arguments will be passed to formula each time: a name and a value of cell that changed.
 			<div class="nb">
-				You can use any number of arguments with funnel type, but, obviously, it has sense for ar least two arguments.
+				You can use any number of arguments with funnel type, but, obviously, it has sense for
+				ar least two arguments.
 			</div>
 			This cell type is used when we need to "join" several "streams".
 <code>
@@ -568,7 +517,8 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 </code>
 			... and so on. Obviously we need some way to store previous data.
 			We used to use pure functions as formulas in Firera. Using some global variables 
-			inside Firera formulas is a dedly sin! Our code becomes dirty and fragile, this eleminates all the advantages Firera gives us.
+			inside Firera formulas is a dedly sin! Our code becomes dirty and fragile, this eleminates
+			all the advantages Firera gives us.
 			Luckily there is another cell type called "closure".
 			In this type, our formula should return another function, which becomes a formula for a cell.
 			It's easier to understand it in code:
@@ -599,15 +549,18 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			This helps you to avoid using global variables and falling into shared mutable state abyss.
 		</div>
 		<div class="nb">
-			As you might notice, you can combine "funnel" and "closure" type. 'closureFunnel' or 'funnelClosure' - both ways are correct.
+			As you might notice, you can combine "funnel" and "closure" type. 'closureFunnel' or
+			'funnelClosure' - both ways are correct.
 		</div>
 			<h3>
 				Async
 			</h3>
 		<div>
 			The next useful type is called "async".
-			It's used when we deal with async functions(i.e. function which perform async actions, not the ES6 async functions).
-			It works like default cell types, but the first argument for our formula will be always callback function used to "return" data when async function finishes.
+			It's used when we deal with async functions(i.e. function which perform async actions,
+			not the ES6 async functions).
+			It works like default cell types, but the first argument for our formula will be always
+			callback function used to "return" data when async function finishes.
 <code>
 const app = Firera({__root: {
 	'user': 'Mikolalex',
@@ -619,7 +572,8 @@ const app = Firera({__root: {
 	}, 'user']
 }})
 </code>
-Though 'posts' cell has only one argument, it's formula receives two arguments. First is a callback which we call when our async job is done to return the result.
+Though 'posts' cell has only one argument, it's formula receives two arguments. First is a callback 
+which we call when our async job is done to return the result.
 <code>
 const app = Firera({__root: {
 	'time': 3,
@@ -640,7 +594,8 @@ const app = Firera({__root: {
 			</h3>
 			The last useful cell type is nested. 
 			As you might notice, in Firera the result of computaion is always put to only one cell.
-			Form the other hand, in imperative programming we are used to see that [dirty] function can not only eturn some value, but also 
+			Form the other hand, in imperative programming we are used to see that [dirty] function 
+			can not only eturn some value, but also 
 			change a few other variables. This behaviour, generally harmful, can sometimes help a lot.
 		</div>
 		<div>
@@ -676,19 +631,27 @@ app.set('num', 3);
 app.set('num', 4);
 // odd_sum: 3, even_sum: 6
 </code>
-			Here we use "nested" cell "nums", which has two subcells: "odd" and "even". Nested types looks like async: we also receive a callback function as a first argument.
+			Here we use "nested" cell "nums", which has two subcells: "odd" and "even".
+			Nested types looks like async: we also receive a callback function as a first argument.
 			But we should not only return the value, but also specify the subcell we want to put this value in.
-			Then you can depend on this subcells as on ony other usual cell. The set of subcells is defined in F-expression after the formula.
+			Then you can depend on this subcells as on ony other usual cell. 
+			The set of subcells is defined in F-expression after the formula.
 			The name of subcell is defined as parent_cell_name + '.' + subcell_name.
 			<div class="nb">
-				Note that you ARE to put the value in some of subcells, you cannot put it to the whole cell(like "nums") and cannot refer to it in other F-expressions.
+				Note that you ARE to put the value in some of subcells, you cannot put it to
+				the whole cell(like "nums") and cannot refer to it in other F-expressions.
 			</div>
-			Nested type allows us to divide streams, and in this meaning it's a complementary opposite to "funnel" type, which joins the streams together.
+			Nested type allows us to divide streams, and in this meaning it's a complementary 
+			opposite to "funnel" type, which joins the streams together.
 			<div class="nb">
-				Using callback to return a value allows us to use both sync and async functions, therefore nested type excludes async type.
+				Using callback to return a value allows us to use both sync and async functions,
+				therefore nested type excludes async type.
 			</div>
 			</div>
 	</div>
+                                    <? } 
+                                    if(chapter('nested_grids', 'Nested grids')){
+                                    ?>
 					<div>
 					<h2>
 							Nested grids
@@ -706,7 +669,8 @@ app.set('num', 4);
 				<div>
 					Firera hates procative intrusion into app work, so we could not mnually change the value of computable cell.
 					In the same way, we couln't not force to create a nested grid inside some formula or elsewhere.
-					Instead, there is simple convension: each value of the cell, which name begins with "$child_", will be considered as a plain base for nested grid. 
+					Instead, there is simple convension: each value of the cell,
+					which name begins with "$child_", will be considered as a plain base for nested grid. 
 				</div>
 <code>
 const app = Firera({__root: {
@@ -728,14 +692,17 @@ const app = Firera({__root: {
 console.log(app.get('weight', '/crane')); // 16
 </code>
 						<div>
-		There are two cells with static values(Objects): "$child_crane" and "heron", but there is big defference between them.
-		The name "$child_heron" matches our RegExp, so it means that new nested grid will be created, having the value of this cell as a plain base.
+		There are two cells with static values(Objects): "$child_crane" and "heron", but there is big
+		defference between them.
+		The name "$child_heron" matches our RegExp, so it means that new nested grid will be created,
+		having the value of this cell as a plain base.
 		While the "heron" will cause no consequences, it will be just an Object.
 						</div>
 						<div>
 							So the grid with a name "crane" will be created as a child of root grid.(prefix "$child_" is cut).
 							To make sure of this, let's get some value from this grid.
-							If we need to retrieve a value of some nested grid cell, we have to pass also a route to it as a second argument to "get()" method.
+							If we need to retrieve a value of some nested grid cell, we have to pass also
+							a route to it as a second argument to "get()" method.
 							In this case, the route will be "/crane", where means "crane" grid of root("/") grid.
 						</div>
 						<div>
@@ -820,6 +787,9 @@ console.log(app.get('weight', '/crane_2')); // 13
 		../../a, ../foo/b etc.
 		</div>
 		<div>
+                                    <? } 
+                                    if(chapter('lists', 'Lists')){
+                                    ?>
 		<h2>
 				Lists
 		</h2>
@@ -896,17 +866,22 @@ console.log(app.get('height', '/cranes/2'); // 160
 
 </code>
 	<div>
-		So what is "list"? It's not a cell type, neither a function. It's a macros. WIll take a closer look at them later, now let's see what parameter has "list" macros.
-		Two parameters are required: "type" and "data" or "datasource". A "type" should be either or name of grid type, or a link to plain base object which describes grid.
-		"Data" should be an array of data used as source for list. List macros creates nested grid for each elemnt of "data" array.
+		So what is "list"? It's not a cell type, neither a function. It's a macros.
+		WIll take a closer look at them later, now let's see what parameter has "list" macros.
+		Two parameters are required: "type" and "data" or "datasource".
+		A "type" should be either or name of grid type, or a link to plain base object which describes grid.
+		"Data" should be an array of data used as source for list. 
+		List macros creates nested grid for each elemnt of "data" array.
 	</div>
 	<div>
 		In our example, the grid type is "crane". This grid type is described in object which we pass to Firera function.
-		For each element of "data" array a grid of "crane" type will be created, passing "width" and "height" to appropriate cells.
+		For each element of "data" array a grid of "crane" type will be created, passing
+		"width" and "height" to appropriate cells.
 	</div>
 		
 	<br><br>
-	All these child grids will NOT become immediate descendants of our toor grid! There will be one imtermediate grid which holds all the list items.
+	All these child grids will NOT become immediate descendants of our toor grid! There will be 
+	one imtermediate grid which holds all the list items.
 	So the hierarchy will be: 
 	<div style="text-align: center;">
 		"/"<br>
@@ -983,6 +958,176 @@ console.log(app.get('weight', '/cranes/1')); // 60
 
 </code>
 			</div>
+                                    <?php } 
+                                    
+$out = ob_get_contents();
+ob_end_clean();
+                                    ?>
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+		<head>
+				<title>Firera tutorial</title>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<link rel="stylesheet" href="../guide.css" />
+				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+				<script src="../firera.js"></script>
+				<style>
+					#content > * {
+						padding: 50px 40px 40px 66px;
+						background-color: white;
+						margin-top: 3em;
+						margin-bottom: 3em;
+					}
+					
+						html {
+							/*min-height: 100%;
+							background-color: #b7d1e4;*/
+						}
+						
+						.exp {
+							width: 100%;
+							background-color: white;
+							border-top: 1px solid #b7d1e4;
+							border-bottom: 1px solid #b7d1e4;
+							margin-top: 50px;
+						}
+						
+						.sub-exp {
+							max-width: 800px;
+							margin: auto;
+						}
+						.sub-exp > ul {
+							margin: 0px;
+							padding-left: 120px;
+						}
+						.sub-exp > ul > li a {
+							color: black;
+							text-decoration: none;
+						}
+						.sub-exp > ul > li {
+							float: right;
+							list-style: none;
+							width: 167px;
+							text-align: center;
+							height: 20px;
+							padding-top: 60px;
+						}
+						
+						.titl a {
+							color: white;
+							text-decoration: none;
+							font-style: italic;
+						}
+						
+						.titl {
+							width: 120px;
+							text-align: center;
+							background-color: #b7d1e4;
+							color: white;
+							text-transform: uppercase;
+							padding: 30px 0px;
+							font-size: 15px;
+							line-height: 15px;
+						}
+						
+						body {
+							margin: 0px;
+						}
+				</style>
+		</head>
+		<body>
+				<div class="to-main">
+						<a href="../index.html">
+								<span style="font-size:11px">&larr;</span> &nbsp;&nbsp;to main page
+						</a>
+				</div>
+			<!--<div class="exp">
+				<div class="sub-exp">
+					<ul>
+						<li>
+							Discussion
+						</li>
+						<li>
+							Repo
+						</li>
+						<li>
+							<a href="install.html">Install</a>
+						</li>
+						<li>
+							<a href="guide.html">Tutorial</a>
+						</li>
+					</ul>
+					<div class="titl">
+						<a href="index.html">Firera -
+						Javascript
+						Functional
+						Reactive
+						Declarative
+						Framework</a>
+					</div>
+				</div>-->
+				
+				<div id="content">
+                                    <div class="always-header">
+                                        <h1>Firera tutorial</h1>
+                                        <hr>
+                                        <h2>
+                                            Table of contents
+                                        </h2>
+                                        <ul>
+                                        <?php
+                                        $prev = false;
+                                        foreach($chapters AS $url => $name){
+                                            ?>
+                                            <li>
+                                                <? 
+                                                if($prev === $chapter){
+                                                    $real_next = $url;
+                                                }
+                                                if($url !== $chapter){?><a href="index.php?chapter=<? echo $url;?>"><? } else {
+                                                    $real_prev = $prev;
+                                                }?>
+                                                    <? echo $name;?>
+                                                <? if($url !== $chapter){?></a><? }
+                                                $prev = $url;
+                                                
+                                                ?>
+                                            </li>
+                                            <?
+                                        }
+                                        ?>
+                                        </ul>
+                                    </div>
+<?php
+            
+echo $out;
+
+?>
+                                    <div class="prevnext">
+                                        <? if($real_prev){?>
+                                        <div>
+                                            Previous: <a href="index.php?chapter=<? echo $real_prev;?>">
+                                                <? echo $chapters[$real_prev];?>
+                                            </a>
+                                        </div>
+                                        <? } ?>
+                                        <? if($real_next){?>
+                                        <div>
+                                            Next: <a href="index.php?chapter=<? echo $real_next;?>">
+                                                <? echo $chapters[$real_next];?>
+                                            </a>
+                                        </div>
+                                        <? } ?>
+                                        <div style="clear:both;float:none;"></div>
+                                    </div>
 	</div>
 	<script>
 		$(document).ready(function() {

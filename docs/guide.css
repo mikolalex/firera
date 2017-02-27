@@ -166,6 +166,26 @@ code, code.hljs {
     max-width: 100%;
 }
 
+#content > * ul li a {
+    text-decoration: none;
+}
+
+#content > * ul {
+    padding: 20px;
+}
+
+#content > * ul li {
+    padding: 10px;
+}
+
+#content > .prevnext {
+    text-align: center;
+}
+.prevnext > * {
+    float: left;
+    width: 50%;
+}
+
 #content > * {
 	max-width: 800px;
 	margin: auto;
