@@ -273,14 +273,14 @@ var app = Firera({
 			which changes the property of DOM node.
 			We can escape from this later by using cool Ozenfant templates.
 		</div>
-		<ul class="pq">
+		<!--<ul class="pq">
 			<li>
 				<div class="q">Will it work without $real_el defined?</div>
 				<div class="answer">
 					No
 				</div>
 			</li>
-		</ul>
+		</ul>-->
 	</div>
                                     <? } 
                                     if(chapter('total_frp', 'Total FRP')){
@@ -621,7 +621,7 @@ const app = Firera({
 				}
 		}, ['odd', 'even'], 'num'],
 		odd_sum: ['closure', get_sum, 'nums.odd'],
-		even_sum: ['closure', get_sum, 'nums.odd'],
+		even_sum: ['closure', get_sum, 'nums.even'],
 	}
 });
 app.set('num', 2);
@@ -790,6 +790,7 @@ console.log(app.get('weight', '/crane_2')); // 13
                                     <? } 
                                     if(chapter('lists', 'Lists')){
                                     ?>
+                    <div>
 		<h2>
 				Lists
 		</h2>
@@ -1085,6 +1086,7 @@ and open the template in the editor.
                                         <ul>
                                         <?php
                                         $prev = false;
+                                        $real_prev = false;
                                         foreach($chapters AS $url => $name){
                                             ?>
                                             <li>
@@ -1092,7 +1094,7 @@ and open the template in the editor.
                                                 if($prev === $chapter){
                                                     $real_next = $url;
                                                 }
-                                                if($url !== $chapter){?><a href="index.php?chapter=<? echo $url;?>"><? } else {
+                                                if($url !== $chapter){?><a href="./<? echo $url;?>"><? } else {
                                                     $real_prev = $prev;
                                                 }?>
                                                     <? echo $name;?>
@@ -1112,20 +1114,22 @@ echo $out;
 
 ?>
                                     <div class="prevnext">
-                                        <? if($real_prev){?>
                                         <div>
-                                            Previous: <a href="index.php?chapter=<? echo $real_prev;?>">
+                                        <? if($real_prev !== false){?>
+                                            &#8630; <a href="./<? echo $real_prev;?>">
                                                 <? echo $chapters[$real_prev];?>
                                             </a>
-                                        </div>
+                                            
                                         <? } ?>
-                                        <? if($real_next){?>
+                                        </div>
                                         <div>
-                                            Next: <a href="index.php?chapter=<? echo $real_next;?>">
+                                        <? if($real_next){?>
+                                            <a href="./<? echo $real_next;?>">
                                                 <? echo $chapters[$real_next];?>
                                             </a>
-                                        </div>
+                                            &#8608;
                                         <? } ?>
+                                        </div>
                                         <div style="clear:both;float:none;"></div>
                                     </div>
 	</div>

@@ -184,6 +184,7 @@ code, code.hljs {
 .prevnext > * {
     float: left;
     width: 50%;
+    text-align: center;
 }
 
 #content > * {
@@ -358,11 +359,21 @@ mn {
 	margin: 3em;
 }
 
+.bash-fr::before {
+    content: '>';
+    padding: 0px 20px;
+    
+}
+.bash-fr {
+    padding: 10px;
+    border: 1px dotted black;
+    
+}
+
 .cooltable td {
     padding: 0.5em;
     border: 1px solid grey;
     text-align: center;
-    font-size: 1.4em;
 }
 .cooltable td:first-child {
 	background-color: whitesmoke;
