@@ -820,7 +820,7 @@ const app = Firera({__root: {
 	multiplier: 10,
 	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: Object.assign({}, cranes[0], crane),
-	$child_crane_1: Object.assign({}, cranes[1], crane),
+	$child_crane_2: Object.assign({}, cranes[1], crane),
 }});
 </code>
 		Here we start to divide data and structure.
