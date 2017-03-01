@@ -1,5 +1,5 @@
 <IfModule mod_rewrite.c>
    RewriteEngine on
-   RewriteRule ^docs/guide/([a-zA-Z\_]*)(/?)$ docs/guide/index.php?chapter=$1 [QSA,L]
-   RewriteRule ^guide/([a-zA-Z\_]*)(/?)$ guide/index.php?chapter=$1 [QSA,L]
+   RewriteRule ^docs/guide/([a-zA-Z\_\-]*)(/?)$ docs/guide/index.php?chapter=$1 [QSA,L]
+   RewriteRule ^guide/([a-zA-Z\_\-]*)(/?)$ guide/index.php?chapter=$1 [QSA,L]
 </IfModule>

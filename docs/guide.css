@@ -3,6 +3,7 @@ body {
     font-family: sans-serif;
     font-family: 'ProbaPro-Regular';
     line-height: 23px;
+    /*background-image: url(bg.jpg);*/
 }
 
 .main-text {
@@ -20,6 +21,7 @@ body {
     text-align: justify;
     font-size: 19px;
     line-height: 25px;
+    background-color: white;
 }
 
 @keyframes example {
@@ -34,6 +36,12 @@ body {
     30%  {color: blue;}
     60%  {color: #2cdc2c;}
     100% {color: #88b2de;}
+}
+
+#toc {
+    -webkit-column-count: 2;
+    -moz-column-count: 2;
+    column-count: 2;
 }
 
 .main-text ul {
@@ -392,6 +400,7 @@ mn {
 	.main-text {
 		text-align: left;
 		padding: 20px;
+                border: 0;
 	}
 	.micro-info {
 		display: block;

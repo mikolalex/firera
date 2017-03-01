@@ -1,11 +1,15 @@
 <?php
 
 $chapter = isset($_GET['chapter']) ? $_GET['chapter'] : '';
+$chapters = array();
 
-function chapter($name, $caption){
+function chapter($rozdil, $name, $caption){
     global $chapters;
     global $chapter;
-    $chapters[$name] = $caption;
+    if(!isset($chapters[$rozdil])){
+        $chapters[$rozdil] = array();
+    }
+    $chapters[$rozdil][$name] = $caption;
     if($name === $chapter) return true;
 }
 
@@ -135,27 +139,43 @@ and open the template in the editor.
                                         <h2>
                                             Table of contents
                                         </h2>
-                                        <ul>
+                                        <ul id="toc">
                                         <?php
                                         $prev = false;
                                         $real_prev = false;
-                                        foreach($chapters AS $url => $name){
+                                        foreach($chapters AS $rozdil => $subchapters){
                                             ?>
                                             <li>
-                                                <? 
-                                                if($prev === $chapter){
-                                                    $real_next = $url;
-                                                }
-                                                if($url !== $chapter){?><a href="./<? echo $url;?>"><? } else {
-                                                    $real_prev = $prev;
-                                                }?>
-                                                    <? echo $name;?>
-                                                <? if($url !== $chapter){?></a><? }
-                                                $prev = $url;
                                                 
+                                                <? echo $rozdil;?>
+                                                
+                                                <ul><?
+                                            foreach($subchapters AS $url => $name){
+                                                //echo'<pre>'; print_r($url);print_r($name); echo'</pre>';
                                                 ?>
+                                                <li>
+                                                    <? 
+                                                    if($prev === $chapter){
+                                                        $real_next = $url;
+                                                        $real_next_name = $name;
+                                                    }
+                                                    if($url !== $chapter){?><a href="./<? echo $url;?>"><? } else {
+                                                        $real_prev = $prev;
+                                                        $real_prev_name = $prev_name;
+                                                    }?>
+                                                        <? echo $name;?>
+                                                    <? if($url !== $chapter){?></a><? }
+                                                    $prev = $url;
+                                                    $prev_name = $name;
+
+                                                    ?>
+                                                </li>
+                                                <?
+                                            }
+                                            ?>
+                                                </ul>
                                             </li>
-                                            <?
+                                                <?
                                         }
                                         ?>
                                         </ul>
@@ -169,7 +189,7 @@ echo $out;
                                         <div>
                                         <? if($real_prev !== false){?>
                                             &#8630; <a href="./<? echo $real_prev;?>">
-                                                <? echo $chapters[$real_prev];?>
+                                                <? echo $real_prev_name;?>
                                             </a>
                                             
                                         <? } ?>
@@ -177,7 +197,7 @@ echo $out;
                                         <div>
                                         <? if($real_next){?>
                                             <a href="./<? echo $real_next;?>">
-                                                <? echo $chapters[$real_next];?>
+                                                <? echo $real_next_name;?>
                                             </a>
                                             &#8608;
                                         <? } ?>

@@ -1,4 +1,4 @@
-<?php if(chapter('', 'Getting started')){ ?>
+<?php if(chapter('Firera basics', '', 'Getting started')){ ?>
 				<div>
 				<h2 id="getting-started">Getting started: declarative FRP</h2>
 				<div>Let's start with a simple example:</div>
@@ -130,7 +130,7 @@ app.get('d'); // 900
 	</ul>-->
 	</div>
                                     <? } 
-                                    if(chapter('dom', 'Working with DOM')){
+                                    if(chapter('Firera basics', 'dom', 'Working with DOM')){
                                     ?>
 	<div>
 	<h2 id="work-with-dom">Working with DOM</h2>
@@ -269,7 +269,7 @@ var app = Firera({
 		</ul>-->
 	</div>
                                     <? } 
-                                    if(chapter('total_frp', 'Total FRP')){
+                                    if(chapter('Firera basics', 'total_frp', 'Total FRP')){
                                     ?>
 	<div>
 		<h2 id="total-frp">"Total FRP" concept</h2>
@@ -295,7 +295,7 @@ var app = Firera({
 		</div>
 	</div>
                                     <? } 
-                                    if(chapter('streams', 'Managing streams')){
+                                    if(chapter('Firera basics', 'streams', 'Managing streams')){
                                     ?>
 	<div>
 		<h2 id="managing-streams">Managing streams</h2>
@@ -399,7 +399,7 @@ const app = Firera({
 		</div>
 	</div>
                                     <? } 
-                                    if(chapter('cell_types', 'Cell types')){
+                                    if(chapter('Firera basics', 'cell_types', 'Cell types')){
                                     ?><div>
 <div>
 			<h2 id="cell-types">
@@ -683,7 +683,7 @@ app.set('num', 4);
 </div>
 	</div>
                                     <? } 
-                                    if(chapter('nested_grids', 'Nested grids')){
+                                    if(chapter('Grid hierarchy', 'nested_grids', 'Nested grids')){
                                     ?>
 					<div>
 					<h2>
@@ -821,7 +821,7 @@ console.log(app.get('weight', '/crane_2')); // 13
 		</div>
 		<div>
                                     <? } 
-                                    if(chapter('lists', 'Lists')){
+                                    if(chapter('Grid hierarchy', 'lists', 'Lists')){
                                     ?>
                     <div>
 		<h2>
@@ -992,4 +992,48 @@ console.log(app.get('weight', '/cranes/1')); // 60
 
 </code>
 			</div>
-                                    <?php } 
+<?php }
+    if(chapter('Writing TodoMVC in details', 'todomvc-start', 'Displaying a list')){ ?>
+        <div>
+            <h1>
+                Writing TodoMVC on Firera
+            </h1>
+            <h2>
+                Displaying a list
+            </h2>
+            <div>
+                We will start pur TodoMVC app with a simple basic thing: displaying a list of todos.
+<code>
+const app_template = `
+	h1
+		"Todo MVC"
+	ul.todos$
+	
+`;
+const todo_template = `
+
+	.
+		.text$
+`;
+const todos = [{text: 'Save the world'}, {text: 'Have a beer'}, {text: 'Go to sleep'}];
+const todo_base = {
+    __root: {
+        $el: document.querySelector('#todo-app'),
+	$template: app_template,
+        $child_todos: ['list', {
+            type: 'todo',
+            data: todos,
+        }]
+    },
+    todo: {
+		$template: todo_template,
+    }
+}
+
+const app = Firera(todo_base, {
+    packages: ['htmlCells', 'neu_ozenfant'],
+});
+</code>
+            </div>
+        </div>
+<?php }
