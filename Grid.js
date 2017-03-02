@@ -313,7 +313,7 @@ Grid.prototype.compute = function(cell, parent_cell_name){
 		func = func[parent_cell_name];
 	} else if(props.closure){
 		if(!this.cell_funcs[real_cell_name]){
-			const new_func = func();
+			var new_func = func(this.cell_values[real_cell_name]);
 			//console.log('Setting closure function', new_func);
 			this.cell_funcs[real_cell_name] = new_func;
 		}
@@ -354,7 +354,8 @@ Grid.prototype.compute = function(cell, parent_cell_name){
 	}
 	if(props.funnel){
 		if(!parent_cell_name){
-			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
+			utils.warn('Cannot calculate map cell value - no parent cell name provided!');
+			return;
 		}
 		parent_cell_name = Parser.get_real_cell_name(parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];

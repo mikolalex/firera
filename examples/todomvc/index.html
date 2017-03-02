@@ -10,35 +10,42 @@ and open the template in the editor.
 				<meta charset="utf8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<style>
-					.outer {
-						border-top: 1px solid black;
-						border-bottom: 1px solid black;
-						overflow-y: scroll;
-						overflow-x: hidden;
-						height: 600px;
-						position: relative;
-						margin: auto;
-					}
-					
-					.row {
-						background-color: #b7d1e4;
-						border: 2px solid white;
-						clear: left;
-						overflow: hidden;
-					}
-					
-					.row > * {
-						float: left;
-						padding: 0px 10px;
-					}
-					
-					.vtable {
+					.completed .checked::before {
+						content: '✓';
+						font-size: 15px;
 						position: absolute;
-						top: 0px;
-						left: 0px;
-						right: 0px;
-						overflow-y: hidden;
+						margin-top: -3px;
+						margin-left: 1px;
+					} 
+					.remove::before {
+						content: '✖';
+						font-size: 15px;
 					}
+					.checked {
+						width: 15px;
+						height: 15px;
+						border: 1px solid black;
+						border-radius: 100%;
+						margin: 0px 10px;
+					}
+					.todos {
+						padding: 10px;
+					}
+					
+					.todo-item > * {
+						display: inline-block;
+					}
+					
+					.todos > * {
+						list-style: none;
+						padding: 10px;
+					}
+					
+					.text {
+						display: inline-block;
+						vertical-align: top;
+					}
+					
 				</style>
 		</head>
 		<body>

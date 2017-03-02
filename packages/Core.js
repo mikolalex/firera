@@ -154,6 +154,29 @@ module.exports = {
 			}
 			return ['funnel', func, ...cells];
 		},
+		arr: (fs) => {
+			const [config] = fs;
+			const args = [];
+			if(config.push){
+				args.push(config.push);
+			}
+			if(config.pop){
+				args.push(config.pop);
+			}
+			var st = ['closureFunnel', (init_val) => {
+				var arr = init_val || [];
+				return (cell, val) => {
+						if(cell === config.push){
+							arr.push(val);
+						}
+						if(cell === config.pop){
+							arr.splice(val, 1);
+						}
+						return arr;
+				};
+			}, ...args];
+			return st;
+		},
 		transistAll: (fs) => {
 			//const [func, ...rest] = fs;
 			var func;

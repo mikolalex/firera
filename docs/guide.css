@@ -42,6 +42,10 @@ body {
     -webkit-column-count: 2;
     -moz-column-count: 2;
     column-count: 2;
+	-webkit-column-gap: 40px; /* Chrome, Safari, Opera */
+    -moz-column-gap: 40px; /* Firefox */
+    column-gap: 40px;
+    text-align: left;
 }
 
 #toc > * {
@@ -55,6 +59,7 @@ body {
 
 .main-text li {
 	margin: 2px 0px;
+	
 }
 
 a {
@@ -180,7 +185,8 @@ code, code.hljs {
 }
 
 #content > * ul li a {
-    text-decoration: none;
+    /*text-decoration: none;*/
+	padding: 1px;
 }
 
 #content > * ul {

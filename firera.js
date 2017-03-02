@@ -81,6 +81,10 @@ Firera.gridCreated = function(app, grid_id, path, parent){
 		}
 	}
 }
+Firera.onGridCreated = (app_id, cb) => {
+	utils.init_if_empty(Firera.onGridCreatedStack, app_id, []);
+	Firera.onGridCreatedStack[app_id].push(cb);
+};
 
 const get_vals = (grid) => {
 	const res = Object.assign({}, grid.cell_values);
@@ -100,6 +104,7 @@ Firera.noop = new function(){};
 Firera.apps = App.apps;
 Firera.run = Firera;
 Firera.Ozenfant = Ozenfant;
+Firera.utils = utils;
 Firera.is_def = is_def;
 Firera.is_falsy = falsy;
 

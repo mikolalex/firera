@@ -149,6 +149,12 @@ var arr_diff = _F.arr_diff = function(a, b){
 
 var second = _F.second = (__, a) => a;
 
+var ind = _F.ind = (i) => {
+	return (arr) => {
+		return arr[i];
+	}
+}
+
 var path_cellname = _F.path_cellname = (a) => a.split('/').pop();
 
 var is_special = _F.is_special = (a) => {
@@ -254,9 +260,9 @@ _F.split_camelcase = (str) => {
 	var others = (str.match(/[A-Z][a-z0-9]*/g) || []).map(toLowerCase);
 	return [first[1], ...others];
 }
-_F.warn = (str) => {
+_F.warn = function(){
 	if(global.firera_debug_mode !== 'off'){
-		console.warn(str);
+		console.warn.apply(console, arguments);
 	}
 }
 _F.error = (str) => {
@@ -274,5 +280,8 @@ var kcopy = _F.kcopy = function(from, to){
 	for(let i in from){
 		to[i] = from[i];
 	}
+}
+var last = _F.last = function(arr){
+	return arr[arr.length - 1];
 }
 module.exports = _F;

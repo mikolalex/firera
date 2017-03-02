@@ -26,8 +26,7 @@ PackagePool.prototype.load = function(pack){
 		Object.assign(this.eachGridMixin, pack.eachGridMixin);
 	}
 	if(pack.onGridCreated){
-		utils.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
-		Firera.onGridCreatedStack[this.app_id].push(pack.onGridCreated);
+		Firera.onGridCreated(this.app_id, pack.onGridCreated);
 	}
 	if(pack.onBranchCreated){
 		utils.init_if_empty(Firera.onBranchCreatedStack, this.app_id, []);

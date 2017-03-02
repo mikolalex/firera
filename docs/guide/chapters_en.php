@@ -1106,16 +1106,94 @@ const app = Firera({
 				Luckily, this is a frequent construction, so Firera already has a macros for such dependancy.
 				It's called "arr".
 <code>
-	'arr_todos': ['arr', {
+	arr_todos: ['arr', {
 		push: 'add_todo', 
 		pop: 'remove_todo', 
-		init: todos
 	}],
 	$child_todos: ['list', {
 		type: 'todo',
-		datasource: ['arr_todos'],
+		datasource: ['../arr_todos'],
 	}]
 </code>
+			</div><div>
+				Cells "add_todo" and "remove_todo" are not defined so far. First we may implement adding new todo.
+				It happens after user presses "Enter" on input field.
+<code>
+const app_template = `
+	.
+		h1
+			"Todo MVC"
+		ul.todos$
+		.
+			text(name: new-todo)
+
+`;
+/*
+	...
+*/
+const root_component = {
+	$init: {
+		arr_todos: todos
+	},
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+	add_todo: [(text) => {
+		return {text, completed: false};
+	}, 'input[name="new-todo"]|enterText'],
+	arr_todos: ['arr', {
+		push: 'add_todo', 
+		pop: 'remove_todo', 
+		//init: todos
+	}],
+	'input[name="new-todo"]|setval': [
+		Firera.utils.always(''), 
+		'add_todo'
+	],
+	$child_todos: ['list', {
+		type: 'todo',
+		datasource: ['../arr_todos'],
+	}]
+}
+</code>
+				A cell 'input[name="new-todo"]|enterText' listens to keyup events in selected input field and returns an entered value when user presses "Enter".
+				"add_todo" takes this string values and wraps them in object as a "text" field.
+				The only thing we still ned to do is to flush an input after user presses enter.
+				That's why we always set it's value to an empty string('') as new todo comes.
+			
+			</div>
+		</div>
+<?php } if(chapter('Writing TodoMVC in details', 'list-item', 'Working with list item: checking and removing todo')){ ?>
+        <div>
+            <h2>
+                Working with list item: checking and removing todo
+            </h2>
+            <div>
+				A todo item needs some DOM node(not nessesarily checkbox) which will be used for checking.
+				Clicking on it will cause our "checked" field to toggle. Depending on this, we will add or remove ".checked" class to todo item root node.
+<code>
+const todo_template = `
+    li
+        .text$
+		.checked
+`;
+/*
+	...
+*/
+const todo_component = {
+	$template: todo_template,
+	completed: ['toggle', '.checked|click', false],
+	'|hasClass(completed)': ['completed'],
+}
+</code>
+				Each time you click on ".cheched" zone, the value of "completed" should be changed to opposite.
+				This is already implemented by "toggle" macros(you can do this using "closure", which remembers the previous value of cell), which takes a cell name
+				and a initial value as an argument.
+			</div>
+			<div>
+				Therefore, our "completed" cell will have Boolean values. We use it to add or remove "completed" class to root node of component(empty selector means root node).
+			</div>
+			<div>
+				Let's add a "remove" button to "todo item" component. The interesting thing about this is we should listen to clicks on it outside component, i.e. in it parent grids.
 			</div>
 		</div>
 <?php } if(chapter('Writing TodoMVC in details', '', '---')){ ?>

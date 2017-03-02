@@ -277,6 +277,17 @@ const side_effects = {
 					break;
 				}
 			})
+			var c = 0;
+			for(let i in this.linked_grids){
+				let id = this.linked_grids[i];
+				let grid = this.app.getGrid(id);
+				if(grid){
+					grid.set('$i', c);
+					c++;
+				} else {
+					//console.log('404', i, id, this.app.grids);
+				}
+			}
 		}
 	}
 };

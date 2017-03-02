@@ -109,6 +109,18 @@ const get_app_struct = (app) => {
 const App = function(config, root_package_pool){
 	this.id = ++appIds;
 	this.config = config;
+	if(global.firera_debug_mode !== 'off'){
+		Firera.onGridCreated(this.id, (app, grid_id) => {
+			const struct = get_grid_struct(this.getGrid(grid_id));
+			for(let groupname in struct.cells){
+				for(let cell of struct.cells[groupname]){
+					for(let wrong_cell in cell.wrong_links){
+						utils.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
+					}
+				}
+			}
+		})
+	}
 	if(this.config.storeChanges){
 		this.changesPool = [];
 	}
