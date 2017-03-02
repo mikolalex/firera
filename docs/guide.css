@@ -44,6 +44,11 @@ body {
     column-count: 2;
 }
 
+#toc > * {
+	-webkit-column-break-inside: avoid;
+	column-break-inside: avoid;
+}
+
 .main-text ul {
 	margin: 15px 0px;
 }

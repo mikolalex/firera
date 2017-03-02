@@ -1005,35 +1005,126 @@ console.log(app.get('weight', '/cranes/1')); // 60
                 We will start pur TodoMVC app with a simple basic thing: displaying a list of todos.
 <code>
 const app_template = `
-	h1
-		"Todo MVC"
-	ul.todos$
-	
+	.
+		h1
+			"Todo MVC"
+		ul.todos$
+
 `;
 const todo_template = `
-
-	.
-		.text$
+    li
+        .text$
 `;
-const todos = [{text: 'Save the world'}, {text: 'Have a beer'}, {text: 'Go to sleep'}];
-const todo_base = {
-    __root: {
-        $el: document.querySelector('#todo-app'),
+const todos = [
+	{
+		text: 'Save the world',
+		completed: false,
+	}, 
+	{
+		text: 'Have a beer',
+		completed: false,
+	}, 
+	{
+		text: 'Go to sleep',
+		completed: false,
+	}
+];
+
+const root_component = {
+	$el: document.querySelector('#todo-app'),
 	$template: app_template,
-        $child_todos: ['list', {
-            type: 'todo',
-            data: todos,
-        }]
-    },
-    todo: {
-		$template: todo_template,
-    }
+	$child_todos: ['list', {
+		type: 'todo',
+		data: todos,
+	}]
+}
+const todo_component = {
+	$template: todo_template,
 }
 
-const app = Firera(todo_base, {
-    packages: ['htmlCells', 'neu_ozenfant'],
-});
+const app = Firera({
+		__root: root_component,
+		todo: todo_component
+	}, {
+		packages: ['htmlCells', 'neu_ozenfant'],
+	}
+);
 </code>
+				This small piece of code already gives us what we want: a list of "todo" grids is automatically rendered within the ul.todos block of "root" grid.
+				How it works:
+				<ul>
+					<li>
+						Ozenfant founds a "todos" variable in root grid template, it's bound to ul.todos node.
+					</li>
+					<li>
+						"todos" is a list, i.e. nested grid which consist a number of similar grids.
+					</li>
+					<li>
+						That's why each item of list(in this case "todo_component") is rendered inside ul.todos node.
+					</li>
+				</ul>
+				This is a beginning of a component-based architecture. Here "todo_component" is an independent component with it's own template, and "root_component" is
+				another component, which uses "todo component". Due to Firera structure it's easy to write separate components.
+				<div>
+					The next step we want to do is to make our list dynamic - we should implement adding new todo item.
+				</div>
             </div>
         </div>
+<?php } if(chapter('Writing TodoMVC in details', 'dynamic-list', 'Dynamic list')){ ?>
+        <div>
+            <h2>
+                Dynamic list
+            </h2>
+            <div>
+				Now our todos are build on the static array.
+				Obviously, it will be changed through time: we can add new items, and remove them.
+			</div><div>
+				In some popular frameworks the following approach is used: you change the value of the array manually(i.e. push, pop etc.), and then the system computes the diff betwenn old and a new value, founs the changes and updates the DOM.
+				In Firera, we cannot manually change the value of array. We should describe it as an event stream, which depends on other streams(adding new items, deleting items).
+				That's why we need our array to be a computable cell. It should work like this:
+<code>
+	'arr_todos': ['closureFunnel', () => {
+		const arr = [];
+		return (cell, val) => {
+			if(cell === 'add_todo'){
+				arr.push(val);
+			}
+			if(cell === 'remove_todo'){
+				arr.splice(val, 1);
+			}
+			return arr;
+		}
+	}, 'add_todo', 'remove_todo'],
+	$child_todos: ['list', {
+		type: 'todo',
+		datasource: ['arr_todos'],
+	}]
+</code>
+				Here "add_todo" will be a stream of newly added todos(strings or objects), and "remove_todo" will be a stream of indexes we want to remove.
+				We will use then "arr_todos" cell as a datasource for our list.
+			</div><div>
+				Luckily, this is a frequent construction, so Firera already has a macros for such dependancy.
+				It's called "arr".
+<code>
+	'arr_todos': ['arr', {
+		push: 'add_todo', 
+		pop: 'remove_todo', 
+		init: todos
+	}],
+	$child_todos: ['list', {
+		type: 'todo',
+		datasource: ['arr_todos'],
+	}]
+</code>
+			</div>
+		</div>
+<?php } if(chapter('Writing TodoMVC in details', '', '---')){ ?>
+        <div>
+            <h2>
+                
+            </h2>
+            <div>
+				
+			</div>
+		</div>
 <?php }
