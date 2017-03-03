@@ -258,6 +258,31 @@ module.exports = {
 							}
 						}
 					break;
+					case 'dblclick':
+						func = function(cb, vals){
+							if(!vals) return;
+							const [$prev_el, $now_el] = vals;
+							if(!Firera.is_def($now_el)) return;
+							const prev_el = raw($prev_el);
+							const now_el = raw($now_el);
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+							if(prev_el && prev_el !== Firera.undef){
+								Gator(prev_el).off('dblclick');
+							}
+							if(!$now_el){
+								utils.warn('Assigning handlers to nothing', $now_el);
+							}
+							Gator(now_el).on('dblclick', selector, function(e){
+								if(!all_subtree && !filter_attr_in_path(e, now_el)){
+									return;
+								}
+								make_resp(cb, e);
+								if(e.originalEvent && e.originalEvent.target){
+									trigger_event('dblclick', document, e.originalEvent.target);
+								}
+							});
+						}
+					break;
 					case 'focus':
 						func = function(cb, vals){
 							if(!vals) return;

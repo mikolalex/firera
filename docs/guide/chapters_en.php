@@ -1400,13 +1400,120 @@ const root_component = {
 				the data may be changed form different parts of code).
 			</div>
 		</div>
-<?php }  if(chapter('Writing TodoMVC in details', 'editing-todo', 'Editing todo')){ ?>
+<?php }  if(chapter('Writing TodoMVC in details', 'counting-uncompleted', 'Counting uncompleted todos')){ ?>
         <div>
             <h2>
-                
+                Counting uncompleted todos
             </h2>
             <div>
-				
+				The "deltas approach" will help us to display a number of uncompleted todos. Instead of recalculating this number each time an array changes, we can listen
+				to changes in "completed" fields of each todo item.
+<code>
+const app_template = `
+	.
+		h1
+			"Todo MVC"
+		ul.todos$
+		.
+			text(name: new-todo)
+		.footer
+			.
+				span$incomplete
+				"items left"
+			. 
+				a.clear-completed(href: #)
+					"Clear completed"
+
+`;
+
+const root_component = {
+	...
+	incomplete: ['closure', () => { 
+		var count = 0;
+		return ([val]) => {
+			if(val){
+				count--;
+			} else {
+				count++;
+			}
+			return count;
+		}
+	}, '**/completed'],
+	...
+}
+</code>
+			We listen to changes in "complete" fields, so that if a new values is truthy, we increase the counter, and opposite.
+			It works!
+			</div>
+		</div>
+<?php } if(chapter('Writing TodoMVC in details', 'editing-todo', 'Editing todo')){ ?>
+        <div>
+            <h2>
+                Editing todo
+            </h2>
+            <div>
+				We need to make possible editing todo. On doubleclick an input field should appear, then on pressing Enter or Escape we should return back. Enter saves the modification done, escape cancels it.
+<code>
+const todo_template = `
+    li.todo-item
+        .checked
+        .
+			? $isEditing
+				text(name: todo-text, value: $text)
+			: 
+				.text$
+        .remove
+`;
+
+const todo_component = {
+	$template: todo_template,
+	completed: ['toggle', '.checked|click', false],
+	text: ['input[name=todo-text]|enterText'],
+	isEditing: ['map', {
+		'.text|dblclick': true,
+		'text': false,
+		'input[name=todo-text]|press(Esc)': false
+	}],
+	'|hasClass(completed)': ['completed'],
+	remove_todo: [_F.second, '.remove|click', '-$i'],
+}
+</code>
+				We changed the template of "todo" component, so that input field will be shown when "isEditing" variable is truthy.
+				Now we need to define: <ul>
+					<li>
+						when "isEditing" becomes true, and when it becomes false
+					</li>
+					<li>
+						when we save entered data as "text" field of todo item
+					</li>
+				</ul>
+				Our "isEditing" cell should become true when user makes double click, and false when he presses "enter" or "escape".
+				To implement such a behaviour, we may use funnel:
+<code>
+	isEditing: ['funnel', (cellname, val) => {
+		if(cellname === 'user_doubleclick'){
+			return true;
+		} else {
+			return false;
+		}
+	}, 'user_doubleclick', 'pres_enter', 'press_escape'];
+</code>
+				Note that now we don't use actual values of argument cells.
+				This is a common case, and we have a handy macros for it, it's called "map".
+<code>
+	isEditing: ['map', {
+		'.text|dblclick': true,
+		'text': false,
+		'input[name=todo-text]|press(Esc)': false
+	}],
+</code>
+				So, when ".text|dblclick" cell updates, our cell becomes true and so on. It's quite simple and expressive.
+			</div>
+			<div>
+				Our todo text should update with a value of input field when user presses enter. For this case, we have a "enterText" aspect.
+				It return the value of input field when user presses Enter button. That's what we need.
+				Hence, when "text" field changes, we should set isEditing to false. We use "text" cell instead of 'input[name=todo-text]|enterText"
+				as a argument for "isEditing" to minimize DOM dependency.
 			</div>
 		</div>
 <?php } /*if(chapter('Writing TodoMVC in details', '', '---')){ ?>

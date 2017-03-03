@@ -7,12 +7,23 @@ const app_template = `
 		ul.todos$
 		.
 			text(name: new-todo)
+		.footer
+			.
+				span$incomplete
+				"items left"
+			. 
+				a.clear-completed(href: #)
+					"Clear completed"
 
 `;
 const todo_template = `
     li.todo-item
         .checked
-        .text$
+        .
+			? $isEditing
+				text(name: todo-text, value: $text)
+			: 
+				.text$
         .remove
 `;
 const todos = [
@@ -40,6 +51,17 @@ const root_component = {
 		return {text, completed: false};
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
+	incomplete: ['closure', () => { 
+		var count = 0;
+		return ([val]) => {
+			if(val){
+				count--;
+			} else {
+				count++;
+			}
+			return count;
+		}
+	}, '**/completed'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
@@ -53,6 +75,13 @@ const root_component = {
 const todo_component = {
 	$template: todo_template,
 	completed: ['toggle', '.checked|click', false],
+	text: ['input[name=todo-text]|enterText'],
+	isEditing: ['map', {
+		'.text|dblclick': true,
+		'text': false,
+		'input[name=todo-text]|press(Esc)': false
+	}],
+	'$remove': ['^^/clear_completed'],
 	'|hasClass(completed)': ['completed'],
 	remove_todo: [_F.second, '.remove|click', '-$i'],
 }
