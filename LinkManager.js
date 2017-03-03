@@ -55,6 +55,7 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 		for(let slave_grid_id in lnks){
 			for(let slave_cellname in lnks[slave_grid_id]){
 				var cell_val = val;
+				var cv2 = val;
 				if(lnks[slave_grid_id] && lnks[slave_grid_id][slave_cellname]){
 					var link_data = lnks[slave_grid_id][slave_cellname];
 					if(link_data.link_id === '**'){
@@ -71,6 +72,7 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 						}
 					}
 				}
+				//console.log('GOT', cell_val, cv2);
 				// the very meaning of this method
 				const slave_grid = this.app.getGrid(slave_grid_id);
 				if(!slave_grid){

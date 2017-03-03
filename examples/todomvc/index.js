@@ -1,10 +1,12 @@
+var _F = Firera.utils;
+
 const app_template = `
+	.
+		h1
+			"Todo MVC"
+		ul.todos$
 		.
-			h1
-				"Todo MVC"
-			ul.todos$
-			.
-				text(name: new-todo)
+			text(name: new-todo)
 
 `;
 const todo_template = `
@@ -27,11 +29,10 @@ const todos = [
 		completed: false,
 	}
 ];
-var _F = Firera.utils;
 
 const root_component = {
 	$init: {
-		arr_todos: todos
+		arr_todos: _F.arr_deltas([], todos)
 	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
@@ -39,14 +40,14 @@ const root_component = {
 		return {text, completed: false};
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
-	arr_todos: ['arr', {
+	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
 	}],
 	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
 	$child_todos: ['list', {
 		type: 'todo',
-		datasource: ['../arr_todos'],
+		deltas: '../arr_todos',
 	}]
 }
 const todo_component = {
@@ -63,6 +64,13 @@ const app = Firera({
 		packages: ['htmlCells', 'neu_ozenfant'],
 	}
 );
+/*
+var arr_1 = ['ene', 'bene', 'raba'];
+var arr_2 = ['ene', 'bene', 'raba', 'kvinter', 'finter'];
+var arr_3 = ['ene', 'bene', 'raba', 'kvinter', '______', 'zhaba'];
+console.log(JSON.stringify(_F.arr_deltas(arr_1, arr_2)));
+console.log(JSON.stringify(_F.arr_deltas(arr_2, arr_1)));
+console.log(JSON.stringify(_F.arr_deltas(arr_2, arr_3)));*/
 
 console.log('App', app);
 /*

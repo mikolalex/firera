@@ -177,6 +177,27 @@ module.exports = {
 			}, ...args];
 			return st;
 		},
+		arrDeltas: (fs) => {
+			const [config] = fs;
+			const args = [];
+			if(config.push){
+				args.push(config.push);
+			}
+			if(config.pop){
+				args.push(config.pop);
+			}
+			var st = ['funnel', (cell, val) => {
+				const deltas = [];
+				if(cell === config.push){
+					deltas.push(['add', null, val]);
+				}
+				if(cell === config.pop){
+					deltas.push(['remove', val]);
+				}
+				return deltas;
+			}, ...args];
+			return st;
+		},
 		transistAll: (fs) => {
 			//const [func, ...rest] = fs;
 			var func;
@@ -484,7 +505,7 @@ module.exports = {
 					}
 				}]
 			} else if(props.deltas) {
-				deltas_func = [id, props.deltas];
+				deltas_func = [utils.id, props.deltas];
 			} else if(props.data) {
 				deltas_func = ['closure', get_arr_changes, ['just', props.data]];
 			} else {

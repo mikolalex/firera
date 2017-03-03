@@ -1012,7 +1012,7 @@ const app_template = `
 
 `;
 const todo_template = `
-    li
+    li.todo-item
         .text$
 `;
 const todos = [
@@ -1119,6 +1119,8 @@ const app = Firera({
 				Cells "add_todo" and "remove_todo" are not defined so far. First we may implement adding new todo.
 				It happens after user presses "Enter" on input field.
 <code>
+var _F = Firera.utils;
+
 const app_template = `
 	.
 		h1
@@ -1146,7 +1148,7 @@ const root_component = {
 		//init: todos
 	}],
 	'input[name="new-todo"]|setval': [
-		Firera.utils.always(''), 
+		_F.always(''), 
 		'add_todo'
 	],
 	$child_todos: ['list', {
@@ -1172,7 +1174,7 @@ const root_component = {
 				Clicking on it will cause our "checked" field to toggle. Depending on this, we will add or remove ".checked" class to todo item root node.
 <code>
 const todo_template = `
-    li
+    li.todo-item
         .text$
 		.checked
 `;
@@ -1195,8 +1197,210 @@ const todo_component = {
 			<div>
 				Let's add a "remove" button to "todo item" component. The interesting thing about this is we should listen to clicks on it outside component, i.e. in it parent grids.
 			</div>
+			<div>
+<code>
+var _F = Firera.utils;
+
+const app_template = `
+	.
+		h1
+			"Todo MVC"
+		ul.todos$
+		.
+			text(name: new-todo)
+
+`;
+const todo_template = `
+    li.todo-item
+        .checked
+        .text$
+        .remove
+`;
+const todos = [
+	{
+		text: 'Save the world',
+		completed: false,
+	}, 
+	{
+		text: 'Have a beer',
+		completed: false,
+	}, 
+	{
+		text: 'Go to sleep',
+		completed: false,
+	}
+];
+
+const root_component = {
+	$init: {
+		arr_todos: todos
+	},
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+	add_todo: [(text) => {
+		return {text, completed: false};
+	}, 'input[name="new-todo"]|enterText'],
+	remove_todo: [_F.ind(0), '**/remove_todo'],
+	arr_todos: ['arr', {
+		push: 'add_todo', 
+		pop: 'remove_todo',
+	}],
+	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
+	$child_todos: ['list', {
+		type: 'todo',
+		datasource: ['../arr_todos'],
+	}]
+}
+const todo_component = {
+	$template: todo_template,
+	completed: ['toggle', '.checked|click', false],
+	'|hasClass(completed)': ['completed'],
+	remove_todo: [_F.second, '.remove|click', '-$i'],
+}
+
+const app = Firera({
+		__root: root_component,
+		todo: todo_component
+	}, {
+		packages: ['htmlCells', 'neu_ozenfant'],
+	}
+	
+</code>
+			We should know the index of element of list. It's always contained in '$i' cell, which is one on system predefined cells.
+			At the same time, we should listen to it passively(with "-" prefix), in order our "remove_todo" event to happen only on click(and not on $i change).
+			</div>
+			<div>
+				Then we should link and listen to "remove_todo" cells of each grid in list from root grid.
+				We can do this by referencing '**/remove_todo'.
+				<div class="nb">
+					Why '**' instead of '*'? As you remember, one asterisk '*' means immediate descendants of a grid. In this case, it will be the only grid - the "todos" grid, which in its turn, holds all the lis's grids.
+					So we need use two asterisks to listen to all grids in subtree.
+				</div>
+				We pass the index of element in list, but we use "_F.ind(0)" function. Why?
+				When listening to changes in other grid's cells through '*' or '**', you receive an array of [val, path] as a value of cell.
+				Where "val" is original value, and "path" is a path to grid in which the cell in contained.
+				You can check this:
+<code>
+	...
+	remove_todo: [function(a){
+			const [val, path] = a;
+			console.log('Val:', val, 'path:', path);
+			return val;
+		}, '**/remove_todo'],
+	...
+	
+	*clicking on third element* // Val: 2, path: /grids/2
+	*clicking on first element* // Val: 0, path: /grids/0
+</code>
+				This is used to determine grid's name of cell we listen to. We need only the value, so we should always return the first element of our argument.
+				We can use .ind(num) function from Firera.utils package. It returns a function which always return "num"-th element of first argument.
+				<div class="nb">
+					If so, why don't we get the index of list todo item from path?
+					A grid's name in list does not always coincide with it's position. The name is like id: if you have a list of three grids, and remove them and add a new one,
+					it's name will be "3", not "0".
+				</div>
+				
+					
+			</div>
 		</div>
-<?php } if(chapter('Writing TodoMVC in details', '', '---')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'arr-deltas', 'Using array deltas')){ ?>
+        <div>
+            <h2>
+                Using array deltas
+            </h2>
+            <div>
+				Seems like it works now, but... Let's looks closer how data transform in our app.
+				<ul>
+					<li>
+						We assemble particular changes(adding, removing item) into as array
+					</li>
+					<li>
+						Array is passed to list as datasource
+					</li>
+					<li>
+						A list compares array with it's previous version, calculates the diff and makes updates.
+					</li>
+				</ul>
+				Obviously, useless work is done: we make an array from a stream of changes, and then compute changes from array!
+				So... Can we just pass array changes to list directly?
+				Yes! What we need to do:
+				<ul>
+					<li>
+						Create a single stream of array changes by joining "add" and "remove" streams
+					</li>
+					<li>
+						Transform it to appropriate form
+					</li>
+					<li>
+						Use this stream as a source for our list!
+					</li>
+				</ul>
+				How does the stream of changes look like?
+				It's a kind of diff info for array.
+				In Firera.utils there is a handy function that computes the changes by comparing two arrays.
+				It is arr_deltas(old_arr, new_arr).
+<code>
+var arr_1 = ['ene', 'bene', 'raba'];
+var arr_2 = ['ene', 'bene', 'raba', 'kvinter', 'finter'];
+var arr_3 = ['ene', 'bene', 'raba', 'kvinter', '______', 'zhaba'];
+
+_F.arr_deltas(arr_1, arr_2); // [["add","3","kvinter"],["add","4","finter"]]
+_F.arr_deltas(arr_2, arr_1); // [["remove","3"],["remove","4"]]
+_F.arr_deltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
+</code>
+				It can produce three type of changed: "add", "remove" and "change".
+				If there is a key in new array that is absent in old one, it produces "add" change.
+				If there is no such key in new array that was present in old one, it's "remove" change.
+				Anf if the value of array item is changed, it's a "change" change.
+				As you see, "add" and "change" changes require a value, while the "remove" change needs only an index.
+				For "add" change an index may be omitted.
+			</div>
+			<div>
+				Now our code will look like this:
+<code>
+const root_component = {
+	$init: {
+		arr_todos: _F.arr_deltas([], todos)
+	},
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+	add_todo: [(text) => {
+		return {text, completed: false};
+	}, 'input[name="new-todo"]|enterText'],
+	remove_todo: [_F.ind(0), '**/remove_todo'],
+	arr_todos: ['arrDeltas', {
+		push: 'add_todo', 
+		pop: 'remove_todo',
+	}],
+	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
+	$child_todos: ['list', {
+		type: 'todo',
+		deltas: '../arr_todos',
+	}]
+}
+</code>
+				Note that instead of using "arr" macros for "arr_todos", we use "arrDeltas" macro.
+				It does what we need: it transforms a stream of new values into "add" array changes, 
+				and "pop" stream is transformed into "remove" changes.
+			</div><div>
+				Next important change is that we use "deltas" parameter instead of "datasource".
+				Now our list will listen to a stream of deltas and make changes, therefore we don't need to make any diffs anymore.
+			</div>
+			<div>
+				The only transformation of data into changes is for initial value of "arr_todos". It's done with _F.arr_deltas function which was mentioned before.
+			</div><hr>
+			<div>
+				Using array(and, later, objects) deltas streams instead of data is a powerful approach. Of course, at first sight, it might look a bit strange and "low-level".
+				But it's very useful for joining different parts of your app, and it givs a lot of advantages. 
+			</div><div>
+				When you begin to think in terms of data deltas, you'll see how many cases it covers.
+				Say, a user registers on a site. Usually we make a request to server with a data to create a new record for this user. Semantically, it's a "create" delta for a server collection of users.
+			</div><div>
+				Another advantage, which complies the Firera phylosophy, is that is allows to have a single point where the changes to array is gathered.(as an opposite to an approach where 
+				the data may be changed form different parts of code).
+			</div>
+		</div>
+<?php }  if(chapter('Writing TodoMVC in details', 'editing-todo', 'Editing todo')){ ?>
         <div>
             <h2>
                 
@@ -1205,4 +1409,13 @@ const todo_component = {
 				
 			</div>
 		</div>
-<?php }
+<?php } /*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
+        <div>
+            <h2>
+                
+            </h2>
+            <div>
+				
+			</div>
+		</div>
+<?php }*/
