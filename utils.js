@@ -149,9 +149,21 @@ var arr_diff = _F.arr_diff = function(a, b){
 
 var second = _F.second = (__, a) => a;
 
+var fromMap = _F.fromMap = function(map, def){
+	return (val) => {
+		return (map[val] !== undefined) ? map[val] : def;
+	}
+}
+
 var ind = _F.ind = (i) => {
 	return (arr) => {
 		return arr[i];
+	}
+}
+
+var eq = _F.eq = (val) => {
+	return (a) => {
+		return a === val;
 	}
 }
 

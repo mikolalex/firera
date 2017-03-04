@@ -9,44 +9,86 @@ and open the template in the editor.
 				<title>Todo MVC</title>
 				<meta charset="utf8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<style>
-					.completed .checked::before {
-						content: '✓';
-						font-size: 15px;
-						position: absolute;
-						margin-top: -3px;
-						margin-left: 1px;
-					} 
-					.remove::before {
-						content: '✖';
-						font-size: 15px;
-					}
-					.checked {
-						width: 15px;
-						height: 15px;
-						border: 1px solid black;
-						border-radius: 100%;
-						margin: 0px 10px;
-					}
-					.todos {
-						padding: 10px;
-					}
-					
-					.todo-item > * {
-						display: inline-block;
-					}
-					
-					.todos > * {
-						list-style: none;
-						padding: 10px;
-					}
-					
-					.text {
-						display: inline-block;
-						vertical-align: top;
-					}
-					
-				</style>
+				<link rel="stylesheet" href="../../docs/guide.css"/>
+<style>
+	#todo-app {
+		max-width: 800px;
+		margin:0 auto;
+	}
+
+	[name=new-todo] {
+		width: 100%;
+	}
+
+	.completed .checked::before {
+		content: '✓';
+		font-size: 15px;
+		position: absolute;
+		margin-top: -3px;
+		margin-left: 2px;
+	} 
+	.remove::before {
+		content: '✖';
+		font-size: 15px;
+	}
+	.checked {
+		width: 18px;
+		height: 18px;
+		border: 1px solid black;
+		border-radius: 100%;
+		margin: 0px 10px;
+	}
+	.todos {
+		padding: 10px 0px;
+	}
+
+	.todo-item {
+		background-color: #b7d1e4;
+		margin: 10px 0px;
+		padding: 5px;
+	}
+
+	.remove {
+		float: right;
+	}
+
+	.todo-item > * {
+		display: inline-block;
+	}
+
+	.todo-item > .checked {
+		display: block;
+		float: left;
+		margin-top: 3px;
+	}
+
+	.todos > * {
+		list-style: none;
+		padding: 10px;
+	}
+
+	.text {
+		display: inline-block;
+		vertical-align: top;
+	}
+
+	.footer > * {
+		float: left;
+		width: 33%;
+		text-align: center;
+	}
+
+	.display-buttons > a {
+		border: 1px solid grey;
+		background-color: whitesmoke;
+		color: black;
+		border-radius: 3px;
+		padding: 3px 6px;
+		margin: 1px;
+		display: inline-block;
+	}
+
+</style>
 		</head>
 		<body>
 			<div id="todo-app"></div>

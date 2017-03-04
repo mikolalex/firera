@@ -38,11 +38,11 @@ const filter_attr_in_parents = function(parent_node, index, el){
 const htmlPipeAspects = {
 	attr: (el, attr) => {
 		if(!el) return;
-		debugger;
-		for(attrName in attr){
+		/*debugger;
+		for(var attrName in attr){
 			el.setAttribute(attrName, attr[attrName]);
-		}
-		return el;
+		}*/
+		return el.getAttribute(attr);
 	}
 }
 
@@ -58,7 +58,7 @@ const make_resp1 = (cb, val) => {
 	return cb(val);
 }
 
-const make_resp2 = function(cb, e){
+const make_resp2 = function(pipe, cb, e){
 	var res = e.target;
 	for(const [asp, pars] of pipe){
 		if(!htmlPipeAspects[asp]){
@@ -130,6 +130,7 @@ module.exports = {
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
 			func(matches, pool, context, packages) {
+				console.log('matcg', matches[0]);
 				const get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if(params && params[1]){
@@ -147,11 +148,12 @@ module.exports = {
 					pipe = pipe.map(get_params);
 				}
 				
-				const make_resp = !pipe.length ? make_resp1 : make_resp2;
+				const make_resp = !pipe.length ? make_resp1 : make_resp2.bind(null, pipe);
 				const selector = matches[2];
 				var all_subtree = false;
 				var func, params;
 				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
+				const getters = new Set(['getval', 'click', 'dblclick', 'focus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -159,13 +161,19 @@ module.exports = {
 				}
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
-				if(
-					(context === 'setter' && !setters.has(aspect))
-					||
-					(context !== 'setter' && setters.has(aspect))
-				){
+				if(!setters.has(aspect) && !getters.has(aspect)){
+					utils.error('Aspect "' + aspect + '" not found!');
 					return;
 				}
+				if(context === 'setter' && !setters.has(aspect)){
+					//utils.error('HTML setter ' + aspect + ' not found! In ' + matches[0]);
+					return;
+				}
+				if(context !== 'setter' && setters.has(aspect)){
+					//utils.error('Using HTML setter ' + aspect + ' not in setter context!');
+					return;
+				}
+				
 				switch(aspect){
 					case 'getval':
 						func = function(cb, vals){
@@ -435,6 +443,7 @@ module.exports = {
 						}
 					break;
 					default:
+						debugger;
 						throw new Error('unknown HTML aspect: =' + aspect + '=');
 					break;
 				}

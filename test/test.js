@@ -131,12 +131,6 @@ window.triggerEnter = (el) => {
 	el.trigger(e);
 }
 
-var fromMap = function(map, def){
-	return (val) => {
-		return (map[val] !== undefined) ? map[val] : def;
-	}
-}
-
 function toggle_checkbox(el){
 	if(el instanceof $){
 		for(let element of el){
@@ -1039,7 +1033,7 @@ describe('Firera tests', function () {
 						}, '../remove_done', '-completed_indices']
 					],
 					self: {
-						'display': [fromMap({
+						'display': [utils.fromMap({
 							all: '*',
 							undone: true,
 							done: false,

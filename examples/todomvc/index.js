@@ -4,13 +4,20 @@ const app_template = `
 	.
 		h1
 			"Todo MVC"
-		ul.todos$
 		.
-			text(name: new-todo)
+			text(name: new-todo, placeholder: What needs to be done?)
+		ul.todos$
 		.footer
 			.
 				span$incomplete
 				"items left"
+			.display-buttons
+				a.all
+					"All"
+				a.undone
+					"Active"
+				a.done
+					"Completed"
 			. 
 				a.clear-completed(href: #)
 					"Clear completed"
@@ -51,6 +58,7 @@ const root_component = {
 		return {text, completed: false};
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
+	all_complete: [_F.eq(0), 'incomplete'],
 	incomplete: ['closure', () => { 
 		var count = 0;
 		return ([val]) => {
@@ -67,6 +75,12 @@ const root_component = {
 		pop: 'remove_todo',
 	}],
 	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
+	display: [_F.fromMap({
+		all: '*',
+		undone: true,
+		done: false,
+	}), '.display-buttons > *|click|attr(class)'],
+	clear_completed: ['.clear-completed|click'],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
@@ -81,9 +95,10 @@ const todo_component = {
 		'text': false,
 		'input[name=todo-text]|press(Esc)': false
 	}],
-	'$remove': ['^^/clear_completed'],
+	//'$remove': ['^^/clear_completed'],
 	'|hasClass(completed)': ['completed'],
 	remove_todo: [_F.second, '.remove|click', '-$i'],
+	'|display': ['!=', '../../display', 'completed'],
 }
 
 const app = Firera({
@@ -91,20 +106,9 @@ const app = Firera({
 		todo: todo_component
 	}, {
 		packages: ['htmlCells', 'neu_ozenfant'],
+		//trackChanges: true,//['pos_y', 'top_offset'],
+		//trackChangesType: 'log',
 	}
 );
-/*
-var arr_1 = ['ene', 'bene', 'raba'];
-var arr_2 = ['ene', 'bene', 'raba', 'kvinter', 'finter'];
-var arr_3 = ['ene', 'bene', 'raba', 'kvinter', '______', 'zhaba'];
-console.log(JSON.stringify(_F.arr_deltas(arr_1, arr_2)));
-console.log(JSON.stringify(_F.arr_deltas(arr_2, arr_1)));
-console.log(JSON.stringify(_F.arr_deltas(arr_2, arr_3)));*/
 
-console.log('App', app);
-/*
-
-		trackChanges: true,//['pos_y', 'top_offset'],
-		trackChangesType: 'log',
- 
- */
+window.app = app;

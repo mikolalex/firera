@@ -46,7 +46,7 @@ const get_grid_struct = (grid) => {
 		const parents = grid.cell_parents(cell);
 		const wrong_links = {};
 		for(let cn of parents){
-			if(!grid.cellExists(cn)){
+			if(!grid.cellExists(cn) && Parser.real_cell_name(cn) !== '$i'){
 				wrong_links[cn] = true;
 			}
 		}
