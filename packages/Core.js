@@ -275,6 +275,9 @@ module.exports = {
 		first(funcstring) {
 			return [(a) => a, ...funcstring]
 		},
+		join(funcstring) {
+			return [(cell, val) => val, ...funcstring]
+		},
 		second(funcstring) {
 			return [(a, b) => b, ...funcstring]
 		},
@@ -426,6 +429,7 @@ module.exports = {
 		},
 		count(funcstring) {
 			var fieldname = funcstring[0];
+			var fnc = funcstring[1] ? funcstring[1] : utils.id;
 			const pieces = fieldname.split('/');
 			fieldname = pieces.pop();
 			const prefix = pieces.length ? pieces.join('/') + '/' : '';
@@ -451,7 +455,8 @@ module.exports = {
 						return count;
 					}
 					if(!chng) return count;
-					const [key, val] = chng;
+					var [key, val] = chng;
+					val = fnc(val);
 					const prev_val = vals[key];
 					if(prev_val === undefined) {
 						if(val) count++

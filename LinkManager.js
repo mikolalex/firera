@@ -17,7 +17,10 @@ LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id){
 		if(child_path.indexOf(path) === 0){
 			// it's a child of master grid
 			for(let cellname in this.doubleAsterisk[path]){
-				this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path);
+				if(!this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path)){
+					// grid removed!
+					return;
+				}
 			}
 		}
 	}
@@ -92,8 +95,15 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 LinkManager.prototype.addWorkingLink = function(master_grid_id, master_cellname, slave_grid_id, slave_cellname, link_id, path){
 	utils.init_if_empty(this.workingLinks, master_grid_id, {}, master_cellname, {}, slave_grid_id, {}, slave_cellname, {link_id, path});
 	//this.app.getGrid(slave_grid_id).set(slave_cellname, val);
-	this.app.getGrid(master_grid_id).initIfSideEffectCell(master_cellname);
-	this.checkUpdate(master_grid_id, master_cellname);
+	const master = this.app.getGrid(master_grid_id);
+	if(!master){
+		//utils.warn('Link unexisting grid', master_grid_id);
+		return false;
+	}
+	master.initIfSideEffectCell(master_cellname);
+	if(!master.isSignal(master_cellname)){
+		this.checkUpdate(master_grid_id, master_cellname);
+	}
 }
 
 LinkManager.prototype.actualizeLink = function(link_id, first_child_id){

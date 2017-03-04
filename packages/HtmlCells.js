@@ -130,7 +130,6 @@ module.exports = {
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
 			func(matches, pool, context, packages) {
-				console.log('matcg', matches[0]);
 				const get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if(params && params[1]){

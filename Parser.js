@@ -140,15 +140,24 @@ const parse_cell_type = (i, row, pool, children) => {
 		cell_types[i] = get_cell_type(i, type);
 		return;
 	}
+	if(additional_type && (row.length === 1)){
+		row.unshift(utils.id);
+	}
 	var func = row[0];
-	const parents = row.slice(1);
-	if(func instanceof Function){
-		// regular sync cell
-		type = 'is';
+	var parents;
+	if(row.length > 1){
+		parents = row.slice(1);
+		if(func instanceof Function){
+			// regular sync cell
+			type = 'is';
+		} else {
+			// may be 'async', 'changes' or something else
+			type = func;
+			func = parents.shift();
+		}
 	} else {
-		// may be 'async', 'changes' or something else
-		type = func;
-		func = parents.shift();
+		parents = row;
+		type = 'is';
 	}
 	cell_types[i] = get_cell_type(i, type, func, parents, additional_type);
 	for(let j in parents){
@@ -194,7 +203,8 @@ const parse_arr_funcstring = (a, key, pool, packages) => {
 		a = a.slice();
 	}
 	if(!funcname) {
-		console.error('wrong func:', funcname);
+		console.error('wrong func:', funcname, key + ':', a);
+		return;
 	}
 	const cc = utils.split_camelcase(funcname);
 	if(a.length === 1 && (typeof a[0] === 'string')){
@@ -278,11 +288,13 @@ const side_effects = {
 				}
 			})
 			var c = 0;
+			this.grid_i_to_id = {};
 			for(let i in this.linked_grids){
 				let id = this.linked_grids[i];
 				let grid = this.app.getGrid(id);
 				if(grid){
 					grid.set('$i', c);
+					this.grid_i_to_id[c] = id;
 					c++;
 				} else {
 					//console.log('404', i, id, this.app.grids);
@@ -293,19 +305,11 @@ const side_effects = {
 };
 
 const get_real_cell_name = function(str){
-	return(str[0] === '-' 
-		   ? 
-				str.slice(1) 
-		   : 
-				(str[0] === '=' 
-				? 
-					str.slice(1) 
-				: 
-					(str[0] === '~' 
-					? 
-					   str.slice(1) 
-					: 
-					   str)));
+	if(['-', '=', '~'].indexOf(str[0]) !== -1){
+		return str.slice(1);
+	} else {
+		return str;
+	}
 }
 
 const parse_cellname = function(cellname, pool, context, packages, isDynamic){

@@ -62,7 +62,9 @@ var mk_logger = (a) => {
 var group_by = _F.group_by =  (arr, prop_or_func) => {
 	var res = {};
 	for(let obj of arr){
-		init_if_empty(res, prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func], []).push(obj);
+		var key = prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func];
+		init_if_empty(res, key, []);
+		res[key].push(obj);
 	}
 	return res;
 }
@@ -70,6 +72,7 @@ var group_by = _F.group_by =  (arr, prop_or_func) => {
 var frozen = _F.frozen =  (a) => JSON.parse(JSON.stringify(a));
 
 var id = _F.id = (a) => a;
+var not = _F.not = (a) => !a;
 var ids = _F.ids = function(){
 	return arguments;
 }
@@ -147,6 +150,7 @@ var arr_diff = _F.arr_diff = function(a, b){
 	return diff;
 }
 
+var first = _F.first = (a) => a;
 var second = _F.second = (__, a) => a;
 
 var fromMap = _F.fromMap = function(map, def){

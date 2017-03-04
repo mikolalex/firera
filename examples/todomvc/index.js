@@ -59,17 +59,6 @@ const root_component = {
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
 	all_complete: [_F.eq(0), 'incomplete'],
-	incomplete: ['closure', () => { 
-		var count = 0;
-		return ([val]) => {
-			if(val){
-				count--;
-			} else {
-				count++;
-			}
-			return count;
-		}
-	}, '**/completed'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
@@ -80,7 +69,8 @@ const root_component = {
 		undone: true,
 		done: false,
 	}), '.display-buttons > *|click|attr(class)'],
-	clear_completed: ['.clear-completed|click'],
+	'~clear_completed': ['.clear-completed|click'],
+	incomplete: ['count', 'todos/completed', _F.not],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
@@ -97,7 +87,14 @@ const todo_component = {
 	}],
 	//'$remove': ['^^/clear_completed'],
 	'|hasClass(completed)': ['completed'],
-	remove_todo: [_F.second, '.remove|click', '-$i'],
+	remove_todo: [
+		'transist',
+		['join', 
+			'.remove|click', 
+			[_F.first, '-completed', '^^/clear_completed']
+		], 
+		'-$name'
+	],
 	'|display': ['!=', '../../display', 'completed'],
 }
 
@@ -107,7 +104,7 @@ const app = Firera({
 	}, {
 		packages: ['htmlCells', 'neu_ozenfant'],
 		//trackChanges: true,//['pos_y', 'top_offset'],
-		//trackChangesType: 'log',
+		trackChangesType: 'imm',
 	}
 );
 

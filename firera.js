@@ -98,8 +98,9 @@ const get_vals = (grid) => {
 }
 
 const root_package_pool = new PackagePool();
-
-Firera.undef = new function(){};
+const Firera_UNDEFINED = function(){};
+Firera_UNDEFINED.prototype.toString = () => 'Firera.UNDEFINED';
+Firera.undef = new Firera_UNDEFINED;
 Firera.noop = new function(){};
 Firera.apps = App.apps;
 Firera.run = Firera;

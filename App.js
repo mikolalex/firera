@@ -312,6 +312,12 @@ App.prototype.startChange = function() {
 	}
 	this.changeObj = [];
 }
+App.prototype.logChange = ([path, cell, val, level]) => {
+	const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
+	level = (level || 0) + 1;
+	const cellname = new Array(Number(level)).join('.') + cell + (new Array(Math.max(0, 29 - cell.length - level)).join(' '));
+	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
+}
 App.prototype.endChange = function() {
 	if(!this.config.trackChanges) return;
 	if(!this.changeObj){
@@ -320,16 +326,15 @@ App.prototype.endChange = function() {
 	if(this.config.storeChanges){
 		this.changesPool.push(changeObj);
 	}
-	if(this.config.trackChangesType === 'log'){
-		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
-		for(let [path, cell, val, level] of this.changeObj){
-			const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
-			level = (level || 0) + 1;
-			const cellname = new Array(Number(level)).join('.') + cell + (new Array(Math.max(0, 29 - cell.length - level)).join(' '));
-			console.log('|', pathname, '|' + level, cellname, '|', val, '|');
+	if(this.config.trackChanges){
+		if(this.config.trackChangesType === 'log'){
+			console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+			for(let change of this.changeObj){
+				this.logChange(change);
+			}
+		} else {
+			console.log(this.changeObj);
 		}
-	} else {
-		console.log(this.changeObj);
 	}
 	delete this.changeObj;
 }

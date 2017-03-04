@@ -52,7 +52,7 @@ const create_provider = (app, self) => {
 		unlinkChildCells(name) {
 			const hsh = this.get(name);
 			if(!hsh){
-				//utils.warn('removing unexisting grid!', name);
+				utils.warn('removing unexisting grid!', name);
 				return;
 			}
 			this.remove(name);
@@ -136,6 +136,12 @@ const Grid = function(app, parsed_pb_name, name, free_vals, init_later, parent_i
 
 	if(this.plain_base.$init && !init_later){
 		this.init();
+	} else {
+		if(this.init_values){
+			for(let cell in this.init_values){
+				//this.cell_values[cell] = this.init_values[cell];
+			}
+		}
 	}
 	if(parsed_pb.no_args_cells){
 		//this.set(parsed_pb.no_args_cells);
@@ -210,6 +216,7 @@ Grid.prototype.linkGrid = function(cellname, val){
 		return;
 	}
 	const child_id = this.linkChild(grid, cellname, free_vals);
+	if(!child_id) return;
 	if(link1){
 		//console.info('Linking by link1 grid', link1);
 		Obj.each(link1, (his_cell, my_cell) => {
@@ -247,6 +254,9 @@ Grid.prototype.linkChild = function(type, link_as, free_vals){
 		}
 	}
 	const id = this.linked_grids_provider.create(this, type, link_as, free_vals);
+	if(!this.app.grids[id]){
+		return false;
+	}
 	this.linked_grids_provider.initChild(link_as);
 	return id;
 }
@@ -680,7 +690,7 @@ Grid.prototype.isValue = function(real_cell_name){
 	return this.cell_types[real_cell_name].additional_type === '=';
 }
 Grid.prototype.isSignal = function(real_cell_name){
-	return this.cell_types[real_cell_name].additional_type === '~';
+	return this.cell_types[real_cell_name] ? this.cell_types[real_cell_name].additional_type === '~' : false;
 }
 Grid.prototype.real_cell_name = function(cell){
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
@@ -732,7 +742,13 @@ Grid.prototype.set_cell_value = function(cell, val){
 			(this.app.config.trackChanges.indexOf(cell) === -1)){
 			return;
 		}
-		this.app.changeObj.push([this.path, cell, val, this.levels[cell]]);
+		const change = [this.path, cell, val, this.levels[cell]];
+		if(this.app.config.trackChangesType === 'log'){
+			this.app.changeObj.push(change);
+		} 
+		if(this.app.config.trackChangesType === 'imm'){
+			this.app.logChange(change);
+		}
 	}
 	if(this.side_effects[cell]){	
 		if(!Parser.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], Parser.side_effects);
