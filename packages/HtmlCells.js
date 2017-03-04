@@ -81,7 +81,9 @@ const toggle_class = (el, clas, val) => {
 		toggle = pos === -1;
 	}
 	if(toggle){
-		el.setAttribute('class', cls_string + ' ' + clas);
+		if(cls.indexOf(clas) === -1){
+			el.setAttribute('class', cls_string + ' ' + clas);
+		}
 	} else {
 		if(pos !== -1){
 			cls.splice(pos, 1);
@@ -151,8 +153,8 @@ module.exports = {
 				const selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
-				const getters = new Set(['getval', 'click', 'dblclick', 'focus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
+				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css', 'setfocus']);
+				const getters = new Set(['getval', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -439,6 +441,18 @@ module.exports = {
 							}
 							el = raw(el);
 							el.value = val;
+						}
+					break;
+					case 'setfocus':
+						func = function(el, val){
+							if(!Firera.is_def(el) || !Firera.is_def(val)){
+								return;
+							}
+							el = raw(el);
+							if(val){
+								el.focus();
+								console.log('FOCUS');
+							}
 						}
 					break;
 					default:

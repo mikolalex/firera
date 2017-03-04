@@ -18,8 +18,8 @@ LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id){
 			// it's a child of master grid
 			for(let cellname in this.doubleAsterisk[path]){
 				if(!this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path)){
-					// grid removed!
-					return;
+					// grid may be removed!
+					continue;
 				}
 			}
 		}

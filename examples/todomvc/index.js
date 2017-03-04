@@ -1,4 +1,8 @@
 var _F = Firera.utils;
+var l = (a) => {
+	console.log('A', a);
+	return a;
+}
 
 const app_template = `
 	.
@@ -6,6 +10,9 @@ const app_template = `
 			"Todo MVC"
 		.
 			text(name: new-todo, placeholder: What needs to be done?)
+		.
+			a.make-completed
+				"Mark all as completed"
 		ul.todos$
 		.footer
 			.
@@ -50,14 +57,15 @@ const todos = [
 
 const root_component = {
 	$init: {
-		arr_todos: _F.arr_deltas([], todos)
+		arr_todos: _F.arr_deltas([], localStorage.getItem('todos') || todos)
 	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
-	add_todo: [(text) => {
-		return {text, completed: false};
+	'add_todo': [(text) => {
+		return text.length ? {text, completed: false} : Firera.skip;
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
+	'~make_completed': ['.make-completed|click'],
 	all_complete: [_F.eq(0), 'incomplete'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
@@ -71,21 +79,30 @@ const root_component = {
 	}), '.display-buttons > *|click|attr(class)'],
 	'~clear_completed': ['.clear-completed|click'],
 	incomplete: ['count', 'todos/completed', _F.not],
+	data: ['asArray', 'todos', ['completed', 'text']],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
+		self: {
+			active_todo: [_F.second, '*/edited_todo'],
+		}
 	}]
 }
 const todo_component = {
 	$template: todo_template,
-	completed: ['toggle', '.checked|click', false],
+	completed: ['mapPrev', {
+		'.checked|click': (_, prev) => !prev, 
+		'^^/make_completed': true
+	}],
 	text: ['input[name=todo-text]|enterText'],
+	edited_todo: ['transist', '.text|dblclick', '-$i'],
+	i_am_edited: ['=', '-$i', '../active_todo'],
 	isEditing: ['map', {
-		'.text|dblclick': true,
+		'i_am_edited': _F.id,
 		'text': false,
 		'input[name=todo-text]|press(Esc)': false
 	}],
-	//'$remove': ['^^/clear_completed'],
+	'.text|setfocus': ['isEditing'],
 	'|hasClass(completed)': ['completed'],
 	remove_todo: [
 		'transist',

@@ -139,7 +139,7 @@ module.exports = {
 				if(cellA){
 					return func ? func(cellB) : cellB;
 				} else {
-					return Firera.noop;
+					return Firera.skip;
 				}
 			}].concat(fs);
 		},
@@ -153,6 +153,22 @@ module.exports = {
 				return map[cellname](val);
 			}
 			return ['funnel', func, ...cells];
+		},
+		mapPrev: (fs) => {
+			const [map, def_value] = fs;
+			const cells = Object.keys(map);
+			const func = () => {
+				var prev = def_value;
+				return (cellname, val) => {
+					if(!(map[cellname] instanceof Function)){
+						prev = map[cellname];
+					} else {
+						prev = map[cellname](val, prev);
+					}
+					return prev;
+				}
+			}
+			return ['closureFunnel', func, ...cells];
 		},
 		arr: (fs) => {
 			const [config] = fs;
@@ -212,7 +228,7 @@ module.exports = {
 						return restArgs;
 					}
 				} else {
-					return Firera.noop;
+					return Firera.skip;
 				}
 			}].concat(fs);
 		},
@@ -322,23 +338,28 @@ module.exports = {
 			}, ...fncstr]
 		},
 		asArray(funcstring) {
-			var subscribe_to = '*/*';
+			var list_name = '';
+			if(funcstring[1] || (!funcstring[0] instanceof Array)){
+				list_name = funcstring[0] + '/';
+				funcstring = funcstring.slice(1);
+			}
+			var subscribe_to = list_name + '*/*';
 			if(funcstring[0] instanceof Array){
 				// its an array of fields
-				var fields = funcstring[0].map((a) => '*/' + a);
+				var fields = funcstring[0].map((a) => list_name + '*/' + a);
 				subscribe_to = ['funnel', utils.ids, ...fields];
 			}
 			return ['closureFunnel', () => {
 					var arr = [];
 					//console.log('Returning closure');
 					return (cell, values) => {
-						if(cell === '$arr_data.changes'){
+						if(cell === list_name + '$arr_data.changes'){
 							for(let i in values){
 								const [type, index, _, val] = values[i];
 								if(type === 'add'){
 									const added_obj = {};
 									for(let fieldname of fields){
-										fieldname = fieldname.replace("*/", "");
+										fieldname = fieldname.replace(list_name + "*/", "");
 										added_obj[fieldname] = val[fieldname];
 									}
 									arr[index] = added_obj;
@@ -350,8 +371,9 @@ module.exports = {
 						} else {
 							if(values){
 								let [fieldname, val] = values;
-								fieldname = fieldname.replace("*/", "");
-								if(val){
+								if(!fieldname.replace) debugger;
+								fieldname = fieldname.replace(list_name + "*/", "");
+								if(val && arr[val[0]]){
 									//console.log('?', val, arr, fieldname, arr[val[0]]);
 									arr[val[0]][fieldname] = val[1];
 								}
@@ -359,7 +381,7 @@ module.exports = {
 						}
 						return utils.arr_fix_keys(arr);
 					}
-			}, subscribe_to, '$arr_data.changes']
+			}, subscribe_to, list_name + '$arr_data.changes']
 		},
 		indices(funcstring) {
 			var func = funcstring[0];
@@ -478,6 +500,7 @@ module.exports = {
 		join(funcstring) {
 			return ['funnel', utils.second].concat(funcstring);
 		},
+		
 		list(funcstring) {
 			const props = funcstring[0];
 			if(!props instanceof Object){

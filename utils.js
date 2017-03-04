@@ -174,7 +174,7 @@ var eq = _F.eq = (val) => {
 var path_cellname = _F.path_cellname = (a) => a.split('/').pop();
 
 var is_special = _F.is_special = (a) => {
-	return ((a.indexOf('/') !== -1) || (a.indexOf('|') !== -1) || a === '*' || a[0] === '$'); 
+	return ((a.indexOf('/') !== -1) || (a.indexOf('|') !== -1) || a === '*' || a[0] === '$' || a[0] === '@'); 
 }
 var bms = {};
 window.bm = {

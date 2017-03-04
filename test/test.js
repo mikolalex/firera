@@ -1151,7 +1151,7 @@ describe('Firera tests', function () {
 			__root: {
 				a: 42,
 				b: [(val) => {
-					return val%2 ? val : Firera.noop;	
+					return val%2 ? val : Firera.skip;	
 				}, 'a'],
 				c: ['accum', 'b']
 			},

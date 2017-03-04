@@ -276,8 +276,11 @@ Grid.prototype.doRecursive = function(func, cell, skip, parent_cell, already_cou
 	const cb = this.doRecursive.bind(this, func);
 	if(!skip) {
 		//console.log('--Computing cell', this.cell_type(cell));
-		func(cell, parent_cell);
+		var zzz = func(cell, parent_cell);
 		already_counted_cells[cell] = true;
+		if(zzz === Firera.skip){
+			return;
+		}
 	} else {
 		//throw new Error('Skipping!', arguments);
 	}
@@ -415,7 +418,7 @@ Grid.prototype.compute = function(cell, parent_cell_name){
 		}
 	}
 	if(
-		val === Firera.noop
+		val === Firera.skip
 		||
 		(
 			val === this.cell_value(real_cell_name)
@@ -423,11 +426,11 @@ Grid.prototype.compute = function(cell, parent_cell_name){
 			this.isValue(real_cell_name)
 		)
 	){
-		return Firera.noop;
+		return Firera.skip;
 	}
 	if(this.isSignal(real_cell_name)){
 		if(!val){
-			return Firera.noop;
+			return Firera.skip;
 		} else {
 			val = true;
 		}
@@ -516,7 +519,7 @@ Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 				&& this.cell_types[cell].func
 			){
 				const res = this.compute(cell, parents[cell]);
-				if(res === Firera.noop){
+				if(res === Firera.skip){
 					skip = true;
 				}
 			}
