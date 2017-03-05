@@ -38,6 +38,20 @@ body {
     100% {color: #88b2de;}
 }
 
+#content > * ul.qa {
+	list-style: none;
+	padding-left: 0px;
+}
+
+.qa > * > *:first-child {
+	font-style: italic;
+	color: #a7a7a7;
+	padding: 20px 0px;
+}
+.qa > * > *:nth-child(2) {
+	padding-left: 40px;
+}
+
 #toc {
     -webkit-column-count: 2;
     -moz-column-count: 2;
@@ -73,7 +87,7 @@ a {
 
 .micro-info {
     color: #b9b9b9;
-    font-size: 0.6em;
+    font-size: 0.7em;
     padding-left: 0.7em;
     font-style: italic;
 }
@@ -187,6 +201,10 @@ code, code.hljs {
 #content > * ul li a {
     /*text-decoration: none;*/
 	padding: 1px;
+}
+
+#content > * .qa ul {
+    padding: 0px;
 }
 
 #content > * ul {
