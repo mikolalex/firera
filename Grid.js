@@ -486,6 +486,7 @@ Grid.prototype.setLevel = function(cell, parents){
 Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 	const set = Object.keys(cells);
 	var start_level = Number.POSITIVE_INFINITY;
+	var max_level = 0;
 	const levels = {};
 	for(let cell in cells){
 		if(compute){
@@ -497,7 +498,10 @@ Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 		}
 		const lvl = this.levels[cell];
 		if(lvl < start_level){
-			start_level = this.levels[cell];
+			start_level = lvl;
+		}
+		if(lvl > max_level){
+			max_level = lvl;
 		}
 		if(!levels[lvl]){
 			levels[lvl] = new Set();
@@ -507,42 +511,44 @@ Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 	const already = new Set();
 	var x = start_level;
 	const parents = {};
-	while(levels[x] !== undefined){
-		for(let cell of levels[x]){
-			var skip = false;
-			var needed_lvl = x+1;
-			var children = this.cell_children(cell);
-			const ct = this.cell_type(cell);
-			if(
-				!this.cell_has_type(cell, 'free')
-				&& (cells[cell] === undefined || no_args)
-				&& this.cell_types[cell].func
-			){
-				const res = this.compute(cell, parents[cell]);
-				if(res === Firera.skip){
-					skip = true;
-				}
-			}
-			if(this.cell_has_type(cell, 'async') || skip) {
-				continue;
-			}
-			for(let child in children){
-				const lvl = this.levels[child];
-				if(!levels[lvl]){
-					levels[lvl] = new Set();
-				}
-				if(!cells[child]){
-					levels[lvl].add(child);
-				}
-				parents[child] = cell;
-				for(let j = lvl - 1; j > x; j--){
-					if(!levels[j]){
-						levels[j] = new Set();
+	while((levels[x] !== undefined) || (x <= max_level)){
+		if(levels[x]){
+			for(let cell of levels[x]){
+				var skip = false;
+				var needed_lvl = x+1;
+				var children = this.cell_children(cell);
+				const ct = this.cell_type(cell);
+				if(
+					!this.cell_has_type(cell, 'free')
+					&& (cells[cell] === undefined || no_args)
+					&& this.cell_types[cell].func
+				){
+					const res = this.compute(cell, parents[cell]);
+					if(res === Firera.skip){
+						skip = true;
 					}
 				}
-				if(already.has(child)){
-					console.log('skipping2', child);
-					//continue;
+				if(this.cell_has_type(cell, 'async') || skip) {
+					continue;
+				}
+				for(let child in children){
+					const lvl = this.levels[child];
+					if(!levels[lvl]){
+						levels[lvl] = new Set();
+					}
+					if(!cells[child]){
+						levels[lvl].add(child);
+					}
+					parents[child] = cell;
+					for(let j = lvl - 1; j > x; j--){
+						if(!levels[j]){
+							levels[j] = new Set();
+						}
+					}
+					if(already.has(child)){
+						console.log('skipping2', child);
+						//continue;
+					}
 				}
 			}
 		}

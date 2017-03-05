@@ -1,7 +1,7 @@
 
 var _F = {};
 
-var always = _F.always = (a) => {
+_F.always = (a) => {
 	return () => a;
 }
 
@@ -20,19 +20,19 @@ var init_if_empty = _F.init_if_empty = function(obj/*key, val, key1, val1, ... *
 }
 
 
-var throttle = _F.throttle = function(thunk, time){
+_F.throttle = function(thunk, time){
 	var is_throttled = false;
 	var pending = false;
-	return () => {
+	return function(){
 		if(!is_throttled){
 			//console.log('run!');
-			thunk();
+			thunk.apply(null, arguments);
 			is_throttled = true;
 			setTimeout(() => {
 				is_throttled = false;
 				if(pending){
 					//console.log('run pending!');
-					thunk();
+					thunk.apply(null, arguments);
 					pending = false;
 				}
 			}, time);
@@ -43,23 +43,9 @@ var throttle = _F.throttle = function(thunk, time){
 	}
 }
 
-var log = _F.log = () => {};// console.log.bind(console);
+_F.log = () => {};// console.log.bind(console);
 
-var decorate = (fnc, msg) => {
-	return function(){
-		console.log("@", msg, arguments);
-		return fnc.apply(null, arguments);
-	}
-}
-
-var mk_logger = (a) => {
-	return (b) => {
-		console.log(a, b);
-		return b;
-	}
-}
-
-var group_by = _F.group_by =  (arr, prop_or_func) => {
+_F.group_by =  (arr, prop_or_func) => {
 	var res = {};
 	for(let obj of arr){
 		var key = prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func];
@@ -69,28 +55,45 @@ var group_by = _F.group_by =  (arr, prop_or_func) => {
 	return res;
 }
 
-var frozen = _F.frozen =  (a) => JSON.parse(JSON.stringify(a));
+_F.frozen =  (a) => JSON.parse(JSON.stringify(a));
 
-var id = _F.id = (a) => a;
-var not = _F.not = (a) => !a;
-var ids = _F.ids = function(){
+_F.id = (a) => a;
+_F.l = (a) => {
+	console.log('LOG', a);
+	return a;
+};
+_F.not = (a) => !a;
+_F.ids = function(){
 	return arguments;
 }
-var raw = _F.raw = function(a){
+_F.ifelse = function(cb, onTrue = true, onFalse = false){
+	return (val) => {
+		return cb(val) ? onTrue : onFalse;
+	}
+}
+
+_F.toLocalStorage = (key) => {
+	var func = localStorage.setItem.bind(localStorage, key);
+	return (val) => {
+		func(val);
+	}
+}
+
+_F.raw = function(a){
 	if(a instanceof Node  || !a){
 		return a;
 	} else {
 		return a[0];
 	}
 }
-var arr_remove = _F.arr_remove = (arr, el) => {
+_F.arr_remove = (arr, el) => {
 	var pos = arr.indexOf(el);
 	if(pos !== -1){
 		arr.splice(pos, 1);
 	}
 }
 
-var sh_copy = _F.sh_copy = (obj) => {
+_F.sh_copy = (obj) => {
 	var res = obj instanceof Array ? [] : {};
 	for(var i in obj){
 		if(obj.hasOwnProperty(i)){
@@ -107,7 +110,7 @@ var arr_different = _F.arr_different = function(arr1, arr2, cb){
 		}
 	}
 }
-var arr_common = _F.arr_common = function(arr1, arr2, cb){
+_F.arr_common = function(arr1, arr2, cb){
 	for(var i in arr1){
 		if(arr2[i] !== undefined){
 			cb(i);
@@ -115,7 +118,7 @@ var arr_common = _F.arr_common = function(arr1, arr2, cb){
 	}
 }
 
-var arr_deltas = _F.arr_deltas = (old_arr, new_arr) => {
+_F.arr_deltas = (old_arr, new_arr) => {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, (v, k) => {
@@ -132,7 +135,7 @@ var arr_deltas = _F.arr_deltas = (old_arr, new_arr) => {
 	return deltas;
 }
 
-var arr_fix_keys = _F.arr_fix_keys = (a) => {
+_F.arr_fix_keys = (a) => {
 	var fixed_arr = [];
 	for(let i of a){
 		if(i !== undefined){
@@ -150,30 +153,35 @@ var arr_diff = _F.arr_diff = function(a, b){
 	return diff;
 }
 
-var first = _F.first = (a) => a;
-var second = _F.second = (__, a) => a;
+_F.first = (a) => a;
+_F.second = (__, a) => a;
 
-var fromMap = _F.fromMap = function(map, def){
+_F.fromMap = function(map, def){
 	return (val) => {
 		return (map[val] !== undefined) ? map[val] : def;
 	}
 }
 
-var ind = _F.ind = (i) => {
+_F.ind = (i) => {
 	return (arr) => {
 		return arr[i];
 	}
 }
 
-var eq = _F.eq = (val) => {
+_F.eq = (val) => {
 	return (a) => {
 		return a === val;
 	}
 }
+_F.neq = (val) => {
+	return (a) => {
+		return a !== val;
+	}
+}
 
-var path_cellname = _F.path_cellname = (a) => a.split('/').pop();
+_F.path_cellname = (a) => a.split('/').pop();
 
-var is_special = _F.is_special = (a) => {
+_F.is_special = (a) => {
 	return ((a.indexOf('/') !== -1) || (a.indexOf('|') !== -1) || a === '*' || a[0] === '$' || a[0] === '@'); 
 }
 var bms = {};
@@ -209,7 +217,7 @@ window.bm = {
 	}
 }
 
-var Obj = _F.Obj = {
+_F.Obj = {
 	map: function(obj, func, conf){
 		var res = {};
 		var exceptions = conf ? conf.except : false;
@@ -287,17 +295,17 @@ _F.error = (str) => {
 	}
 }
 
-var copy = _F.copy = function(from, to){
+_F.copy = function(from, to){
 	for(var i in from){
 		to.push(from[i]);
 	}
 }
-var kcopy = _F.kcopy = function(from, to){
+_F.kcopy = function(from, to){
 	for(let i in from){
 		to[i] = from[i];
 	}
 }
-var last = _F.last = function(arr){
+_F.last = function(arr){
 	return arr[arr.length - 1];
 }
 module.exports = _F;

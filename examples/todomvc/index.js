@@ -1,8 +1,4 @@
 var _F = Firera.utils;
-var l = (a) => {
-	console.log('A', a);
-	return a;
-}
 
 const app_template = `
 	.
@@ -17,7 +13,8 @@ const app_template = `
 		.footer
 			.
 				span$incomplete
-				"items left"
+				span
+					"item{{plural}} left"
 			.display-buttons
 				a.all
 					"All"
@@ -41,23 +38,16 @@ const todo_template = `
         .remove
 `;
 const todos = [
-	{
-		text: 'Save the world',
-		completed: false,
-	}, 
-	{
-		text: 'Have a beer',
-		completed: false,
-	}, 
-	{
-		text: 'Go to sleep',
-		completed: false,
-	}
-];
+	{"text":"Save the world","completed":false},
+	{"text":"Have a beer","completed":false},
+	{"text":"Go to sleep","completed":false}
+]
+const init_data = (localStorage.getItem('todos') ? JSON.parse(localStorage.getItem('todos')) : false) || todos;
 
 const root_component = {
 	$init: {
-		arr_todos: _F.arr_deltas([], localStorage.getItem('todos') || todos)
+		arr_todos: _F.arr_deltas([], init_data),
+		data: init_data,
 	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
@@ -66,7 +56,8 @@ const root_component = {
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
 	'~make_completed': ['.make-completed|click'],
-	all_complete: [_F.eq(0), 'incomplete'],
+	'.make-completed|hasClass(inactive)': [_F.eq(0), 'incomplete'],
+	'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
@@ -80,6 +71,9 @@ const root_component = {
 	'~clear_completed': ['.clear-completed|click'],
 	incomplete: ['count', 'todos/completed', _F.not],
 	data: ['asArray', 'todos', ['completed', 'text']],
+	$toLocalStorage: [_F.throttle((data) => {
+		localStorage.setItem('todos', JSON.stringify(data));
+	}, 100), 'data'],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
@@ -112,7 +106,7 @@ const todo_component = {
 		], 
 		'-$name'
 	],
-	'|display': ['!=', '../../display', 'completed'],
+	'|display': ['!=', '^^/display', 'completed'],
 }
 
 const app = Firera({
