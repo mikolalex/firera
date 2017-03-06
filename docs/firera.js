@@ -197,6 +197,9 @@ var get_app_struct = function get_app_struct(app) {
 var App = function App(config, root_package_pool) {
 	this.id = ++appIds;
 	this.config = config;
+	if (this.config.storeChanges) {
+		this.changesPool = [];
+	}
 	this.grid_create_counter = 0;
 	this.packagePool = new _PackagePool2.default(root_package_pool, this.id);
 	if (config.packages) {
@@ -469,42 +472,44 @@ App.prototype.startChange = function () {
 	if (this.changeObj) {
 		_utils2.default.warn('old change not released!', this.changeObj);
 	}
-	this.changeObj = {};
+	this.changeObj = [];
 };
 App.prototype.endChange = function () {
 	if (!this.config.trackChanges) return;
 	if (!this.changeObj) {
 		_utils2.default.warn('change doesnt exist!');
 	}
+	if (this.config.storeChanges) {
+		this.changesPool.push(changeObj);
+	}
 	if (this.config.trackChangesType === 'log') {
-		console.log('==========================');
-		for (var gridId in this.changeObj) {
-			console.log('__________________________', this.getGrid(gridId).name);
-			var _iteratorNormalCompletion8 = true;
-			var _didIteratorError8 = false;
-			var _iteratorError8 = undefined;
+		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+		var _iteratorNormalCompletion8 = true;
+		var _didIteratorError8 = false;
+		var _iteratorError8 = undefined;
 
+		try {
+			for (var _iterator8 = this.changeObj[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+				var _step8$value = _slicedToArray(_step8.value, 3),
+				    path = _step8$value[0],
+				    cell = _step8$value[1],
+				    val = _step8$value[2];
+
+				var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
+				var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
+				console.log('|', pathname, '|', cellname, '|', val, '|');
+			}
+		} catch (err) {
+			_didIteratorError8 = true;
+			_iteratorError8 = err;
+		} finally {
 			try {
-				for (var _iterator8 = this.changeObj[gridId][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-					var _step8$value = _slicedToArray(_step8.value, 2),
-					    cell = _step8$value[0],
-					    val = _step8$value[1];
-
-					var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
-					console.log('|', cellname, '|', val, '|');
+				if (!_iteratorNormalCompletion8 && _iterator8.return) {
+					_iterator8.return();
 				}
-			} catch (err) {
-				_didIteratorError8 = true;
-				_iteratorError8 = err;
 			} finally {
-				try {
-					if (!_iteratorNormalCompletion8 && _iterator8.return) {
-						_iterator8.return();
-					}
-				} finally {
-					if (_didIteratorError8) {
-						throw _iteratorError8;
-					}
+				if (_didIteratorError8) {
+					throw _iteratorError8;
 				}
 			}
 		}
@@ -1421,8 +1426,7 @@ Grid.prototype.set_cell_value = function (cell, val) {
 		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {
 			return;
 		}
-		_utils2.default.init_if_empty(this.app.changeObj, this.id, []);
-		this.app.changeObj[this.id].push([cell, val]);
+		this.app.changeObj.push([this.path, cell, val]);
 	}
 	if (this.side_effects[cell]) {
 		if (!_Parser2.default.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], _Parser2.default.side_effects);
@@ -2347,6 +2351,9 @@ var Obj = _utils2.default.Obj;
 var is_def = function is_def(a) {
 	return a !== undefined && a !== Firera.undef;
 };
+var falsy = function falsy(a) {
+	return !a || a === Firera.undef;
+};
 
 var show_performance = function show_performance() {
 	var res = [];
@@ -2451,6 +2458,7 @@ Firera.apps = _App2.default.apps;
 Firera.run = Firera;
 Firera.Ozenfant = _ozenfant2.default;
 Firera.is_def = is_def;
+Firera.is_falsy = falsy;
 
 Firera.getAppStruct = function () {
 	return Firera.apps.map(_App2.default.get_app_struct);
@@ -2750,25 +2758,36 @@ module.exports = {
 			return ['funnel', func].concat(_toConsumableArray(cells));
 		},
 		transistAll: function transistAll(fs) {
-			var _fs5 = _toArray(fs),
-			    func = _fs5[0],
-			    rest = _fs5.slice(1);
-
+			//const [func, ...rest] = fs;
+			var func;
+			if (fs[0] instanceof Function) {
+				func = fs.shift();
+			}
 			return [function (cellA) {
 				for (var _len2 = arguments.length, restArgs = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
 					restArgs[_key2 - 1] = arguments[_key2];
 				}
 
 				if (cellA) {
-					return func.apply(restArgs);
+					if (func) {
+						return func.apply(null, restArgs);
+					} else {
+						return restArgs;
+					}
 				} else {
 					return Firera.noop;
 				}
-			}].concat(rest);
+			}].concat(fs);
 		},
 		'&&': function _(fs) {
 			return [function (cellA, cellB) {
-				return cellA && cellB;
+				console.log('&&', cellA, cellB);
+				return !Firera.is_falsy(cellA) && !Firera.is_falsy(cellB);
+			}].concat(fs);
+		},
+		'||': function _(fs) {
+			return [function (cellA, cellB) {
+				return !Firera.is_falsy(cellA) || !Firera.is_falsy(cellB);
 			}].concat(fs);
 		},
 		'==': function _(fs) {
@@ -3490,6 +3509,9 @@ var trigger_event = function trigger_event(name, element, fakeTarget) {
 };
 
 module.exports = {
+	eachGridMixin: {
+		'$html_skeleton_changes': ['$real_el']
+	},
 	cellMatchers: {
 		HTMLAspects: {
 			// ^foo -> previous values of 'foo'
@@ -3824,7 +3846,6 @@ module.exports = {
 						/*var node = a.find(selector) @todo
       		.filter(filter_attr_in_parents.bind(null, a));*/
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, _Parser2.default.get_random_name(), packages);
-					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
 					_Parser2.default.parse_fexpr(['asyncClosure', function () {
 						var el;
@@ -4716,7 +4737,7 @@ var parse = function parse(config, str, debug) {
 								}
 								//return [res, pos + 1];
 							}
-							if (is_empty_char(char) && !started) {
+							if (is_empty_char(char) && !started && !tk.can_start_with_space) {
 								++lag;
 								continue;
 							}
@@ -5014,6 +5035,7 @@ module.exports = {
 			regex: /^[^\)^\,]*$/
 		},
 		quoted_str: {
+			can_start_with_space: true,
 			start: '"',
 			end: '"',
 			free_chars: true
@@ -5282,12 +5304,22 @@ var last = function last(arr) {
 	return arr[arr.length - 1];
 };
 
-var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value']);
+var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value', 'min', 'max', 'step', 'name']);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
 };
 
-var text_var_regexp = /\{\{([a-zA-Z0-9]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
+var traverse_tree = function traverse_tree(root_node, cb) {
+	var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'children';
+
+	for (var b in root_node[key]) {
+		var leaf = root_node[key][b];
+		cb(leaf);
+		traverse_tree(leaf, cb, key);
+	}
+};
+
+var text_var_regexp = /\{\{([a-zA-Z0-9\_]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
 
 var Ozenfant = function Ozenfant(str) {
 	if (str instanceof Object) {
@@ -5406,6 +5438,7 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 	var original_varname = varname;
 	if (varname_pool.vars[varname]) {
 		// already exists!
+		//console.log('VAR', varname, 'already exists!');
 		init_if_empty(varname_pool.var_aliases, varname, []);
 		var new_name = prefix + varname + '_' + varname_pool.var_aliases[varname].length;
 		varname_pool.var_aliases[varname].push(new_name);
@@ -5426,26 +5459,15 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 		if (original_varname.indexOf(get_dots(last_loop.level)) !== 0) {
 			;
 			var curr_loop = last_loop;
-			var var_level;
-			if (varname.indexOf('ctx.') !== 0) {
-				var_level = get_level(varname) + 1;
-			} else {
-				var_level = 0;
-			}
-			var pathes = [];
-			console.log('lll', last_loop.paths[original_varname], original_varname);
+			var var_level = get_level(varname);
 			while (true) {
-				if (curr_loop.parent_loop) {
-					var cc = curr_loop.parent_loop.paths[curr_loop.name];
-					pathes.push(cc);
-				}
 				if (curr_loop === 'root') {
 					init_if_empty(varname_pool, 'loop_var_links', {}, original_varname, {}, varname, last_loop);
 					break;
 				} else {
-					if (curr_loop.level + 1 == var_level) {
+					if (curr_loop.level == var_level) {
 						var vrkey = original_varname.indexOf('.') !== -1 ? last(original_varname.split('.')) : original_varname;
-						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, pathes);
+						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, last_loop);
 						break;
 					}
 					curr_loop = curr_loop.parent_loop;
@@ -5512,10 +5534,11 @@ var register_loop = function register_loop(varname, level, pool, parent_loop) {
 		name: varname,
 		level: level
 	};
-	pool[varname] = lp;
 	if (parent_loop) {
-		init_if_empty(parent_loop, 'nested_loops', {}, varname, lp);
+		init_if_empty(parent_loop, 'nested_loops', []);
+		parent_loop.nested_loops.push(lp);
 	}
+	pool[varname] = lp;
 	return lp;
 };
 
@@ -5666,7 +5689,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 	}
 };
 
-var input_types = new Set(['text', 'submit', 'checkbox', 'radio']);
+var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range']);
 
 var toHTML = function toHTML(node, context, parent_tag) {};
 
@@ -6146,7 +6169,7 @@ Ozenfant.prototype._setVarVal = function (key, val, binding) {
 Ozenfant.prototype._setValByPath = function (path, val, root_node) {
 	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
 };
-Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, context) {
 	var loop = this.loop_pool[loopname];
 	var prefix = new Array(loop.level + 2).join('.');
 	for (var k in val) {
@@ -6155,39 +6178,79 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
 			continue;
 		}
 		var varname = prefix + k;
+		if (this.varname_pool.var_aliases[varname]) {
+			var _iteratorNormalCompletion9 = true;
+			var _didIteratorError9 = false;
+			var _iteratorError9 = undefined;
+
+			try {
+				for (var _iterator9 = this.varname_pool.var_aliases[varname][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+					var vn = _step9.value;
+
+					if (loop.paths[vn]) {
+						this.set(vn, val[k], loop, binding, old_val[k], false, context);
+					}
+				}
+			} catch (err) {
+				_didIteratorError9 = true;
+				_iteratorError9 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion9 && _iterator9.return) {
+						_iterator9.return();
+					}
+				} finally {
+					if (_didIteratorError9) {
+						throw _iteratorError9;
+					}
+				}
+			}
+		}
 		if (loop.paths[varname]) {
-			this.set(varname, val[k], loop, binding, old_val[k]);
+			this.set(varname, val[k], loop, binding, old_val[k], false, context);
 		}
 	}
 };
 
 Ozenfant.prototype.removeLoopItem = function (binding, i) {
-	binding.children[i].remove();
+	if (binding.children[i]) {
+		binding.children[i].remove();
+	} else {
+		console.warn('Cannot remove unexisting', i);
+	}
 };
-Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding) {
+Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, binding, context) {
 	var res = [];
 	var func = this.var_types[loop].func;
 	for (var i = from; i <= to; ++i) {
-		res.push(func(this.state, val[i]));
+		old_val[i] = val[i];
+		var ht = func.apply(null, context.concat(val[i]));
+		res.push(ht);
 	}
 	// !!! should be rewritten!
 	binding.insertAdjacentHTML("beforeend", res.join(''));
 };
 
-Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
+	var skip_removing = false;
 	for (var i in val) {
 		if (old_val[i]) {
 			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
 		} else {
-			this.addLoopItems(loopname, i, val.length - 1, val, binding);
+			skip_removing = true;
+			this.addLoopItems(loopname, i, val.length - 1, val, old_val, binding, parent_context);
 			break;
 		}
 	}
 	++i;
-	if (old_val[i]) {
-		for (; old_val[i]; i++) {
-			this.removeLoopItem(binding, i);
+	if (old_val[i] && !skip_removing) {
+		var init_i = i;
+		var del_count = 0;
+		for (var j = old_val.length - 1; j >= i; j--) {
+			++del_count;
+			this.removeLoopItem(binding, j);
 		}
+		old_val.splice(init_i, del_count);
 	}
 };
 
@@ -6206,6 +6269,7 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 			for (var c in binding.children) {
 				if (Number(c) != c) continue;
 				var child = binding.children[c];
+				if (!val_arr) debugger;
 				cb(child, val_arr.concat(scope[c]), c);
 			}
 		});
@@ -6223,6 +6287,8 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 };
 
 Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_val) {
+	var _this2 = this;
+
 	var level = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
 
 	var pth = path.split('/');
@@ -6230,25 +6296,24 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 	if (!first) {
 		var keyname = new Array(level + 1).join('.') + pth[0];
 		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
-		var var_path = paths_hash[keyname];
-		var kee = trim_dots(keyname);
-		if (var_path) {
-			var binding = Ozenfant.xpOne(var_path, el);
-			var old_val_parent = old_val;
-			old_val = old_val[kee];
-			old_val_parent[kee] = val;
+		if (paths_hash[keyname]) {
+			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
+			old_val = old_val[trim_dots(keyname)];
 			if (this.loop_pool[keyname]) {
-				this.setLoop(keyname, val, old_val, binding);
+				this.setLoop(keyname, val, old_val, binding, context);
 			} else {
 				this.__set(keyname, val, old_val, binding);
 			}
 		} else {
-			if (this.loop_pool[keyname]) {
-				console.error('Why?');
-			} else {
-				console.log('should set', parent_loop.subordinary_loop_vars, kee, el);
-				// тут треба кожен вкладений цикл, де є ця змінна, проапдейтити
-			}
+			var key = new Array(parent_loop.level + 2).join('.') + path;
+			traverse_tree(parent_loop, function (loop) {
+				if (loop.paths[key]) {
+					_this2.eachLoopBinding(loop, function (bnd) {
+						var bind = Ozenfant.xpOne(loop.paths[key], bnd);
+						_this2.__set(key, val, null, bind, loop);
+					});
+				}
+			}, 'nested_loops');
 		}
 		return;
 	}
@@ -6267,7 +6332,7 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 		var new_context = last(context)[first[1]][index];
 		if (new_context) {
 			// already exists
-			this.updateLoopVals(loopname, val, new_context, bnd);
+			this.updateLoopVals(loopname, val, new_context, bnd, context);
 		} else {}
 		// @todO!
 		//this.addLoopItems(loopname, index, index, val, binding);
@@ -6277,13 +6342,13 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 };
 
 Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_context) {
-	var _this2 = this;
+	var _this3 = this;
 
 	if (this.nodes_vars[this.text_vars_paths[key]]) {
 		var template = this.nodes_vars[this.text_vars_paths[key]];
 		//console.log('template!', template);
 		var new_str = template.replace(text_var_regexp, function (_, key) {
-			return _this2.state[key];
+			return _this3.state[key];
 		});
 		this._setVarVal(key, new_str, binding);
 		binding.innerHTML = new_str;
@@ -6297,7 +6362,8 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					binding.style[this.var_types[key].name] = val;
 					break;
 				case 'LOOP':
-					this.setLoop(key, val, old_val, binding);
+					var ct = loop_context || [this.state];
+					this.setLoop(key, val, old_val, binding, ct);
 					break;
 				default:
 					var func;
@@ -6323,7 +6389,7 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 };
 
 Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force, loop_context) {
-	var _this3 = this;
+	var _this4 = this;
 
 	var binding;
 	if (key.indexOf('/') !== -1) {
@@ -6352,33 +6418,33 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 	if (this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop) {
 		for (var cn in this.varname_pool.loop_var_links[key]) {
 			var l_loop = this.varname_pool.loop_var_links[key][cn];
-			this.eachLoopBinding(l_loop, function (node, val, i) {
-				_this3.set(cn, val, l_loop, node, old_val, true, val);
+			this.eachLoopBinding(l_loop, function (node, loop_ctx, i) {
+				_this4.set(cn, val, l_loop, node, old_val, true, loop_ctx);
 			});
 		}
 	}
 	if (this.varname_pool.var_aliases[key]) {
-		var _iteratorNormalCompletion9 = true;
-		var _didIteratorError9 = false;
-		var _iteratorError9 = undefined;
+		var _iteratorNormalCompletion10 = true;
+		var _didIteratorError10 = false;
+		var _iteratorError10 = undefined;
 
 		try {
-			for (var _iterator9 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-				var k = _step9.value;
+			for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+				var k = _step10.value;
 
 				this.set(k, val, loop, loop_binding, old_data, true);
 			}
 		} catch (err) {
-			_didIteratorError9 = true;
-			_iteratorError9 = err;
+			_didIteratorError10 = true;
+			_iteratorError10 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion9 && _iterator9.return) {
-					_iterator9.return();
+				if (!_iteratorNormalCompletion10 && _iterator10.return) {
+					_iterator10.return();
 				}
 			} finally {
-				if (_didIteratorError9) {
-					throw _iteratorError9;
+				if (_didIteratorError10) {
+					throw _iteratorError10;
 				}
 			}
 		}
@@ -6407,6 +6473,9 @@ Ozenfant.xpOne = function (path) {
 
 	if (node !== document && path[0] === '/') {
 		path = path.substr(1);
+	}
+	if (path === '') {
+		return node;
 	}
 	return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
 };
