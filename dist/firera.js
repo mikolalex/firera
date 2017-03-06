@@ -1491,15 +1491,14 @@ Grid.prototype.set_cell_value = function (cell, val) {
 
 	this.cell_values[cell] = val;
 	if (this.app.config.trackChanges && this.app.changeObj && this.asterisk_omit_list.indexOf(cell) === -1 && cell !== '*') {
-		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {
-			return;
-		}
-		var change = [this.path, cell, val, this.levels[cell]];
-		if (this.app.config.trackChangesType === 'log') {
-			this.app.changeObj.push(change);
-		}
-		if (this.app.config.trackChangesType === 'imm') {
-			this.app.logChange(change);
+		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {} else {
+			var change = [this.path, cell, val, this.levels[cell]];
+			if (this.app.config.trackChangesType === 'log') {
+				this.app.changeObj.push(change);
+			}
+			if (this.app.config.trackChangesType === 'imm') {
+				this.app.logChange(change);
+			}
 		}
 	}
 	if (this.side_effects[cell]) {
@@ -5633,6 +5632,28 @@ var last = function last(arr) {
 	return arr[arr.length - 1];
 };
 
+var toggle_class = function toggle_class(el, clas, val) {
+	var cls_string = el.getAttribute('class') || '';
+	var cls = cls_string.split(' ');
+	var pos = cls.indexOf(clas);
+	var toggle;
+	if (val !== undefined) {
+		toggle = val;
+	} else {
+		toggle = pos === -1;
+	}
+	if (toggle) {
+		if (cls.indexOf(clas) === -1) {
+			el.setAttribute('class', cls_string + ' ' + clas);
+		}
+	} else {
+		if (pos !== -1) {
+			cls.splice(pos, 1);
+		}
+		el.setAttribute('class', cls.join(' '));
+	}
+};
+
 var html_attrs = new Set(["accept", "accept-charset", "accesskey", "action", "align", "alt", "async", "autocomplete", "autofocus", "autoplay", "autosave", "bgcolor", "border", "buffered", "challenge", "charset", "checked", "cite", "class", "code", "codebase", "color", "cols", "colspan", "content", "contenteditable", "contextmenu", "controls", "coords", "data", "data-*", "datetime", "default", "defer", "dir", "dirname", "disabled", "download", "draggable", "dropzone", "enctype", "for", "form", "formaction", "headers", "height", "hidden", "high", "href", "hreflang", "http-equiv", "icon", "id", "integrity", "ismap", "itemprop", "keytype", "kind", "label", "lang", "language", "list", "loop", "low", "manifest", "max", "maxlength", "media", "method", "min", "multiple", "muted", "name", "novalidate", "open", "optimum", "pattern", "ping", "placeholder", "poster", "preload", "radiogroup", "readonly", "rel", "required", "reversed", "rows", "rowspan", "sandbox", "scope", "scoped", "seamless", "selected", "shape", "size", "sizes", "slot", "span", "spellcheck", "src", "srcdoc", "srclang", "srcset", "start", "step", "style", "summary", "tabindex", "target", "title", "type", "usemap", "value", "width", "wrap"]);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
@@ -5894,6 +5915,15 @@ Ozenfant.prototype.register_path = function (varname, path, pool, loop) {
 	pool[varname] = path;
 };
 
+var special_html_setters = {
+	'hasClass': function hasClass(binding, val, _ref) {
+		var _ref2 = _slicedToArray(_ref, 1),
+		    classname = _ref2[0];
+
+		toggle_class(binding, classname, val);
+	}
+};
+
 Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
 	var _this = this;
 
@@ -5965,11 +5995,23 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 
 							_varname = register_varname(_varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
 							this.register_path(_varname, new_path, node_pool, last_loop);
-							var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
-							types[_varname] = {
-								type: as_type,
-								name: attrname
-							};
+
+							var pieces = attrname.split('|');
+							var real_name = pieces[0];
+							if (special_html_setters[real_name]) {
+								// its special setter
+								types[_varname] = {
+									type: 'SETTER',
+									name: real_name,
+									params: pieces.slice(1)
+								};
+							} else {
+								var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
+								types[_varname] = {
+									type: as_type,
+									name: attrname
+								};
+							}
 						}
 					} catch (err) {
 						_didIteratorError2 = true;
@@ -6689,6 +6731,9 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					break;
 				case 'STYLE':
 					binding.style[this.var_types[key].name] = val;
+					break;
+				case 'SETTER':
+					special_html_setters[this.var_types[key].name](binding, val, this.var_types[key].params);
 					break;
 				case 'LOOP':
 					var ct = loop_context || [this.state];

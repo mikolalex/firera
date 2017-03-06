@@ -129,9 +129,9 @@ app.get('d'); // 900
 		
 	</ul>-->
 	</div>
-                                    <? } 
-                                    if(chapter('Firera basics', 'dom', 'Working with DOM')){
-                                    ?>
+	<? } 
+	if(chapter('Firera basics', 'dom', 'Working with DOM')){
+	?>
 	<div>
 	<h2 id="work-with-dom">Working with DOM</h2>
 	<div>
@@ -993,7 +993,7 @@ console.log(app.get('weight', '/cranes/1')); // 60
 </code>
 			</div>
 <?php }
-    if(chapter('Writing TodoMVC in details', 'todomvc-start', 'Displaying a list')){ ?>
+    if(chapter('Writing TodoMVC in details', 'todomvc_start', 'Displaying a list')){ ?>
         <div>
             <h1>
                 Writing TodoMVC on Firera
@@ -1070,7 +1070,7 @@ const app = Firera({
 				</div>
             </div>
         </div>
-<?php } if(chapter('Writing TodoMVC in details', 'dynamic-list', 'Dynamic list')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'dynamic_list', 'Dynamic list')){ ?>
         <div>
             <h2>
                 Dynamic list
@@ -1164,7 +1164,7 @@ const root_component = {
 			
 			</div>
 		</div>
-<?php } if(chapter('Writing TodoMVC in details', 'list-item', 'Working with list item: checking and removing todo')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'list_item', 'Working with list item: checking and removing todo')){ ?>
         <div>
             <h2>
                 Working with list item: checking and removing todo
@@ -1303,7 +1303,7 @@ const app = Firera({
 					
 			</div>
 		</div>
-<?php } if(chapter('Writing TodoMVC in details', 'arr-deltas', 'Using array deltas')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'arr_deltas', 'Using array deltas')){ ?>
         <div>
             <h2>
                 Using array deltas
@@ -1400,7 +1400,7 @@ const root_component = {
 				the data may be changed form different parts of code).
 			</div>
 		</div>
-<?php }  if(chapter('Writing TodoMVC in details', 'counting-uncompleted', 'Counting uncompleted todos')){ ?>
+<?php } /* if(chapter('Writing TodoMVC in details', 'counting_uncompleted', 'Counting uncompleted todos')){ ?>
         <div>
             <h2>
                 Counting uncompleted todos
@@ -1438,7 +1438,7 @@ const root_component = {
 			}
 			return count;
 		}
-	}, '**/completed'],
+	}, '** /completed'],
 	...
 }
 </code>
@@ -1446,7 +1446,7 @@ const root_component = {
 			It works!
 			</div>
 		</div>
-<?php } if(chapter('Writing TodoMVC in details', 'editing-todo', 'Editing todo')){ ?>
+<?php }*/ if(chapter('Writing TodoMVC in details', 'editing_todo', 'Editing todo')){ ?>
         <div>
             <h2>
                 Editing todo
@@ -1514,6 +1514,96 @@ const todo_component = {
 				It return the value of input field when user presses Enter button. That's what we need.
 				Hence, when "text" field changes, we should set isEditing to false. We use "text" cell instead of 'input[name=todo-text]|enterText"
 				as a argument for "isEditing" to minimize DOM dependency.
+			</div>
+			<hr>
+			<div>
+				However, there is an issue that breaks our login: when one item becomes edites, other edited items should return to default state.
+				That requires data exchange through the parent grid, as the siblings cannon communicate with each other.</div><div>
+				The solution will be the following: when doubleclicking, we will bubble this event to parent grid together with a number of grid we clicked.
+				Then all other grids will listen to this from parent grid, and cancel editing if it's not the same grid that we clicked.
+<code>
+const root_component = {
+	...
+	$child_todos: ['list', {
+		type: 'todo',
+		deltas: '../arr_todos',
+		self: {
+			active_todo: [_F.ind(1), '*/edited_todo'],
+		}
+	}]
+}
+
+const todo_component = {
+	...
+	edited_todo: ['transist', '.text|dblclick', '-$i'],
+	i_am_edited: ['=', '-$i', '../active_todo'],
+	isEditing: ['map', {
+		'i_am_edited': _F.id,
+		'text': false,
+		'input[name=todo-text]|press(Esc)': false
+	}],
+}
+</code>
+				A 'transist' macros return the value of second argument if first one is truthy.
+				So when user doubleclicks on todo's name, it will emit the number of todo item.
+			</div>
+			<div>
+				Remember the a list is a grid itself. We can add some cells in it like in any other cell. To do this, we
+				specify the "self" parameter of list config.
+				Our "todos" list will listen to all changes in "edited_todo" cells of downstream grids.
+			</div>
+			<div>
+				Then we should determine, whether it's the same grid we clicked or not.
+				For this purpose the "i_am_edited" cell is used. It will be true only for the actual grid we clicked on.
+			</div>
+			<div>
+				And the last thing we should do is to make "isEditin" dependent on "i_am_edited" cell instead of direct dependency on doubleclick.
+			</div>
+		</div>
+<?php } if(chapter('Writing TodoMVC in details', 'check_all_todos', 'Checking all todos and counting incompleted')){ ?>
+        <div>
+            <h2>
+                Checking all todos and counting incompleted
+            </h2>
+            <div>
+				Now we want to create a button which will make all todos completed.
+				It should become inactive when all the todos are completed already.
+			</div>
+			<div>
+				Thining in Firera paradigm, we should now wonder: what determines the state of "competed" field?
+				For now, it's two factors: click on checkbox and click on "check all" button. In first case the state should become the opposite to the previous,
+				and in the second the state will be always "true".
+				For this purpose we have "mapPrev" macros. It works like "map" macro, but it also passes the previous value of argument cell to the function.
+			</div>
+<code>
+const root_component = {
+	...
+	'~make_completed': ['.make-completed|click'],
+}
+
+const todo_component = {
+	...
+	completed: ['mapPrev', {
+		'.checked|click': (_, prev) => !prev, 
+		'^^/make_completed': true
+	}],
+}
+</code>
+			<div>
+				That is: when user click on checkbox, our function receives current value of ".checked|click" as a first argument and previous value of "completed" cell as second.
+				We return the opposite to the previous value.
+				And when user click on "check all" button, it lways becomes true(=checked).
+			</div>
+			<div>
+				We should also make "check all" button inactive when all todos are completed.
+				We can count all (in-) completed fields with "count" macros, that works with lists.
+<code>
+const root_component = {
+	...
+	incomplete: ['count', 'todos/completed', _F.not],
+	'.make-completed|hasClass(inactive)': [_F.eq(0), 'incomplete'],
+}
+</code>
 			</div>
 		</div>
 <?php } /*if(chapter('Writing TodoMVC in details', '', '---')){ ?>

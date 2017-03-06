@@ -1,41 +1,41 @@
 var _F = Firera.utils;
 
 const app_template = `
+.
+	h1
+		"Todo MVC"
 	.
-		h1
-			"Todo MVC"
+		text(name: new-todo, placeholder: What needs to be done?)
+	.
+		a.make-completed(hasClass|inactive: $all_completed)
+			"Mark all as completed"
+	ul.todos$
+	.footer
 		.
-			text(name: new-todo, placeholder: What needs to be done?)
-		.
-			a.make-completed
-				"Mark all as completed"
-		ul.todos$
-		.footer
-			.
-				span$incomplete
-				span
-					"item{{plural}} left"
-			.display-buttons
-				a.all
-					"All"
-				a.undone
-					"Active"
-				a.done
-					"Completed"
-			. 
-				a.clear-completed(href: #)
-					"Clear completed"
+			span$incomplete
+			span
+				"item{{plural}} left"
+		.display-buttons
+			a.all
+				"All"
+			a.undone
+				"Active"
+			a.done
+				"Completed"
+		. 
+			a.clear-completed(href: #)
+				"Clear completed"
 
 `;
 const todo_template = `
-    li.todo-item
-        .checked
-        .
-			? $isEditing
-				text(name: todo-text, value: $text)
-			: 
-				.text$
-        .remove
+li.todo-item
+	.checked
+	.
+		? $isEditing
+			text(name: todo-text, value: $text)
+		: 
+			.text$
+	.remove
 `;
 const todos = [
 	{"text":"Save the world","completed":false},
@@ -46,8 +46,8 @@ const init_data = (localStorage.getItem('todos') ? JSON.parse(localStorage.getIt
 
 const root_component = {
 	$init: {
-		arr_todos: _F.arr_deltas([], init_data),
-		data: init_data,
+		//arr_todos: _F.arr_deltas([], init_data),
+		//data: init_data,
 	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
@@ -56,7 +56,7 @@ const root_component = {
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
 	'~make_completed': ['.make-completed|click'],
-	'.make-completed|hasClass(inactive)': [_F.eq(0), 'incomplete'],
+	'all_completed': [_F.eq(0), 'incomplete'],
 	'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
@@ -114,9 +114,10 @@ const app = Firera({
 		todo: todo_component
 	}, {
 		packages: ['htmlCells', 'neu_ozenfant'],
-		//trackChanges: true,//['pos_y', 'top_offset'],
+		//trackChanges: true,//['completed'],
 		trackChangesType: 'imm',
 	}
 );
+app.set('arr_todos', _F.arr_deltas([], init_data));
 
 window.app = app;
