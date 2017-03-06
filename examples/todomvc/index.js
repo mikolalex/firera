@@ -78,7 +78,7 @@ const root_component = {
 		type: 'todo',
 		deltas: '../arr_todos',
 		self: {
-			active_todo: [_F.second, '*/edited_todo'],
+			active_todo: [_F.ind(1), '*/edited_todo'],
 		}
 	}]
 }
