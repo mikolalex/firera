@@ -157,8 +157,8 @@ module.exports = {
 		mapPrev: (fs) => {
 			const [map, def_value] = fs;
 			const cells = Object.keys(map);
-			const func = () => {
-				var prev = def_value;
+			const func = (init_val) => {
+				var prev = def_value === undefined ? init_val : def_value;
 				return (cellname, val) => {
 					if(!(map[cellname] instanceof Function)){
 						prev = map[cellname];

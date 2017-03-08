@@ -5,7 +5,7 @@ const app_template = `
 	h1
 		"Todo MVC"
 	.
-		text(name: new-todo, placeholder: What needs to be done?)
+		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
 	.
 		a.make-completed(hasClass|inactive: $all_completed)
 			"Mark all as completed"
@@ -28,11 +28,11 @@ const app_template = `
 
 `;
 const todo_template = `
-li.todo-item
+li.todo-item(hasClass|completed: $completed, show: $shown)
 	.checked
 	.
 		? $isEditing
-			text(name: todo-text, value: $text, setFocus: $isEditing)
+			text(name: todo-text, value: $text, focus: $isEditing)
 		: 
 			.text$
 	.remove
@@ -62,7 +62,7 @@ const root_component = {
 		push: 'add_todo', 
 		pop: 'remove_todo',
 	}],
-	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
+	'clear_add_todo': [_F.always(''), 'add_todo'],
 	display: [_F.fromMap({
 		all: '*',
 		undone: true,
@@ -72,8 +72,8 @@ const root_component = {
 	incomplete: ['count', 'todos/completed', _F.not],
 	data: ['asArray', 'todos', ['completed', 'text']],
 	$toLocalStorage: [_F.throttle((data) => {
-		localStorage.setItem('todos', JSON.stringify(data));
-	}, 100), 'data'],
+            localStorage.setItem('todos', JSON.stringify(data));
+        }, 100), 'data'],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
@@ -84,9 +84,8 @@ const root_component = {
 }
 const todo_component = {
 	$template: todo_template,
-	new_completed: [_F.not, '-completed', '.checked|click'],
 	completed: ['mapPrev', {
-		'new_completed': _F.id, 
+		'.checked|click': (_, prev) => !prev, 
 		'^^/make_completed': true
 	}],
 	text: ['input[name=todo-text]|enterText'],
@@ -97,7 +96,7 @@ const todo_component = {
 		'text': false,
 		'input[name=todo-text]|press(Esc)': false
 	}],
-	'|hasClass(completed)': ['completed'],
+	'.text|setfocus': ['isEditing'],
 	remove_todo: [
 		'transist',
 		['join', 
@@ -106,7 +105,7 @@ const todo_component = {
 		], 
 		'-$name'
 	],
-	'|display': ['!=', '^^/display', 'completed'],
+	'shown': ['!=', '^^/display', 'completed'],
 }
 
 const app = Firera({

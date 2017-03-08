@@ -1,4 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (global){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -105,7 +106,7 @@ var get_grid_struct = function get_grid_struct(grid) {
 				for (var _iterator3 = parents[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
 					var cn = _step3.value;
 
-					if (!grid.cellExists(cn)) {
+					if (!grid.cellExists(cn) && _Parser2.default.real_cell_name(cn) !== '$i') {
 						wrong_links[cn] = true;
 					}
 				}
@@ -195,35 +196,70 @@ var get_app_struct = function get_app_struct(app) {
 };
 
 var App = function App(config, root_package_pool) {
+	var _this = this;
+
 	this.id = ++appIds;
 	this.config = config;
+	if (global.firera_debug_mode !== 'off') {
+		Firera.onGridCreated(this.id, function (app, grid_id) {
+			var struct = get_grid_struct(_this.getGrid(grid_id));
+			for (var groupname in struct.cells) {
+				var _iteratorNormalCompletion4 = true;
+				var _didIteratorError4 = false;
+				var _iteratorError4 = undefined;
+
+				try {
+					for (var _iterator4 = struct.cells[groupname][Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var cell = _step4.value;
+
+						for (var wrong_cell in cell.wrong_links) {
+							_utils2.default.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
+						}
+					}
+				} catch (err) {
+					_didIteratorError4 = true;
+					_iteratorError4 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion4 && _iterator4.return) {
+							_iterator4.return();
+						}
+					} finally {
+						if (_didIteratorError4) {
+							throw _iteratorError4;
+						}
+					}
+				}
+			}
+		});
+	}
 	if (this.config.storeChanges) {
 		this.changesPool = [];
 	}
 	this.grid_create_counter = 0;
 	this.packagePool = new _PackagePool2.default(root_package_pool, this.id);
 	if (config.packages) {
-		var _iteratorNormalCompletion4 = true;
-		var _didIteratorError4 = false;
-		var _iteratorError4 = undefined;
+		var _iteratorNormalCompletion5 = true;
+		var _didIteratorError5 = false;
+		var _iteratorError5 = undefined;
 
 		try {
-			for (var _iterator4 = config.packages[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-				var pack = _step4.value;
+			for (var _iterator5 = config.packages[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+				var pack = _step5.value;
 
 				this.packagePool.load(pack);
 			}
 		} catch (err) {
-			_didIteratorError4 = true;
-			_iteratorError4 = err;
+			_didIteratorError5 = true;
+			_iteratorError5 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion4 && _iterator4.return) {
-					_iterator4.return();
+				if (!_iteratorNormalCompletion5 && _iterator5.return) {
+					_iterator5.return();
 				}
 			} finally {
-				if (_didIteratorError4) {
-					throw _iteratorError4;
+				if (_didIteratorError5) {
+					throw _iteratorError5;
 				}
 			}
 		}
@@ -241,27 +277,27 @@ App.prototype.onChangeFinished = function (cb) {
 };
 App.prototype._changeFinished = function () {
 	if (this.onChangeFinishedStack) {
-		var _iteratorNormalCompletion5 = true;
-		var _didIteratorError5 = false;
-		var _iteratorError5 = undefined;
+		var _iteratorNormalCompletion6 = true;
+		var _didIteratorError6 = false;
+		var _iteratorError6 = undefined;
 
 		try {
-			for (var _iterator5 = this.onChangeFinishedStack[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-				var cb = _step5.value;
+			for (var _iterator6 = this.onChangeFinishedStack[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+				var cb = _step6.value;
 
 				cb();
 			}
 		} catch (err) {
-			_didIteratorError5 = true;
-			_iteratorError5 = err;
+			_didIteratorError6 = true;
+			_iteratorError6 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion5 && _iterator5.return) {
-					_iterator5.return();
+				if (!_iteratorNormalCompletion6 && _iterator6.return) {
+					_iterator6.return();
 				}
 			} finally {
-				if (_didIteratorError5) {
-					throw _iteratorError5;
+				if (_didIteratorError6) {
+					throw _iteratorError6;
 				}
 			}
 		}
@@ -335,13 +371,13 @@ var cb_prot = {
 	},
 	setLevelsIterable: function setLevelsIterable(cellname, pool) {
 		var max_level = 1;
-		var _iteratorNormalCompletion6 = true;
-		var _didIteratorError6 = false;
-		var _iteratorError6 = undefined;
+		var _iteratorNormalCompletion7 = true;
+		var _didIteratorError7 = false;
+		var _iteratorError7 = undefined;
 
 		try {
-			for (var _iterator6 = this.cell_parents(cellname)[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-				var _cell = _step6.value;
+			for (var _iterator7 = this.cell_parents(cellname)[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+				var _cell = _step7.value;
 
 				_cell = _Parser2.default.real_cell_name(_cell);
 				if (this.levels[_cell] === undefined) {
@@ -354,16 +390,16 @@ var cb_prot = {
 				}
 			}
 		} catch (err) {
-			_didIteratorError6 = true;
-			_iteratorError6 = err;
+			_didIteratorError7 = true;
+			_iteratorError7 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion6 && _iterator6.return) {
-					_iterator6.return();
+				if (!_iteratorNormalCompletion7 && _iterator7.return) {
+					_iterator7.return();
 				}
 			} finally {
-				if (_didIteratorError6) {
-					throw _iteratorError6;
+				if (_didIteratorError7) {
+					throw _iteratorError7;
 				}
 			}
 		}
@@ -385,13 +421,13 @@ var cb_prot = {
 	},
 	setLevelsRec: function setLevelsRec(cellname, already_set) {
 		var max_level = 1;
-		var _iteratorNormalCompletion7 = true;
-		var _didIteratorError7 = false;
-		var _iteratorError7 = undefined;
+		var _iteratorNormalCompletion8 = true;
+		var _didIteratorError8 = false;
+		var _iteratorError8 = undefined;
 
 		try {
-			for (var _iterator7 = this.cell_parents(cellname)[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-				var _cell3 = _step7.value;
+			for (var _iterator8 = this.cell_parents(cellname)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+				var _cell3 = _step8.value;
 
 				_cell3 = _Parser2.default.real_cell_name(_cell3);
 				//if(cell[0] === '-') debugger;
@@ -403,16 +439,16 @@ var cb_prot = {
 				}
 			}
 		} catch (err) {
-			_didIteratorError7 = true;
-			_iteratorError7 = err;
+			_didIteratorError8 = true;
+			_iteratorError8 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion7 && _iterator7.return) {
-					_iterator7.return();
+				if (!_iteratorNormalCompletion8 && _iterator8.return) {
+					_iterator8.return();
 				}
 			} finally {
-				if (_didIteratorError7) {
-					throw _iteratorError7;
+				if (_didIteratorError8) {
+					throw _iteratorError8;
 				}
 			}
 		}
@@ -474,6 +510,18 @@ App.prototype.startChange = function () {
 	}
 	this.changeObj = [];
 };
+App.prototype.logChange = function (_ref) {
+	var _ref2 = _slicedToArray(_ref, 4),
+	    path = _ref2[0],
+	    cell = _ref2[1],
+	    val = _ref2[2],
+	    level = _ref2[3];
+
+	var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
+	level = (level || 0) + 1;
+	var cellname = new Array(Number(level)).join('.') + cell + new Array(Math.max(0, 29 - cell.length - level)).join(' ');
+	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
+};
 App.prototype.endChange = function () {
 	if (!this.config.trackChanges) return;
 	if (!this.changeObj) {
@@ -482,39 +530,36 @@ App.prototype.endChange = function () {
 	if (this.config.storeChanges) {
 		this.changesPool.push(changeObj);
 	}
-	if (this.config.trackChangesType === 'log') {
-		console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
-		var _iteratorNormalCompletion8 = true;
-		var _didIteratorError8 = false;
-		var _iteratorError8 = undefined;
+	if (this.config.trackChanges) {
+		if (this.config.trackChangesType === 'log') {
+			console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+			var _iteratorNormalCompletion9 = true;
+			var _didIteratorError9 = false;
+			var _iteratorError9 = undefined;
 
-		try {
-			for (var _iterator8 = this.changeObj[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-				var _step8$value = _slicedToArray(_step8.value, 3),
-				    path = _step8$value[0],
-				    cell = _step8$value[1],
-				    val = _step8$value[2];
-
-				var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
-				var cellname = cell + new Array(Math.max(0, 23 - cell.length)).join(' ');
-				console.log('|', pathname, '|', cellname, '|', val, '|');
-			}
-		} catch (err) {
-			_didIteratorError8 = true;
-			_iteratorError8 = err;
-		} finally {
 			try {
-				if (!_iteratorNormalCompletion8 && _iterator8.return) {
-					_iterator8.return();
+				for (var _iterator9 = this.changeObj[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+					var change = _step9.value;
+
+					this.logChange(change);
 				}
+			} catch (err) {
+				_didIteratorError9 = true;
+				_iteratorError9 = err;
 			} finally {
-				if (_didIteratorError8) {
-					throw _iteratorError8;
+				try {
+					if (!_iteratorNormalCompletion9 && _iterator9.return) {
+						_iterator9.return();
+					}
+				} finally {
+					if (_didIteratorError9) {
+						throw _iteratorError9;
+					}
 				}
 			}
+		} else {
+			console.log(this.changeObj);
 		}
-	} else {
-		console.log(this.changeObj);
 	}
 	delete this.changeObj;
 };
@@ -527,27 +572,27 @@ App.prototype.branchCreated = function (grid_id) {
 	var grid = this.getGrid(grid_id);
 	var path = grid.path;
 	if (Firera.onBranchCreatedStack[this.id]) {
-		var _iteratorNormalCompletion9 = true;
-		var _didIteratorError9 = false;
-		var _iteratorError9 = undefined;
+		var _iteratorNormalCompletion10 = true;
+		var _didIteratorError10 = false;
+		var _iteratorError10 = undefined;
 
 		try {
-			for (var _iterator9 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-				var cb = _step9.value;
+			for (var _iterator10 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+				var cb = _step10.value;
 
 				cb(this, grid_id, path, grid.parent);
 			}
 		} catch (err) {
-			_didIteratorError9 = true;
-			_iteratorError9 = err;
+			_didIteratorError10 = true;
+			_iteratorError10 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion9 && _iterator9.return) {
-					_iterator9.return();
+				if (!_iteratorNormalCompletion10 && _iterator10.return) {
+					_iterator10.return();
 				}
 			} finally {
-				if (_didIteratorError9) {
-					throw _iteratorError9;
+				if (_didIteratorError10) {
+					throw _iteratorError10;
 				}
 			}
 		}
@@ -567,6 +612,7 @@ App.prototype.createGrid = function (type, link_as, free_vals, parent_id) {
 App.apps = apps;
 App.get_app_struct = get_app_struct;
 module.exports = App;
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":12}],2:[function(require,module,exports){
 'use strict';
 
@@ -636,7 +682,7 @@ var create_provider = function create_provider(app, self) {
 		unlinkChildCells: function unlinkChildCells(name) {
 			var hsh = this.get(name);
 			if (!hsh) {
-				//utils.warn('removing unexisting grid!', name);
+				_utils2.default.warn('removing unexisting grid!', name);
 				return;
 			}
 			this.remove(name);
@@ -746,6 +792,12 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 
 	if (this.plain_base.$init && !init_later) {
 		this.init();
+	} else {
+		if (this.init_values) {
+			for (var cell in this.init_values) {
+				//this.cell_values[cell] = this.init_values[cell];
+			}
+		}
 	}
 	if (parsed_pb.no_args_cells) {
 		//this.set(parsed_pb.no_args_cells);
@@ -844,6 +896,7 @@ Grid.prototype.linkGrid = function (cellname, val) {
 		return;
 	}
 	var child_id = this.linkChild(grid, cellname, free_vals);
+	if (!child_id) return;
 	if (link1) {
 		//console.info('Linking by link1 grid', link1);
 		Obj.each(link1, function (his_cell, my_cell) {
@@ -871,13 +924,19 @@ Grid.prototype.linkChild = function (type, link_as, free_vals) {
 	if (this.linked_grids_provider.isLinked(link_as)) {
 		var pb = this.getChild(link_as).parsed_pb_name;
 		if (pb === type) {
-			this.getChild(link_as).set(free_vals);
+			var chld = this.getChild(link_as);
+			if (free_vals) {
+				chld.set(free_vals);
+			}
 			return this.linked_grids_provider.pool[link_as];
 		} else {
 			this.unlinkChild(link_as);
 		}
 	}
 	var id = this.linked_grids_provider.create(this, type, link_as, free_vals);
+	if (!this.app.grids[id]) {
+		return false;
+	}
 	this.linked_grids_provider.initChild(link_as);
 	return id;
 };
@@ -904,8 +963,11 @@ Grid.prototype.doRecursive = function (func, cell, skip, parent_cell) {
 	var cb = this.doRecursive.bind(this, func);
 	if (!skip) {
 		//console.log('--Computing cell', this.cell_type(cell));
-		func(cell, parent_cell);
+		var zzz = func(cell, parent_cell);
 		already_counted_cells[cell] = true;
+		if (zzz === Firera.skip) {
+			return;
+		}
 	} else {
 		//throw new Error('Skipping!', arguments);
 	}
@@ -951,7 +1013,7 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 		func = func[parent_cell_name];
 	} else if (props.closure) {
 		if (!this.cell_funcs[real_cell_name]) {
-			var new_func = func();
+			var new_func = func(this.cell_values[real_cell_name]);
 			//console.log('Setting closure function', new_func);
 			this.cell_funcs[real_cell_name] = new_func;
 		}
@@ -980,7 +1042,8 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 	}
 	if (props.funnel) {
 		if (!parent_cell_name) {
-			throw new Error('Cannot calculate map cell value - no parent cell name provided!');
+			_utils2.default.warn('Cannot calculate map cell value - no parent cell name provided!');
+			return;
 		}
 		parent_cell_name = _Parser2.default.get_real_cell_name(parent_cell_name);
 		args = [parent_cell_name, this.cell_value(parent_cell_name)];
@@ -1027,12 +1090,12 @@ Grid.prototype.compute = function (cell, parent_cell_name) {
 				break;
 		}
 	}
-	if (val === Firera.noop || val === this.cell_value(real_cell_name) && this.isValue(real_cell_name)) {
-		return Firera.noop;
+	if (val === Firera.skip || val === this.cell_value(real_cell_name) && this.isValue(real_cell_name)) {
+		return Firera.skip;
 	}
 	if (this.isSignal(real_cell_name)) {
 		if (!val) {
-			return Firera.noop;
+			return Firera.skip;
 		} else {
 			val = true;
 		}
@@ -1133,6 +1196,7 @@ Grid.prototype.updateTree = function (cells) {
 
 	var set = Object.keys(cells);
 	var start_level = Number.POSITIVE_INFINITY;
+	var max_level = 0;
 	var levels = {};
 	for (var cell in cells) {
 		if (compute) {
@@ -1144,7 +1208,10 @@ Grid.prototype.updateTree = function (cells) {
 		}
 		var lvl = this.levels[cell];
 		if (lvl < start_level) {
-			start_level = this.levels[cell];
+			start_level = lvl;
+		}
+		if (lvl > max_level) {
+			max_level = lvl;
 		}
 		if (!levels[lvl]) {
 			levels[lvl] = new Set();
@@ -1154,63 +1221,64 @@ Grid.prototype.updateTree = function (cells) {
 	var already = new Set();
 	var x = start_level;
 	var parents = {};
-	while (levels[x] !== undefined) {
-		var _iteratorNormalCompletion5 = true;
-		var _didIteratorError5 = false;
-		var _iteratorError5 = undefined;
+	while (levels[x] !== undefined || x <= max_level) {
+		if (levels[x]) {
+			var _iteratorNormalCompletion5 = true;
+			var _didIteratorError5 = false;
+			var _iteratorError5 = undefined;
 
-		try {
-			for (var _iterator5 = levels[x][Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-				var _cell = _step5.value;
+			try {
+				for (var _iterator5 = levels[x][Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+					var _cell = _step5.value;
 
-				var skip = false;
-				var needed_lvl = x + 1;
-				var children = this.cell_children(_cell);
-				var ct = this.cell_type(_cell);
-				if (!this.cell_has_type(_cell, 'free') && (cells[_cell] === undefined || no_args) && this.cell_types[_cell].func) {
-					var res = this.compute(_cell, parents[_cell]);
-					if (res === Firera.noop) {
-						skip = true;
-					}
-				}
-				if (this.cell_has_type(_cell, 'async') || skip) {
-					continue;
-				}
-				for (var child in children) {
-					var _lvl = this.levels[child];
-					if (!levels[_lvl]) {
-						levels[_lvl] = new Set();
-					}
-					if (!cells[child]) {
-						levels[_lvl].add(child);
-					}
-					parents[child] = _cell;
-					for (var j = _lvl - 1; j > x; j--) {
-						if (!levels[j]) {
-							levels[j] = new Set();
+					var skip = false;
+					var needed_lvl = x + 1;
+					var children = this.cell_children(_cell);
+					var ct = this.cell_type(_cell);
+					if (!this.cell_has_type(_cell, 'free') && (cells[_cell] === undefined || no_args) && this.cell_types[_cell].func) {
+						var res = this.compute(_cell, parents[_cell]);
+						if (res === Firera.skip) {
+							skip = true;
 						}
 					}
-					if (already.has(child)) {
-						console.log('skipping2', child);
-						//continue;
+					if (this.cell_has_type(_cell, 'async') || skip) {
+						continue;
+					}
+					for (var child in children) {
+						var _lvl = this.levels[child];
+						if (!levels[_lvl]) {
+							levels[_lvl] = new Set();
+						}
+						if (!cells[child]) {
+							levels[_lvl].add(child);
+						}
+						parents[child] = _cell;
+						for (var j = _lvl - 1; j > x; j--) {
+							if (!levels[j]) {
+								levels[j] = new Set();
+							}
+						}
+						if (already.has(child)) {
+							console.log('skipping2', child);
+							//continue;
+						}
 					}
 				}
-			}
-		} catch (err) {
-			_didIteratorError5 = true;
-			_iteratorError5 = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion5 && _iterator5.return) {
-					_iterator5.return();
-				}
+			} catch (err) {
+				_didIteratorError5 = true;
+				_iteratorError5 = err;
 			} finally {
-				if (_didIteratorError5) {
-					throw _iteratorError5;
+				try {
+					if (!_iteratorNormalCompletion5 && _iterator5.return) {
+						_iterator5.return();
+					}
+				} finally {
+					if (_didIteratorError5) {
+						throw _iteratorError5;
+					}
 				}
 			}
 		}
-
 		x++;
 	}
 };
@@ -1358,7 +1426,7 @@ Grid.prototype.isValue = function (real_cell_name) {
 	return this.cell_types[real_cell_name].additional_type === '=';
 };
 Grid.prototype.isSignal = function (real_cell_name) {
-	return this.cell_types[real_cell_name].additional_type === '~';
+	return this.cell_types[real_cell_name] ? this.cell_types[real_cell_name].additional_type === '~' : false;
 };
 Grid.prototype.real_cell_name = function (cell) {
 	return this.cell_types[cell] ? this.cell_types[cell].real_cell_name : {};
@@ -1423,10 +1491,15 @@ Grid.prototype.set_cell_value = function (cell, val) {
 
 	this.cell_values[cell] = val;
 	if (this.app.config.trackChanges && this.app.changeObj && this.asterisk_omit_list.indexOf(cell) === -1 && cell !== '*') {
-		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {
-			return;
+		if (this.app.config.trackChanges instanceof Array && this.app.config.trackChanges.indexOf(cell) === -1) {} else {
+			var change = [this.path, cell, val, this.levels[cell]];
+			if (this.app.config.trackChangesType === 'log') {
+				this.app.changeObj.push(change);
+			}
+			if (this.app.config.trackChangesType === 'imm') {
+				this.app.logChange(change);
+			}
 		}
-		this.app.changeObj.push([this.path, cell, val]);
 	}
 	if (this.side_effects[cell]) {
 		if (!_Parser2.default.side_effects[this.side_effects[cell]]) console.info('I SHOULD SET side-effect', cell, this.side_effects[cell], _Parser2.default.side_effects);
@@ -1511,7 +1584,10 @@ LinkManager.prototype.onNewGridAdded = function (parent_grid_id, child_id) {
 		if (child_path.indexOf(path) === 0) {
 			// it's a child of master grid
 			for (var cellname in this.doubleAsterisk[path]) {
-				this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path);
+				if (!this.addWorkingLink(child_id, cellname, this.pathToId[path], '**/' + cellname, '**', child_path)) {
+					// grid may be removed!
+					continue;
+				}
 			}
 		}
 	}
@@ -1570,6 +1646,7 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 		for (var slave_grid_id in lnks) {
 			for (var slave_cellname in lnks[slave_grid_id]) {
 				var cell_val = val;
+				var cv2 = val;
 				if (lnks[slave_grid_id] && lnks[slave_grid_id][slave_cellname]) {
 					var link_data = lnks[slave_grid_id][slave_cellname];
 					if (link_data.link_id === '**') {
@@ -1586,6 +1663,7 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 						}
 					}
 				}
+				//console.log('GOT', cell_val, cv2);
 				// the very meaning of this method
 				var slave_grid = this.app.getGrid(slave_grid_id);
 				if (!slave_grid) {
@@ -1603,8 +1681,15 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 LinkManager.prototype.addWorkingLink = function (master_grid_id, master_cellname, slave_grid_id, slave_cellname, link_id, path) {
 	_utils2.default.init_if_empty(this.workingLinks, master_grid_id, {}, master_cellname, {}, slave_grid_id, {}, slave_cellname, { link_id: link_id, path: path });
 	//this.app.getGrid(slave_grid_id).set(slave_cellname, val);
-	this.app.getGrid(master_grid_id).initIfSideEffectCell(master_cellname);
-	this.checkUpdate(master_grid_id, master_cellname);
+	var master = this.app.getGrid(master_grid_id);
+	if (!master) {
+		//utils.warn('Link unexisting grid', master_grid_id);
+		return false;
+	}
+	master.initIfSideEffectCell(master_cellname);
+	if (!master.isSignal(master_cellname)) {
+		this.checkUpdate(master_grid_id, master_cellname);
+	}
 };
 
 LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
@@ -1810,7 +1895,7 @@ var PackagePool = function PackagePool() {
 PackagePool.prototype.load = function (pack) {
 	if (typeof pack === 'string') {
 		if (!Firera.packagesAvailable[pack]) {
-			_utils2.default.error('Package not found!', pack);
+			_utils2.default.error('Package not found: ' + pack);
 			return;
 		}
 		pack = Firera.packagesAvailable[pack];
@@ -1822,8 +1907,7 @@ PackagePool.prototype.load = function (pack) {
 		Object.assign(this.eachGridMixin, pack.eachGridMixin);
 	}
 	if (pack.onGridCreated) {
-		_utils2.default.init_if_empty(Firera.onGridCreatedStack, this.app_id, []);
-		Firera.onGridCreatedStack[this.app_id].push(pack.onGridCreated);
+		Firera.onGridCreated(this.app_id, pack.onGridCreated);
 	}
 	if (pack.onBranchCreated) {
 		_utils2.default.init_if_empty(Firera.onBranchCreatedStack, this.app_id, []);
@@ -1996,15 +2080,24 @@ var parse_cell_type = function parse_cell_type(i, row, pool, children) {
 		cell_types[i] = get_cell_type(i, type);
 		return;
 	}
+	if (additional_type && row.length === 1) {
+		row.unshift(_utils2.default.id);
+	}
 	var func = row[0];
-	var parents = row.slice(1);
-	if (func instanceof Function) {
-		// regular sync cell
-		type = 'is';
+	var parents;
+	if (row.length > 1) {
+		parents = row.slice(1);
+		if (func instanceof Function) {
+			// regular sync cell
+			type = 'is';
+		} else {
+			// may be 'async', 'changes' or something else
+			type = func;
+			func = parents.shift();
+		}
 	} else {
-		// may be 'async', 'changes' or something else
-		type = func;
-		func = parents.shift();
+		parents = row;
+		type = 'is';
 	}
 	cell_types[i] = get_cell_type(i, type, func, parents, additional_type);
 	for (var _j in parents) {
@@ -2054,7 +2147,8 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 		a = a.slice();
 	}
 	if (!funcname) {
-		console.error('wrong func:', funcname);
+		console.error('wrong func:', funcname, key + ':', a);
+		return;
 	}
 	var cc = _utils2.default.split_camelcase(funcname);
 	if (a.length === 1 && typeof a[0] === 'string') {
@@ -2147,12 +2241,29 @@ var side_effects = {
 						break;
 				}
 			});
+			var c = 0;
+			this.grid_i_to_id = {};
+			for (var i in this.linked_grids) {
+				var id = this.linked_grids[i];
+				var grid = this.app.getGrid(id);
+				if (grid) {
+					grid.set('$i', c);
+					this.grid_i_to_id[c] = id;
+					c++;
+				} else {
+					//console.log('404', i, id, this.app.grids);
+				}
+			}
 		}
 	}
 };
 
 var get_real_cell_name = function get_real_cell_name(str) {
-	return str[0] === '-' ? str.slice(1) : str[0] === '=' ? str.slice(1) : str[0] === '~' ? str.slice(1) : str;
+	if (['-', '=', '~'].indexOf(str[0]) !== -1) {
+		return str.slice(1);
+	} else {
+		return str;
+	}
 };
 
 var parse_cellname = function parse_cellname(cellname, pool, context, packages, isDynamic) {
@@ -2351,6 +2462,9 @@ var Obj = _utils2.default.Obj;
 var is_def = function is_def(a) {
 	return a !== undefined && a !== Firera.undef;
 };
+var falsy = function falsy(a) {
+	return !a || a === Firera.undef;
+};
 
 var show_performance = function show_performance() {
 	var res = [];
@@ -2435,6 +2549,10 @@ Firera.gridCreated = function (app, grid_id, path, parent) {
 		}
 	}
 };
+Firera.onGridCreated = function (app_id, cb) {
+	_utils2.default.init_if_empty(Firera.onGridCreatedStack, app_id, []);
+	Firera.onGridCreatedStack[app_id].push(cb);
+};
 
 var get_vals = function get_vals(grid) {
 	var res = Object.assign({}, grid.cell_values);
@@ -2448,13 +2566,19 @@ var get_vals = function get_vals(grid) {
 };
 
 var root_package_pool = new _PackagePool2.default();
-
-Firera.undef = new function () {}();
-Firera.noop = new function () {}();
+var Firera_UNDEFINED = function Firera_UNDEFINED() {};
+var Firera_SKIP = function Firera_SKIP() {};
+Firera_UNDEFINED.prototype.toString = function () {
+	return 'Firera.UNDEFINED';
+};
+Firera.undef = new Firera_UNDEFINED();
+Firera.skip = new Firera_SKIP();
 Firera.apps = _App2.default.apps;
 Firera.run = Firera;
 Firera.Ozenfant = _ozenfant2.default;
+Firera.utils = _utils2.default;
 Firera.is_def = is_def;
+Firera.is_falsy = falsy;
 
 Firera.getAppStruct = function () {
 	return Firera.apps.map(_App2.default.get_app_struct);
@@ -2543,6 +2667,8 @@ module.exports = {
 },{"../../shche/shche":17}],8:[function(require,module,exports){
 'use strict';
 
+var _macros;
+
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 var _Parser = require('../Parser');
@@ -2554,6 +2680,8 @@ var _utils = require('../utils');
 var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
@@ -2659,7 +2787,7 @@ module.exports = {
 			}
 		}
 	},
-	macros: {
+	macros: (_macros = {
 		interval: function interval(fs) {
 			var _fs = _slicedToArray(fs, 2),
 			    interval_ms = _fs[0],
@@ -2736,7 +2864,7 @@ module.exports = {
 				if (cellA) {
 					return func ? func(cellB) : cellB;
 				} else {
-					return Firera.noop;
+					return Firera.skip;
 				}
 			}].concat(fs);
 		},
@@ -2753,26 +2881,104 @@ module.exports = {
 			};
 			return ['funnel', func].concat(_toConsumableArray(cells));
 		},
-		transistAll: function transistAll(fs) {
-			var _fs5 = _toArray(fs),
-			    func = _fs5[0],
-			    rest = _fs5.slice(1);
+		mapPrev: function mapPrev(fs) {
+			var _fs5 = _slicedToArray(fs, 2),
+			    map = _fs5[0],
+			    def_value = _fs5[1];
 
+			var cells = Object.keys(map);
+			var func = function func() {
+				var prev = def_value;
+				return function (cellname, val) {
+					if (!(map[cellname] instanceof Function)) {
+						prev = map[cellname];
+					} else {
+						prev = map[cellname](val, prev);
+					}
+					return prev;
+				};
+			};
+			return ['closureFunnel', func].concat(_toConsumableArray(cells));
+		},
+		arr: function arr(fs) {
+			var _fs6 = _slicedToArray(fs, 1),
+			    config = _fs6[0];
+
+			var args = [];
+			if (config.push) {
+				args.push(config.push);
+			}
+			if (config.pop) {
+				args.push(config.pop);
+			}
+			var st = ['closureFunnel', function (init_val) {
+				var arr = init_val || [];
+				return function (cell, val) {
+					if (cell === config.push) {
+						arr.push(val);
+					}
+					if (cell === config.pop) {
+						arr.splice(val, 1);
+					}
+					return arr;
+				};
+			}].concat(args);
+			return st;
+		},
+		arrDeltas: function arrDeltas(fs) {
+			var _fs7 = _slicedToArray(fs, 1),
+			    config = _fs7[0];
+
+			var args = [];
+			if (config.push) {
+				args.push(config.push);
+			}
+			if (config.pop) {
+				args.push(config.pop);
+			}
+			var st = ['funnel', function (cell, val) {
+				var deltas = [];
+				if (cell === config.push) {
+					deltas.push(['add', null, val]);
+				}
+				if (cell === config.pop) {
+					deltas.push(['remove', val]);
+				}
+				return deltas;
+			}].concat(args);
+			return st;
+		},
+		transistAll: function transistAll(fs) {
+			//const [func, ...rest] = fs;
+			var func;
+			if (fs[0] instanceof Function) {
+				func = fs.shift();
+			}
 			return [function (cellA) {
 				for (var _len2 = arguments.length, restArgs = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
 					restArgs[_key2 - 1] = arguments[_key2];
 				}
 
 				if (cellA) {
-					return func.apply(restArgs);
+					if (func) {
+						return func.apply(null, restArgs);
+					} else {
+						return restArgs;
+					}
 				} else {
-					return Firera.noop;
+					return Firera.skip;
 				}
-			}].concat(rest);
+			}].concat(fs);
 		},
 		'&&': function _(fs) {
 			return [function (cellA, cellB) {
-				return cellA && cellB;
+				console.log('&&', cellA, cellB);
+				return !Firera.is_falsy(cellA) && !Firera.is_falsy(cellB);
+			}].concat(fs);
+		},
+		'||': function _(fs) {
+			return [function (cellA, cellB) {
+				return !Firera.is_falsy(cellA) || !Firera.is_falsy(cellB);
 			}].concat(fs);
 		},
 		'==': function _(fs) {
@@ -2829,6 +3035,11 @@ module.exports = {
 				return a;
 			}].concat(_toConsumableArray(funcstring));
 		},
+		join: function join(funcstring) {
+			return [function (cell, val) {
+				return val;
+			}].concat(_toConsumableArray(funcstring));
+		},
 		second: function second(funcstring) {
 			return [function (a, b) {
 				return b;
@@ -2875,11 +3086,16 @@ module.exports = {
 			}].concat(_toConsumableArray(fncstr));
 		},
 		asArray: function asArray(funcstring) {
-			var subscribe_to = '*/*';
+			var list_name = '';
+			if (funcstring[1] || !funcstring[0] instanceof Array) {
+				list_name = funcstring[0] + '/';
+				funcstring = funcstring.slice(1);
+			}
+			var subscribe_to = list_name + '*/*';
 			if (funcstring[0] instanceof Array) {
 				// its an array of fields
 				var fields = funcstring[0].map(function (a) {
-					return '*/' + a;
+					return list_name + '*/' + a;
 				});
 				subscribe_to = ['funnel', _utils2.default.ids].concat(_toConsumableArray(fields));
 			}
@@ -2887,7 +3103,7 @@ module.exports = {
 				var arr = [];
 				//console.log('Returning closure');
 				return function (cell, values) {
-					if (cell === '$arr_data.changes') {
+					if (cell === list_name + '$arr_data.changes') {
 						for (var i in values) {
 							var _values$i = _slicedToArray(values[i], 4),
 							    type = _values$i[0],
@@ -2905,7 +3121,7 @@ module.exports = {
 									for (var _iterator2 = fields[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
 										var fieldname = _step2.value;
 
-										fieldname = fieldname.replace("*/", "");
+										fieldname = fieldname.replace(list_name + "*/", "");
 										added_obj[fieldname] = val[fieldname];
 									}
 								} catch (err) {
@@ -2935,8 +3151,9 @@ module.exports = {
 							    _fieldname = _values[0],
 							    val = _values[1];
 
-							_fieldname = _fieldname.replace("*/", "");
-							if (val) {
+							if (!_fieldname.replace) debugger;
+							_fieldname = _fieldname.replace(list_name + "*/", "");
+							if (val && arr[val[0]]) {
 								//console.log('?', val, arr, fieldname, arr[val[0]]);
 								arr[val[0]][_fieldname] = val[1];
 							}
@@ -2944,7 +3161,7 @@ module.exports = {
 					}
 					return _utils2.default.arr_fix_keys(arr);
 				};
-			}, subscribe_to, '$arr_data.changes'];
+			}, subscribe_to, list_name + '$arr_data.changes'];
 		},
 		indices: function indices(funcstring) {
 			var func = funcstring[0];
@@ -3044,6 +3261,7 @@ module.exports = {
 		},
 		count: function count(funcstring) {
 			var fieldname = funcstring[0];
+			var fnc = funcstring[1] ? funcstring[1] : _utils2.default.id;
 			var pieces = fieldname.split('/');
 			fieldname = pieces.pop();
 			var prefix = pieces.length ? pieces.join('/') + '/' : '';
@@ -3074,6 +3292,7 @@ module.exports = {
 					    key = _chng2[0],
 					    val = _chng2[1];
 
+					val = fnc(val);
 					var prev_val = vals[key];
 					if (prev_val === undefined) {
 						if (val) count++;
@@ -3091,144 +3310,141 @@ module.exports = {
 					return count;
 				};
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes'];
-		},
-		join: function join(funcstring) {
-			return ['funnel', _utils2.default.second].concat(funcstring);
-		},
-		list: function list(funcstring) {
-			var props = funcstring[0];
-			if (!props instanceof Object) {
-				_utils2.default.error('List properties should be an object!');
-			}
-			var item_type = props.type;
-			if (!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]) {
-				_utils2.default.warn('No item source provided for list', funcstring);
-			}
-			//console.log('List properties', props);
-			var deltas_func;
-			if (props.push) {
-				deltas_func = ['map', {
-					$push: function $push(val) {
-						if (val) {
-							return [['add', null, val]];
-						}
-					},
-					$pop: function $pop(key) {
-						if (key || key === 0 || key === '0') {
-							if (key instanceof Array || key instanceof Set) {
-								var arr = [];
-								var _iteratorNormalCompletion4 = true;
-								var _didIteratorError4 = false;
-								var _iteratorError4 = undefined;
+		}
+	}, _defineProperty(_macros, 'join', function join(funcstring) {
+		return ['funnel', _utils2.default.second].concat(funcstring);
+	}), _defineProperty(_macros, 'list', function list(funcstring) {
+		var props = funcstring[0];
+		if (!props instanceof Object) {
+			_utils2.default.error('List properties should be an object!');
+		}
+		var item_type = props.type;
+		if (!props.push && !props.datasource && !props.deltas && !props.data && !funcstring[1]) {
+			_utils2.default.warn('No item source provided for list', funcstring);
+		}
+		//console.log('List properties', props);
+		var deltas_func;
+		if (props.push) {
+			deltas_func = ['map', {
+				$push: function $push(val) {
+					if (val) {
+						return [['add', null, val]];
+					}
+				},
+				$pop: function $pop(key) {
+					if (key || key === 0 || key === '0') {
+						if (key instanceof Array || key instanceof Set) {
+							var arr = [];
+							var _iteratorNormalCompletion4 = true;
+							var _didIteratorError4 = false;
+							var _iteratorError4 = undefined;
 
+							try {
+								for (var _iterator4 = key[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+									var k = _step4.value;
+
+									arr.push(['remove', k]);
+								}
+							} catch (err) {
+								_didIteratorError4 = true;
+								_iteratorError4 = err;
+							} finally {
 								try {
-									for (var _iterator4 = key[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-										var k = _step4.value;
-
-										arr.push(['remove', k]);
+									if (!_iteratorNormalCompletion4 && _iterator4.return) {
+										_iterator4.return();
 									}
-								} catch (err) {
-									_didIteratorError4 = true;
-									_iteratorError4 = err;
 								} finally {
-									try {
-										if (!_iteratorNormalCompletion4 && _iterator4.return) {
-											_iterator4.return();
-										}
-									} finally {
-										if (_didIteratorError4) {
-											throw _iteratorError4;
-										}
+									if (_didIteratorError4) {
+										throw _iteratorError4;
 									}
 								}
+							}
 
-								return arr;
-							}
-							return [['remove', key]];
+							return arr;
 						}
+						return [['remove', key]];
 					}
-				}];
-			} else if (props.deltas) {
-				deltas_func = [id, props.deltas];
-			} else if (props.data) {
-				deltas_func = ['closure', get_arr_changes, ['just', props.data]];
-			} else {
-				deltas_func = ['closure', get_arr_changes, '$datasource'];
-			}
-			var all_lists_mixin = {
-				$no_auto_template: true,
-				$deltas: deltas_func,
-				/*$init: {
-    	$template: "<div>Ololo</div>"
-    },*/
-				'$arr_data': ['nestedClosure', function () {
-					var id = -1;
-					var length = 0;
-					return function (cb, changes) {
-						if (!changes || !changes.length) return;
-						var chngs = arr_changes_to_child_changes(item_type, changes);
-						//console.log('Got changes:', utils.frozen(chngs), 'from', changes);
-						chngs.forEach(function (one) {
-							switch (one[0]) {
-								case 'add':
-									one[1] = String(id < 1000000 ? ++id : -1);
-									++length;
-									break;
-								case 'remove':
-									--length;
-									break;
-							}
-						});
-						cb('changes', chngs);
-						cb('length', length);
-					};
-				}, '$deltas'],
-				$is_list: true,
-				$children: ['$arr_data.changes']
-			};
-			if (props.push) {
-				all_lists_mixin.$push = props.push;
-				if (!props.push instanceof Array) {
-					_utils2.default.error('List\'s PUSH property should be a F-expression(array), given', props.push);
 				}
-			}
-			if (props.pop) {
-				all_lists_mixin.$pop = props.pop;
-				if (!props.pop instanceof Array) {
-					_utils2.default.error('List\'s POP property should be a F-expression(array), given', props.pop);
-				}
-			}
-			if (props.datasource) {
-				all_lists_mixin.$datasource = props.datasource;
-			}
-			var fnc;
-			var list_own_type = Object.assign(all_lists_mixin, props.self || {});
-			if (props.create_destroy) {
-				fnc = [function (a) {
-					if (a) {
-						return list_own_type;
-					} else {
-						return false;
-					}
-				}, props.create_destroy];
-			} else {
-				fnc = [_utils2.default.always(list_own_type)];
-			}
-			return fnc;
-		},
-		arr_deltas: function arr_deltas(funcstring) {
-			var cell = funcstring[0];
-			return ['closure', function () {
-				var val = [];
-				return function (new_arr) {
-					var deltas = _utils2.default.arr_deltas(val, new_arr);
-					val = new_arr;
-					//console.info('deltas are', deltas);
-					return deltas;
-				};
-			}, cell];
+			}];
+		} else if (props.deltas) {
+			deltas_func = [_utils2.default.id, props.deltas];
+		} else if (props.data) {
+			deltas_func = ['closure', get_arr_changes, ['just', props.data]];
+		} else {
+			deltas_func = ['closure', get_arr_changes, '$datasource'];
 		}
-	}
+		var all_lists_mixin = {
+			$no_auto_template: true,
+			$deltas: deltas_func,
+			/*$init: {
+   	$template: "<div>Ololo</div>"
+   },*/
+			'$arr_data': ['nestedClosure', function () {
+				var id = -1;
+				var length = 0;
+				return function (cb, changes) {
+					if (!changes || !changes.length) return;
+					var chngs = arr_changes_to_child_changes(item_type, changes);
+					//console.log('Got changes:', utils.frozen(chngs), 'from', changes);
+					chngs.forEach(function (one) {
+						switch (one[0]) {
+							case 'add':
+								one[1] = String(id < 1000000 ? ++id : -1);
+								++length;
+								break;
+							case 'remove':
+								--length;
+								break;
+						}
+					});
+					cb('changes', chngs);
+					cb('length', length);
+				};
+			}, '$deltas'],
+			$is_list: true,
+			$children: ['$arr_data.changes']
+		};
+		if (props.push) {
+			all_lists_mixin.$push = props.push;
+			if (!props.push instanceof Array) {
+				_utils2.default.error('List\'s PUSH property should be a F-expression(array), given', props.push);
+			}
+		}
+		if (props.pop) {
+			all_lists_mixin.$pop = props.pop;
+			if (!props.pop instanceof Array) {
+				_utils2.default.error('List\'s POP property should be a F-expression(array), given', props.pop);
+			}
+		}
+		if (props.datasource) {
+			all_lists_mixin.$datasource = props.datasource;
+		}
+		var fnc;
+		var list_own_type = Object.assign(all_lists_mixin, props.self || {});
+		if (props.create_destroy) {
+			fnc = [function (a) {
+				if (a) {
+					return list_own_type;
+				} else {
+					return false;
+				}
+			}, props.create_destroy];
+		} else {
+			fnc = [_utils2.default.always(list_own_type)];
+		}
+		return fnc;
+	}), _defineProperty(_macros, 'arr_deltas', function arr_deltas(funcstring) {
+		var cell = funcstring[0];
+		return ['closure', function () {
+			var val = [];
+			return function (new_arr) {
+				var deltas = _utils2.default.arr_deltas(val, new_arr);
+				val = new_arr;
+				//console.info('deltas are', deltas);
+				return deltas;
+			};
+		}, cell];
+	}), _macros)
 };
 },{"../Parser":5,"../utils":12}],9:[function(require,module,exports){
 'use strict';
@@ -3367,11 +3583,11 @@ var filter_attr_in_parents = function filter_attr_in_parents(parent_node, index,
 var htmlPipeAspects = {
 	attr: function attr(el, _attr) {
 		if (!el) return;
-		debugger;
-		for (attrName in _attr) {
-			el.setAttribute(attrName, _attr[attrName]);
-		}
-		return el;
+		/*debugger;
+  for(var attrName in attr){
+  	el.setAttribute(attrName, attr[attrName]);
+  }*/
+		return el.getAttribute(_attr);
 	}
 };
 
@@ -3387,7 +3603,7 @@ var make_resp1 = function make_resp1(cb, val) {
 	return cb(val);
 };
 
-var make_resp2 = function make_resp2(cb, e) {
+var make_resp2 = function make_resp2(pipe, cb, e) {
 	var res = e.target;
 	var _iteratorNormalCompletion2 = true;
 	var _didIteratorError2 = false;
@@ -3434,7 +3650,9 @@ var toggle_class = function toggle_class(el, clas, val) {
 		toggle = pos === -1;
 	}
 	if (toggle) {
-		el.setAttribute('class', cls_string + ' ' + clas);
+		if (cls.indexOf(clas) === -1) {
+			el.setAttribute('class', cls_string + ' ' + clas);
+		}
 	} else {
 		if (pos !== -1) {
 			cls.splice(pos, 1);
@@ -3494,6 +3712,9 @@ var trigger_event = function trigger_event(name, element, fakeTarget) {
 };
 
 module.exports = {
+	eachGridMixin: {
+		'$html_skeleton_changes': ['$real_el']
+	},
 	cellMatchers: {
 		HTMLAspects: {
 			// ^foo -> previous values of 'foo'
@@ -3517,11 +3738,12 @@ module.exports = {
 					pipe = pipe.map(get_params);
 				}
 
-				var make_resp = !pipe.length ? make_resp1 : make_resp2;
+				var make_resp = !pipe.length ? make_resp1 : make_resp2.bind(null, pipe);
 				var selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css']);
+				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css', 'setfocus']);
+				var getters = new Set(['getval', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
 
 				var _get_params = get_params(aspect);
 
@@ -3536,9 +3758,19 @@ module.exports = {
 				}
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
-				if (context === 'setter' && !setters.has(aspect) || context !== 'setter' && setters.has(aspect)) {
+				if (!setters.has(aspect) && !getters.has(aspect)) {
+					_utils2.default.error('Aspect "' + aspect + '" not found!');
 					return;
 				}
+				if (context === 'setter' && !setters.has(aspect)) {
+					//utils.error('HTML setter ' + aspect + ' not found! In ' + matches[0]);
+					return;
+				}
+				if (context !== 'setter' && setters.has(aspect)) {
+					//utils.error('Using HTML setter ' + aspect + ' not in setter context!');
+					return;
+				}
+
 				switch (aspect) {
 					case 'getval':
 						func = function func(cb, vals) {
@@ -3643,13 +3875,42 @@ module.exports = {
 							};
 						}
 						break;
-					case 'focus':
+					case 'dblclick':
 						func = function func(cb, vals) {
 							if (!vals) return;
 
 							var _vals4 = _slicedToArray(vals, 2),
 							    $prev_el = _vals4[0],
 							    $now_el = _vals4[1];
+
+							if (!Firera.is_def($now_el)) return;
+							var prev_el = raw($prev_el);
+							var now_el = raw($now_el);
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+							if (prev_el && prev_el !== Firera.undef) {
+								Gator(prev_el).off('dblclick');
+							}
+							if (!$now_el) {
+								_utils2.default.warn('Assigning handlers to nothing', $now_el);
+							}
+							Gator(now_el).on('dblclick', selector, function (e) {
+								if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+									return;
+								}
+								make_resp(cb, e);
+								if (e.originalEvent && e.originalEvent.target) {
+									trigger_event('dblclick', document, e.originalEvent.target);
+								}
+							});
+						};
+						break;
+					case 'focus':
+						func = function func(cb, vals) {
+							if (!vals) return;
+
+							var _vals5 = _slicedToArray(vals, 2),
+							    $prev_el = _vals5[0],
+							    $now_el = _vals5[1];
 
 							if (!Firera.is_def($now_el)) return;
 							if ($prev_el) {
@@ -3665,13 +3926,25 @@ module.exports = {
 							});
 						};
 						break;
+					case '':
+						func = function func(cb, vals) {
+							if (!vals) return;
+
+							var _vals6 = _slicedToArray(vals, 2),
+							    $prev_el = _vals6[0],
+							    $now_el = _vals6[1];
+
+							if (!Firera.is_def($now_el)) return;
+							make_resp(cb, $now_el.querySelectorAll(selector));
+						};
+						break;
 					case 'scrollPos':
 						func = function func(cb, vals) {
 							if (!vals) return;
 
-							var _vals5 = _slicedToArray(vals, 2),
-							    $prev_el = _vals5[0],
-							    $now_el = _vals5[1];
+							var _vals7 = _slicedToArray(vals, 2),
+							    $prev_el = _vals7[0],
+							    $now_el = _vals7[1];
 
 							if (!Firera.is_def($now_el)) return;
 							if ($prev_el) {
@@ -3692,9 +3965,9 @@ module.exports = {
 						break;
 					case 'press':
 						func = function func(cb, vals) {
-							var _vals6 = _slicedToArray(vals, 2),
-							    prev_el = _vals6[0],
-							    now_el = _vals6[1];
+							var _vals8 = _slicedToArray(vals, 2),
+							    prev_el = _vals8[0],
+							    now_el = _vals8[1];
 
 							if (!Firera.is_def(now_el)) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
@@ -3733,9 +4006,9 @@ module.exports = {
 						break;
 					case 'enterText':
 						func = function func(cb, vals) {
-							var _vals7 = _slicedToArray(vals, 2),
-							    $prev_el = _vals7[0],
-							    $now_el = _vals7[1];
+							var _vals9 = _slicedToArray(vals, 2),
+							    $prev_el = _vals9[0],
+							    $now_el = _vals9[1];
 
 							if (!$now_el) return;
 							if ($prev_el) {
@@ -3812,7 +4085,8 @@ module.exports = {
 						};
 						break;
 					default:
-						throw new Error('unknown HTML aspect: ' + aspect);
+						debugger;
+						throw new Error('unknown HTML aspect: =' + aspect + '=');
 						break;
 				}
 				if (context === 'setter') {
@@ -3828,7 +4102,6 @@ module.exports = {
 						/*var node = a.find(selector) @todo
       		.filter(filter_attr_in_parents.bind(null, a));*/
 					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, _Parser2.default.get_random_name(), packages);
-					//console.log('OLOLO2', Object.keys(pool.cell_types.$real_el.children), packages);
 				} else {
 					_Parser2.default.parse_fexpr(['asyncClosure', function () {
 						var el;
@@ -4233,7 +4506,7 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 var _F = {};
 
-var always = _F.always = function (a) {
+_F.always = function (a) {
 	return function () {
 		return a;
 	};
@@ -4253,19 +4526,21 @@ var init_if_empty = _F.init_if_empty = function (obj /*key, val, key1, val1, ...
 	return obj;
 };
 
-var throttle = _F.throttle = function (thunk, time) {
+_F.throttle = function (thunk, time) {
 	var is_throttled = false;
 	var pending = false;
 	return function () {
+		var _arguments = arguments;
+
 		if (!is_throttled) {
 			//console.log('run!');
-			thunk();
+			thunk.apply(null, arguments);
 			is_throttled = true;
 			setTimeout(function () {
 				is_throttled = false;
 				if (pending) {
 					//console.log('run pending!');
-					thunk();
+					thunk.apply(null, _arguments);
 					pending = false;
 				}
 			}, time);
@@ -4276,23 +4551,9 @@ var throttle = _F.throttle = function (thunk, time) {
 	};
 };
 
-var log = _F.log = function () {}; // console.log.bind(console);
+_F.log = function () {}; // console.log.bind(console);
 
-var decorate = function decorate(fnc, msg) {
-	return function () {
-		console.log("@", msg, arguments);
-		return fnc.apply(null, arguments);
-	};
-};
-
-var mk_logger = function mk_logger(a) {
-	return function (b) {
-		console.log(a, b);
-		return b;
-	};
-};
-
-var group_by = _F.group_by = function (arr, prop_or_func) {
+_F.group_by = function (arr, prop_or_func) {
 	var res = {};
 	var _iteratorNormalCompletion = true;
 	var _didIteratorError = false;
@@ -4302,7 +4563,9 @@ var group_by = _F.group_by = function (arr, prop_or_func) {
 		for (var _iterator = arr[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 			var obj = _step.value;
 
-			init_if_empty(res, prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func], []).push(obj);
+			var key = prop_or_func instanceof Function ? prop_or_func(obj) : obj[prop_or_func];
+			init_if_empty(res, key, []);
+			res[key].push(obj);
 		}
 	} catch (err) {
 		_didIteratorError = true;
@@ -4322,31 +4585,54 @@ var group_by = _F.group_by = function (arr, prop_or_func) {
 	return res;
 };
 
-var frozen = _F.frozen = function (a) {
+_F.frozen = function (a) {
 	return JSON.parse(JSON.stringify(a));
 };
 
-var id = _F.id = function (a) {
+_F.id = function (a) {
 	return a;
 };
-var ids = _F.ids = function () {
+_F.l = function (a) {
+	console.log('LOG', a);
+	return a;
+};
+_F.not = function (a) {
+	return !a;
+};
+_F.ids = function () {
 	return arguments;
 };
-var raw = _F.raw = function (a) {
+_F.ifelse = function (cb) {
+	var onTrue = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+	var onFalse = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+	return function (val) {
+		return cb(val) ? onTrue : onFalse;
+	};
+};
+
+_F.toLocalStorage = function (key) {
+	var func = localStorage.setItem.bind(localStorage, key);
+	return function (val) {
+		func(val);
+	};
+};
+
+_F.raw = function (a) {
 	if (a instanceof Node || !a) {
 		return a;
 	} else {
 		return a[0];
 	}
 };
-var arr_remove = _F.arr_remove = function (arr, el) {
+_F.arr_remove = function (arr, el) {
 	var pos = arr.indexOf(el);
 	if (pos !== -1) {
 		arr.splice(pos, 1);
 	}
 };
 
-var sh_copy = _F.sh_copy = function (obj) {
+_F.sh_copy = function (obj) {
 	var res = obj instanceof Array ? [] : {};
 	for (var i in obj) {
 		if (obj.hasOwnProperty(i)) {
@@ -4363,7 +4649,7 @@ var arr_different = _F.arr_different = function (arr1, arr2, cb) {
 		}
 	}
 };
-var arr_common = _F.arr_common = function (arr1, arr2, cb) {
+_F.arr_common = function (arr1, arr2, cb) {
 	for (var i in arr1) {
 		if (arr2[i] !== undefined) {
 			cb(i);
@@ -4371,7 +4657,7 @@ var arr_common = _F.arr_common = function (arr1, arr2, cb) {
 	}
 };
 
-var arr_deltas = _F.arr_deltas = function (old_arr, new_arr) {
+_F.arr_deltas = function (old_arr, new_arr) {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, function (v, k) {
@@ -4390,7 +4676,7 @@ var arr_deltas = _F.arr_deltas = function (old_arr, new_arr) {
 	return deltas;
 };
 
-var arr_fix_keys = _F.arr_fix_keys = function (a) {
+_F.arr_fix_keys = function (a) {
 	var fixed_arr = [];
 	var _iteratorNormalCompletion2 = true;
 	var _didIteratorError2 = false;
@@ -4430,16 +4716,42 @@ var arr_diff = _F.arr_diff = function (a, b) {
 	return diff;
 };
 
-var second = _F.second = function (__, a) {
+_F.first = function (a) {
+	return a;
+};
+_F.second = function (__, a) {
 	return a;
 };
 
-var path_cellname = _F.path_cellname = function (a) {
+_F.fromMap = function (map, def) {
+	return function (val) {
+		return map[val] !== undefined ? map[val] : def;
+	};
+};
+
+_F.ind = function (i) {
+	return function (arr) {
+		return arr[i];
+	};
+};
+
+_F.eq = function (val) {
+	return function (a) {
+		return a === val;
+	};
+};
+_F.neq = function (val) {
+	return function (a) {
+		return a !== val;
+	};
+};
+
+_F.path_cellname = function (a) {
 	return a.split('/').pop();
 };
 
-var is_special = _F.is_special = function (a) {
-	return a.indexOf('/') !== -1 || a.indexOf('|') !== -1 || a === '*' || a[0] === '$';
+_F.is_special = function (a) {
+	return a.indexOf('/') !== -1 || a.indexOf('|') !== -1 || a === '*' || a[0] === '$' || a[0] === '@';
 };
 var bms = {};
 window.bm = {
@@ -4476,7 +4788,7 @@ window.bm = {
 	}
 };
 
-var Obj = _F.Obj = {
+_F.Obj = {
 	map: function map(obj, func, conf) {
 		var res = {};
 		var exceptions = conf ? conf.except : false;
@@ -4546,9 +4858,9 @@ _F.split_camelcase = function (str) {
 	var others = (str.match(/[A-Z][a-z0-9]*/g) || []).map(toLowerCase);
 	return [first[1]].concat(_toConsumableArray(others));
 };
-_F.warn = function (str) {
+_F.warn = function () {
 	if (global.firera_debug_mode !== 'off') {
-		console.warn(str);
+		console.warn.apply(console, arguments);
 	}
 };
 _F.error = function (str) {
@@ -4557,15 +4869,18 @@ _F.error = function (str) {
 	}
 };
 
-var copy = _F.copy = function (from, to) {
+_F.copy = function (from, to) {
 	for (var i in from) {
 		to.push(from[i]);
 	}
 };
-var kcopy = _F.kcopy = function (from, to) {
+_F.kcopy = function (from, to) {
 	for (var i in from) {
 		to[i] = from[i];
 	}
+};
+_F.last = function (arr) {
+	return arr[arr.length - 1];
 };
 module.exports = _F;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
@@ -4720,7 +5035,7 @@ var parse = function parse(config, str, debug) {
 								}
 								//return [res, pos + 1];
 							}
-							if (is_empty_char(char) && !started) {
+							if (is_empty_char(char) && !started && !tk.can_start_with_space) {
 								++lag;
 								continue;
 							}
@@ -4947,6 +5262,24 @@ var init_if_empty = function init_if_empty(obj /*key, val, key1, val1, ... */) {
 	}
 	return obj;
 };
+var count_indent = function count_indent(str, child) {
+	var spaces = str.match(/[\s^\t]*/g);
+	var spaces_count = 0;
+	if (spaces) {
+		for (var i in spaces) {
+			spaces_count += spaces[i].length;
+		}
+	}
+	var tabs = str.match(/[\t]*/g);
+	var tabs_count = 0;
+	if (tabs) {
+		for (var i in tabs) {
+			tabs_count += tabs[i].length;
+		}
+	}
+	spaces_count -= tabs_count;
+	return spaces_count + tabs_count * 4;
+};
 module.exports = {
 	empty_chars: [' '],
 	syntax: {
@@ -5018,6 +5351,7 @@ module.exports = {
 			regex: /^[^\)^\,]*$/
 		},
 		quoted_str: {
+			can_start_with_space: true,
 			start: '"',
 			end: '"',
 			free_chars: true
@@ -5055,7 +5389,8 @@ module.exports = {
 			free_chars: true
 		},
 		indent: {
-			regex: /^\t+$/,
+			can_start_with_space: true,
+			regex: /^(\t|\s)+$/,
 			free_chars: true
 		},
 		classnames: {
@@ -5184,8 +5519,7 @@ module.exports = {
 								res.type = child.type.toUpperCase();
 								break;
 							case 'indent':
-								res.level = child.chars.length;
-								//console.log('INDEX', res.level);
+								res.level = count_indent(child.chars, child);
 								break;
 							case 'loop':
 								res.loop = child.chars.match(/\{\$([^\}]*)\}/)[1];
@@ -5286,12 +5620,44 @@ var last = function last(arr) {
 	return arr[arr.length - 1];
 };
 
-var html_attrs = new Set(['href', 'src', 'style', 'target', 'id', 'class', 'rel', 'type', 'value']);
+var toggle_class = function toggle_class(el, clas, val) {
+	var cls_string = el.getAttribute('class') || '';
+	var cls = cls_string.split(' ');
+	var pos = cls.indexOf(clas);
+	var toggle;
+	if (val !== undefined) {
+		toggle = val;
+	} else {
+		toggle = pos === -1;
+	}
+	if (toggle) {
+		if (cls.indexOf(clas) === -1) {
+			el.setAttribute('class', cls_string + ' ' + clas);
+		}
+	} else {
+		if (pos !== -1) {
+			cls.splice(pos, 1);
+		}
+		el.setAttribute('class', cls.join(' '));
+	}
+};
+
+var html_attrs = new Set(["accept", "accept-charset", "accesskey", "action", "align", "alt", "async", "autocomplete", "autofocus", "autoplay", "autosave", "bgcolor", "border", "buffered", "challenge", "charset", "checked", "cite", "class", "code", "codebase", "color", "cols", "colspan", "content", "contenteditable", "contextmenu", "controls", "coords", "data", "data-*", "datetime", "default", "defer", "dir", "dirname", "disabled", "download", "draggable", "dropzone", "enctype", "for", "form", "formaction", "headers", "height", "hidden", "high", "href", "hreflang", "http-equiv", "icon", "id", "integrity", "ismap", "itemprop", "keytype", "kind", "label", "lang", "language", "list", "loop", "low", "manifest", "max", "maxlength", "media", "method", "min", "multiple", "muted", "name", "novalidate", "open", "optimum", "pattern", "ping", "placeholder", "poster", "preload", "radiogroup", "readonly", "rel", "required", "reversed", "rows", "rowspan", "sandbox", "scope", "scoped", "seamless", "selected", "shape", "size", "sizes", "slot", "span", "spellcheck", "src", "srcdoc", "srclang", "srcset", "start", "step", "style", "summary", "tabindex", "target", "title", "type", "usemap", "value", "width", "wrap"]);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
 };
 
-var text_var_regexp = /\{\{([a-zA-Z0-9]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
+var traverse_tree = function traverse_tree(root_node, cb) {
+	var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'children';
+
+	for (var b in root_node[key]) {
+		var leaf = root_node[key][b];
+		cb(leaf);
+		traverse_tree(leaf, cb, key);
+	}
+};
+
+var text_var_regexp = /\{\{([a-zA-Z0-9\_]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
 
 var Ozenfant = function Ozenfant(str) {
 	if (str instanceof Object) {
@@ -5322,7 +5688,7 @@ var Ozenfant = function Ozenfant(str) {
 		//, this.node_vars_paths
 		//, this.text_vars_paths
 		//, this.nodes_vars
-		, '.', this.var_types, []
+		, '.', this.var_types, [], []
 		//, this.varname_pool
 		//, this.if_else_tree
 		, []
@@ -5369,7 +5735,7 @@ Ozenfant.prepare = function (str) {
 	//, struct.node_vars_paths
 	//, struct.text_vars_paths
 	//, struct.nodes_vars
-	, '.', struct.var_types, []
+	, '.', struct.var_types, [], []
 	//, struct.varname_pool
 	//, struct.if_else_tree
 	, []
@@ -5410,6 +5776,7 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 	var original_varname = varname;
 	if (varname_pool.vars[varname]) {
 		// already exists!
+		//console.log('VAR', varname, 'already exists!');
 		init_if_empty(varname_pool.var_aliases, varname, []);
 		var new_name = prefix + varname + '_' + varname_pool.var_aliases[varname].length;
 		varname_pool.var_aliases[varname].push(new_name);
@@ -5418,6 +5785,7 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 		varname_pool.vars[varname] = true;
 	}
 	var deps = if_else_deps.length ? '(' + if_else_deps.join(') && (') + ')' : false;
+	console.log('VAR', varname, 'DEPS', deps);
 	if (deps) {
 		if (if_else_tree.str_to_func[deps]) {
 			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps];
@@ -5430,26 +5798,15 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 		if (original_varname.indexOf(get_dots(last_loop.level)) !== 0) {
 			;
 			var curr_loop = last_loop;
-			var var_level;
-			if (varname.indexOf('ctx.') !== 0) {
-				var_level = get_level(varname) + 1;
-			} else {
-				var_level = 0;
-			}
-			var pathes = [];
-			console.log('lll', last_loop.paths[original_varname], original_varname);
+			var var_level = get_level(varname);
 			while (true) {
-				if (curr_loop.parent_loop) {
-					var cc = curr_loop.parent_loop.paths[curr_loop.name];
-					pathes.push(cc);
-				}
 				if (curr_loop === 'root') {
 					init_if_empty(varname_pool, 'loop_var_links', {}, original_varname, {}, varname, last_loop);
 					break;
 				} else {
-					if (curr_loop.level + 1 == var_level) {
+					if (curr_loop.level == var_level) {
 						var vrkey = original_varname.indexOf('.') !== -1 ? last(original_varname.split('.')) : original_varname;
-						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, pathes);
+						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, last_loop);
 						break;
 					}
 					curr_loop = curr_loop.parent_loop;
@@ -5516,10 +5873,11 @@ var register_loop = function register_loop(varname, level, pool, parent_loop) {
 		name: varname,
 		level: level
 	};
-	pool[varname] = lp;
 	if (parent_loop) {
-		init_if_empty(parent_loop, 'nested_loops', {}, varname, lp);
+		init_if_empty(parent_loop, 'nested_loops', []);
+		parent_loop.nested_loops.push(lp);
 	}
+	pool[varname] = lp;
 	return lp;
 };
 
@@ -5539,14 +5897,26 @@ Ozenfant.prototype.register_path = function (varname, path, pool, loop) {
 		path = pieces[pieces.length - 1];
 	}
 	if (path.indexOf('./*[1]') !== 0 && !has_loops && path.length) {
-		console.error('Template should have only one root node! Given', path.indexOf('./*[1]'), path, this.str);
+		console.error('Template should have only one root node! Given', this.struct.semantics.length);
 	} else {
 		path = fix_path(path);
 	}
 	pool[varname] = path;
 };
 
-Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
+var special_html_setters = {
+	'hasClass': function hasClass(binding, val, _ref) {
+		var _ref2 = _slicedToArray(_ref, 1),
+		    classname = _ref2[0];
+
+		toggle_class(binding, classname, val);
+	},
+	'setFocus': function setFocus(binding, val) {
+		console.log('SET FOCUS!', binding);
+	}
+};
+
+Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_dependent_vars, loops, parent_has_loop) {
 	var _this = this;
 
 	var node_pool = this.node_vars_paths;
@@ -5583,7 +5953,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					types[varname] = get_partial_func(node);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
 					continue;
 				}
 				if (zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE') {
@@ -5595,10 +5965,10 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					this.register_path(varname, new_path, node_pool, last_loop);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.real_expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
 					continue;
 				}
-				this.get_vars(zild, new_path, types, if_else_deps, loops);
+				this.get_vars(zild, new_path, types, if_else_deps, parent_dependent_vars, loops);
 			} else {
 				if (zild.varname !== undefined) {
 					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
@@ -5617,11 +5987,23 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 
 							_varname = register_varname(_varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
 							this.register_path(_varname, new_path, node_pool, last_loop);
-							var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
-							types[_varname] = {
-								type: as_type,
-								name: attrname
-							};
+
+							var pieces = attrname.split('|');
+							var real_name = pieces[0];
+							if (special_html_setters[real_name]) {
+								// its special setter
+								types[_varname] = {
+									type: 'SETTER',
+									name: real_name,
+									params: pieces.slice(1)
+								};
+							} else {
+								var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
+								types[_varname] = {
+									type: as_type,
+									name: attrname
+								};
+							}
 						}
 					} catch (err) {
 						_didIteratorError2 = true;
@@ -5638,7 +6020,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 						}
 					}
 
-					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops);
+					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), loops);
 				}
 				if (zild.quoted_str) {
 					//console.log('str!', node.children[i].quoted_str);
@@ -5664,13 +6046,13 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					};
 					new_loops.push(loopname);
 				}
-				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop);
+				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), new_loops, !!zild.loop);
 			}
 		}
 	}
 };
 
-var input_types = new Set(['text', 'submit', 'checkbox', 'radio']);
+var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range']);
 
 var toHTML = function toHTML(node, context, parent_tag) {};
 
@@ -6150,7 +6532,7 @@ Ozenfant.prototype._setVarVal = function (key, val, binding) {
 Ozenfant.prototype._setValByPath = function (path, val, root_node) {
 	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
 };
-Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, context) {
 	var loop = this.loop_pool[loopname];
 	var prefix = new Array(loop.level + 2).join('.');
 	for (var k in val) {
@@ -6159,39 +6541,79 @@ Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding) {
 			continue;
 		}
 		var varname = prefix + k;
+		if (this.varname_pool.var_aliases[varname]) {
+			var _iteratorNormalCompletion9 = true;
+			var _didIteratorError9 = false;
+			var _iteratorError9 = undefined;
+
+			try {
+				for (var _iterator9 = this.varname_pool.var_aliases[varname][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+					var vn = _step9.value;
+
+					if (loop.paths[vn]) {
+						this.set(vn, val[k], loop, binding, old_val[k], false, context);
+					}
+				}
+			} catch (err) {
+				_didIteratorError9 = true;
+				_iteratorError9 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion9 && _iterator9.return) {
+						_iterator9.return();
+					}
+				} finally {
+					if (_didIteratorError9) {
+						throw _iteratorError9;
+					}
+				}
+			}
+		}
 		if (loop.paths[varname]) {
-			this.set(varname, val[k], loop, binding, old_val[k]);
+			this.set(varname, val[k], loop, binding, old_val[k], false, context);
 		}
 	}
 };
 
 Ozenfant.prototype.removeLoopItem = function (binding, i) {
-	binding.children[i].remove();
+	if (binding.children[i]) {
+		binding.children[i].remove();
+	} else {
+		console.warn('Cannot remove unexisting', i);
+	}
 };
-Ozenfant.prototype.addLoopItems = function (loop, from, to, val, binding) {
+Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, binding, context) {
 	var res = [];
 	var func = this.var_types[loop].func;
 	for (var i = from; i <= to; ++i) {
-		res.push(func(this.state, val[i]));
+		old_val[i] = val[i];
+		var ht = func.apply(null, context.concat(val[i]));
+		res.push(ht);
 	}
 	// !!! should be rewritten!
 	binding.insertAdjacentHTML("beforeend", res.join(''));
 };
 
-Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding) {
+Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
+	var skip_removing = false;
 	for (var i in val) {
 		if (old_val[i]) {
 			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
 		} else {
-			this.addLoopItems(loopname, i, val.length - 1, val, binding);
+			skip_removing = true;
+			this.addLoopItems(loopname, i, val.length - 1, val, old_val, binding, parent_context);
 			break;
 		}
 	}
 	++i;
-	if (old_val[i]) {
-		for (; old_val[i]; i++) {
-			this.removeLoopItem(binding, i);
+	if (old_val[i] && !skip_removing) {
+		var init_i = i;
+		var del_count = 0;
+		for (var j = old_val.length - 1; j >= i; j--) {
+			++del_count;
+			this.removeLoopItem(binding, j);
 		}
+		old_val.splice(init_i, del_count);
 	}
 };
 
@@ -6210,6 +6632,7 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 			for (var c in binding.children) {
 				if (Number(c) != c) continue;
 				var child = binding.children[c];
+				if (!val_arr) debugger;
 				cb(child, val_arr.concat(scope[c]), c);
 			}
 		});
@@ -6227,6 +6650,8 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 };
 
 Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_val) {
+	var _this2 = this;
+
 	var level = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
 
 	var pth = path.split('/');
@@ -6234,25 +6659,24 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 	if (!first) {
 		var keyname = new Array(level + 1).join('.') + pth[0];
 		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
-		var var_path = paths_hash[keyname];
-		var kee = trim_dots(keyname);
-		if (var_path) {
-			var binding = Ozenfant.xpOne(var_path, el);
-			var old_val_parent = old_val;
-			old_val = old_val[kee];
-			old_val_parent[kee] = val;
+		if (paths_hash[keyname]) {
+			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
+			old_val = old_val[trim_dots(keyname)];
 			if (this.loop_pool[keyname]) {
-				this.setLoop(keyname, val, old_val, binding);
+				this.setLoop(keyname, val, old_val, binding, context);
 			} else {
 				this.__set(keyname, val, old_val, binding);
 			}
 		} else {
-			if (this.loop_pool[keyname]) {
-				console.error('Why?');
-			} else {
-				console.log('should set', parent_loop.subordinary_loop_vars, kee, el);
-				// тут треба кожен вкладений цикл, де є ця змінна, проапдейтити
-			}
+			var key = new Array(parent_loop.level + 2).join('.') + path;
+			traverse_tree(parent_loop, function (loop) {
+				if (loop.paths[key]) {
+					_this2.eachLoopBinding(loop, function (bnd) {
+						var bind = Ozenfant.xpOne(loop.paths[key], bnd);
+						_this2.__set(key, val, null, bind, loop);
+					});
+				}
+			}, 'nested_loops');
 		}
 		return;
 	}
@@ -6271,7 +6695,7 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 		var new_context = last(context)[first[1]][index];
 		if (new_context) {
 			// already exists
-			this.updateLoopVals(loopname, val, new_context, bnd);
+			this.updateLoopVals(loopname, val, new_context, bnd, context);
 		} else {}
 		// @todO!
 		//this.addLoopItems(loopname, index, index, val, binding);
@@ -6281,13 +6705,13 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 };
 
 Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_context) {
-	var _this2 = this;
+	var _this3 = this;
 
 	if (this.nodes_vars[this.text_vars_paths[key]]) {
 		var template = this.nodes_vars[this.text_vars_paths[key]];
 		//console.log('template!', template);
 		var new_str = template.replace(text_var_regexp, function (_, key) {
-			return _this2.state[key];
+			return _this3.state[key];
 		});
 		this._setVarVal(key, new_str, binding);
 		binding.innerHTML = new_str;
@@ -6300,8 +6724,12 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 				case 'STYLE':
 					binding.style[this.var_types[key].name] = val;
 					break;
+				case 'SETTER':
+					special_html_setters[this.var_types[key].name](binding, val, this.var_types[key].params);
+					break;
 				case 'LOOP':
-					this.setLoop(key, val, old_val, binding);
+					var ct = loop_context || [this.state];
+					this.setLoop(key, val, old_val, binding, ct);
 					break;
 				default:
 					var func;
@@ -6316,6 +6744,8 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 						ctx = [this.state].concat(_toConsumableArray(loop_context));
 					}
 					var html = func.apply(null, ctx);
+					console.log('HTML', html);
+					debugger;
 					binding.innerHTML = html;
 					this.updateBindings();
 					break;
@@ -6327,7 +6757,7 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 };
 
 Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force, loop_context) {
-	var _this3 = this;
+	var _this4 = this;
 
 	var binding;
 	if (key.indexOf('/') !== -1) {
@@ -6356,33 +6786,33 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 	if (this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop) {
 		for (var cn in this.varname_pool.loop_var_links[key]) {
 			var l_loop = this.varname_pool.loop_var_links[key][cn];
-			this.eachLoopBinding(l_loop, function (node, val, i) {
-				_this3.set(cn, val, l_loop, node, old_val, true, val);
+			this.eachLoopBinding(l_loop, function (node, loop_ctx, i) {
+				_this4.set(cn, val, l_loop, node, old_val, true, loop_ctx);
 			});
 		}
 	}
 	if (this.varname_pool.var_aliases[key]) {
-		var _iteratorNormalCompletion9 = true;
-		var _didIteratorError9 = false;
-		var _iteratorError9 = undefined;
+		var _iteratorNormalCompletion10 = true;
+		var _didIteratorError10 = false;
+		var _iteratorError10 = undefined;
 
 		try {
-			for (var _iterator9 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-				var k = _step9.value;
+			for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+				var k = _step10.value;
 
 				this.set(k, val, loop, loop_binding, old_data, true);
 			}
 		} catch (err) {
-			_didIteratorError9 = true;
-			_iteratorError9 = err;
+			_didIteratorError10 = true;
+			_iteratorError10 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion9 && _iterator9.return) {
-					_iterator9.return();
+				if (!_iteratorNormalCompletion10 && _iterator10.return) {
+					_iterator10.return();
 				}
 			} finally {
-				if (_didIteratorError9) {
-					throw _iteratorError9;
+				if (_didIteratorError10) {
+					throw _iteratorError10;
 				}
 			}
 		}
@@ -6411,6 +6841,9 @@ Ozenfant.xpOne = function (path) {
 
 	if (node !== document && path[0] === '/') {
 		path = path.substr(1);
+	}
+	if (path === '') {
+		return node;
 	}
 	return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
 };
