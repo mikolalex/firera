@@ -1002,18 +1002,38 @@ console.log(app.get('weight', '/cranes/1')); // 60
                 Displaying a list
             </h2>
             <div>
-                We will start pur TodoMVC app with a simple basic thing: displaying a list of todos.
+                We will make HTML layout and then begin implementing our TodoMVC app with a simple basic thing: displaying a list of todos.
 <code>
 const app_template = `
+	h1
+		"Todo MVC"
 	.
-		h1
-			"Todo MVC"
-		ul.todos$
-
+		text(name: new-todo, placeholder: What needs to be done?)
+	.
+		a.make-completed
+			"Mark all as completed"
+	ul.todos$
+	.footer
+		.
+			span.incomplete
+			span
+				"item left"
+		.display-buttons
+			a.all
+				"All"
+			a.undone
+				"Active"
+			a.done
+				"Completed"
+		. 
+			a.clear-completed(href: #)
+				"Clear completed"
 `;
 const todo_template = `
-    li.todo-item
-        .text$
+li.todo-item
+	.checked
+	.text$
+	.remove
 `;
 const todos = [
 	{
@@ -1057,16 +1077,16 @@ const app = Firera({
 						Ozenfant founds a "todos" variable in root grid template, it's bound to ul.todos node.
 					</li>
 					<li>
-						"todos" is a list, i.e. nested grid which consist a number of similar grids.
+						"todos" is a list, i.e. nested grid which consist a set of grids of one type.
 					</li>
 					<li>
-						That's why each item of list(in this case "todo_component") is rendered inside ul.todos node.
+						Each item of list(in this case an item type is "todo_component") is rendered inside ul.todos node.
 					</li>
 				</ul>
 				This is a beginning of a component-based architecture. Here "todo_component" is an independent component with it's own template, and "root_component" is
-				another component, which uses "todo component". Due to Firera structure it's easy to write separate components.
+				another component, which uses "todo component". Firera structure enfprces you to write separate components without overhead.
 				<div>
-					The next step we want to do is to make our list dynamic - we should implement adding new todo item.
+					The next step is to make our list dynamic - we should implement adding new todo item.
 				</div>
             </div>
         </div>
@@ -1076,8 +1096,8 @@ const app = Firera({
                 Dynamic list
             </h2>
             <div>
-				Now our todos are build on the static array.
-				Obviously, it will be changed through time: we can add new items, and remove them.
+				Currently our todos are build on the static array.
+				Obviously, thiss array will be changed through time: we can add new items, and remove some.
 			</div><div>
 				In some popular frameworks the following approach is used: you change the value of the array manually(i.e. push, pop etc.), and then the system computes the diff betwenn old and a new value, founs the changes and updates the DOM.
 				In Firera, we cannot manually change the value of array. We should describe it as an event stream, which depends on other streams(adding new items, deleting items).
@@ -1097,7 +1117,7 @@ const app = Firera({
 	}, 'add_todo', 'remove_todo'],
 	$child_todos: ['list', {
 		type: 'todo',
-		datasource: ['arr_todos'],
+		datasource: ['../arr_todos'],
 	}]
 </code>
 				Here "add_todo" will be a stream of newly added todos(strings or objects), and "remove_todo" will be a stream of indexes we want to remove.
@@ -1115,24 +1135,38 @@ const app = Firera({
 		datasource: ['../arr_todos'],
 	}]
 </code>
+				"arr_todos" listens to "add_todo" and "remove_todo" event streams, it creates new item in first case and removes in second.
 			</div><div>
-				Cells "add_todo" and "remove_todo" are not defined so far. First we may implement adding new todo.
-				It happens after user presses "Enter" on input field.
+			However, cells "add_todo" and "remove_todo" are not defined so far. In this case, Firera will make a warning for listening to unexisting cell.
+			First we need to define add_todo cell.
+			It happens after user presses "Enter" on input field.
 <code>
-var _F = Firera.utils;
-
-const app_template = `
+	const app_template = `
+	h1
+		"Todo MVC"
 	.
-		h1
-			"Todo MVC"
-		ul.todos$
+		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+	.
+		a.make-completed
+			"Mark all as completed"
+	ul.todos$
+	.footer
 		.
-			text(name: new-todo)
-
+			span.incomplete
+			span
+				"item left"
+		.display-buttons
+			a.all
+				"All"
+			a.undone
+				"Active"
+			a.done
+				"Completed"
+		. 
+			a.clear-completed(href: #)
+				"Clear completed"
 `;
-/*
-	...
-*/
+
 const root_component = {
 	$init: {
 		arr_todos: todos
@@ -1142,6 +1176,7 @@ const root_component = {
 	add_todo: [(text) => {
 		return {text, completed: false};
 	}, 'input[name="new-todo"]|enterText'],
+	clear_add_todo: [_F.always(''), 'add_todo'],
 	arr_todos: ['arr', {
 		push: 'add_todo', 
 		pop: 'remove_todo', 
@@ -1159,9 +1194,13 @@ const root_component = {
 </code>
 				A cell 'input[name="new-todo"]|enterText' listens to keyup events in selected input field and returns an entered value when user presses "Enter".
 				"add_todo" takes this string values and wraps them in object as a "text" field.
-				The only thing we still ned to do is to flush an input after user presses enter.
+				The only thing we still ned to do is to flush an input node after user presses enter.
 				That's why we always set it's value to an empty string('') as new todo comes.
-			
+				"clear_add_todo" cell always get's an empty string value after todo is added, and then this
+				empty value is put to input node:
+<code>
+		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+</code>
 			</div>
 		</div>
 <?php } if(chapter('Writing TodoMVC in details', 'list_item', 'Working with list item: checking and removing todo')){ ?>
@@ -1173,63 +1212,32 @@ const root_component = {
 				A todo item needs some DOM node(not nessesarily checkbox) which will be used for checking.
 				Clicking on it will cause our "checked" field to toggle. Depending on this, we will add or remove ".checked" class to todo item root node.
 <code>
+	
 const todo_template = `
-    li.todo-item
-        .text$
+	li.todo-item(hasClass|completed: $completed)
 		.checked
+		.text$
+		.remove
 `;
-/*
-	...
-*/
+
 const todo_component = {
 	$template: todo_template,
-	completed: ['toggle', '.checked|click', false],
-	'|hasClass(completed)': ['completed'],
+	completed: ['toggle', '.checked|click'],
 }
 </code>
-				Each time you click on ".cheched" zone, the value of "completed" should be changed to opposite.
+				Each time you click on ".checked" zone, the value of "completed" should be changed to opposite.
 				This is already implemented by "toggle" macros(you can do this using "closure", which remembers the previous value of cell), which takes a cell name
 				and a initial value as an argument.
 			</div>
 			<div>
-				Therefore, our "completed" cell will have Boolean values. We use it to add or remove "completed" class to root node of component(empty selector means root node).
+				Therefore, our "completed" cell will have Boolean values. We use it to add or remove "completed" class to root node of component.
 			</div>
 			<div>
-				Let's add a "remove" button to "todo item" component. The interesting thing about this is we should listen to clicks on it outside component, i.e. in it parent grids.
+				Let's implement removing todo items.
 			</div>
 			<div>
 <code>
-var _F = Firera.utils;
 
-const app_template = `
-	.
-		h1
-			"Todo MVC"
-		ul.todos$
-		.
-			text(name: new-todo)
-
-`;
-const todo_template = `
-    li.todo-item
-        .checked
-        .text$
-        .remove
-`;
-const todos = [
-	{
-		text: 'Save the world',
-		completed: false,
-	}, 
-	{
-		text: 'Have a beer',
-		completed: false,
-	}, 
-	{
-		text: 'Go to sleep',
-		completed: false,
-	}
-];
 
 const root_component = {
 	$init: {
@@ -1245,7 +1253,7 @@ const root_component = {
 		push: 'add_todo', 
 		pop: 'remove_todo',
 	}],
-	'input[name="new-todo"]|setval': [_F.always(''), 'add_todo'],
+	clear_add_todo: [_F.always(''), 'add_todo'],
 	$child_todos: ['list', {
 		type: 'todo',
 		datasource: ['../arr_todos'],
@@ -1254,19 +1262,18 @@ const root_component = {
 const todo_component = {
 	$template: todo_template,
 	completed: ['toggle', '.checked|click', false],
-	'|hasClass(completed)': ['completed'],
-	remove_todo: [_F.second, '.remove|click', '-$i'],
+	remove_todo: [_F.second, '.remove|click', '-$name'],
 }
 
 const app = Firera({
-		__root: root_component,
-		todo: todo_component
-	}, {
-		packages: ['htmlCells', 'neu_ozenfant'],
-	}
+	__root: root_component,
+	todo: todo_component
+}, {
+	packages: ['htmlCells', 'neu_ozenfant'],
+})
 	
 </code>
-			We should know the index of element of list. It's always contained in '$i' cell, which is one on system predefined cells.
+			We should know the index of element in list. It's always contained in '$i' cell, which is one on system predefined cells.
 			At the same time, we should listen to it passively(with "-" prefix), in order our "remove_todo" event to happen only on click(and not on $i change).
 			</div>
 			<div>

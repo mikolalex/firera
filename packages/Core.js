@@ -105,8 +105,8 @@ module.exports = {
 		},
 		toggle: (fs) => {
 			const [cell, def] = fs;
-			return ['closure', () => {
-				var now = def !== undefined ? def : true;
+			return ['closure', (init_val) => {
+				var now = def !== undefined ? def : init_val;
 				return function(cb){
 					if(now){
 						now = false
