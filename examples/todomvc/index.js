@@ -32,7 +32,7 @@ li.todo-item
 	.checked
 	.
 		? $isEditing
-			text(name: todo-text, value: $text)
+			text(name: todo-text, value: $text, setFocus: $isEditing)
 		: 
 			.text$
 	.remove
@@ -84,8 +84,9 @@ const root_component = {
 }
 const todo_component = {
 	$template: todo_template,
+	new_completed: [_F.not, '-completed', '.checked|click'],
 	completed: ['mapPrev', {
-		'.checked|click': (_, prev) => !prev, 
+		'new_completed': _F.id, 
 		'^^/make_completed': true
 	}],
 	text: ['input[name=todo-text]|enterText'],
@@ -96,7 +97,6 @@ const todo_component = {
 		'text': false,
 		'input[name=todo-text]|press(Esc)': false
 	}],
-	'.text|setfocus': ['isEditing'],
 	'|hasClass(completed)': ['completed'],
 	remove_todo: [
 		'transist',

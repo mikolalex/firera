@@ -443,18 +443,6 @@ module.exports = {
 							el.value = val;
 						}
 					break;
-					case 'setfocus':
-						func = function(el, val){
-							if(!Firera.is_def(el) || !Firera.is_def(val)){
-								return;
-							}
-							el = raw(el);
-							if(val){
-								el.focus();
-								console.log('FOCUS');
-							}
-						}
-					break;
 					default:
 						debugger;
 						throw new Error('unknown HTML aspect: =' + aspect + '=');

@@ -4084,18 +4084,6 @@ module.exports = {
 							el.value = val;
 						};
 						break;
-					case 'setfocus':
-						func = function func(el, val) {
-							if (!Firera.is_def(el) || !Firera.is_def(val)) {
-								return;
-							}
-							el = raw(el);
-							if (val) {
-								el.focus();
-								console.log('FOCUS');
-							}
-						};
-						break;
 					default:
 						debugger;
 						throw new Error('unknown HTML aspect: =' + aspect + '=');
@@ -5700,7 +5688,7 @@ var Ozenfant = function Ozenfant(str) {
 		//, this.node_vars_paths
 		//, this.text_vars_paths
 		//, this.nodes_vars
-		, '.', this.var_types, []
+		, '.', this.var_types, [], []
 		//, this.varname_pool
 		//, this.if_else_tree
 		, []
@@ -5747,7 +5735,7 @@ Ozenfant.prepare = function (str) {
 	//, struct.node_vars_paths
 	//, struct.text_vars_paths
 	//, struct.nodes_vars
-	, '.', struct.var_types, []
+	, '.', struct.var_types, [], []
 	//, struct.varname_pool
 	//, struct.if_else_tree
 	, []
@@ -5797,6 +5785,7 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 		varname_pool.vars[varname] = true;
 	}
 	var deps = if_else_deps.length ? '(' + if_else_deps.join(') && (') + ')' : false;
+	console.log('VAR', varname, 'DEPS', deps);
 	if (deps) {
 		if (if_else_tree.str_to_func[deps]) {
 			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps];
@@ -5921,10 +5910,13 @@ var special_html_setters = {
 		    classname = _ref2[0];
 
 		toggle_class(binding, classname, val);
+	},
+	'setFocus': function setFocus(binding, val) {
+		console.log('SET FOCUS!', binding);
 	}
 };
 
-Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
+Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_dependent_vars, loops, parent_has_loop) {
 	var _this = this;
 
 	var node_pool = this.node_vars_paths;
@@ -5961,7 +5953,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					types[varname] = get_partial_func(node);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
 					continue;
 				}
 				if (zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE') {
@@ -5973,10 +5965,10 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					this.register_path(varname, new_path, node_pool, last_loop);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.real_expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
 					continue;
 				}
-				this.get_vars(zild, new_path, types, if_else_deps, loops);
+				this.get_vars(zild, new_path, types, if_else_deps, parent_dependent_vars, loops);
 			} else {
 				if (zild.varname !== undefined) {
 					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
@@ -6028,7 +6020,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 						}
 					}
 
-					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops);
+					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), loops);
 				}
 				if (zild.quoted_str) {
 					//console.log('str!', node.children[i].quoted_str);
@@ -6054,7 +6046,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					};
 					new_loops.push(loopname);
 				}
-				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop);
+				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), new_loops, !!zild.loop);
 			}
 		}
 	}
@@ -6752,6 +6744,8 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 						ctx = [this.state].concat(_toConsumableArray(loop_context));
 					}
 					var html = func.apply(null, ctx);
+					console.log('HTML', html);
+					debugger;
 					binding.innerHTML = html;
 					this.updateBindings();
 					break;
