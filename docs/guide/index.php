@@ -143,6 +143,7 @@ and open the template in the editor.
                                         <?php
                                         $prev = false;
                                         $real_prev = false;
+                                        $prev_name = false;
                                         foreach($chapters AS $rozdil => $subchapters){
                                             ?>
                                             <li>
