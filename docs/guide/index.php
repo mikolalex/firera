@@ -143,6 +143,7 @@ and open the template in the editor.
                                         <?php
                                         $prev = false;
                                         $real_prev = false;
+                                        $real_next = false;
                                         $prev_name = false;
                                         foreach($chapters AS $rozdil => $subchapters){
                                             ?>
@@ -216,26 +217,6 @@ echo $out;
 		$('.q').click(function(){
 			$(this).parent().find('.answer').toggle();
 		})
-
-		
-		const app = Firera({
-			__root: {
-				'$real_el': document.querySelector("#content"),
-				'headers': [(els) => {
-					const arr = Array.prototype.map.call(els, (el) => { 
-						return {
-							title: el.innerHTML,
-							link: el.getAttribute('id')
-						}
-					});
-					console.log('Arr', arr);
-					return arr;
-					
-				}, 'h2|']
-			}
-		}, {
-			packages: ['htmlCells']
-		});
 	</script>
 		</body>
 </html>

@@ -7,7 +7,7 @@ const app_template = `
 	.
 		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
 	.
-		a.make-completed(hasClass|inactive: $all_completed)
+		a.make-completed(hasClass inactive: $all_completed)
 			"Mark all as completed"
 	ul.todos$
 	.footer
@@ -28,11 +28,11 @@ const app_template = `
 
 `;
 const todo_template = `
-li.todo-item(hasClass|completed: $completed, show: $shown)
+li.todo-item(hasClass completed: $completed, show: $shown)
 	.checked
 	.
 		? $isEditing
-			text(name: todo-text, value: $text, focus: $isEditing)
+			text(name: todo-text, value: $text)
 		: 
 			.text$
 	.remove
@@ -45,10 +45,6 @@ const todos = [
 const init_data = (localStorage.getItem('todos') ? JSON.parse(localStorage.getItem('todos')) : false) || todos;
 
 const root_component = {
-	$init: {
-		//arr_todos: _F.arr_deltas([], init_data),
-		//data: init_data,
-	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
 	'add_todo': [(text) => {
@@ -96,7 +92,6 @@ const todo_component = {
 		'text': false,
 		'input[name=todo-text]|press(Esc)': false
 	}],
-	'.text|setfocus': ['isEditing'],
 	remove_todo: [
 		'transist',
 		['join', 

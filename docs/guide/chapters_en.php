@@ -1141,30 +1141,30 @@ const app = Firera({
 			First we need to define add_todo cell.
 			It happens after user presses "Enter" on input field.
 <code>
-	const app_template = `
-	h1
-		"Todo MVC"
-	.
-		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
-	.
-		a.make-completed
-			"Mark all as completed"
-	ul.todos$
-	.footer
-		.
-			span.incomplete
-			span
-				"item left"
-		.display-buttons
-			a.all
-				"All"
-			a.undone
-				"Active"
-			a.done
-				"Completed"
-		. 
-			a.clear-completed(href: #)
-				"Clear completed"
+    const app_template = `
+    h1
+        "Todo MVC"
+    .
+        text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+    .
+        a.make-completed
+            "Mark all as completed"
+    ul.todos$
+    .footer
+        .
+            span.incomplete
+            span
+                "item left"
+        .display-buttons
+            a.all
+                "All"
+            a.undone
+                "Active"
+            a.done
+                "Completed"
+        . 
+            a.clear-completed(href: #)
+                "Clear completed"
 `;
 
 const root_component = {
@@ -1173,22 +1173,22 @@ const root_component = {
 	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
-	add_todo: [(text) => {
-		return {text, completed: false};
+        add_todo: [(text) => {
+            return {text, completed: false};
 	}, 'input[name="new-todo"]|enterText'],
 	clear_add_todo: [_F.always(''), 'add_todo'],
 	arr_todos: ['arr', {
-		push: 'add_todo', 
-		pop: 'remove_todo', 
-		//init: todos
+            push: 'add_todo', 
+            pop: 'remove_todo', 
+            //init: todos
 	}],
 	'input[name="new-todo"]|setval': [
-		_F.always(''), 
-		'add_todo'
+            _F.always(''), 
+            'add_todo'
 	],
 	$child_todos: ['list', {
-		type: 'todo',
-		datasource: ['../arr_todos'],
+            type: 'todo',
+            datasource: ['../arr_todos'],
 	}]
 }
 </code>
@@ -1199,7 +1199,7 @@ const root_component = {
 				"clear_add_todo" cell always get's an empty string value after todo is added, and then this
 				empty value is put to input node:
 <code>
-		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+    text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
 </code>
 			</div>
 		</div>
@@ -1214,7 +1214,7 @@ const root_component = {
 <code>
 	
 const todo_template = `
-	li.todo-item(hasClass|completed: $completed)
+	li.todo-item(hasClass completed: $completed)
 		.checked
 		.text$
 		.remove
@@ -1319,10 +1319,10 @@ const app = Firera({
 				Seems like it works now, but... Let's looks closer how data transform in our app.
 				<ul>
 					<li>
-						We assemble particular changes(adding, removing item) into as array
+						We assemble particular changes(adding, removing item) into array
 					</li>
 					<li>
-						Array is passed to list as datasource
+						An array is passed to a list as datasource
 					</li>
 					<li>
 						A list compares array with it's previous version, calculates the diff and makes updates.
@@ -1366,9 +1366,6 @@ _F.arr_deltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
 				Now our code will look like this:
 <code>
 const root_component = {
-	$init: {
-		arr_todos: _F.arr_deltas([], todos)
-	},
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
 	add_todo: [(text) => {
@@ -1385,6 +1382,15 @@ const root_component = {
 		deltas: '../arr_todos',
 	}]
 }
+
+const app = Firera({
+		__root: root_component,
+		todo: todo_component
+	}, {
+		packages: ['htmlCells', 'neu_ozenfant'],
+	}
+);
+app.set('arr_todos', _F.arr_deltas([], init_data));
 </code>
 				Note that instead of using "arr" macros for "arr_todos", we use "arrDeltas" macro.
 				It does what we need: it transforms a stream of new values into "add" array changes, 
@@ -1398,10 +1404,9 @@ const root_component = {
 			</div><hr>
 			<div>
 				Using array(and, later, objects) deltas streams instead of data is a powerful approach. Of course, at first sight, it might look a bit strange and "low-level".
-				But it's very useful for joining different parts of your app, and it givs a lot of advantages. 
+				But it's useful for joining different parts of your app, and it givs a lot of advantages. 
 			</div><div>
-				When you begin to think in terms of data deltas, you'll see how many cases it covers.
-				Say, a user registers on a site. Usually we make a request to server with a data to create a new record for this user. Semantically, it's a "create" delta for a server collection of users.
+				When you begin to think in terms of data deltas, you'll realize how many cases it covers.
 			</div><div>
 				Another advantage, which complies the Firera phylosophy, is that is allows to have a single point where the changes to array is gathered.(as an opposite to an approach where 
 				the data may be changed form different parts of code).
@@ -1459,16 +1464,17 @@ const root_component = {
                 Editing todo
             </h2>
             <div>
-				We need to make possible editing todo. On doubleclick an input field should appear, then on pressing Enter or Escape we should return back. Enter saves the modification done, escape cancels it.
+                We need to make possible editing todo. On doubleclick an input field should appear, then on pressing Enter or Escape we should return back. 
+                "Enter" saves the modification done, "Escape" cancels it.
 <code>
 const todo_template = `
     li.todo-item
         .checked
         .
-			? $isEditing
-				text(name: todo-text, value: $text)
-			: 
-				.text$
+            ? $isEditing
+                text(name: todo-text, value: $text)
+            : 
+                .text$
         .remove
 `;
 
@@ -1485,17 +1491,17 @@ const todo_component = {
 	remove_todo: [_F.second, '.remove|click', '-$i'],
 }
 </code>
-				We changed the template of "todo" component, so that input field will be shown when "isEditing" variable is truthy.
-				Now we need to define: <ul>
-					<li>
-						when "isEditing" becomes true, and when it becomes false
-					</li>
-					<li>
-						when we save entered data as "text" field of todo item
-					</li>
-				</ul>
-				Our "isEditing" cell should become true when user makes double click, and false when he presses "enter" or "escape".
-				To implement such a behaviour, we may use funnel:
+    We changed the template of "todo" component, so that input field will be shown when "isEditing" variable is truthy.
+    Now we need to define: <ul>
+            <li>
+                    when "isEditing" becomes true, and when it becomes false
+            </li>
+            <li>
+                    when we save entered data as "text" field of todo item
+            </li>
+    </ul>
+    Our "isEditing" cell should become true when user makes double click, and false when he presses "enter" or "escape".
+    To implement such a behaviour, we may use funnel:
 <code>
 	isEditing: ['funnel', (cellname, val) => {
 		if(cellname === 'user_doubleclick'){
@@ -1505,8 +1511,8 @@ const todo_component = {
 		}
 	}, 'user_doubleclick', 'pres_enter', 'press_escape'];
 </code>
-				Note that now we don't use actual values of argument cells.
-				This is a common case, and we have a handy macros for it, it's called "map".
+    Note that now we don't use actual values of argument cells.
+    This is a common case, and we have a handy macros for it, it's called "map".
 <code>
 	isEditing: ['map', {
 		'.text|dblclick': true,
@@ -1605,15 +1611,106 @@ const todo_component = {
 				We should also make "check all" button inactive when all todos are completed.
 				We can count all (in-) completed fields with "count" macros, that works with lists.
 <code>
+const app_template = `
+.
+	h1
+		"Todo MVC"
+	.
+		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+	.
+		a.make-completed(hasClass inactive: $all_completed)
+			"Mark all as completed"
+	ul.todos$
+	.footer
+		.
+			span$incomplete
+			span
+				"item{{plural}} left"
+		.display-buttons
+			a.all
+				"All"
+			a.undone
+				"Active"
+			a.done
+				"Completed"
+		. 
+			a.clear-completed(href: #)
+				"Clear completed"
+
+`;
 const root_component = {
 	...
 	incomplete: ['count', 'todos/completed', _F.not],
-	'.make-completed|hasClass(inactive)': [_F.eq(0), 'incomplete'],
+	all_completed: [_F.eq(0), 'incomplete'],
+	plural: [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
 }
 </code>
 			</div>
 		</div>
-<?php } /*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'clear-completed', 'Clearing completed todos')){ ?>
+        <div>
+            <h2>
+                Clearing completed todos
+            </h2>
+            <div>
+		When user clicks on "Clear completed" button, we should remove all the completed todo items.
+                Typical imperative approach will look like this: look for the completed items in todo's list and remove completed.
+                But in Firera there is no imperative intrusion. Intead, we need to update the conditions when the item is removed.
+                For now, it's removed only when user clicks on remove button:
+                <code>
+const todo_component = {
+	...
+	remove_todo: [
+		'transist',
+                '.remove|click', 
+		'-$name'
+	],
+}
+                </code>
+                Now we need to update it: we should also remove an item when "Clear completed" button is clicked and item is completed!
+                We'll use joining streams macros.
+<code>
+    const root_component = {
+        // creating a "clear completed" signal from click on block
+        '~clear_completed': ['.clear-completed|click'],
+    }
+    
+    const todo_component = {
+	remove_todo: [
+		'transist',
+		['join', 
+			'.remove|click', 
+			[_F.first, '-completed', '^^/clear_completed']
+		], 
+		'-$name'
+	],
+    }
+</code>
+                The logics here is:
+                <ul>
+                    <li>
+                        When user clicks .clear-completed button, our "clear_comleted" cell get's a value.
+                        Here "clear_completed" acts as signal: it's not nessasary what the value it has(a DOM event actually), but it's nessasry when it's triggered, 
+                        i.e. when this value changes.
+                    </li>
+                    <li>
+                        Our "remove_todo" cell listens to changes of "clear_completed" cells and get's a signal when user clicks
+                    </li>
+                    <li>
+                        Nested F-exression "[_F.first, '-completed', '^^/clear_completed']" will return the value of "completed" cell when clear_completed signal goes.
+                        So, if the cell is completed, it'll be true.
+                    </li>
+                    <li>
+                        "transist" will return '$name' value if the first argument(in our case - a nested F-expression) is truthy. So, the todo item
+                        will be removed when "clear_completed" is triggered and it's completed, or when .remove button is clicked. 
+                    </li>
+                </ul>
+                This is a good example of single-source-of-truth priciple in Firera: there should be only one place where particular state is defined.
+                
+            </div>
+	</div>
+<?php }
+/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
         <div>
             <h2>
                 
