@@ -1979,8 +1979,109 @@ app.set('arr_todos', _F.arr_deltas([], init_data));
                 This will be a little bit verbose, but more readable. So, yes, you should not use macros for everything you need - it's better to use functions.
                 You should use macros only if you have a lot of places it can be used.
             </div><div>
-                
+                There real advantage of macros over functions is they have access to F-expression.
+				Let's consider the example of "map" macros from Core package:
+		<code>
+map: (fs) => {
+	const [map] = fs;
+	const cells = Object.keys(map);
+	const func = (cellname, val) => {
+		if(!(map[cellname] instanceof Function)){
+			return map[cellname];
+		}
+		return map[cellname](val);
+	}
+	return ['funnel', func, ...cells];
+}
+
+--- app.js ---
+
+const app = Firera({
+	bar: ['map', {
+		foo: true,
+		baz: (a) => a > 10
+	}]
+});
+app.set('foo', 42);
+app.get('bar'); // true
+
+app.set('baz', 7);
+app.get('bar'); // false
+
+app.set('baz', 19);
+app.get('bar'); // true
+		</code>
+				Here "map" macros transforms an object into a real F-expression. This is a commonly used macros, 
+				and it's implementation via functions is much more verbose.
             </div>
+			<div>
+				<h3>
+					Grid mixins
+				</h3>
+				... is a way to add some cells to each grid of your app.
+				First you should know, that due to the Firera's nature, you can easily add mixins manually to any grid.
+<code>
+// an "app" plain base
+
+var app_base = {
+	input: '.name|getval',
+	is_input_valid: [(a) => a.length > 2, 'input']
+}
+
+// a parameterized mixin
+
+const writer = (name) => {
+	const cellname = '$' + name + '_writer';
+	const mixin = {};
+	mixin[cellname] = [(a) => {
+		console.log(name, 'is', a);
+	}, name]
+	return mixin;
+}
+
+const input_writer = writer('input');
+
+// mixing
+
+app_base = Object.assign({}, app_base, input_writer);
+
+const app = Firera(app_base);
+
+</code>
+				Here we made small mixin that writes the value of some cell to console.
+				The very "mixing" is just merging two objects with Object.assign!
+				That is very simple and robust.
+			</div>
+			<div>
+				A more powerful technique is a mixin that will be assigned to each grid of the app which uses some package.
+				That's the way an Ozenfant templates work, e.g.
+				TO do this, we need to define this mixin in a package with "eachGridMixin" key.
+<code>
+const some_package = {
+	macros: {
+		...
+	},
+	eachGridMixin: {
+		foo: [_F.id, 'bar'],
+		boo: [(a) => a + 10, 'foo']
+	}
+}
+</code>
+				This means that each grid of the app, which uses "some_package" package, will have this to cells added.
+				If to consider more realistic example,
+<code>
+const simpleHtml = {
+	eachGridMixin: {
+		$html: [(el, tmpl) => {
+			if(el && tmpl){
+				el.innerHTML = tmpl;
+			}
+		}, '$el', '$template],
+	}
+}
+</code>
+				this will write an HTML template of each grrid wich has $el defined.
+			</div>
 	</div>
 <?php }/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
         <div>
