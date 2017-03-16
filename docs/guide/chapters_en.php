@@ -1710,7 +1710,279 @@ const todo_component = {
             </div>
 	</div>
 <?php }
-/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
+if(chapter('Writing TodoMVC in details', 'final_app', 'Final application')){ ?>
+        <div>
+            <h2>
+                Final application
+            </h2>
+            <div>
+                Now our application looks like this:
+<code>
+var _F = Firera.utils;
+
+const app_template = `
+.
+    h1
+        "Todo MVC"
+    .
+        text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+    .
+        a.make-completed(hasClass inactive: $all_completed)
+            "Mark all as completed"
+    ul.todos$
+    .footer
+        .
+            span$incomplete
+            span
+                "item{{plural}} left"
+        .display-buttons
+            a.all
+                "All"
+            a.undone
+                "Active"
+            a.done
+                "Completed"
+        . 
+            a.clear-completed(href: #)
+                "Clear completed"
+
+`;
+const todo_template = `
+li.todo-item(hasClass completed: $completed, show: $shown)
+    .checked
+    .
+        ? $isEditing
+            text(name: todo-text, value: $text)
+        : 
+            .text$
+    .remove
+`;
+const todos = [
+    {"text":"Save the world","completed":false},
+    {"text":"Have a beer","completed":false},
+    {"text":"Go to sleep","completed":false}
+]
+const init_data = (
+    localStorage.getItem('todos') 
+    ? JSON.parse(localStorage.getItem('todos')) 
+    : false
+) || todos;
+
+const root_component = {
+    $el: document.querySelector('#todo-app'),
+    $template: app_template,
+    'add_todo': [(text) => {
+            return text.length ? {text, completed: false} : Firera.skip;
+    }, 'input[name="new-todo"]|enterText'],
+    remove_todo: [_F.ind(0), '**/remove_todo'],
+    '~make_completed': ['.make-completed|click'],
+    'all_completed': [_F.eq(0), 'incomplete'],
+    'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
+    arr_todos: ['arrDeltas', {
+            push: 'add_todo', 
+            pop: 'remove_todo',
+    }],
+    'clear_add_todo': [_F.always(''), 'add_todo'],
+    display: [_F.fromMap({
+            all: '*',
+            undone: true,
+            done: false,
+    }), '.display-buttons > *|click|attr(class)'],
+    '~clear_completed': ['.clear-completed|click'],
+    incomplete: ['count', 'todos/completed', _F.not],
+    data: ['asArray', 'todos', ['completed', 'text']],
+    $toLocalStorage: [_F.throttle((data) => {
+        localStorage.setItem('todos', JSON.stringify(data));
+    }, 100), 'data'],
+    $child_todos: ['list', {
+            type: 'todo',
+            deltas: '../arr_todos',
+            self: {
+                    active_todo: [_F.ind(1), '*/edited_todo'],
+            }
+    }]
+}
+const todo_component = {
+    $template: todo_template,
+    completed: ['mapPrev', {
+            '.checked|click': (_, prev) => !prev, 
+            '^^/make_completed': true
+    }],
+    text: ['input[name=todo-text]|enterText'],
+    edited_todo: ['transist', '.text|dblclick', '-$i'],
+    i_am_edited: ['=', '-$i', '../active_todo'],
+    isEditing: ['map', {
+            'i_am_edited': _F.id,
+            'text': false,
+            'input[name=todo-text]|press(Esc)': false
+    }],
+    remove_todo: [
+            'transist',
+            ['join', 
+                    '.remove|click', 
+                    [_F.first, '-completed', '^^/clear_completed']
+            ], 
+            '-$name'
+    ],
+    'shown': ['!=', '^^/display', 'completed'],
+}
+
+const app = Firera({
+        __root: root_component,
+        todo: todo_component
+    }, {
+        packages: ['htmlCells', 'neu_ozenfant']
+    }
+);
+app.set('arr_todos', _F.arr_deltas([], init_data));
+</code>
+            
+            </div>
+    </div>
+<?php } /*if(chapter('Further reading', 'writing-reusable-components', 'Writing reusable components')){ ?>
+        <div>
+            <h2>
+                Writing reusable components
+            </h2>
+            <div>
+				
+            </div>
+	</div>
+<?php }*/ if(chapter('Further reading', 'extending-firera', 'Extending Firera')){ ?>
+        <div>
+            <h2>
+                Extending Firera
+            </h2>
+            <div>
+		Firera has a lot of ways that can shorten your code and make it more robust and readable.
+                These are:
+                <ul>
+                    <li>
+                        Cell macros
+                    </li>
+                    <li>
+                        Grid mixins
+                    </li>
+                    <li>
+                        Cell name regexps
+                    </li>
+                </ul>
+                All of these you can implement and add to your Firera app with a help of packages.
+                Package is plain object with a few a possible keys. Say you need to create a package with a couple of macros.
+<code>
+    // --- my-package.js ---
+    export default {
+        macros: {
+            some_macros: () => { 
+                // do something
+            },
+            some_other_macros: () => {}
+        }
+    }
+    
+    // --- app.js --- 
+    import my_pack from 'my-package';
+    
+    const app = Firera({
+        __root: {
+            a: 10, 
+            b: 20,
+            c: ['some_macros', 'a', 'b']
+        }
+    }, {
+        packages: ['htmlCells', my_pack],
+    }
+</code>
+                As we import a package and add it to Firera app.packages config, all it's macros become available for usage in our app.
+                <h3>
+                    Cell macros
+                </h3>
+                ...make your F-expressions more beautiful.
+                Macros receives a F-expression as an argument and returns new F-expression that will be used for this cell.
+<code>
+    // --- my-package.js ---
+    export default {
+        macros: {
+            getState: (fs) => { 
+                return ['closureFunnel', () => {
+                    const state = {};
+                    return (cell, val){
+                        state[cell] = val;
+                        return state;
+                    }
+                }, ...fs]; 
+            },
+        }
+    }
+    
+    // --- app.js --- 
+    import my_pack from 'my-package';
+    
+    const app = Firera({
+        __root: {
+            a: 10, 
+            b: 20,
+            c: ['getState', 'a', 'b']
+        }
+    }, {
+        packages: ['htmlCells', my_pack],
+    })
+    
+    app.set('a', 20);
+    app.get('c'); // {a: 20, b: 20}
+</code>
+            This is an example of simple macros. It listens to changes in a number of cells and returns an object with it's values("state").
+            That's how it works:
+            <ul>
+                <li>
+                    Firera parses a plain base
+                </li>
+                <li>
+                    It founds a string "getState" on a first position of a F-expression. It doesn't look as a cell type, so Firera decides it's a macros name.
+                </li>
+                <li>
+                    Firera looks for "getState" macros in each package it has. Finally Firera founds need macros in "my_pack" package.
+                </li>
+                <li>
+                    Firera runs the macros. It means, it runs the macros function, passing the current F-expression as an argument. In our case, a F-expression will be ["a", "b"].
+                    As you see, it's an actual F-expr of cell we parse except for the very macros name.
+                </li>
+                <li>
+                    Macros function returns a new F-expression, which looks like ['closureFunnel', () => { ... }, 'a', 'b']
+                </li>
+                <li>
+                    It works as a regular F-expression then!
+                </li>
+            </ul>
+            Therefore macros can not affect anything but the cell they are used in. This limitation make your code more predictable and clean.
+            </div><div>
+                For now, our macros is not very useful though.
+                Instead of using it, we could just use a function:
+                <code>
+    var getState = () => {
+        const state = {};
+        return (cell, val){
+            state[cell] = val;
+            return state;
+        }
+    }
+    const app = Firera({
+        __root: {
+            a: 10, 
+            b: 20,
+            c: ['closureFunnel', getState, 'a', 'b']
+        }
+    }, {
+        packages: ['htmlCells', my_pack],
+    })
+                </code>
+                This will be a little bit verbose, but more readable. So, yes, you should not use macros for everything you need - it's better to use functions.
+                You should use macros only if you have a lot of places it can be used.
+            </div><div>
+                
+            </div>
+	</div>
+<?php }/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
         <div>
             <h2>
                 
@@ -1719,4 +1991,4 @@ const todo_component = {
 				
 			</div>
 		</div>
-<?php }*/
+<?php } */
