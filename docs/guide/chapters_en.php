@@ -1848,7 +1848,7 @@ app.set('arr_todos', _F.arr_deltas([], init_data));
 				
             </div>
 	</div>
-<?php }*/ if(chapter('Further reading', 'extending-firera', 'Extending Firera')){ ?>
+<?php }*/ if(chapter('Further reading', 'extending_firera', 'Extending Firera')){ ?>
         <div>
             <h2>
                 Extending Firera
@@ -2083,6 +2083,80 @@ const simpleHtml = {
 				this will write an HTML template of each grrid wich has $el defined.
 			</div>
 	</div>
+<?php } if(chapter('Further reading', 'debugging', 'Debugging and common mistakes')){ ?>
+        <div>
+            <h2>
+                Debugging and common mistakes
+            </h2>
+			<h3>
+				How to debug
+			</h3>
+            <div>
+				Due to it's specific syntax and structure, it's rather difficult to debug a Firera application.
+				The most useful thing you may need is to track changes to Firera cells.
+				That could be easily done with some config keys.
+<code>
+const app = Firera({
+	__root: {
+		...
+	}
+}, {
+	packages: ['htmlCells', 'neu_ozenfant'],
+	trackChanges: true,
+	trackChangesType: 'log',
+})
+</code>
+				A "change" is a set of cascad cell changes caused by one source(it may be DOM event, external call of "set()" method etc.)
+				If you turn on tracking changes, you will see in your console the results of computing each cell in your app.
+				For example, this is an example of what is logged in console after user moves a "line height" scrollbar in "vtable" example:
+<code>
+@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@
+| /                |4 ...[name=th]|getval         | 530 |
+| /                |5 ....viewport_heigth         | 530 |
+| /                |6 .....max_scrollTop          | 1999490 |
+| /                |7 ......pos_y                 | 800 |
+| /                |8 .......top_offset           | 0px |
+| /                |8 .......from                 | 40 |
+| /                |9 ........data                | 
+[Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object]
+ |
+| /                |8 ........vtable|css(top,px)  | 800 |
+| /                |9 ........@@@_4               | undefined |
+| /                |6 .....items_shown            | 27 |
+| /                |9 ........data                | 
+[Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object]
+ |
+| /                |6 ......outer|css(height,px)  | 530 |
+| /                |7 ......@@@_6                 | undefined |
+</code>
+				This looks like a table of three columns. First is a name of grid(here all are of root grid, "/).
+				The second is a level of cell and it's name, and the third is an atual value a cell receives.
+				A level represents the deepness of cell position in a grid, where 1 is the top position. For example, if we have cell "a" dependet on "b", and cell
+				"c" which depends on "a", the levels of cell a, b and c will be 2, 1 and 3 respectively.
+				Therefore, if a cell of level "2" changes, it can affect only cells of level 3 or bigger.
+			</div><div>
+				YOu can also track particuar cells. FOr this, you need your trackChanges parametr to be an array of cell you want to track:
+<code>
+	const app = Firera({
+	__root: {
+		a: ...
+		b: ...
+		c: ...
+		d: ...
+	}
+}, {
+	packages: ['htmlCells', 'neu_ozenfant'],
+	trackChanges: ['a', 'c'],
+	trackChangesType: 'log',
+})
+</code>
+				In this case only the changes in "a" and "c" will be shown, which is handy when you have a huge amount of cells.
+				<!--<h3>
+					Mistakes and error messages
+				</h3>-->
+				
+			</div>
+		</div>
 <?php }/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
         <div>
             <h2>
