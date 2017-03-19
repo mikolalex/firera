@@ -15,7 +15,7 @@ const create_provider = (app, self) => {
 			utils.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
 			this.set(link_as, child_id);
 			this.get(link_as).linked_grids_provider.set('..', self.id);
-			app.linkManager.onNewGridAdded(self.id, child_id);
+			app.linkManager.onNewGridAdded(self.id, child_id, link_as);
 			return child_id;
 		},
 		set(name, grid_id) {
@@ -39,6 +39,7 @@ const create_provider = (app, self) => {
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
 			delete self.app.grids[id];
+			app.linkManager.onRemoveGrid(id);
 		},
 		setCellValues(childName, values, skipsame) {
 			this.get(childName).set(values, false, false, false, skipsame);

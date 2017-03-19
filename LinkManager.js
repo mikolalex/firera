@@ -7,9 +7,10 @@ const LinkManager = function(app){
 	this.pointers = {};
 	this.doubleAsterisk = {};
 	this.pathToId = {};
+	this.linksFromChildToParent = {};
 };
 
-LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id){
+LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id, link_as){
 	const child_path = this.app.getGrid(child_id).path
 	//console.log('new grid added to', parent_grid_id, 'as', child_id, child_path);
 	// add doubleAsterisk links
@@ -28,6 +29,11 @@ LinkManager.prototype.onNewGridAdded = function(parent_grid_id, child_id){
 	for(let link_id in this.pointers[parent_grid_id]){
 		this.actualizeLink(link_id, child_id);
 	}
+	if(this.linksFromChildToParent[parent_grid_id] && this.linksFromChildToParent[parent_grid_id][link_as]){
+		for(let master_cell of this.linksFromChildToParent[parent_grid_id][link_as]){
+			this.addWorkingLink(child_id, master_cell, parent_grid_id, link_as + '/' + master_cell, '**');
+		}
+	}
 }
 
 LinkManager.prototype.refreshPointers = function(link_id){
@@ -41,8 +47,8 @@ LinkManager.prototype.refreshPointers = function(link_id){
 	}
 	const data = this.links[link_id];
 	for(let pointer of data.pointers){
-		utils.init_if_empty(this.pointers, pointer.grid_id, {}, link_id, data.path[pointer.pos]);
-		//log('considering pointer', link_id, data.str, pointer);
+		utils.init_if_empty(this.pointers, pointer.grid_id, {});
+		this.pointers[pointer.grid_id][link_id] = data.path[pointer.pos];
 	}
 }
 
@@ -90,6 +96,10 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 	}
 	
 	
+}
+
+LinkManager.prototype.onRemoveGrid = function(id){
+	delete this.workingLinks[id];
 }
 
 LinkManager.prototype.addWorkingLink = function(master_grid_id, master_cellname, slave_grid_id, slave_cellname, link_id, path){
@@ -192,19 +202,23 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 	this.refreshPointers(link_id);
 }
 
+const is_special = (path) => {
+	return path === '*' || path === '**' || path === '^^' || path === '^' || path === '..' || path === '';
+}
+
 LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 	const path = link.split('/');
-	if(path.length == 2 && path[0] === '..'){
-		/*const curr_grid = this.app.getGrid(grid_id);
-		const parent = curr_grid.parent;
-		if(parent === undefined) {
-			console.log('parent undefined! child', curr_grid);
+	if(path.length === 2){
+		if(!is_special(path[0])){
+			utils.init_if_empty(this.linksFromChildToParent, grid_id, {});
+			utils.init_if_empty(this.linksFromChildToParent[grid_id], path[0], []);
+			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
+			const slave_cn = slave_cellname || link;
+			this.app.eachChild(grid_id, (child) => {
+				this.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
+			})
 			return;
 		}
-		this.addWorkingLink(parent, path[1], curr_grid.id, link);
-		//console.log('Simple!', link, parent);
-		//ttimer.stop('ilc');
-		return;*/
 	}
 	if(path[0] == '**'){
 		if(path.length > 2){
