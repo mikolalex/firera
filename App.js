@@ -316,6 +316,9 @@ App.prototype.logChange = ([path, cell, val, level]) => {
 	const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
 	level = (level || 0) + 1;
 	const cellname = new Array(Number(level)).join('.') + cell + (new Array(Math.max(0, 29 - cell.length - level)).join(' '));
+	if(typeof val === 'string' && val.length > 255){
+		val = val.substr(0, 255);
+	}
 	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
 }
 App.prototype.endChange = function() {

@@ -66,6 +66,11 @@ _F.not = (a) => !a;
 _F.ids = function(){
 	return arguments;
 }
+_F.prop = function(name){
+	return (a) => {
+		a instanceof Object ? a[name] : null;
+	}
+}
 _F.ifelse = function(cb, onTrue = true, onFalse = false){
 	return (val) => {
 		return cb(val) ? onTrue : onFalse;

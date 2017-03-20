@@ -10,14 +10,48 @@ and open the template in the editor.
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-
+            * {
+                box-sizing: border-box;
+            }
+            .overlay {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                right: 0px;
+                bottom: 0px;
+                background-color: black;
+                opacity: 0.8;
+            }
+            
+            .popup {
+                width: 600px;
+                z-index: 2;
+                opacity: 0.99;
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                margin-left: -300px;
+                background-color: wheat;
+                border-radius: 10px;
+                padding: 20px;
+                padding-bottom: 40px;
+            }
+            
+            .close {
+                float: right;
+            }
+            
+            .uploaded-image {
+                max-width: 100%;
+                margin: 20px auto;
+            }
         </style>
     </head>
     <body>
         <div class="test-photo-upload">
             
         </div>
-        <script src="../firera.js"></script>
-        <script src="index.js"></script>
+        <script src="exif.js"></script>
+        <script src="br/index.js"></script>
     </body>
 </html>

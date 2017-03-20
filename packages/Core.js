@@ -136,7 +136,7 @@ module.exports = {
 				func = fs.shift();
 			}
 			return [(cellA, cellB) => {
-				if(cellA){
+				if(Firera.is_def(cellA)){
 					return func ? func(cellB) : cellB;
 				} else {
 					return Firera.skip;
@@ -234,7 +234,6 @@ module.exports = {
 		},
 		'&&': (fs) => {
 			return [(cellA, cellB) => {
-					console.log('&&', cellA, cellB);
 				return !Firera.is_falsy(cellA) && !Firera.is_falsy(cellB);
 			}].concat(fs);
 		},

@@ -36,13 +36,16 @@ const filter_attr_in_parents = function(parent_node, index, el){
 	}
 }
 const htmlPipeAspects = {
-	attr: (el, attr) => {
-		if(!el) return;
+	attr: (e, attr) => {
+		if(!e) return;
 		/*debugger;
 		for(var attrName in attr){
 			el.setAttribute(attrName, attr[attrName]);
 		}*/
-		return el.getAttribute(attr);
+		return e.target.getAttribute(attr);
+	},
+	files: (e) => {
+		return e.target.files;
 	}
 }
 
@@ -59,13 +62,13 @@ const make_resp1 = (cb, val) => {
 }
 
 const make_resp2 = function(pipe, cb, e){
-	var res = e.target;
+	var res;
 	for(const [asp, pars] of pipe){
 		if(!htmlPipeAspects[asp]){
 			console.error('Unknown pipe aspect:', asp);
 			continue;
 		}
-		res = htmlPipeAspects[asp](res, ...pars);
+		res = htmlPipeAspects[asp](e, ...pars);
 	}
 	return cb(res);
 }
@@ -120,7 +123,31 @@ const trigger_event = function(name, element, fakeTarget){
 	}
 }
 
-
+var get_handler = (event, selector, all_subtree, make_resp) => {
+	return function(cb, vals){
+		if(!vals) return;
+		const [$prev_el, $now_el] = vals;
+		if(!Firera.is_def($now_el)) return;
+		const prev_el = raw($prev_el);
+		const now_el = raw($now_el);
+		//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+		if(prev_el && prev_el !== Firera.undef){
+			Gator(prev_el).off(event);
+		}
+		if(!$now_el){
+			utils.warn('Assigning handlers to nothing', $now_el);
+		}
+		Gator(now_el).on(event, selector, function(e){
+			if(!all_subtree && !filter_attr_in_path(e, now_el)){
+				return;
+			}
+			make_resp(cb, e);
+			if(e.originalEvent && e.originalEvent.target){
+				trigger_event(event, document, e.originalEvent.target);
+			}
+		});
+	}
+}
 
 module.exports = {
 	eachGridMixin: {
@@ -154,7 +181,7 @@ module.exports = {
 				var all_subtree = false;
 				var func, params;
 				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css', 'setfocus']);
-				const getters = new Set(['getval', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
+				const getters = new Set(['getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -268,29 +295,10 @@ module.exports = {
 						}
 					break;
 					case 'dblclick':
-						func = function(cb, vals){
-							if(!vals) return;
-							const [$prev_el, $now_el] = vals;
-							if(!Firera.is_def($now_el)) return;
-							const prev_el = raw($prev_el);
-							const now_el = raw($now_el);
-							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if(prev_el && prev_el !== Firera.undef){
-								Gator(prev_el).off('dblclick');
-							}
-							if(!$now_el){
-								utils.warn('Assigning handlers to nothing', $now_el);
-							}
-							Gator(now_el).on('dblclick', selector, function(e){
-								if(!all_subtree && !filter_attr_in_path(e, now_el)){
-									return;
-								}
-								make_resp(cb, e);
-								if(e.originalEvent && e.originalEvent.target){
-									trigger_event('dblclick', document, e.originalEvent.target);
-								}
-							});
-						}
+						func = get_handler('dblclick', selector, all_subtree, make_resp);
+					break;
+					case 'change':
+						func = get_handler('change', selector, all_subtree, make_resp);
 					break;
 					case 'focus':
 						func = function(cb, vals){
