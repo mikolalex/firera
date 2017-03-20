@@ -8,7 +8,7 @@ const app = Firera({
 	popup: photoUploadPopupComponent,
 }, {
 	packages: ['htmlCells', 'neu_ozenfant'],
-	trackChanges: true,
+	//trackChanges: true,
 	trackChangesType: 'imm',
 })
 

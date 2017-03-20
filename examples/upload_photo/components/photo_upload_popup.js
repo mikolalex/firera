@@ -54,14 +54,17 @@ const popup_template = `
 				.(show: $where_invalid)
 					"This field should not be empty"
 			.(text-align: center, padding: 10px) 
-				submit(value: Submit, hasClass inProgress: $inProgress)				
+				submit(value: Submit, hasAttr disabled: $upload_photo.inProgress)				
 `;
 const base = {
 	$init: {
 		file_selected: false,
+		'$upload_photo.inProgress': false,
 	},
 	$template: popup_template,
-	close: ['.close|click'],
+	close: ['join', '.close|click', [(a) => {
+		return a && a.success ? true : Firera.skip; 
+	}, 'upload_photo.result']],
 	file_select: ['nested', (cb, files) => {
 		const file = files[0];
 		if(!file){
@@ -83,9 +86,19 @@ const base = {
 	date: ['async', get_exif_data, 'file_select.file'],
 	valid: ['&&', 'what.valid', 'where.valid', 'file_data'],
 	submit: ['[type=submit]|click'],
-	upload_photo: ['transistAll', (_1, _2, what, where) => {
-		console.log('-----------------> Uploading photo...', what, where);
-	}, '-valid', 'submit', '-file_data', '-what.value', '-where.value'],
+	upload_photo: ['nested', (cb, valid, _, file_data, what, where) => {
+		if(valid){
+			console.log('---> Uploading photo...');
+			var data = {what, where, file_data};
+			cb('inProgress', true);
+			setTimeout(() => {
+				console.log('<=== Photo uploaded ');
+				cb('inProgress', false);
+				cb('result', {success: true});
+			}, 1000);
+		}
+	}, ['inProgress', 'result'], '-valid', 'submit', '-file_data', '-what.value', '-where.value'],
+	'show_message': [_F.always('Photo successfully uploaded!'), 'upload_photo.result'],
 	f: [_F.l, 'show_what_error'],
 };
 export default base;
