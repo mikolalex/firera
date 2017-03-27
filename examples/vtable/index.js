@@ -64,6 +64,6 @@ const app = Firera({
 	}
 }, {
 	packages: ['htmlCells', 'neu_ozenfant'],
-	trackChanges: true,//['pos_y', 'top_offset'],
+	//trackChanges: true,//['pos_y', 'top_offset'],
 	trackChangesType: 'log',
 })

@@ -59,6 +59,9 @@ window.Firera = function(apps, config = {}){
 	app.startChange();
 	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
 	app.endChange();
+	app.startChange();
+	app.root.set('$start', true);
+	app.endChange();
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
 	if(app.grid_create_counter === 0){
@@ -143,5 +146,6 @@ Firera.loadPackage(che_package);
 Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, neu_ozenfant, che: che_package};
 Firera.func_test_export = {parse_pb: Parser.parse_pb, parse_fexpr: Parser.parse_fexpr};
 Firera._ = utils;
+var a = 10;
 
 module.exports = Firera;

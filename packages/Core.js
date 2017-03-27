@@ -136,7 +136,7 @@ module.exports = {
 				func = fs.shift();
 			}
 			return [(cellA, cellB) => {
-				if(Firera.is_def(cellA)){
+				if(Firera.is_def(cellA) && cellA){
 					return func ? func(cellB) : cellB;
 				} else {
 					return Firera.skip;
@@ -378,7 +378,8 @@ module.exports = {
 								}
 							}
 						}
-						return utils.arr_fix_keys(arr);
+						const fixed_array = utils.arr_fix_keys(arr);
+						return fixed_array;
 					}
 			}, subscribe_to, list_name + '$arr_data.changes']
 		},

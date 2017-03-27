@@ -25,20 +25,46 @@ _F.throttle = function(thunk, time){
 	var pending = false;
 	return function(){
 		if(!is_throttled){
-			//console.log('run!');
+			//console.log('run!', arguments);
 			thunk.apply(null, arguments);
 			is_throttled = true;
 			setTimeout(() => {
 				is_throttled = false;
 				if(pending){
-					//console.log('run pending!');
+					//console.log('run pending!', arguments);
 					thunk.apply(null, arguments);
 					pending = false;
 				}
 			}, time);
 		} else {
-			//console.log('skip!');
+			//console.log('skip!', arguments);
 			pending = true;
+		}
+	}
+}
+_F.closureThrottle = function(thunk, time){
+	return function(){
+		var is_throttled = false;
+		var pending = false;
+		var args;
+		return function(){
+			args = arguments;
+			if(!is_throttled){
+				//console.log('run!', arguments);
+				thunk.apply(null, args);
+				is_throttled = true;
+				setTimeout(() => {
+					is_throttled = false;
+					if(pending){
+						//console.log('run pending!', args);
+						thunk.apply(null, args);
+						pending = false;
+					}
+				}, time);
+			} else {
+				//console.log('skip!', args);
+				pending = true;
+			}
 		}
 	}
 }
@@ -333,5 +359,12 @@ _F.kcopy = function(from, to){
 }
 _F.last = function(arr){
 	return arr[arr.length - 1];
+}
+_F.logger = function(func, msg){
+	return function() {
+		const res = func.apply(this, arguments);
+		console.log(':::', msg, arguments, res);
+		return res;
+	}
 }
 module.exports = _F;

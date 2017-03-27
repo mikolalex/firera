@@ -5,7 +5,7 @@ const app_template = `
 	h1
 		"Todo MVC"
 	.
-		text(name: new-todo, placeholder: What needs to be done?, value: $clear_add_todo)
+		text(name: new-todo, placeholder: What needs to be done?, val: $clear_add_todo)
 	.
 		a.make-completed(hasClass inactive: $all_completed)
 			"Mark all as completed"
@@ -47,13 +47,16 @@ const init_data = (localStorage.getItem('todos') ? JSON.parse(localStorage.getIt
 const root_component = {
 	$el: document.querySelector('#todo-app'),
 	$template: app_template,
+	$init: {
+		incomplete: 0,
+	},
 	'add_todo': [(text) => {
 		return text.length ? {text, completed: false} : Firera.skip;
 	}, 'input[name="new-todo"]|enterText'],
 	remove_todo: [_F.ind(0), '**/remove_todo'],
 	'~make_completed': ['.make-completed|click'],
 	'all_completed': [_F.eq(0), 'incomplete'],
-	'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
+	'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete', '$start'],
 	arr_todos: ['arrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
@@ -67,9 +70,9 @@ const root_component = {
 	'~clear_completed': ['.clear-completed|click'],
 	incomplete: ['count', 'todos/completed', _F.not],
 	data: ['asArray', 'todos', ['completed', 'text']],
-	$toLocalStorage: [_F.throttle((data) => {
-            localStorage.setItem('todos', JSON.stringify(data));
-        }, 100), 'data'],
+	$toLocalStorage: ['closure', _F.closureThrottle((data) => {
+		localStorage.setItem('todos', JSON.stringify(data));
+	}, 100), 'data'],
 	$child_todos: ['list', {
 		type: 'todo',
 		deltas: '../arr_todos',
