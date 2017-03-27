@@ -299,7 +299,28 @@ _F.error = (str) => {
 		console.error(str);
 	}
 }
-
+// toString'able version of native bind
+_F.toStringable = function(func){
+	return func.toString() !== 'function () { [native code] }';
+}
+/* to finish
+_F.bind = function(func, ...args){
+	if(!_F.toStringable(func)){
+		throw new Error('Cannot bind native code function');
+	}
+	const f = func.toString();
+	const fargs = f.match(/\(([^\(]*)\)/)[1].split(',').each((a) => a.trim());
+	const fixed_args = [];
+	for(let i in fargs){
+		if(args[i] !== undefined){
+			fixed_args.push('var ' + fargs[i] + ' = ')
+		}
+	}
+	console.log('Fargs', fargs);
+	
+	return new Function();
+}
+*/
 _F.copy = function(from, to){
 	for(var i in from){
 		to.push(from[i]);

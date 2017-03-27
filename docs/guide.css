@@ -52,7 +52,7 @@ body {
 	padding-left: 40px;
 }
 
-#toc {
+.toc {
     -webkit-column-count: 2;
     -moz-column-count: 2;
     column-count: 2;
@@ -62,7 +62,7 @@ body {
     text-align: left;
 }
 
-#toc > * {
+.toc > * {
 	-webkit-column-break-inside: avoid;
 	column-break-inside: avoid;
 }

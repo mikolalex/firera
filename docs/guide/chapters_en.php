@@ -2157,6 +2157,57 @@ const app = Firera({
 				
 			</div>
 		</div>
+<?php } if(chapter('Further reading', 'reflection', 'Reflection')){ ?>
+        <div>
+            <h2>
+                Reflection
+            </h2>
+            <h3>
+                $start and $remove
+            </h3>
+            <div>
+		Sometimes we need to do something only once - e.g., when a grid is inited.
+                Most of component-based frameworks have some kind of callbacks we assign on creating(or removing) a component.
+                In Firera we have event streams, so, here come the "$start" and "$remove" streams(cells).
+                Both of them are fired once: $start when the grid is loaded, and $remove when it's removed.
+            </div>
+            <h3>
+                * event stream
+            </h3>
+            <div>
+                There is an event stream which is a joint of all streams in a grid. It's a "*" stream.
+                It will fire change on any cell change in a grid.
+<code>
+    const app = Firera({
+        __root: {
+            a: 10,
+            b: 20,
+            c: [(n, m) => n*m, 'a', 'b'],
+            foo: [([cell, val]) => {
+                console.log(cell, 'changed to', val);
+                return 42;
+            }, '*']
+        }
+    })
+
+    app.set('b', 7);
+    // 'b' changed to 7
+    // 'c' changed to 70
+
+    app.set('a', 'ololo');
+    // 'a' changed to 'ololo'
+    // 'c' changed to NaN
+</code>
+                So '*' gathers changes from all other cells. The only exception are cells that are dependent on '*'(because it may cause an infinite loop).
+                
+                <div class="nb">
+                    You should not use this for debug purpose, there better tools for this(see "trackChanges" property of grid config)
+                </div>
+            </div>
+            <div>
+                This can be used when you need to reflect the structure of your grid to some other representation, e.g. render an HTML template based on your grid cells' values.
+            </div>
+	</div>
 <?php }/*if(chapter('Writing TodoMVC in details', '', '---')){ ?>
         <div>
             <h2>

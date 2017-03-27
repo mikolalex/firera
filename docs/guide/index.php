@@ -35,6 +35,7 @@ and open the template in the editor.
 				<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
 				<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 				<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+                                <script src="/bower_components/jsdiff/diff.min.js">
 				<script src="../firera.js"></script>
 				<style>
 					#content > * {
@@ -139,7 +140,7 @@ and open the template in the editor.
                                         <h2>
                                             Table of contents
                                         </h2>
-                                        <ul id="toc">
+                                        <ul class="toc">
                                         <?php
                                         $prev = false;
                                         $real_prev = false;
@@ -178,6 +179,9 @@ and open the template in the editor.
                                                 </ul>
                                             </li>
                                                 <?
+                                                if($url === 'final_app'){
+                                                    echo'</ul><ul class="toc">';
+                                                }
                                         }
                                         ?>
                                         </ul>

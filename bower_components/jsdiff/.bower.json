@@ -1,0 +1,20 @@
+{
+  "name": "jsdiff",
+  "version": "3.2.0",
+  "main": [
+    "diff.js"
+  ],
+  "dependencies": {},
+  "ignore": [],
+  "homepage": "https://github.com/components/jsdiff",
+  "_release": "3.2.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v3.2.0",
+    "commit": "0977164c6c988f60f60f14ac80ca03f833724e28"
+  },
+  "_source": "https://github.com/components/jsdiff.git",
+  "_target": "^3.2.0",
+  "_originalSource": "jsdiff",
+  "_direct": true
+}
