@@ -2,22 +2,24 @@
 				<div>
 				<h2 id="getting-started">Getting started: declarative FRP</h2>
 				<div>Let's start with a simple example:</div>
-<code>
-const base = {
-	a: 10,
-	b: 20,
-	c: [(n, m) => n + m, 'a', 'b']
-}
-// Create a Firera app instance
-const app = Firera({
-	__root: base
-})
-app.get('c'); // 30
+                                <?php
+                                regshow('1', "   
+    const base = {
+            a: 10,
+            b: 20,
+            c: [(n, m) => n + m, 'a', 'b']
+    }
+    // Create a Firera app instance
+    const app = Firera({
+            __root: base
+    })
+    app.get('c'); // 30
 
-// Here comes a FRP magic
-app.set('b', 32);
-app.get('c'); // 42
-</code>
+    // Here comes a FRP magic
+    app.set('b', 32);
+    app.get('c'); // 42
+");
+                                ?>
 	<div>
 		This is a simple example for introducing functional reactive programming principles.
 		Here 'a' and 'b' are <i>observable</i> values, and 'c' is a <i>computable</i> value.
@@ -83,20 +85,24 @@ app.get('c'); // 42
 		</ul>
 		<div>
 			One computable cell can depend on other computable cell also.
-<code>
-const base = {
-	a: 10,
-	b: 20,
-	c: [(n, m) => n + m, 'a', 'b'],
-<span class="add">	exp: 2,</span>
-<span class="add">	d: [Math.pow, 'c', 'exp']</span>
-}
-// Create a Firera app instance
-const app = Firera({
-	__root: base
-})
-app.get('d'); // 900
-</code>
+<? regshow('2', "   
+    const base = {
+            a: 10,
+            b: 20,
+            c: [(n, m) => n + m, 'a', 'b'],
+            exp: 2,
+            d: [Math.pow, 'c', 'exp']
+    }
+    // Create a Firera app instance
+    const app = Firera({
+            __root: base
+    })
+    app.get('c'); // 30
+
+    // Here comes a FRP magic
+    app.set('b', 32);
+    app.get('c'); // 42
+", 1); ?>
 		Here "d" depends both on "free" and "computable" cells("exp" and "c" respectively).
 		If you change the value of "a", Firera will compute the other cells in following order: c, d.
 		
