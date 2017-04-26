@@ -266,7 +266,7 @@ describe('Firera tests', function () {
     it('Testing basic html functionality: visibility', function () {
         var app = Firera({
             __root: {
-                $el: $(".test-html"),
+                $el: document.querySelector(".test-html"),
                 'someval': [id, 'input|getval'],
                 '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
             },

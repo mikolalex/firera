@@ -16,7 +16,7 @@ function chapter($rozdil, $name, $caption) {
 $codes = array();
 $code_ids = 0;
 
-function regshow($name, $code, $diffname) {
+function regshow($name, $code, $diffname = null) {
     global $code_ids;
     global $codes;
     echo'<code id="codepiece' . ++$code_ids . '"></code>';
@@ -122,6 +122,42 @@ and open the template in the editor.
                 .rmvd {
                     background-color: #f99686;
                 }
+                
+                .hljs-number.hljs-number {
+                    color: #03a7e8;
+                }
+
+                
+/* STYLE 2 
+
+code, code.hljs {
+    padding: 0px 0px 20px 20px;
+    display: block;
+    background-color: #6d615d;
+    font-family: monospace;
+    white-space: pre;
+    margin: 1em 0;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 19px;
+    border-radius: 10px;
+    color: wheat;
+}
+.hljs-number.hljs-number.hljs-number {
+    color: #84dcff;
+}
+.hljs-string.hljs-string.hljs-string {
+    color: #f57575;
+}
+.addd {
+    background-color: #1d4c00;
+}
+.rmvd {
+    background-color: #841200;
+}
+.hljs-built_in.hljs-built_in {
+    color: #c1ff84;
+}*/
             </style>
         </head>
         <body>
@@ -249,7 +285,6 @@ and open the template in the editor.
     })
 
     var codepieces = <?php echo json_encode($codes); ?>;
-    var d = new diff;
     for(var i in codepieces){
         var piece = codepieces[i];
         var code = piece[0];

@@ -103,6 +103,15 @@ module.exports = {
 				}]
 			}
 		},
+		asMap: (fs) => {
+			return ['closureFunnel', () => {
+				var map = {};
+				return (cell, val) => {
+					map[cell] = val;
+					return map;
+				}
+			}, ...fs];
+		},
 		toggle: (fs) => {
 			const [cell, def] = fs;
 			return ['closure', (init_val) => {
@@ -231,6 +240,31 @@ module.exports = {
 					return Firera.skip;
 				}
 			}].concat(fs);
+		},
+		'changed': ([cellname]) => {
+			return ['closure', () => {
+				var val;
+				return (vl) => {
+					if(vl !== val){
+						val = vl;
+						return true;
+					} else {
+						return Firera.skip;
+					}
+				}
+			}, cellname]
+		},
+		nextTick: (fs) => {
+			var func = a => a;
+			if(fs[0] instanceof Function){
+				func = fs[0];
+				fs = fs.slice(1);
+			}
+			return ['async', (cb, val) => {
+				setTimeout(() => {
+					cb(func(val));
+				}, 1);
+			}, ...fs];
 		},
 		'&&': (fs) => {
 			return [(cellA, cellB) => {

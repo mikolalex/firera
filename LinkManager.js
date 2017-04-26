@@ -185,7 +185,7 @@ LinkManager.prototype.actualizeLink = function(link_id, first_child_id){
 				return;
 			}
 		}
-		if(next_grid_id !== undefined){
+		if(next_grid_id !== undefined && next_grid_id !== null){
 			move_further(next_grid_id, i+1, start_pos, path);
 		}
 	}

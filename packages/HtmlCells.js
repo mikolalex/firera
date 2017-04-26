@@ -19,6 +19,9 @@ const filter_attr_in_path = (e, delegateEl) => {
 			if(nd === delegateEl){
 				break;
 			}
+			if(nd === document){
+				break;
+			}
 			if(nd.getAttribute('data-fr-grid-root')){
 				return false;
 			}
@@ -180,8 +183,8 @@ module.exports = {
 				const selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css', 'setfocus']);
-				const getters = new Set(['getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
+				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
+				const getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -189,6 +192,25 @@ module.exports = {
 				}
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
+				
+				if(aspect === 'mousepressed'){
+					var b = 'bbb';
+					/*
+					 *  @TODO!
+					 Parser.parse_fexpr([func, [(a) => {
+						if(!Firera.is_def(a)) return false;
+						if(!selector) return a;
+						if(selector === 'other') return a;
+						a = raw(a);
+						if(!a){
+							return a;
+						}
+						return a.querySelectorAll(selector);
+						/*var node = a.find(selector) @todo
+								.filter(filter_attr_in_parents.bind(null, a));
+					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);*/
+				}
+				
 				if(!setters.has(aspect) && !getters.has(aspect)){
 					utils.error('Aspect "' + aspect + '" not found!');
 					return;
@@ -209,7 +231,7 @@ module.exports = {
 								const type = el.getAttribute('type');
 								var val;
 								if(type == 'checkbox'){
-									val = el.hasAttribute('checked');
+									val = el.checked;
 								} else {
 									val = el.value;
 								}
@@ -280,13 +302,60 @@ module.exports = {
 								if(!$now_el){
 									utils.warn('Assigning handlers to nothing', $now_el);
 								}
-								Gator(now_el).on('click', selector, function(e){
+								if(!selector){
+									now_el.addEventListener('click', function(e){
+										make_resp(cb, e);
+										if(e.originalEvent && e.originalEvent.target){
+											trigger_event('click', document, e.originalEvent.target);
+										}
+										e.preventDefault();
+									});
+								} else {
+									Gator(now_el).on('click', selector, function(e){
+										if(!all_subtree && !filter_attr_in_path(e, now_el)){
+											return;
+										}
+										make_resp(cb, e);
+										if(e.originalEvent && e.originalEvent.target){
+											trigger_event('click', document, e.originalEvent.target);
+										}
+										e.preventDefault();
+										//return false;
+									});
+								}
+							}
+						}
+					break;
+					case 'keyup':
+						func = function(cb, vals){
+							if(!vals) return;
+							const [$prev_el, $now_el] = vals;
+							if(!Firera.is_def($now_el)) return;
+							const prev_el = raw($prev_el);
+							const now_el = raw($now_el);
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+							if(prev_el && prev_el !== Firera.undef){
+								Gator(prev_el).off('keyup');
+							}
+							if(!$now_el){
+								utils.warn('Assigning handlers to nothing', $now_el);
+							}
+							if(!selector){
+								now_el.addEventListener('keyup', function(e){
+									make_resp(cb, e.srcElement.value);
+									if(e.originalEvent && e.originalEvent.target){
+										trigger_event('click', document, e.originalEvent.target);
+									}
+									e.preventDefault();
+								});
+							} else {
+								Gator(now_el).on('keyup', selector, function(e){
 									if(!all_subtree && !filter_attr_in_path(e, now_el)){
 										return;
 									}
-									make_resp(cb, e);
+									make_resp(cb, e.srcElement.value);
 									if(e.originalEvent && e.originalEvent.target){
-										trigger_event('click', document, e.originalEvent.target);
+										trigger_event('keyup', document, e.originalEvent.target);
 									}
 									e.preventDefault();
 									//return false;
@@ -310,6 +379,24 @@ module.exports = {
 							}
 							const el = raw($now_el);
 							Gator(el).on('focus', selector, (e) => {
+								if(!all_subtree && !filter_attr_in_path(e, el)){
+									return;
+								}
+								make_resp(cb, e);
+								return false;
+							});
+						}
+					break;
+					case 'blur':
+						func = function(cb, vals){
+							if(!vals) return;
+							const [$prev_el, $now_el] = vals;
+							if(!Firera.is_def($now_el)) return;
+							if($prev_el){
+								// @todo
+							}
+							const el = raw($now_el);
+							Gator(el).on('blur', selector, (e) => {
 								if(!all_subtree && !filter_attr_in_path(e, el)){
 									return;
 								}
@@ -352,18 +439,27 @@ module.exports = {
 								//$prev_el.off('keyup', selector);
 							}
 							now_el = raw(now_el);
-							Gator(now_el).on('keyup', selector, function(e){
+							const btn_map = {
+								'13': 'Enter',
+								'27': 'Esc',
+								'38': 'Up',
+								'40': 'Down',
+								'37': 'Left',
+								'39': 'Right',
+							}
+							var onkeyup = function(e){
 								if(!all_subtree && !filter_attr_in_path(e, now_el)){
 									return;
-								}
-								const btn_map = {
-									'13': 'Enter',
-									'27': 'Esc',
 								}
 								if(params.indexOf(btn_map[e.keyCode]) !== -1){
 									make_resp(cb, e);
 								}
-							});
+							}
+							if(selector){
+								Gator(now_el).on('keyup', selector, onkeyup);
+							} else {
+								now_el.addEventListener('keyup', onkeyup);
+							}
 						}
 					break;
 					case 'hasClass':
@@ -375,6 +471,21 @@ module.exports = {
 							$el = raw($el);
 							const [classname] = params;
 							toggle_class($el, classname, val);
+						}
+					break;
+					case 'hasAttr':
+						func = function($el, val){
+							if(!Firera.is_def($el)) return;
+							if(!Firera.is_def(val)){
+								val = false;
+							}
+							$el = raw($el);
+							const [attrname] = params;
+							if(val){
+								$el.setAttribute(attrname, true);
+							} else {
+								$el.removeAttribute(attrname);
+							}
 						}
 					break;
 					case 'enterText':
@@ -427,6 +538,24 @@ module.exports = {
 							}
 						}
 					break;
+					case 'html':
+						func = function(el, val){
+							el = raw(el);
+							if(el instanceof NodeList){
+								for(let elem of el){
+									elem.innerHTML = val;
+								}
+							} else {
+								el.innerHTML = val;
+							}
+						}
+					break;
+					case 'setfocus':
+						func = function(el, val){
+							el = raw(el);
+							el.focus();
+						}
+					break;
 					case 'display':
 						func = function(el, val){
 							if(!Firera.is_def(el) || val === undefined){
@@ -474,6 +603,31 @@ module.exports = {
 						var el;
 						return (cb, val) => {
 							func(cb, [el, val]);
+							switch(aspect){
+								case 'getval':
+									const element = val.querySelector(selector);
+									if(element){
+										var type = element.getAttribute('type');
+										var vl;
+										if(type == 'checkbox'){
+											vl = element.checked;
+										} else if(type == 'radio') {
+											const elements = val.querySelectorAll(selector);
+											for(let el of elements){
+												if(el.checked){
+													vl = el.value;
+													break;
+												}
+											}
+										} else {
+											vl = element.value;
+										}
+										make_resp(cb, vl);
+									}
+								break;
+								default:
+								break;
+							}
 							el = val;
 						}
 					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);

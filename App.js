@@ -322,6 +322,7 @@ App.prototype.logChange = ([path, cell, val, level]) => {
 	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
 }
 App.prototype.endChange = function() {
+	if(!this.changeObj) return;
 	if(!this.config.trackChanges) return;
 	if(!this.changeObj){
 		utils.warn('change doesnt exist!');
@@ -331,7 +332,7 @@ App.prototype.endChange = function() {
 	}
 	if(this.config.trackChanges){
 		if(this.config.trackChangesType === 'log'){
-			console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+			console.log('***************************************************');
 			for(let change of this.changeObj){
 				this.logChange(change);
 			}

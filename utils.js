@@ -103,6 +103,8 @@ _F.ifelse = function(cb, onTrue = true, onFalse = false){
 	}
 }
 
+_F.debugger = () => {debugger;}
+
 _F.toLocalStorage = (key) => {
 	var func = localStorage.setItem.bind(localStorage, key);
 	return (val) => {
