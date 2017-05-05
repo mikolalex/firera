@@ -1,4 +1,5 @@
 import utils from './utils';
+import Parser from './Parser';
 const LinkManager = function(app){
 	this.app = app;
 	this.links = [];
@@ -207,6 +208,7 @@ const is_special = (path) => {
 }
 
 LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
+	link = Parser.get_real_cell_name(link);
 	const path = link.split('/');
 	if(path.length === 2){
 		if(!is_special(path[0])){

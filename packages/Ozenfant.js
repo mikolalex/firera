@@ -113,11 +113,26 @@ const set_bindings_rec = (app, struct, el, is_root, skip) => {
 			grid.set('$real_el', el);
 			el.setAttribute('data-fr-grid-root', 1);
 		}
-		for(let key in el.children){
+		for(let ch in struct.children){
+			var child_el;
+			var child_skip = !skip;
+			if(!el){
+				return;
+			}
+			if(Number(ch) == ch){
+				// int
+				child_el = el.children[ch];
+			} else {
+				child_el = document.querySelector('[data-fr=' + ch + ']', el);
+				child_skip = false;
+			}
+			set_bindings_rec(app, struct.children[ch], child_el, true, child_skip);
+		}
+		/*for(let key in el.children){
 			if(el.children.hasOwnProperty(key) && struct.children[key]){
 				set_bindings_rec(app, struct.children[key], el.children[key], true, !skip);
 			}
-		}
+		}*/
 	}
 }
 const render = function(app, start, node){
@@ -143,6 +158,7 @@ const get_binding = (template, name) => {
 		return template.bindings[name];
 	} else {
 		var bnd = template.$el.querySelector('[data-fr=' + name + ']');
+		// @refactor! too much searches
 		return bnd;
 	}
 }

@@ -74,6 +74,18 @@ module.exports = {
 					}
 				}, cellname], pool, '^' + cellname, packages);
 			}
+		},
+		popstate: {
+			// ^foo -> previous values of 'foo'
+			name: 'popstate',
+			regexp: new RegExp('^history\.popstate$', 'i'),
+			func(matches, pool, context, packages) {
+				if(context == 'setter') return;
+				const cellname = matches[0];
+				Parser.parse_fexpr(['async', function(cb){
+					window.onpopstate = cb;
+				}, '$start'], pool, cellname, packages);
+			}
 		}
 	},
 	macros: {
@@ -139,7 +151,33 @@ module.exports = {
 				}
 			}, ...args];
 		},
+		skipFirst: (fs) => {
+			return ['closure', () => {
+				var already = false;
+				return (val) => {
+					if(!already){
+						already = true;
+						return Firera.skip;
+					} else {
+						return val;
+					}
+				}
+			}, ...fs];
+		},
 		transist: (fs) => {
+			var func;
+			if(fs[0] instanceof Function){
+				func = fs.shift();
+			}
+			return [(cellA, cellB) => {
+				if(Firera.is_def(cellA) && cellA){
+					return func ? func(cellB) : cellB;
+				} else {
+					return Firera.skip;
+				}
+			}].concat(fs);
+		},
+		relay: (fs) => {
 			var func;
 			if(fs[0] instanceof Function){
 				func = fs.shift();
@@ -224,6 +262,24 @@ module.exports = {
 			return st;
 		},
 		transistAll: (fs) => {
+			//const [func, ...rest] = fs;
+			var func;
+			if(fs[0] instanceof Function){
+				func = fs.shift();
+			}
+			return [(cellA, ...restArgs) => {
+				if(cellA){
+					if(func){
+						return func.apply(null, restArgs);
+					} else {
+						return restArgs;
+					}
+				} else {
+					return Firera.skip;
+				}
+			}].concat(fs);
+		},
+		relayAll: (fs) => {
 			//const [func, ...rest] = fs;
 			var func;
 			if(fs[0] instanceof Function){

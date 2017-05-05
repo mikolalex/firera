@@ -77,6 +77,7 @@ const make_resp2 = function(pipe, cb, e){
 }
 
 const toggle_class = (el, clas, val) => {
+	if(!el) return;
 	const cls_string = el.getAttribute('class') || '';
 	const cls = cls_string.split(' ');
 	const pos = cls.indexOf(clas);
@@ -183,8 +184,8 @@ module.exports = {
 				const selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				const setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
-				const getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
+				const setters = new Set(['visibility', 'css', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
+				const getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -226,7 +227,7 @@ module.exports = {
 				
 				switch(aspect){
 					case 'getval':
-						func = function(cb, vals){
+						func = function(cb, vals, old_val){
 							const onch = (el) => {
 								const type = el.getAttribute('type');
 								var val;
@@ -236,7 +237,10 @@ module.exports = {
 									val = el.value;
 								}
 								//console.log('CHange', el, val, selector);
-								make_resp(cb, val);
+								if(val !== old_val){
+									make_resp(cb, val);
+								}
+								old_val = val;
 							}
 							const [$prev_el, $now_el] = vals;
 							const prev_el = raw($prev_el);
@@ -259,7 +263,10 @@ module.exports = {
 								} else {
 									val = elem.value;
 								}
-								make_resp(cb, val);
+								if(val !== old_val){
+									make_resp(cb, val);
+								}
+								old_val = val;
 							};
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
 							if(Firera.is_def($prev_el)){
@@ -282,7 +289,7 @@ module.exports = {
 								if(!Firera.is_def($now_el)) return;
 								document.addEventListener('click', function(e){
 									const ot = e.srcElement || e.originalTarget;
-									const is_other = $now_el.contains(ot);
+									const is_other = !($now_el.contains(ot));
 									if(is_other){
 										make_resp(cb, true);
 									}
@@ -480,6 +487,7 @@ module.exports = {
 								val = false;
 							}
 							$el = raw($el);
+							if(!$el) return;
 							const [attrname] = params;
 							if(val){
 								$el.setAttribute(attrname, true);
@@ -510,7 +518,7 @@ module.exports = {
 					break;
 					case 'visibility':
 						func = function(el, val){
-							if(!Firera.is_def(el)){
+							if(Firera.is_falsy(el)){
 								return;
 							}
 							if(val === undefined){
@@ -541,6 +549,9 @@ module.exports = {
 					case 'html':
 						func = function(el, val){
 							el = raw(el);
+							if(Firera.is_falsy(el)){
+								return;
+							}
 							if(el instanceof NodeList){
 								for(let elem of el){
 									elem.innerHTML = val;
@@ -558,12 +569,13 @@ module.exports = {
 					break;
 					case 'display':
 						func = function(el, val){
-							if(!Firera.is_def(el) || val === undefined){
+							if(Firera.is_falsy(el) || (val === undefined)){
 								return;
 							}
-							
-							
 							el = raw(el);
+							if(Firera.is_falsy(el)){
+								return;
+							}
 							if(val){
 								el.style.display = 'block';
 							} else {
@@ -576,12 +588,24 @@ module.exports = {
 							if(!Firera.is_def(el) || !Firera.is_def(val)){
 								return;
 							}
-							el = raw(el);
-							el.value = val;
+							for(let element of el){
+								const type = element.getAttribute('type');
+								switch(type){
+									case 'radio':
+										if(element.value == val){
+											element.checked = true;
+										} else {
+											element.checked = false;
+										}
+									break;
+									default: 
+										element.value = val;
+									break;
+								}
+							}
 						}
 					break;
 					default:
-						debugger;
 						throw new Error('unknown HTML aspect: =' + aspect + '=');
 					break;
 				}
@@ -602,7 +626,7 @@ module.exports = {
 					Parser.parse_fexpr(['asyncClosure', () => {
 						var el;
 						return (cb, val) => {
-							func(cb, [el, val]);
+							var old_val;
 							switch(aspect){
 								case 'getval':
 									const element = val.querySelector(selector);
@@ -622,12 +646,14 @@ module.exports = {
 										} else {
 											vl = element.value;
 										}
+										old_val = vl;
 										make_resp(cb, vl);
 									}
 								break;
 								default:
 								break;
 							}
+							func(cb, [el, val], old_val);
 							el = val;
 						}
 					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);

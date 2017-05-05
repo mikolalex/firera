@@ -94,7 +94,7 @@ _F.ids = function(){
 }
 _F.prop = function(name){
 	return (a) => {
-		a instanceof Object ? a[name] : null;
+		return a instanceof Object ? a[name] : null;
 	}
 }
 _F.ifelse = function(cb, onTrue = true, onFalse = false){

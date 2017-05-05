@@ -522,6 +522,7 @@ Grid.prototype.updateTree = function(cells, no_args = false, compute = false){
 				if(
 					!this.cell_has_type(cell, 'free')
 					&& (cells[cell] === undefined || no_args)
+					&& this.cell_types[cell]
 					&& this.cell_types[cell].func
 				){
 					const res = this.compute(cell, parents[cell]);
