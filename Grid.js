@@ -751,7 +751,7 @@ Grid.prototype.set_cell_value = function(cell, val){
 		if((this.app.config.trackChanges instanceof Array)
 			&& 
 			(this.app.config.trackChanges.indexOf(cell) === -1)){
-			
+		
 		} else {
 			const change = [this.path, cell, val, this.levels[cell]];
 			if(this.app.config.trackChangesType === 'log'){

@@ -151,12 +151,13 @@ module.exports = {
 				}
 			}, ...args];
 		},
-		skipFirst: (fs) => {
+		skipN: (fs) => {
+			var n = fs[0];
+			fs = fs.slice(1);
 			return ['closure', () => {
-				var already = false;
+				var c = 0;
 				return (val) => {
-					if(!already){
-						already = true;
+					if(++c <= n){
 						return Firera.skip;
 					} else {
 						return val;
@@ -588,7 +589,15 @@ module.exports = {
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes']
 		},
 		join(funcstring) {
-			return ['funnel', utils.second].concat(funcstring);
+			var f = utils.second;
+			if(funcstring[0] instanceof Function){
+				var new_f = funcstring[0];
+				f = (a, b) => {
+					return new_f(b);
+				}
+				funcstring = funcstring.slice(1);
+			}
+			return ['funnel', f].concat(funcstring);
 		},
 		
 		list(funcstring) {
