@@ -87,25 +87,24 @@
 			</ul>
 			<div>
 			A computable cell can depend on other computable cells too:
-			<? regshow('2', "   
+<code>
     const base = {
-            a: 10,
-            b: 20,
-            c: [(n, m) => n + m, 'a', 'b'],
-            exp: 2,
-            d: [Math.pow, 'c', 'exp']
+        a: 10,
+        b: 20,
+        exp: 2,
+        c: [(n, m) => n + m, 'a', 'b'],
+        d: [Math.pow, 'c', 'exp']
     }
     // Create a Firera app instance
     const app = Firera({
-            __root: base
+        __root: base
     })
     app.get('c'); // 30
 
     // Here comes an FRP magic
     app.set('b', 32);
     app.get('c'); // 42
-", 1); 
-			?>
+</code>
 			Here <span class="mn">d</span> depends both on free and computable cells(<span class="mn">exp</span> and <span class="mn">c</span> respectively).
 			If you change the value of <span class="mn">a</span>, Firera will compute the value for <span class="mn">c</span>, and subsequently for <span class="mn">d</span>, as the value of <span class="mn">c</span> has changed.
 			</div>
@@ -120,7 +119,7 @@
 			<div>
 				The grid could be as big as you need. E.g., something like this:
 				<img src="img/grid_2.png" alt=""/>
-				The idea of Firera is to allow you to build the whole app as a big grid of computable cells.
+				The idea of Firera is to allow you to build the whole app logics as a big grid of computable cells.
 			</div>
 		</div>
 		<!--<ul class="pq">
@@ -170,7 +169,7 @@ document.querySelector('input[name=login]')
 			This will work as expected, but	it's a verbose imperative approach. We don't like to assign event handlers manually.
 		</div><div>
 			Instead, we can include special package, called HtmlCells, to work with DOM. 
-			It allows us to create event streams of DOM events in a declarative manner.
+			It allows us to create data streams of DOM events in a declarative manner.
 			HtmlCells is one of default Firera packages that are included in Firera distribution, so we can just 
 			add its name to <span class="mn">packages</span> parameter inside our app's config.
 		</div>
@@ -191,7 +190,7 @@ var app = Firera({
 </code>
 		<div>
 			For HtmlCells to work we need to define a cell named <span class="mn">$real_el</span> which should contain the root DOM node of the app.
-			Then we just mention the name of cell <span class="mn">'input[name=login]|getval</span> — and that's all!
+			Then we just mention the name of cell <span class="mn">'input[name=login]|getval</span> and that's all!
 			Firera will automatically create handler for the input.
 			How it works step-by-step:
 			<ul>
@@ -203,9 +202,9 @@ var app = Firera({
 					in our simple base), looks like Firera needs to create an empty free cell, but...
 				</li>
 				<li>
-					HtmlCells parses each cell name using regexp: <span class="mn">&lt;selector&rt;|&lt;aspect&rt;</span>. 
+					HtmlCells parses each cell name using regexp: <span class="mn">&lt;selector&gt;|&lt;aspect&gt; </span>. 
 					<span class="mn">input[name=login]|getval</span> matches this expression.
-					<span class="mn">&lt;selector&rt;</span> is any valid CSS selector, and <span class="mn">&lt;aspect&rt;</span> designates the event 
+					<span class="mn">&lt;selector&gt;</span> is any valid CSS selector, and <span class="mn">&lt;aspect&gt;</span> designates what 
 					we want to listen to from this DOM node (you can find the full list of aspects on the HtmlCells package page). <!-- @Comment: непогано б це зробити лінком -->
 				</li>
 				<li>
@@ -246,7 +245,7 @@ var app = Firera({
 			Notice that if you write login value like this: <div class="subcode">login: 'input[name=login]|getval',</div> 
 			Firera will consider <span class="mn">login</span> as a static cell with a string value of <span class="mn">'input[name=login]|getval'</span>.
 			We need it to listen to the other cell instead, that's why we write its name in brackets. All the primitive, 
-			static values are written as is, and all the computable expressions are written in brackets.
+			static values are written as is(except for arrays), and all the computable expressions are written in brackets.
 		</div><div>
 			Of course, we could write the same bit of code a bit simpler:
 		</div>
@@ -278,9 +277,9 @@ var app = Firera({
 	<div>
 		<h2 id="total-frp">"Total FRP" concept</h2>
 		<div>
-			If you look closly at the previous example, you can see that every value that depend on event is also an event stream!
-			<span class="mn">input[name=login]|getval</span> is an original event stream of values of input node in the DOM tree. 
-			<span class="mn">login</span> field is also an event stream with the same values, and even <span class="mn">is_login_valid</span> is an event stream with Boolean values!
+			If you look closly at the previous example, you can see that every value that depend on data stream is also a data stream!
+			<span class="mn">input[name=login]|getval</span> is an original data stream of values of input node in the DOM tree. 
+			<span class="mn">login</span> field is also a data stream with the same values, and even <span class="mn">is_login_valid</span> is a data stream with Boolean values!
 		</div><div>This table shows how the values of these cells change as user enters something into input:</div><div>
 			<table class="tbl">
 			<tr>
@@ -297,17 +296,19 @@ var app = Firera({
 			</table>
 		</div>
 		<div>
-			This shows how one stream depends on other with formula.
-			This is a concept of "Total FRP", 
-			which means that all values in application should be event streams which depend on each other.
+                    This shows how one stream depends on other with formula.
+                    This is a concept of "Total FRP": whole application is a set of data streams which depend on each other. No classes, no methods...
 		</div>
+                <div>
+                    A lot of modern libraries and frameworks combine the concept of FRP with OOP approach, using classes, methods etc. With Firera, you can write
+                    robust and declarative code using only few powerful concepts: data streams and functions.
+                </div>
 	</div>
 <? } if(chapter('Firera basics', 'streams', 'Managing streams')){ ?>
 	<div>
 		<h2 id="managing-streams">Managing streams</h2>
 		<div>
-			Remember our previous example.
-			We still need to validate user's email (using RegExp).
+			Remember our previous example: we still need to validate user's email (using RegExp).
 			If the form is valid and user clicks a "Send" button, we should do something useful, like sending an AJAX request.
 		</div>
 <code>
@@ -467,9 +468,9 @@ app.set('a', 22); // same value
 			We can omit writing default cell type, but if we use funnel, we need to specify this explicitly.
 			When using funnel type, we get not only the value, but also the name of the cell that changed.
 			Only two arguments will be passed to the formula each time: a name and a value of changed cell.
-			<div class="nb">
+			<!--<div class="nb">
 				You can use any number of arguments when declaring a funnel type cell, but it uses only two.
-			</div>
+			</div>-->
 			This cell type allows to "join" several streams. <br />
 			Here's another example:
 <code>
@@ -535,7 +536,8 @@ app.set('a', 22);
 app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 </code>
 			<div>
-			When run for the first time, the formula function should return another function, which becomes an actual formula.
+                            When using closure type, you should provide a <i>thunk</i>, returning another function, which becomes an actual formula.
+			</div><div>
 			The main advantage here is that you can create and use some closure variables, while your code remains clean, because this 
 			variables could be accessed only from this particular function. 
 			This helps you to avoid using global variables and prevent falling into shared mutable state abyss.
@@ -616,6 +618,9 @@ const app = Firera({__root: {
 }})
 </code>
 				Async type allows us to use asynchronously executed functions in our grid with minimal additional efforts.
+                                <div class="nb">
+                                    dNote that when using async type, a value returned by "return" operator in formula will be ignored.
+                                </div>
 			</div>
 			<h3>
 				Nested
@@ -703,7 +708,7 @@ app.set('num', 4);
 		</div>
 		<div>
 			As you may remember, Firera hates proactive intrusion into app's workflow, so we could not manually change the value of computable cells.
-			By the same logic we couln't force the creation of a nested grid inside some formula or elsewhere.
+			By the same logic we couldn't force the creation of a nested grid inside some formula or elsewhere.
 			Instead, there is a simple convention: each value of the cell
 			with name starting with <span class="mn">$child_</span> will be considered a simple base for a nested grid:
 		</div>
@@ -819,7 +824,7 @@ console.log(app.get('weight', '/crane_2')); // 13
 'any_click_upper': ['^^/some_click'], // listen to all 'some_click' cells 
                                       // from the whole chain of parent grids
 </code>
-		There is one limitation to linking: there can be only one clash in the addresses. It means you could NOT write something like this:
+		There is one limitation to linking: there can be only one slash in the addresses. It means you could NOT write something like this:
 		<span class="mn">../../a</span>, <span class="mn">../foo/b</span> etc.
 	</div>
 <? } if(chapter('Grid hierarchy', 'lists', 'Lists')){ ?>
@@ -923,7 +928,7 @@ console.log(app.get('weight', '/crane_2')); // 13
 			"0" &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"1"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "2"<br>
 		</div>
 		It's similar to a JavaScript data structure: an array is a kind of an object, which along with array items could have other fields.
-		Here <span class="mn">/</span> (root grid) has an <span class="mn">array</span> called <span class="mn">cranes</span>, which has items <span class="mn">0</span>, <span class="mn">1</span> and <span class="mn">2</span>.
+		Here <span class="mn">/</span> (root grid) has an "<span class="mn">array</span>" called <span class="mn">cranes</span>, which has items <span class="mn">0</span>, <span class="mn">1</span> and <span class="mn">2</span>.
 		<div>
 			That's why we changed our links a bit: now we have <span class="mn">^^/mutiplier</span> instead of <span class="mn">../multiplier</span>, 
 			because the direct parent of <span class="mn">0</span>, <span class="mn">1</span> and other grids in the list will be a <span class="mn">/cranes</span> grid and not the root grid.
@@ -1099,7 +1104,7 @@ const app = Firera({
 		<div>
 			In some popular frameworks the following approach is used: you change the content of the array manually (i.e. push, pop etc.), 
 			and then the system computes the diff betwenn old and a new values, founds the changes and updates the DOM.
-			In Firera, we can't manually change the value of the array. We should instead describe it as an event stream, which depends on other streams (for adding new and deleting existing items).
+			In Firera, we can't manually change the value of the array. We should instead describe it as a data stream, which depends on other streams (for adding new and deleting existing items).
 			That's why we need our array to be a computable cell. This should work like this:
 <code>
 'arr_todos': ['closureFunnel', () => {
@@ -1134,7 +1139,7 @@ $child_todos: ['list', {
     datasource: ['../arr_todos'],
 }]
 </code>
-			<span class="mn">arr_todos</span> listens to <span class="mn">add_todo</span> and <span class="mn">remove_todo</span> event streams, creating new item using former and removing existing using latter.
+			<span class="mn">arr_todos</span> listens to <span class="mn">add_todo</span> and <span class="mn">remove_todo</span> data streams, creating new item using former and removing existing using latter.
 		</div>
 		<div>
 			However, cells <span class="mn">add_todo</span> and <span class="mn">remove_todo</span> are not defined so far. In this case, Firera will make a warning for listening to non-existing cell.
@@ -2172,14 +2177,14 @@ const app = Firera({
 		<div>
 			Sometimes we need to do something only once, e.g., when a grid is initialized.
             Most of component-based frameworks have some kind of callbacks we assign on creating or removing a component.
-            In Firera we have event streams, so here come the <span class="mn">$start</span> and <span class="mn">$remove</span> streams (cells).
+            In Firera we have data streams, so here come the <span class="mn">$start</span> and <span class="mn">$remove</span> streams (cells).
             Both of them are fired once: <span class="mn">$start</span> when the grid is loaded, and <span class="mn">$remove</span> when it's removed.
 		</div>
 		<h3>
-			* event stream
+			* data stream
 		</h3>
         <div>
-            There is an event stream which is a join of all the streams in a grid, called <span class="mn">*</span> stream.
+            There is a data stream which is a join of all the streams in a grid, called <span class="mn">*</span> stream.
             It will fire change event on any cell change in a grid.
 <code>
 const app = Firera({
@@ -2205,7 +2210,7 @@ app.set('a', 'ololo');
             So <span class="mn">*</span> gathers changes from all other cells. The only exception are cells that are dependent on <span class="mn">*</span>, because it may cause an infinite loop.
 			
             <div class="nb">
-                You should not use this event stream for debug purposes, there are better tools for this (see "trackChanges" property of grid config). <!-- @Comment: link here? -->
+                You should not use this data stream for debug purposes, there are better tools for this (see "trackChanges" property of grid config). <!-- @Comment: link here? -->
             </div>
         </div>
         <div>

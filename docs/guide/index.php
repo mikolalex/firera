@@ -223,13 +223,17 @@ code, code.hljs {
                                             }
                                             if ($url !== $chapter) {
                                                 ?><a href="./<? echo $url; ?>"><?
-                                                } else {
-                                                    $real_prev = $prev;
-                                                    $real_prev_name = $prev_name;
-                                                }
+                                            } else {
+                                                $real_prev = $prev;
+                                                $real_prev_name = $prev_name;
+                                                echo'<span class="active">';
+                                            }
                                                 ?>
                                             <? echo $name; ?>
-                                            <? if ($url !== $chapter) { ?></a><?
+                                            <? if ($url !== $chapter) { 
+                                                ?></a><?
+                                            } else {
+                                                echo'</span>';
                                             }
                                             $prev = $url;
                                             $prev_name = $name;
@@ -242,11 +246,12 @@ code, code.hljs {
                             </li>
                             <?
                             if ($url === 'final_app') {
-                                echo'</ul><ul class="toc">';
+                                //echo'</ul><ul class="toc">';
                             }
                         }
                         ?>
                     </ul>
+                    <div id="very-content"></div>
                 </div>
                 <?php
                 echo $out;
@@ -273,6 +278,9 @@ code, code.hljs {
             </div>
 <script>
     $(document).ready(function() {
+        var body = document.body; 
+        //body.scrollTop = document.querySelector('#content').children[1].offsetTop;
+        
         $('code').each(
                 function(i, block) {
                     hljs.highlightBlock(block);
