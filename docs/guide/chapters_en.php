@@ -301,7 +301,7 @@ var app = Firera({
 		</div>
                 <div>
                     A lot of modern libraries and frameworks combine the concept of FRP with OOP approach, using classes, methods etc. With Firera, you can write
-                    robust and declarative code using only few powerful concepts: data streams and functions.
+                    robust and declarative code using only few powerful concepts: data streams and functions. Unlike MobX or Vue, you can use pure functions for calculating computed properties.
                 </div>
 	</div>
 <? } if(chapter('Firera basics', 'streams', 'Managing streams')){ ?>
