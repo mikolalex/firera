@@ -1,6 +1,9 @@
 // generating random data
 const generate_data = (len) => {
-    return new Array(len).fill(true).map(_ => Math.round(Math.random()*1000));
+    return new Array(len).fill(true).map((_, i) => { return {
+        id: i + 1,
+        num: Math.round(Math.random()*1000)
+    }});
 }
 // template section
 const $template = `

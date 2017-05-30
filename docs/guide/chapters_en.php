@@ -330,7 +330,7 @@ const base = {
     "form|hasClass(valid)": ['is_form_valid'],
 
     send_form: ['&&', '-is_form_valid', 'button.send|click'],
-    add_comment_request: ['transistAll', (email, name, text) => {
+    add_comment_request: ['relayAll', (email, name, text) => {
         // ... some ajax request here...
         console.log('It works!', email, name, text);
     }, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
@@ -1275,7 +1275,7 @@ const todo_component = {
     })
 </code>
 			We should know the index of an element in the list we want to remove. It's always contained in <span class="mn">$i</span> cell, which is one of the system predefined cells.
-			At the same time, we should listen to it passively (with <span class="mn">-</span> prefix), in order for our <span class="mn">remove_todo</span> event to happen only on click (and not on <span class="mn">$i</span> change).
+			At the same time, we should listen to it passively (with <span class="mn">"-"</span> prefix), in order for our <span class="mn">remove_todo</span> event to happen only on click (and not on <span class="mn">$i</span> change).
 		</div>
 		<div>
 			Then we should link and listen to <span class="mn">remove_todo</span> cells of each grid in the list from root grid.
@@ -1554,7 +1554,7 @@ const root_component = {
 
 const todo_component = {
     ...
-    edited_todo: ['transist', '.text|dblclick', '-$i'],
+    edited_todo: ['relay', '.text|dblclick', '-$i'],
     i_am_edited: ['=', '-$i', '../active_todo'],
     isEditing: ['map', {
         'i_am_edited': _F.id,
@@ -1563,7 +1563,7 @@ const todo_component = {
     }],
 }
 </code>
-			A <span class="mn">transist</span> macro returns the value of a second argument if the first one is true.
+			A <span class="mn">relay</span> macro returns the value of a second argument if the first one is true.
 			So when user double clicks on to-do's name it will emit the number of to-do items.
 		</div>
 		<div>
@@ -1577,7 +1577,7 @@ const todo_component = {
 			It will be true only for the actual grid we clicked on.
 		</div>
 		<div>
-			And the last thing we should do is to make <span class="mn">isEditin</span> dependent on <span class="mn">i_am_edited</span> cell instead of directly dependent on double click events.
+			And the last thing we should do is to make <span class="mn">isEditing</span> dependent on <span class="mn">i_am_edited</span> cell instead of directly dependent on double click events.
 		</div>
 	</div>
 <?php } if(chapter('Writing TodoMVC in details', 'check_all_todos', 'Checking all to-dos and counting incompleted')){ ?>
@@ -1654,7 +1654,7 @@ const todo_component = {
 </code>
 		</div>
 	</div>
-<?php } if(chapter('Writing TodoMVC in details', 'clear-completed', 'Clearing completed to-dos')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'clear_completed', 'Clearing completed to-dos')){ ?>
 	<div>
 		<h2>
 			Clearing completed to-dos
@@ -1668,7 +1668,7 @@ const todo_component = {
     const todo_component = {
         ...
         remove_todo: [
-            'transist',
+            'relay',
             '.remove|click', 
             '-$name'
         ],
@@ -1684,7 +1684,7 @@ const todo_component = {
 
     const todo_component = {
         remove_todo: [
-            'transist',
+            'relay',
             ['join', 
                 '.remove|click', 
                 [_F.first, '-completed', '^^/clear_completed']
@@ -1708,7 +1708,7 @@ const todo_component = {
                     So, if the cell is completed, it'll be true.
                 </li>
                 <li>
-                    <span class="mn">transist</span> will return <span class="mn">$name</span> value if the first argument (in our case — a nested F-expression) is true. 
+                    <span class="mn">relay</span> will return <span class="mn">$name</span> value if the first argument (in our case — a nested F-expression) is true. 
 					The to-do item will be removed when <span class="mn">clear_completed</span> is triggered and it's completed, or when <span class="mn">.remove</span> button is clicked. 
                 </li>
             </ul>
@@ -1815,7 +1815,7 @@ const todo_component = {
         '^^/make_completed': true
     }],
     text: ['input[name=todo-text]|enterText'],
-    edited_todo: ['transist', '.text|dblclick', '-$i'],
+    edited_todo: ['relay', '.text|dblclick', '-$i'],
     i_am_edited: ['=', '-$i', '../active_todo'],
     isEditing: ['map', {
         'i_am_edited': _F.id,
@@ -1823,7 +1823,7 @@ const todo_component = {
         'input[name=todo-text]|press(Esc)': false
     }],
     remove_todo: [
-        'transist',
+        'relay',
         ['join', 
             '.remove|click', 
             [_F.first, '-completed', '^^/clear_completed']
