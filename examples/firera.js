@@ -2925,7 +2925,7 @@ module.exports = {
 			}].concat(args);
 			return st;
 		},
-		arrDeltas: function arrDeltas(fs) {
+		toArrDeltas: function toArrDeltas(fs) {
 			var _fs7 = _slicedToArray(fs, 1),
 			    config = _fs7[0];
 
@@ -3433,12 +3433,12 @@ module.exports = {
 			fnc = [_utils2.default.always(list_own_type)];
 		}
 		return fnc;
-	}), _defineProperty(_macros, 'arr_deltas', function arr_deltas(funcstring) {
+	}), _defineProperty(_macros, 'arrDeltas', function arrDeltas(funcstring) {
 		var cell = funcstring[0];
 		return ['closure', function () {
 			var val = [];
 			return function (new_arr) {
-				var deltas = _utils2.default.arr_deltas(val, new_arr);
+				var deltas = _utils2.default.arrDeltas(val, new_arr);
 				val = new_arr;
 				//console.info('deltas are', deltas);
 				return deltas;
@@ -4657,7 +4657,7 @@ _F.arr_common = function (arr1, arr2, cb) {
 	}
 };
 
-_F.arr_deltas = function (old_arr, new_arr) {
+_F.arrDeltas = function (old_arr, new_arr) {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, function (v, k) {

@@ -246,7 +246,7 @@ module.exports = {
 				}, ...args];
 			return st;
 		},
-		arrDeltas: (fs) => {
+		toArrDeltas: (fs) => {
 			const [config] = fs;
 			const args = [];
 			if (config.push) {
@@ -717,12 +717,12 @@ module.exports = {
 			}
 			return fnc;
 		},
-		arr_deltas(funcstring) {
+		arrDeltas(funcstring) {
 			const cell = funcstring[0];
 			return ['closure', function () {
 					var val = [];
 					return function (new_arr) {
-						const deltas = utils.arr_deltas(val, new_arr);
+						const deltas = utils.arrDeltas(val, new_arr);
 						val = new_arr;
 						//console.info('deltas are', deltas);
 						return deltas;

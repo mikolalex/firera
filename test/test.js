@@ -436,7 +436,7 @@ describe('Firera tests', function () {
         	__root: {
 				show: 'all',
 				numbers: ['just', [1, 2, 3]],
-                arr_changes: ['arr_deltas', 'numbers']
+                arr_changes: ['arrDeltas', 'numbers']
         	}
         })
 		

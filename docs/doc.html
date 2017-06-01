@@ -84,24 +84,24 @@ and open the template in the editor.
                         Returns a value of particular cell.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                $child_bar: {
-                                    a: 10,
-                                    b: 20,
-                                    c: [(n, m) => n + m, 'a', 'b'],
-                                    $child_baz: {
-                                        a1: 10,
-                                        b1: 32,
-                                    }
-                                },
-                            }});
-                            app.get('foo'); // 10
-                            app.get('c'); // Firera.undef
-                            app.get('c', 'bar'); // 30
-                            app.get('a1', 'bar/baz'); // 10
-                        </code>
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        $child_bar: {
+            a: 10,
+            b: 20,
+            c: [(n, m) => n + m, 'a', 'b'],
+            $child_baz: {
+                a1: 10,
+                b1: 32,
+            }
+        },
+    }});
+    app.get('foo'); // 10
+    app.get('c'); // Firera.undef
+    app.get('c', 'bar'); // 30
+    app.get('a1', 'bar/baz'); // 10
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">set</div>
@@ -113,29 +113,29 @@ and open the template in the editor.
                         Sets a value of particular cell.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                $child_bar: {
-                                    a: 10,
-                                    b: 20,
-                                    c: [(n, m) => n + m, 'a', 'b'],
-                                    $child_baz: {
-                                        a1: 10,
-                                        b1: 32,
-                                    }
-                                },
-                            }});
-                            app.set('foo', 20);
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        $child_bar: {
+            a: 10,
+            b: 20,
+            c: [(n, m) => n + m, 'a', 'b'],
+            $child_baz: {
+                a1: 10,
+                b1: 32,
+            }
+        },
+    }});
+    app.set('foo', 20);
 
-                            app.set('a', 20, 'bar');
-                            app.get('c', 'bar'); // 40
+    app.set('a', 20, 'bar');
+    app.get('c', 'bar'); // 40
 
-                            app.set('a', '20', 'bar');
-                            app.get('c', 'bar'); // '2020'
+    app.set('a', '20', 'bar');
+    app.get('c', 'bar'); // '2020'
 
-                            app.set('a1', 100, 'bar/baz');
-                        </code>
+    app.set('a1', 100, 'bar/baz');
+</code>
                     </div>
                 </div>
 
@@ -150,18 +150,18 @@ and open the template in the editor.
                         It's a default type, so you don't need to put it to the beginning of F-expression.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                bar: 20,
-                                res: [(a, b) => {
-                                    return a + b;
-                                }, 'foo', 'bar'],
-                            }});
-                            app.get('res'); // 30
-                            app.set('bar', 100);
-                            app.get('res'); // 110
-                        </code>
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        bar: 20,
+        res: [(a, b) => {
+            return a + b;
+        }, 'foo', 'bar'],
+    }});
+    app.get('res'); // 30
+    app.set('bar', 100);
+    app.get('res'); // 110
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">funnel</div>
@@ -171,25 +171,25 @@ and open the template in the editor.
                         When one of the argument changes, it's name and values is passed to formula.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                bar: 20,
-                                baz: 40,
-                                res: ['funnel', (cellname, value) => {
-                                    console.log('Cell', cellname, 'changed to', value);
-                                    return value + 10;
-                                }, 'foo', 'bar', 'baz'],
-                            }});
-                            app.get('res'); // Firera.undef
-                            app.set('bar', 100);
-                            // 'Cell bar changed to 100'
-                            app.get('res'); // 110
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        bar: 20,
+        baz: 40,
+        res: ['funnel', (cellname, value) => {
+            console.log('Cell', cellname, 'changed to', value);
+            return value + 10;
+        }, 'foo', 'bar', 'baz'],
+    }});
+    app.get('res'); // Firera.undef
+    app.set('bar', 100);
+    // 'Cell bar changed to 100'
+    app.get('res'); // 110
 
-                            app.set('foo', 42);
-                            // 'Cell foo changed to 42'
-                            app.get('res'); // 52
-                        </code>
+    app.set('foo', 42);
+    // 'Cell foo changed to 42'
+    app.get('res'); // 52
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">closure</div>
@@ -200,33 +200,33 @@ and open the template in the editor.
                         The main advantage is you can create and use closure variables of the first function.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                total_sum: ['closure', () => {
-                                    // This function will be run once - on creating each F.Grid
-                                    var sum = 0;
-                                    var counter = 0;
-                                    return (a) => {
-                                        // this function will become an actual formula for cell 'total_sum'
-                                        sum += a;
-                                        console.log('running for the ' + counter + ' time');
-                                        counter++;
-                                        return sum;
-                                    }
-                                }, 'foo']
-                            }});
-                            // 'running for the 0 time'
-                            app.get('total_sum'); // 10
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        total_sum: ['closure', () => {
+            // This function will be run once - on creating each F.Grid
+            var sum = 0;
+            var counter = 0;
+            return (a) => {
+                // this function will become an actual formula for cell 'total_sum'
+                sum += a;
+                console.log('running for the ' + counter + ' time');
+                counter++;
+                return sum;
+            }
+        }, 'foo']
+    }});
+    // 'running for the 0 time'
+    app.get('total_sum'); // 10
 
-                            app.set('foo', 100);
-                            // 'running for the 1 time'
-                            app.get('total_sum'); // 110
+    app.set('foo', 100);
+    // 'running for the 1 time'
+    app.get('total_sum'); // 110
 
-                            app.set('foo', -40);
-                            // 'running for the 2 time'
-                            app.get('total_sum'); // 70
-                        </code>
+    app.set('foo', -40);
+    // 'running for the 2 time'
+    app.get('total_sum'); // 70
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">closure</div>
@@ -237,25 +237,25 @@ and open the template in the editor.
                         First argument for formula is a callback function, used to yield a result.
                     </div>
                     <div>
-                        <code>
-                            var app = Firera({__root: {
-                                foo: 10,
-                                factorial: ['async', (cb, value) => {
-                                    $.get('/calc_factorial?num=' + value, function(data){
-                                        // here we return the value of "factorial" cell by 
-                                        // calling callback function "cb"
-                                        cb(data);
-                                    }
-                                }, 'foo']
-                            }});
-                            app.set('foo', 5);
-                            app.get('factorial'); // Firera.undef
+<code>
+    var app = Firera({__root: {
+        foo: 10,
+        factorial: ['async', (cb, value) => {
+            $.get('/calc_factorial?num=' + value, function(data){
+                // here we return the value of "factorial" cell by 
+                // calling callback function "cb"
+                cb(data);
+            }
+        }, 'foo']
+    }});
+    app.set('foo', 5);
+    app.get('factorial'); // Firera.undef
 
-                            // let's wait for some time...
-                            setTimeout(() => {
-                                app.get('factorial); // 120
-                            }, 1000); 
-                        </code>
+    // let's wait for some time...
+    setTimeout(() => {
+        app.get('factorial); // 120
+    }, 1000); 
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">nested</div>
@@ -265,38 +265,38 @@ and open the template in the editor.
                         Similar to async, but you can also specify a "subcell" which you want to put your value in.
                     </div>
                     <div>
-                        <code>
-                            var collect_nums = () => {
-                                var arr = [];
-                                return (a) => {
-                                    arr.push(a);
-                                    return a;
-                                }
-                            }
-                            var app = Firera({__root: {
-                                foo: 10,
-                                    nums: ['nested', (cb, value) => {
-                                    if(value%2){
-                                        cb('odd', value);
-                                    } else {
-                                        cb('even', value);
-                                    }
-                                }, 'foo'],
-                                odd: ['closure', collect_nums, 'nums.odd'],
-                                even: ['closure', collect_nums, 'nums.even'],
-                            }});
-                            app.get('odd'); // []
-                            app.get('even'); // [10]
+<code>
+    var collect_nums = () => {
+        var arr = [];
+        return (a) => {
+            arr.push(a);
+            return a;
+        }
+    }
+    var app = Firera({__root: {
+        foo: 10,
+            nums: ['nested', (cb, value) => {
+            if(value%2){
+                cb('odd', value);
+            } else {
+                cb('even', value);
+            }
+        }, 'foo'],
+        odd: ['closure', collect_nums, 'nums.odd'],
+        even: ['closure', collect_nums, 'nums.even'],
+    }});
+    app.get('odd'); // []
+    app.get('even'); // [10]
 
-                            app.set('foo', 5);
-                            app.get('odd'); // [5]
-                            app.get('even'); // [10]
+    app.set('foo', 5);
+    app.get('odd'); // [5]
+    app.get('even'); // [10]
 
-                            app.set('foo', 7);
-                            app.get('odd'); // [5, 7]
-                            app.get('even'); // [10]
+    app.set('foo', 7);
+    app.get('odd'); // [5, 7]
+    app.get('even'); // [10]
 
-                        </code>
+</code>
                         Plase note that in this case you CANNOT subscribe to very "nums" cell, but only is subcells.
                     </div>
                 </div>
@@ -307,32 +307,32 @@ and open the template in the editor.
                         A side-effect type: a formula should return F-expression which is used for computing cell value
                     </div>
                     <div>
-                        <code>
+<code>
 
-                            var app = Firera({__root: {
-                                a1: 10,
-                                a2: 20,
-                                a3: 45,
-                                b1: -1,
-                                b2: 9,
-                                b3: 3,
-                                flag: 'a',
-                                val: ['dynamic', (letter) => {
-                                    return [(a, b, c) => {
-                                        //console.log('computing sum');
-                                        return a + b + c;
-                                    }, letter + '1', letter + '2', letter + '3']
-                                }, 'flag']
-                            }})
-                            app.get('val'); // 75
+    var app = Firera({__root: {
+        a1: 10,
+        a2: 20,
+        a3: 45,
+        b1: -1,
+        b2: 9,
+        b3: 3,
+        flag: 'a',
+        val: ['dynamic', (letter) => {
+            return [(a, b, c) => {
+                //console.log('computing sum');
+                return a + b + c;
+            }, letter + '1', letter + '2', letter + '3']
+        }, 'flag']
+    }})
+    app.get('val'); // 75
 
-                            app.set('a1', 12);
-                            app.get('val'); // 77
+    app.set('a1', 12);
+    app.get('val'); // 77
 
-                            app.set('flag', 'b');
-                            app.get('val'); // 11
+    app.set('flag', 'b');
+    app.get('val'); // 11
 
-                        </code>
+</code>
                     </div>
                 </div>
                 <div class="hiddenlink">Cell types compatibility</div>
@@ -599,6 +599,47 @@ app.set('flag', false);
 app.set('val', 42);
 app.get('a'); // 37
 </code>
+<code>
+{
+    "a": ['relay', x => x*(-1), 'flag', 'val']
+}
+app.set('flag', false);
+app.set('val', 42);
+app.get('a'); // undefined
+
+app.set('flag', true);
+app.get('a'); // -42
+
+app.set('val', 37);
+app.get('a'); // -37
+
+app.set('flag', false);
+app.set('val', 42);
+app.get('a'); // -37
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>relayAll</mn></div>
+                    Same as "relay", but for any number of cells
+<code>
+{
+    "a": ['relay', (x, y) => x*y, 'flag', 'val1', 'val2']
+}
+app.set('flag', false);
+app.set('val1', 42);
+app.set('val2', 10);
+app.get('a'); // undefined
+
+app.set('flag', true);
+app.get('a'); // 420
+
+app.set('val1', 37);
+app.get('a'); // 370
+
+app.set('flag', false);
+app.set('val1', 42);
+app.get('a'); // 370
+</code>
                 </div>
                 <div class="one">
                     <div><mn>map</mn></div>
@@ -622,6 +663,120 @@ app.get('a'); // true
 
 app.set('foo', 14);
 app.get('a'); // 42
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>arr</mn></div>
+<code>
+{
+    "data": ['arr', {
+        push: 'items',
+        pop: 'remove_index',
+    }
+}
+
+app.set('items', 'ene');
+app.set('items', 'bene');
+app.get('arr'); // ['ene', 'bene']
+
+app.set('items', 'raba');
+app.get('arr'); // ['ene', 'bene', 'raba']
+
+app.set('remove_index', 1);
+app.get('arr'); // ['ene', 'raba']
+
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>changed</mn></div>
+<code>
+{
+    foo: ['changed', 'bar'],
+    $writer: [() => { console.log('bar changed!'); }, 'foo'],
+}
+app.set('bar', 42);
+// 'bar changed!'
+
+app.set('bar', 13);
+// 'bar changed!'
+
+app.set('bar', 13);
+// nothing happens...
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>accum</mn></div>
+<code>
+{
+    arr: ['accum', 'vals']
+}
+app.set('vals', 1);
+app.get('accum', [1]);
+
+app.set('vals', 3);
+app.get('accum', [1, 3]);
+
+app.set('vals', false);
+app.get('accum', [1, 3, false]);
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>toArrDeltas</mn></div>
+<code>
+{
+    "data": ['toArrDeltas', {
+        push: 'items',
+        pop: 'remove_index',
+    }
+}
+
+app.set('items', 'ene');
+app.set('items', 'bene');
+app.get('arr'); // ['add', null, 'bene']
+
+app.set('items', 'raba');
+app.get('arr'); // ['add', null, 'raba']
+
+app.set('remove_index', 1);
+app.get('arr'); // ['remove', 1]
+</code>
+                </div>
+                <div class="one">
+                    <div><mn>arrDeltas</mn></div>
+<code>
+{
+    d: ['arrDeltas', 'arr'],
+}
+app.set('arr', [1, 2, 3]);
+app.get('d'); // [['add', null, 1], ['add', null, 2], ['add', null, 3]]
+
+
+app.set('arr', [1, 2, 3, 4]);
+app.get('d'); // [['add', null, 4]]
+
+app.set('arr', [1, 2]);
+app.get('d'); // [['remove', 2], ['remove', 3]]
+
+app.set('arr', [1, 3]);
+app.get('d'); // [['change', 1, 3]]
+</code>
+                </div>
+                <div class="one">
+                    <div><mn></mn></div>
+<code>
+
+</code>
+                </div>
+                <div class="one">
+                    <div><mn></mn></div>
+<code>
+
+</code>
+                </div>
+                <div class="one">
+                    <div><mn></mn></div>
+<code>
+
 </code>
                 </div>
                 <div class="one">

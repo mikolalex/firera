@@ -60,7 +60,7 @@ var excel_app = {
 		get_formula: ['.formula|getval'],
 		cells_arr: [generate_table, 'sizeX', 'sizeY'],
 		pos_determ: [get_position_determinant, 'sizeX', 'sizeY'],
-		cells_diff: ['arr_deltas', 'cells_arr'],
+		cells_diff: ['arrDeltas', 'cells_arr'],
 		'.formula|setval': [second, 'cells/*/set_formula'],
 		/*zzz: [(a) => { 
 			console.log('active_cell', a);

@@ -151,7 +151,7 @@ _F.arr_common = function(arr1, arr2, cb){
 	}
 }
 
-_F.arr_deltas = (old_arr, new_arr) => {
+_F.arrDeltas = (old_arr, new_arr) => {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, (v, k) => {

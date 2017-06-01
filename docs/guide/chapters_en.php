@@ -1309,7 +1309,7 @@ const todo_component = {
 			</div>					
 		</div>
 	</div>
-<?php } if(chapter('Writing TodoMVC in details', 'arr_deltas', 'Using array deltas')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'arrDeltas', 'Using array deltas')){ ?>
 	<div>
         <h2>
             Using array deltas
@@ -1344,15 +1344,15 @@ const todo_component = {
 			How does the stream of changes will look like?
 			It's a kind of a diff info for the array.
 			In Firera.utils there is a handy function that computes the changes by comparing two arrays.
-			It is <span class="mn">arr_deltas(old_arr, new_arr)</span>.
+			It is <span class="mn">arrDeltas(old_arr, new_arr)</span>.
 <code>
     var arr_1 = ['ene', 'bene', 'raba'];
     var arr_2 = ['ene', 'bene', 'raba', 'kvinter', 'finter'];
     var arr_3 = ['ene', 'bene', 'raba', 'kvinter', '______', 'zhaba'];
 
-    _F.arr_deltas(arr_1, arr_2); // [["add","3","kvinter"],["add","4","finter"]]
-    _F.arr_deltas(arr_2, arr_1); // [["remove","3"],["remove","4"]]
-    _F.arr_deltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
+    _F.arrDeltas(arr_1, arr_2); // [["add","3","kvinter"],["add","4","finter"]]
+    _F.arrDeltas(arr_2, arr_1); // [["remove","3"],["remove","4"]]
+    _F.arrDeltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
 </code>
 			It can produce three type of changes: "add", "remove" and "change".
 			If there is a key in the new array that is absent in the old one, it produces an "add" change.
@@ -1371,7 +1371,7 @@ const root_component = {
         return {text, completed: false};
     }, 'input[name="new-todo"]|enterText'],
     remove_todo: [_F.ind(0), '**/remove_todo'],
-    arr_todos: ['arrDeltas', {
+    arr_todos: ['toArrDeltas', {
         push: 'add_todo', 
         pop: 'remove_todo',
     }],
@@ -1389,9 +1389,9 @@ const app = Firera({
         packages: ['htmlCells', 'neu_ozenfant'],
     }
 );
-app.set('arr_todos', _F.arr_deltas([], init_data));
+app.set('arr_todos', _F.arrDeltas([], init_data));
 </code>
-			Note that instead of using <span class="mn">arr</span> macro for <span class="mn">arr_todos</span>, we use <span class="mn">arrDeltas</span> macro.
+			Note that instead of using <span class="mn">arr</span> macro for <span class="mn">arr_todos</span>, we use <span class="mn">toArrDeltas</span> macro.
 			It does exactly what we need: transforms a stream of new values into "add" array changes, 
 			and "pop" stream is transformed into "remove" changes.
 		</div>
@@ -1400,7 +1400,7 @@ app.set('arr_todos', _F.arr_deltas([], init_data));
 			Now our list will listen to a stream of deltas and make changes appropriately, therefore we don't need to make any diffs anymore.
 		</div>
 		<div>
-			The only transformation of data into changes is for the initial value of <span class="mn">arr_todos</span>. It's done with <span class="mn">_F.arr_deltas</span> function which was mentioned before.
+			The only transformation of data into changes is for the initial value of <span class="mn">arr_todos</span>. It's done with <span class="mn">_F.arrDeltas</span> function which was mentioned before.
 		</div>
 		<hr>
 		<div>
@@ -1783,7 +1783,7 @@ const root_component = {
     '~make_completed': ['.make-completed|click'],
     'all_completed': [_F.eq(0), 'incomplete'],
     'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
-    arr_todos: ['arrDeltas', {
+    arr_todos: ['toArrDeltas', {
         push: 'add_todo', 
         pop: 'remove_todo',
     }],
@@ -1840,7 +1840,7 @@ const app = Firera({
             packages: ['htmlCells', 'neu_ozenfant']
         }
 );
-app.set('arr_todos', _F.arr_deltas([], init_data));
+app.set('arr_todos', _F.arrDeltas([], init_data));
 </code>
 		</div>
 	</div>
