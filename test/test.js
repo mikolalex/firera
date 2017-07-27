@@ -1,6 +1,6 @@
 var Firera = require('../firera');
 var che = require('shche');
-var Ozenfant = require('ozenfant');
+var Ozenfant = require('../../ozenfant');
 var assert = require('assert');
 var $ = require('jquery');
 var utils = require('../utils');
@@ -1541,5 +1541,39 @@ describe('Firera tests', function () {
 		trigger_click(qsa(".test-che .a"));
 		trigger_click(qsa(".test-che .b"));
 		assert.deepEqual(app.get('clicked_both'), {a: 'A', b: 'B'})
+	})
+	it('Newest Ozenfant', function(){
+		var app = Firera({
+			__root: {
+				$el: qs(".test-newest-oz"),
+				$template: `
+	.
+		h1
+			"Hello, this is Willy!"
+		Form(method: post)
+		List(item: Item, list: items)
+		div.foo$
+		footer.bar
+			"Footer"
+`,
+			},
+			Form: {
+				$template: `
+	.
+		form
+			h3
+				"This is form"
+	
+`,
+			},
+			Item: {
+				$template: `
+	.
+		"This is item"
+`
+			},
+			$packages: ['htmlCells', 'neu_ozenfant']
+		});
+		console.log(app.get('$template'));
 	})
 })

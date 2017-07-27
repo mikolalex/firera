@@ -10,9 +10,9 @@ and open the template in the editor.
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="guide.css" />
-        <!--<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>-->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
     </head>
     <body>
         <div class="to-main">
@@ -25,15 +25,15 @@ and open the template in the editor.
             <div>
                 <h1>
                     Api reference
-                </h1>
+                </h1><br>
                 <hr>
-                <h2>
+                <!--<h2>
                     Table of contents
                 </h2>
                 <ul>
                 </ul>
             </div>
-            <div>
+                <div>--><br>
                 <h2>Firera methods</h2>
                 <div class="hiddenlink">Firera</div>
                 <div class="one">
@@ -544,6 +544,7 @@ app.get('data'); // {foo: 10, baz: 0, bar: 'hello'}
                 </div>
                 <div class="one">
                     <div><mn>toggle</mn></div>
+                    Returns true or false in rotation
 <code>
 {
     "a": ['toggle', 'b']
@@ -561,6 +562,7 @@ app.get('a', 20); // true
                 </div>
                 <div class="one">
                     <div><mn>skipN</mn></div>
+                    Takes the value of argument but skipping N first changes
 <code>
 {
     "a": ['skipN', 2, 'b'],
@@ -581,6 +583,7 @@ app.get('a'); // 'om'
                 </div>
                 <div class="one">
                     <div><mn>relay</mn></div>
+                    Returns the value of the second argument if the first is truthy.
 <code>
 {
     "a": ['relay', 'flag', 'val']
@@ -599,6 +602,7 @@ app.set('flag', false);
 app.set('val', 42);
 app.get('a'); // 37
 </code>
+                    The value can be passed through function
 <code>
 {
     "a": ['relay', x => x*(-1), 'flag', 'val']
@@ -689,6 +693,7 @@ app.get('arr'); // ['ene', 'raba']
                 </div>
                 <div class="one">
                     <div><mn>changed</mn></div>
+                    Fires only if the value of argument cell changes
 <code>
 {
     foo: ['changed', 'bar'],
@@ -761,7 +766,7 @@ app.set('arr', [1, 3]);
 app.get('d'); // [['change', 1, 3]]
 </code>
                 </div>
-                <div class="one">
+                <!--<div class="one">
                     <div><mn></mn></div>
 <code>
 
@@ -790,9 +795,20 @@ app.get('d'); // [['change', 1, 3]]
 <code>
 
 </code>
-                </div>
+                </div>-->
             </div>
         </div>
         <br><br><br><br><br><br>
+        <script>
+    $(document).ready(function() {
+        var body = document.body; 
+        //body.scrollTop = document.querySelector('#content').children[1].offsetTop;
+        
+        $('code').each(
+                function(i, block) {
+                    hljs.highlightBlock(block);
+                }
+        );
+    });</script>
     </body>
 </html>
