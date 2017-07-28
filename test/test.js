@@ -1456,7 +1456,7 @@ describe('Firera tests', function () {
 						"Locomotives"
 					ul.{$items}
 						li.item
-							.title$.title
+							.title$_title
 				`,
 				$child_items: ['list', {
 					type: 'item',
@@ -1550,8 +1550,16 @@ describe('Firera tests', function () {
 	.
 		h1
 			"Hello, this is Willy!"
-		Form(method: post)
-		List(item: Item, list: items)
+		.cont
+			? $showForm
+				.
+					? $really_show_form
+						Form(method: post)
+					:
+						.
+							"Nothing"
+			:
+				List(item: Item, list: items)
 		div.foo$
 		footer.bar
 			"Footer"
@@ -1575,5 +1583,7 @@ describe('Firera tests', function () {
 			$packages: ['htmlCells', 'neu_ozenfant']
 		});
 		console.log(app.get('$template'));
+		console.log('_____________________________');
+		app.set('showForm', true);
 	})
 })
