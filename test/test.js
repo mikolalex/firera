@@ -1576,4 +1576,40 @@ describe('Firera tests', function () {
 		});
 		console.log(app.get('$template'));
 	})
+	
+	
+	it('Testing $children', function(){
+		var app = Firera({
+			__root: {
+				$el: qs(".test-children"),
+				$template: `
+				.az
+					h1
+						"This is Willy"
+					.foo$
+				`,
+				mousepos: [(e) => [e.layerX, e.layerY], '.az|mousemove'],
+				$children: [Firera._.id, 'children'],
+			},
+			indicator: {
+				$template: `
+					.
+						h2
+							"This is indicator"
+						.
+							.
+								.x$
+								.y$
+				`,
+				x: [Firera._.prop('0'), '../mousepos'],
+				y: [Firera._.prop('1'), '../mousepos'],
+			}
+		}, {
+			packages: ['htmlCells', 'neu_ozenfant'],
+			trackChanges: true,
+			trackChangesType: 'log',
+		})
+		app.set('a', 10);
+		app.set('children', [['add', 'foo', 'indicator', {$real_el: qs('.indicator')}]]);
+	})
 })
