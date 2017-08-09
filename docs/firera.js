@@ -520,9 +520,13 @@ App.prototype.logChange = function (_ref) {
 	var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
 	level = (level || 0) + 1;
 	var cellname = new Array(Number(level)).join('.') + cell + new Array(Math.max(0, 29 - cell.length - level)).join(' ');
+	if (typeof val === 'string' && val.length > 255) {
+		val = val.substr(0, 255);
+	}
 	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
 };
 App.prototype.endChange = function () {
+	if (!this.changeObj) return;
 	if (!this.config.trackChanges) return;
 	if (!this.changeObj) {
 		_utils2.default.warn('change doesnt exist!');
@@ -532,7 +536,7 @@ App.prototype.endChange = function () {
 	}
 	if (this.config.trackChanges) {
 		if (this.config.trackChangesType === 'log') {
-			console.log('@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@=@');
+			console.log('***************************************************');
 			var _iteratorNormalCompletion9 = true;
 			var _didIteratorError9 = false;
 			var _iteratorError9 = undefined;
@@ -600,11 +604,19 @@ App.prototype.branchCreated = function (grid_id) {
 };
 
 App.prototype.createGrid = function (type, link_as, free_vals, parent_id) {
+	var _this2 = this;
+
 	var parent = this.getGrid(parent_id);
 	free_vals = parent.init_values[link_as] ? Object.assign({}, parent.init_values[link_as], free_vals || {}) : free_vals;
 	var parent_path = parent.path;
 	var path = (parent_path !== '/' ? parent_path + '/' : '/') + link_as;
 	var child = new _Grid2.default(this, type, link_as, free_vals, true, parent_id, path);
+	setTimeout(function () {
+		_this2.startChange();
+		child.set('$start', true);
+		_this2.endChange();
+	}, 1);
+	//child.set('$start', true);
 	Firera.gridCreated(this, child.id, child.path, child.parent);
 	//child.setLevels();
 	return child.id;
@@ -615,8 +627,6 @@ module.exports = App;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":12}],2:[function(require,module,exports){
 'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _Parser = require('./Parser');
 
@@ -645,7 +655,7 @@ var create_provider = function create_provider(app, self) {
 			_utils2.default.init_if_empty(self, 'linked_grids', {}, link_as, child_id);
 			this.set(link_as, child_id);
 			this.get(link_as).linked_grids_provider.set('..', self.id);
-			app.linkManager.onNewGridAdded(self.id, child_id);
+			app.linkManager.onNewGridAdded(self.id, child_id, link_as);
 			return child_id;
 		},
 		set: function set(name, grid_id) {
@@ -669,6 +679,7 @@ var create_provider = function create_provider(app, self) {
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
 			delete self.app.grids[id];
+			app.linkManager.onRemoveGrid(id);
 		},
 		setCellValues: function setCellValues(childName, values, skipsame) {
 			this.get(childName).set(values, false, false, false, skipsame);
@@ -1235,7 +1246,7 @@ Grid.prototype.updateTree = function (cells) {
 					var needed_lvl = x + 1;
 					var children = this.cell_children(_cell);
 					var ct = this.cell_type(_cell);
-					if (!this.cell_has_type(_cell, 'free') && (cells[_cell] === undefined || no_args) && this.cell_types[_cell].func) {
+					if (!this.cell_has_type(_cell, 'free') && (cells[_cell] === undefined || no_args) && this.cell_types[_cell] && this.cell_types[_cell].func) {
 						var res = this.compute(_cell, parents[_cell]);
 						if (res === Firera.skip) {
 							skip = true;
@@ -1435,56 +1446,38 @@ Grid.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '
 Grid.prototype.cell_value = function (cell) {
 	var _this9 = this;
 
-	var _ret = function () {
-		switch (cell) {
-			case '$real_keys':
-				return {
-					v: [].concat(_toConsumableArray(new Set(Object.keys(_this9.plain_base).concat(Object.keys(_this9.plain_base.$init))))).filter(function (k) {
-						return k.match(/^(\w|\d|\_|\-)*$/);
-					})
-				};
-				break;
-			case '$real_values':
-				var res = {};
-				Obj.each([].concat(_toConsumableArray(new Set(Object.keys(_this9.cell_values).concat(Object.keys(_this9.init_values))))).filter(function (k) {
-					return k.match(/^(\w|\d|\_|\-)*$/);
-				}), function (k, v) {
-					res[k] = _this9.cell_value(k);
-				});
-				return {
-					v: res
-				};
-				break;
-			case '$path':
-				return {
-					v: _this9.path
-				};
-				break;
-			case '$app_id':
-				return {
-					v: _this9.app.id
-				};
-				break;
-			case '$name':
-				return {
-					v: _this9.name
-				};
-				break;
-			default:
-				if (_this9.cell_values.hasOwnProperty(cell)) {
-					return {
-						v: _this9.cell_values[cell]
-					};
-				} else {
-					return {
-						v: Firera.undef
-					};
-					//return this.cell_values[cell];
-				}
-		}
-	}();
-
-	if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	switch (cell) {
+		case '$real_keys':
+			return [].concat(_toConsumableArray(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))).filter(function (k) {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			});
+			break;
+		case '$real_values':
+			var res = {};
+			Obj.each([].concat(_toConsumableArray(new Set(Object.keys(this.cell_values).concat(Object.keys(this.init_values))))).filter(function (k) {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			}), function (k, v) {
+				res[k] = _this9.cell_value(k);
+			});
+			return res;
+			break;
+		case '$path':
+			return this.path;
+			break;
+		case '$app_id':
+			return this.app.id;
+			break;
+		case '$name':
+			return this.name;
+			break;
+		default:
+			if (this.cell_values.hasOwnProperty(cell)) {
+				return this.cell_values[cell];
+			} else {
+				return Firera.undef;
+				//return this.cell_values[cell];
+			}
+	}
 };
 Grid.prototype.set_cell_value = function (cell, val) {
 	var _this10 = this;
@@ -1558,11 +1551,13 @@ module.exports = Grid;
 },{"./Parser":5,"./utils":12}],3:[function(require,module,exports){
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 var _utils = require('./utils');
 
 var _utils2 = _interopRequireDefault(_utils);
+
+var _Parser = require('./Parser');
+
+var _Parser2 = _interopRequireDefault(_Parser);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1574,9 +1569,10 @@ var LinkManager = function LinkManager(app) {
 	this.pointers = {};
 	this.doubleAsterisk = {};
 	this.pathToId = {};
+	this.linksFromChildToParent = {};
 };
 
-LinkManager.prototype.onNewGridAdded = function (parent_grid_id, child_id) {
+LinkManager.prototype.onNewGridAdded = function (parent_grid_id, child_id, link_as) {
 	var child_path = this.app.getGrid(child_id).path;
 	//console.log('new grid added to', parent_grid_id, 'as', child_id, child_path);
 	// add doubleAsterisk links
@@ -1595,6 +1591,32 @@ LinkManager.prototype.onNewGridAdded = function (parent_grid_id, child_id) {
 	for (var link_id in this.pointers[parent_grid_id]) {
 		this.actualizeLink(link_id, child_id);
 	}
+	if (this.linksFromChildToParent[parent_grid_id] && this.linksFromChildToParent[parent_grid_id][link_as]) {
+		var _iteratorNormalCompletion = true;
+		var _didIteratorError = false;
+		var _iteratorError = undefined;
+
+		try {
+			for (var _iterator = this.linksFromChildToParent[parent_grid_id][link_as][Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+				var master_cell = _step.value;
+
+				this.addWorkingLink(child_id, master_cell, parent_grid_id, link_as + '/' + master_cell, '**');
+			}
+		} catch (err) {
+			_didIteratorError = true;
+			_iteratorError = err;
+		} finally {
+			try {
+				if (!_iteratorNormalCompletion && _iterator.return) {
+					_iterator.return();
+				}
+			} finally {
+				if (_didIteratorError) {
+					throw _iteratorError;
+				}
+			}
+		}
+	}
 };
 
 LinkManager.prototype.refreshPointers = function (link_id) {
@@ -1607,28 +1629,28 @@ LinkManager.prototype.refreshPointers = function (link_id) {
 		}
 	}
 	var data = this.links[link_id];
-	var _iteratorNormalCompletion = true;
-	var _didIteratorError = false;
-	var _iteratorError = undefined;
+	var _iteratorNormalCompletion2 = true;
+	var _didIteratorError2 = false;
+	var _iteratorError2 = undefined;
 
 	try {
-		for (var _iterator = data.pointers[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-			var pointer = _step.value;
+		for (var _iterator2 = data.pointers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+			var pointer = _step2.value;
 
-			_utils2.default.init_if_empty(this.pointers, pointer.grid_id, {}, link_id, data.path[pointer.pos]);
-			//log('considering pointer', link_id, data.str, pointer);
+			_utils2.default.init_if_empty(this.pointers, pointer.grid_id, {});
+			this.pointers[pointer.grid_id][link_id] = data.path[pointer.pos];
 		}
 	} catch (err) {
-		_didIteratorError = true;
-		_iteratorError = err;
+		_didIteratorError2 = true;
+		_iteratorError2 = err;
 	} finally {
 		try {
-			if (!_iteratorNormalCompletion && _iterator.return) {
-				_iterator.return();
+			if (!_iteratorNormalCompletion2 && _iterator2.return) {
+				_iterator2.return();
 			}
 		} finally {
-			if (_didIteratorError) {
-				throw _iteratorError;
+			if (_didIteratorError2) {
+				throw _iteratorError2;
 			}
 		}
 	}
@@ -1676,6 +1698,10 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 			}
 		}
 	}
+};
+
+LinkManager.prototype.onRemoveGrid = function (id) {
+	delete this.workingLinks[id];
 };
 
 LinkManager.prototype.addWorkingLink = function (master_grid_id, master_cellname, slave_grid_id, slave_cellname, link_id, path) {
@@ -1763,7 +1789,7 @@ LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
 				return;
 			}
 		}
-		if (next_grid_id !== undefined) {
+		if (next_grid_id !== undefined && next_grid_id !== null) {
 			move_further(next_grid_id, i + 1, start_pos, path);
 		}
 	};
@@ -1775,72 +1801,61 @@ LinkManager.prototype.actualizeLink = function (link_id, first_child_id) {
 	this.refreshPointers(link_id);
 };
 
+var is_special = function is_special(path) {
+	return path === '*' || path === '**' || path === '^^' || path === '^' || path === '..' || path === '';
+};
+
 LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	var _this2 = this;
 
+	link = _Parser2.default.get_real_cell_name(link);
 	var path = link.split('/');
-	if (path.length == 2 && path[0] === '..') {
-		/*const curr_grid = this.app.getGrid(grid_id);
-  const parent = curr_grid.parent;
-  if(parent === undefined) {
-  	console.log('parent undefined! child', curr_grid);
-  	return;
-  }
-  this.addWorkingLink(parent, path[1], curr_grid.id, link);
-  //console.log('Simple!', link, parent);
-  //ttimer.stop('ilc');
-  return;*/
+	if (path.length === 2) {
+		if (!is_special(path[0])) {
+			_utils2.default.init_if_empty(this.linksFromChildToParent, grid_id, {});
+			_utils2.default.init_if_empty(this.linksFromChildToParent[grid_id], path[0], []);
+			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
+			var slave_cn = slave_cellname || link;
+			this.app.eachChild(grid_id, function (child) {
+				_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
+			});
+			return;
+		}
 	}
 	if (path[0] == '**') {
-		var _ret = function () {
-			if (path.length > 2) {
-				_utils2.default.error('You cannot listen to such path', path.join('/'));
-				return {
-					v: void 0
-				};
-			}
-			var cellname = path[1];
-			var grid_path = _this2.app.getGrid(grid_id).path;
-			_this2.pathToId[grid_path] = grid_id;
-			_utils2.default.init_if_empty(_this2.doubleAsterisk, grid_path, {}, cellname, true);
-			// check already added grids
-			_this2.app.eachChild(grid_id, function (child) {
-				_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
-			});
-			return {
-				v: void 0
-			};
-		}();
-
-		if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
-	}
-	if (path[0] == '^^') {
-		var _ret2 = function () {
-			if (path.length > 2) {
-				_utils2.default.error('You cannot listen to such path', path.join('/'));
-				return {
-					v: void 0
-				};
-			}
-			var cellname = path[1];
-			_this2.app.eachParent(grid_id, function (grid) {
-				_this2.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
-			});
-			return {
-				v: void 0
-			};
-		}();
-
-		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
-	}
-	if (path[0] == '') {
 		if (path.length > 2) {
 			_utils2.default.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
 		var grid_path = this.app.getGrid(grid_id).path;
-		this.addWorkingLink(this.app.grids[1].id, cellname, grid_id, '/' + cellname);
+		this.pathToId[grid_path] = grid_id;
+		_utils2.default.init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
+		// check already added grids
+		this.app.eachChild(grid_id, function (child) {
+			_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
+		});
+		return;
+	}
+	if (path[0] == '^^') {
+		if (path.length > 2) {
+			_utils2.default.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var _cellname = path[1];
+		this.app.eachParent(grid_id, function (grid) {
+			_this2.addWorkingLink(grid.id, _cellname, grid_id, '^^/' + _cellname);
+		});
+		return;
+	}
+	if (path[0] == '') {
+		if (path.length > 2) {
+			_utils2.default.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var _cellname2 = path[1];
+		var _grid_path = this.app.getGrid(grid_id).path;
+		this.addWorkingLink(this.app.grids[1].id, _cellname2, grid_id, '/' + _cellname2);
 		return;
 	}
 	var obj = {
@@ -1869,7 +1884,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 };
 
 module.exports = LinkManager;
-},{"./utils":12}],4:[function(require,module,exports){
+},{"./Parser":5,"./utils":12}],4:[function(require,module,exports){
 'use strict';
 
 var _utils = require('./utils');
@@ -2506,6 +2521,9 @@ window.Firera = function (apps) {
 	app.startChange();
 	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
 	app.endChange();
+	app.startChange();
+	app.root.set('$start', true);
+	app.endChange();
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
 	if (app.grid_create_counter === 0) {
@@ -2618,6 +2636,7 @@ Firera.loadPackage(_Che2.default);
 Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, neu_ozenfant: _Ozenfant2.default, che: _Che2.default };
 Firera.func_test_export = { parse_pb: _Parser2.default.parse_pb, parse_fexpr: _Parser2.default.parse_fexpr };
 Firera._ = _utils2.default;
+var a = 10;
 
 module.exports = Firera;
 },{"../ozenfant/ozenfant":15,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/Ozenfant":10,"./packages/SimpleHtmlTemplates":11,"./utils":12}],7:[function(require,module,exports){
@@ -2683,9 +2702,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 var Obj = _utils2.default.Obj;
 var Arr = _utils2.default.Arr;
@@ -2785,6 +2804,18 @@ module.exports = {
 					};
 				}, cellname], pool, '^' + cellname, packages);
 			}
+		},
+		popstate: {
+			// ^foo -> previous values of 'foo'
+			name: 'popstate',
+			regexp: new RegExp('^history\.popstate$', 'i'),
+			func: function func(matches, pool, context, packages) {
+				if (context == 'setter') return;
+				var cellname = matches[0];
+				_Parser2.default.parse_fexpr(['async', function (cb) {
+					window.onpopstate = cb;
+				}, '$start'], pool, cellname, packages);
+			}
 		}
 	},
 	macros: (_macros = {
@@ -2817,14 +2848,23 @@ module.exports = {
 				}];
 			}
 		},
+		asMap: function asMap(fs) {
+			return ['closureFunnel', function () {
+				var map = {};
+				return function (cell, val) {
+					map[cell] = val;
+					return map;
+				};
+			}].concat(_toConsumableArray(fs));
+		},
 		toggle: function toggle(fs) {
 			var _fs2 = _slicedToArray(fs, 2),
 			    cell = _fs2[0],
 			    def = _fs2[1];
 
-			return ['closure', function () {
-				var now = def !== undefined ? def : true;
-				return function (cb) {
+			return ['closure', function (init_val) {
+				var now = def !== undefined ? def : init_val;
+				return function () {
 					if (now) {
 						now = false;
 					} else {
@@ -2855,13 +2895,40 @@ module.exports = {
 				};
 			}].concat(_toConsumableArray(args));
 		},
+		skipN: function skipN(fs) {
+			var n = fs[0];
+			fs = fs.slice(1);
+			return ['closure', function () {
+				var c = 0;
+				return function (val) {
+					if (++c <= n) {
+						return Firera.skip;
+					} else {
+						return val;
+					}
+				};
+			}].concat(_toConsumableArray(fs));
+		},
 		transist: function transist(fs) {
 			var func;
 			if (fs[0] instanceof Function) {
 				func = fs.shift();
 			}
 			return [function (cellA, cellB) {
-				if (cellA) {
+				if (Firera.is_def(cellA) && cellA) {
+					return func ? func(cellB) : cellB;
+				} else {
+					return Firera.skip;
+				}
+			}].concat(fs);
+		},
+		relay: function relay(fs) {
+			var func;
+			if (fs[0] instanceof Function) {
+				func = fs.shift();
+			}
+			return [function (cellA, cellB) {
+				if (Firera.is_def(cellA) && cellA) {
 					return func ? func(cellB) : cellB;
 				} else {
 					return Firera.skip;
@@ -2887,8 +2954,8 @@ module.exports = {
 			    def_value = _fs5[1];
 
 			var cells = Object.keys(map);
-			var func = function func() {
-				var prev = def_value;
+			var func = function func(init_val) {
+				var prev = def_value === undefined ? init_val : def_value;
 				return function (cellname, val) {
 					if (!(map[cellname] instanceof Function)) {
 						prev = map[cellname];
@@ -2925,7 +2992,7 @@ module.exports = {
 			}].concat(args);
 			return st;
 		},
-		arrDeltas: function arrDeltas(fs) {
+		toArrDeltas: function toArrDeltas(fs) {
 			var _fs7 = _slicedToArray(fs, 1),
 			    config = _fs7[0];
 
@@ -2970,9 +3037,60 @@ module.exports = {
 				}
 			}].concat(fs);
 		},
+		relayAll: function relayAll(fs) {
+			//const [func, ...rest] = fs;
+			var func;
+			if (fs[0] instanceof Function) {
+				func = fs.shift();
+			}
+			return [function (cellA) {
+				for (var _len3 = arguments.length, restArgs = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+					restArgs[_key3 - 1] = arguments[_key3];
+				}
+
+				if (cellA) {
+					if (func) {
+						return func.apply(null, restArgs);
+					} else {
+						return restArgs;
+					}
+				} else {
+					return Firera.skip;
+				}
+			}].concat(fs);
+		},
+		'changed': function changed(_ref) {
+			var _ref2 = _slicedToArray(_ref, 1),
+			    cellname = _ref2[0];
+
+			return ['closure', function () {
+				var val;
+				return function (vl) {
+					if (vl !== val) {
+						val = vl;
+						return true;
+					} else {
+						return Firera.skip;
+					}
+				};
+			}, cellname];
+		},
+		nextTick: function nextTick(fs) {
+			var func = function func(a) {
+				return a;
+			};
+			if (fs[0] instanceof Function) {
+				func = fs[0];
+				fs = fs.slice(1);
+			}
+			return ['async', function (cb, val) {
+				setTimeout(function () {
+					cb(func(val));
+				}, 1);
+			}].concat(_toConsumableArray(fs));
+		},
 		'&&': function _(fs) {
 			return [function (cellA, cellB) {
-				console.log('&&', cellA, cellB);
 				return !Firera.is_falsy(cellA) && !Firera.is_falsy(cellB);
 			}].concat(fs);
 		},
@@ -3159,7 +3277,8 @@ module.exports = {
 							}
 						}
 					}
-					return _utils2.default.arr_fix_keys(arr);
+					var fixed_array = _utils2.default.arr_fix_keys(arr);
+					return fixed_array;
 				};
 			}, subscribe_to, list_name + '$arr_data.changes'];
 		},
@@ -3312,7 +3431,15 @@ module.exports = {
 			}, prefix + '*/' + fieldname, prefix + '$arr_data.changes'];
 		}
 	}, _defineProperty(_macros, 'join', function join(funcstring) {
-		return ['funnel', _utils2.default.second].concat(funcstring);
+		var f = _utils2.default.second;
+		if (funcstring[0] instanceof Function) {
+			var new_f = funcstring[0];
+			f = function f(a, b) {
+				return new_f(b);
+			};
+			funcstring = funcstring.slice(1);
+		}
+		return ['funnel', f].concat(funcstring);
 	}), _defineProperty(_macros, 'list', function list(funcstring) {
 		var props = funcstring[0];
 		if (!props instanceof Object) {
@@ -3377,8 +3504,8 @@ module.exports = {
 			$no_auto_template: true,
 			$deltas: deltas_func,
 			/*$init: {
-   	$template: "<div>Ololo</div>"
-   },*/
+    $template: "<div>Ololo</div>"
+    },*/
 			'$arr_data': ['nestedClosure', function () {
 				var id = -1;
 				var length = 0;
@@ -3433,12 +3560,12 @@ module.exports = {
 			fnc = [_utils2.default.always(list_own_type)];
 		}
 		return fnc;
-	}), _defineProperty(_macros, 'arr_deltas', function arr_deltas(funcstring) {
+	}), _defineProperty(_macros, 'arrDeltas', function arrDeltas(funcstring) {
 		var cell = funcstring[0];
 		return ['closure', function () {
 			var val = [];
 			return function (new_arr) {
-				var deltas = _utils2.default.arr_deltas(val, new_arr);
+				var deltas = _utils2.default.arrDeltas(val, new_arr);
 				val = new_arr;
 				//console.info('deltas are', deltas);
 				return deltas;
@@ -3550,6 +3677,9 @@ var filter_attr_in_path = function filter_attr_in_path(e, delegateEl) {
 				if (nd === delegateEl) {
 					break;
 				}
+				if (nd === document) {
+					break;
+				}
 				if (nd.getAttribute('data-fr-grid-root')) {
 					return false;
 				}
@@ -3581,13 +3711,16 @@ var filter_attr_in_parents = function filter_attr_in_parents(parent_node, index,
 	}
 };
 var htmlPipeAspects = {
-	attr: function attr(el, _attr) {
-		if (!el) return;
+	attr: function attr(e, _attr) {
+		if (!e) return;
 		/*debugger;
   for(var attrName in attr){
   	el.setAttribute(attrName, attr[attrName]);
   }*/
-		return el.getAttribute(_attr);
+		return e.target.getAttribute(_attr);
+	},
+	files: function files(e) {
+		return e.target.files;
 	}
 };
 
@@ -3604,7 +3737,7 @@ var make_resp1 = function make_resp1(cb, val) {
 };
 
 var make_resp2 = function make_resp2(pipe, cb, e) {
-	var res = e.target;
+	var res;
 	var _iteratorNormalCompletion2 = true;
 	var _didIteratorError2 = false;
 	var _iteratorError2 = undefined;
@@ -3619,7 +3752,7 @@ var make_resp2 = function make_resp2(pipe, cb, e) {
 				console.error('Unknown pipe aspect:', asp);
 				continue;
 			}
-			res = htmlPipeAspects[asp].apply(htmlPipeAspects, [res].concat(_toConsumableArray(pars)));
+			res = htmlPipeAspects[asp].apply(htmlPipeAspects, [e].concat(_toConsumableArray(pars)));
 		}
 	} catch (err) {
 		_didIteratorError2 = true;
@@ -3640,6 +3773,7 @@ var make_resp2 = function make_resp2(pipe, cb, e) {
 };
 
 var toggle_class = function toggle_class(el, clas, val) {
+	if (!el) return;
 	var cls_string = el.getAttribute('class') || '';
 	var cls = cls_string.split(' ');
 	var pos = cls.indexOf(clas);
@@ -3711,6 +3845,36 @@ var trigger_event = function trigger_event(name, element, fakeTarget) {
 	}
 };
 
+var get_handler = function get_handler(event, selector, all_subtree, make_resp) {
+	return function (cb, vals) {
+		if (!vals) return;
+
+		var _vals = _slicedToArray(vals, 2),
+		    $prev_el = _vals[0],
+		    $now_el = _vals[1];
+
+		if (!Firera.is_def($now_el)) return;
+		var prev_el = raw($prev_el);
+		var now_el = raw($now_el);
+		//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+		if (prev_el && prev_el !== Firera.undef) {
+			Gator(prev_el).off(event);
+		}
+		if (!$now_el) {
+			_utils2.default.warn('Assigning handlers to nothing', $now_el);
+		}
+		Gator(now_el).on(event, selector, function (e) {
+			if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+				return;
+			}
+			make_resp(cb, e);
+			if (e.originalEvent && e.originalEvent.target) {
+				trigger_event(event, document, e.originalEvent.target);
+			}
+		});
+	};
+};
+
 module.exports = {
 	eachGridMixin: {
 		'$html_skeleton_changes': ['$real_el']
@@ -3742,8 +3906,8 @@ module.exports = {
 				var selector = matches[2];
 				var all_subtree = false;
 				var func, params;
-				var setters = new Set(['visibility', 'display', 'setval', 'hasClass', 'css', 'setfocus']);
-				var getters = new Set(['getval', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText', 'visibility', 'css', 'display', 'setval']);
+				var setters = new Set(['visibility', 'css', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
+				var getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
 
 				var _get_params = get_params(aspect);
 
@@ -3758,6 +3922,25 @@ module.exports = {
 				}
 				//console.info('Aspect:', aspect, context, params, matches[2]);
 				//if(context === null && setters.has(aspect)) context = 'setter';
+
+				if (aspect === 'mousepressed') {
+					var b = 'bbb';
+					/*
+      *  @TODO!
+      Parser.parse_fexpr([func, [(a) => {
+     	if(!Firera.is_def(a)) return false;
+     	if(!selector) return a;
+     	if(selector === 'other') return a;
+     	a = raw(a);
+     	if(!a){
+     		return a;
+     	}
+     	return a.querySelectorAll(selector);
+     	/*var node = a.find(selector) @todo
+     			.filter(filter_attr_in_parents.bind(null, a));
+     }, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);*/
+				}
+
 				if (!setters.has(aspect) && !getters.has(aspect)) {
 					_utils2.default.error('Aspect "' + aspect + '" not found!');
 					return;
@@ -3773,22 +3956,25 @@ module.exports = {
 
 				switch (aspect) {
 					case 'getval':
-						func = function func(cb, vals) {
+						func = function func(cb, vals, old_val) {
 							var onch = function onch(el) {
 								var type = el.getAttribute('type');
 								var val;
 								if (type == 'checkbox') {
-									val = el.hasAttribute('checked');
+									val = el.checked;
 								} else {
 									val = el.value;
 								}
 								//console.log('CHange', el, val, selector);
-								make_resp(cb, val);
+								if (val !== old_val) {
+									make_resp(cb, val);
+								}
+								old_val = val;
 							};
 
-							var _vals = _slicedToArray(vals, 2),
-							    $prev_el = _vals[0],
-							    $now_el = _vals[1];
+							var _vals2 = _slicedToArray(vals, 2),
+							    $prev_el = _vals2[0],
+							    $now_el = _vals2[1];
 
 							var prev_el = raw($prev_el);
 							var el = raw($now_el);
@@ -3810,7 +3996,10 @@ module.exports = {
 								} else {
 									val = elem.value;
 								}
-								make_resp(cb, val);
+								if (val !== old_val) {
+									make_resp(cb, val);
+								}
+								old_val = val;
 							};
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el.find(selector));
 							if (Firera.is_def($prev_el)) {
@@ -3828,16 +4017,16 @@ module.exports = {
 							func = function func(cb, vals) {
 								if (!vals) return;
 
-								var _vals2 = _slicedToArray(vals, 2),
-								    $prev_el = _vals2[0],
-								    $now_el = _vals2[1];
+								var _vals3 = _slicedToArray(vals, 2),
+								    $prev_el = _vals3[0],
+								    $now_el = _vals3[1];
 
 								$prev_el = raw($prev_el);
 								$now_el = raw($now_el);
 								if (!Firera.is_def($now_el)) return;
 								document.addEventListener('click', function (e) {
 									var ot = e.srcElement || e.originalTarget;
-									var is_other = $now_el.contains(ot);
+									var is_other = !$now_el.contains(ot);
 									if (is_other) {
 										make_resp(cb, true);
 									}
@@ -3847,9 +4036,9 @@ module.exports = {
 							func = function func(cb, vals) {
 								if (!vals) return;
 
-								var _vals3 = _slicedToArray(vals, 2),
-								    $prev_el = _vals3[0],
-								    $now_el = _vals3[1];
+								var _vals4 = _slicedToArray(vals, 2),
+								    $prev_el = _vals4[0],
+								    $now_el = _vals4[1];
 
 								if (!Firera.is_def($now_el)) return;
 								var prev_el = raw($prev_el);
@@ -3861,56 +4050,84 @@ module.exports = {
 								if (!$now_el) {
 									_utils2.default.warn('Assigning handlers to nothing', $now_el);
 								}
-								Gator(now_el).on('click', selector, function (e) {
-									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
-										return;
-									}
-									make_resp(cb, e);
-									if (e.originalEvent && e.originalEvent.target) {
-										trigger_event('click', document, e.originalEvent.target);
-									}
-									e.preventDefault();
-									//return false;
-								});
+								if (!selector) {
+									now_el.addEventListener('click', function (e) {
+										make_resp(cb, e);
+										if (e.originalEvent && e.originalEvent.target) {
+											trigger_event('click', document, e.originalEvent.target);
+										}
+										e.preventDefault();
+									});
+								} else {
+									Gator(now_el).on('click', selector, function (e) {
+										if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+											return;
+										}
+										make_resp(cb, e);
+										if (e.originalEvent && e.originalEvent.target) {
+											trigger_event('click', document, e.originalEvent.target);
+										}
+										e.preventDefault();
+										//return false;
+									});
+								}
 							};
 						}
 						break;
-					case 'dblclick':
-						func = function func(cb, vals) {
-							if (!vals) return;
-
-							var _vals4 = _slicedToArray(vals, 2),
-							    $prev_el = _vals4[0],
-							    $now_el = _vals4[1];
-
-							if (!Firera.is_def($now_el)) return;
-							var prev_el = raw($prev_el);
-							var now_el = raw($now_el);
-							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
-							if (prev_el && prev_el !== Firera.undef) {
-								Gator(prev_el).off('dblclick');
-							}
-							if (!$now_el) {
-								_utils2.default.warn('Assigning handlers to nothing', $now_el);
-							}
-							Gator(now_el).on('dblclick', selector, function (e) {
-								if (!all_subtree && !filter_attr_in_path(e, now_el)) {
-									return;
-								}
-								make_resp(cb, e);
-								if (e.originalEvent && e.originalEvent.target) {
-									trigger_event('dblclick', document, e.originalEvent.target);
-								}
-							});
-						};
-						break;
-					case 'focus':
+					case 'keyup':
 						func = function func(cb, vals) {
 							if (!vals) return;
 
 							var _vals5 = _slicedToArray(vals, 2),
 							    $prev_el = _vals5[0],
 							    $now_el = _vals5[1];
+
+							if (!Firera.is_def($now_el)) return;
+							var prev_el = raw($prev_el);
+							var now_el = raw($now_el);
+							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
+							if (prev_el && prev_el !== Firera.undef) {
+								Gator(prev_el).off('keyup');
+							}
+							if (!$now_el) {
+								_utils2.default.warn('Assigning handlers to nothing', $now_el);
+							}
+							if (!selector) {
+								now_el.addEventListener('keyup', function (e) {
+									make_resp(cb, e.srcElement.value);
+									if (e.originalEvent && e.originalEvent.target) {
+										trigger_event('click', document, e.originalEvent.target);
+									}
+									e.preventDefault();
+								});
+							} else {
+								Gator(now_el).on('keyup', selector, function (e) {
+									if (!all_subtree && !filter_attr_in_path(e, now_el)) {
+										return;
+									}
+									make_resp(cb, e.srcElement.value);
+									if (e.originalEvent && e.originalEvent.target) {
+										trigger_event('keyup', document, e.originalEvent.target);
+									}
+									e.preventDefault();
+									//return false;
+								});
+							}
+						};
+						break;
+					case 'dblclick':
+						func = get_handler('dblclick', selector, all_subtree, make_resp);
+						break;
+					case 'change':
+						func = get_handler('change', selector, all_subtree, make_resp);
+						break;
+					case 'focus':
+						func = function func(cb, vals) {
+							if (!vals) return;
+
+							var _vals6 = _slicedToArray(vals, 2),
+							    $prev_el = _vals6[0],
+							    $now_el = _vals6[1];
 
 							if (!Firera.is_def($now_el)) return;
 							if ($prev_el) {
@@ -3926,13 +4143,35 @@ module.exports = {
 							});
 						};
 						break;
+					case 'blur':
+						func = function func(cb, vals) {
+							if (!vals) return;
+
+							var _vals7 = _slicedToArray(vals, 2),
+							    $prev_el = _vals7[0],
+							    $now_el = _vals7[1];
+
+							if (!Firera.is_def($now_el)) return;
+							if ($prev_el) {
+								// @todo
+							}
+							var el = raw($now_el);
+							Gator(el).on('blur', selector, function (e) {
+								if (!all_subtree && !filter_attr_in_path(e, el)) {
+									return;
+								}
+								make_resp(cb, e);
+								return false;
+							});
+						};
+						break;
 					case '':
 						func = function func(cb, vals) {
 							if (!vals) return;
 
-							var _vals6 = _slicedToArray(vals, 2),
-							    $prev_el = _vals6[0],
-							    $now_el = _vals6[1];
+							var _vals8 = _slicedToArray(vals, 2),
+							    $prev_el = _vals8[0],
+							    $now_el = _vals8[1];
 
 							if (!Firera.is_def($now_el)) return;
 							make_resp(cb, $now_el.querySelectorAll(selector));
@@ -3942,9 +4181,9 @@ module.exports = {
 						func = function func(cb, vals) {
 							if (!vals) return;
 
-							var _vals7 = _slicedToArray(vals, 2),
-							    $prev_el = _vals7[0],
-							    $now_el = _vals7[1];
+							var _vals9 = _slicedToArray(vals, 2),
+							    $prev_el = _vals9[0],
+							    $now_el = _vals9[1];
 
 							if (!Firera.is_def($now_el)) return;
 							if ($prev_el) {
@@ -3965,9 +4204,9 @@ module.exports = {
 						break;
 					case 'press':
 						func = function func(cb, vals) {
-							var _vals8 = _slicedToArray(vals, 2),
-							    prev_el = _vals8[0],
-							    now_el = _vals8[1];
+							var _vals10 = _slicedToArray(vals, 2),
+							    prev_el = _vals10[0],
+							    now_el = _vals10[1];
 
 							if (!Firera.is_def(now_el)) return;
 							//console.log('Assigning handlers for ', cellname, arguments, $now_el);
@@ -3975,18 +4214,27 @@ module.exports = {
 								//$prev_el.off('keyup', selector);
 							}
 							now_el = raw(now_el);
-							Gator(now_el).on('keyup', selector, function (e) {
+							var btn_map = {
+								'13': 'Enter',
+								'27': 'Esc',
+								'38': 'Up',
+								'40': 'Down',
+								'37': 'Left',
+								'39': 'Right'
+							};
+							var onkeyup = function onkeyup(e) {
 								if (!all_subtree && !filter_attr_in_path(e, now_el)) {
 									return;
 								}
-								var btn_map = {
-									'13': 'Enter',
-									'27': 'Esc'
-								};
 								if (params.indexOf(btn_map[e.keyCode]) !== -1) {
 									make_resp(cb, e);
 								}
-							});
+							};
+							if (selector) {
+								Gator(now_el).on('keyup', selector, onkeyup);
+							} else {
+								now_el.addEventListener('keyup', onkeyup);
+							}
 						};
 						break;
 					case 'hasClass':
@@ -4004,11 +4252,31 @@ module.exports = {
 							toggle_class($el, classname, val);
 						};
 						break;
+					case 'hasAttr':
+						func = function func($el, val) {
+							if (!Firera.is_def($el)) return;
+							if (!Firera.is_def(val)) {
+								val = false;
+							}
+							$el = raw($el);
+							if (!$el) return;
+
+							var _params5 = params,
+							    _params6 = _slicedToArray(_params5, 1),
+							    attrname = _params6[0];
+
+							if (val) {
+								$el.setAttribute(attrname, true);
+							} else {
+								$el.removeAttribute(attrname);
+							}
+						};
+						break;
 					case 'enterText':
 						func = function func(cb, vals) {
-							var _vals9 = _slicedToArray(vals, 2),
-							    $prev_el = _vals9[0],
-							    $now_el = _vals9[1];
+							var _vals11 = _slicedToArray(vals, 2),
+							    $prev_el = _vals11[0],
+							    $now_el = _vals11[1];
 
 							if (!$now_el) return;
 							if ($prev_el) {
@@ -4029,7 +4297,7 @@ module.exports = {
 						break;
 					case 'visibility':
 						func = function func(el, val) {
-							if (!Firera.is_def(el)) {
+							if (Firera.is_falsy(el)) {
 								return;
 							}
 							if (val === undefined) {
@@ -4044,10 +4312,10 @@ module.exports = {
 						};
 						break;
 					case 'css':
-						var _params5 = params,
-						    _params6 = _slicedToArray(_params5, 2),
-						    property = _params6[0],
-						    unit = _params6[1];
+						var _params7 = params,
+						    _params8 = _slicedToArray(_params7, 2),
+						    property = _params8[0],
+						    unit = _params8[1];
 
 						if (unit) {
 							unit = unit.trim();
@@ -4061,13 +4329,57 @@ module.exports = {
 							}
 						};
 						break;
-					case 'display':
+					case 'html':
 						func = function func(el, val) {
-							if (!Firera.is_def(el) || val === undefined) {
+							el = raw(el);
+							if (Firera.is_falsy(el)) {
 								return;
 							}
+							if (el instanceof NodeList) {
+								var _iteratorNormalCompletion4 = true;
+								var _didIteratorError4 = false;
+								var _iteratorError4 = undefined;
 
+								try {
+									for (var _iterator4 = el[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+										var elem = _step4.value;
+
+										elem.innerHTML = val;
+									}
+								} catch (err) {
+									_didIteratorError4 = true;
+									_iteratorError4 = err;
+								} finally {
+									try {
+										if (!_iteratorNormalCompletion4 && _iterator4.return) {
+											_iterator4.return();
+										}
+									} finally {
+										if (_didIteratorError4) {
+											throw _iteratorError4;
+										}
+									}
+								}
+							} else {
+								el.innerHTML = val;
+							}
+						};
+						break;
+					case 'setfocus':
+						func = function func(el, val) {
 							el = raw(el);
+							el.focus();
+						};
+						break;
+					case 'display':
+						func = function func(el, val) {
+							if (Firera.is_falsy(el) || val === undefined) {
+								return;
+							}
+							el = raw(el);
+							if (Firera.is_falsy(el)) {
+								return;
+							}
 							if (val) {
 								el.style.display = 'block';
 							} else {
@@ -4080,12 +4392,45 @@ module.exports = {
 							if (!Firera.is_def(el) || !Firera.is_def(val)) {
 								return;
 							}
-							el = raw(el);
-							el.value = val;
+							var _iteratorNormalCompletion5 = true;
+							var _didIteratorError5 = false;
+							var _iteratorError5 = undefined;
+
+							try {
+								for (var _iterator5 = el[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+									var element = _step5.value;
+
+									var type = element.getAttribute('type');
+									switch (type) {
+										case 'radio':
+											if (element.value == val) {
+												element.checked = true;
+											} else {
+												element.checked = false;
+											}
+											break;
+										default:
+											element.value = val;
+											break;
+									}
+								}
+							} catch (err) {
+								_didIteratorError5 = true;
+								_iteratorError5 = err;
+							} finally {
+								try {
+									if (!_iteratorNormalCompletion5 && _iterator5.return) {
+										_iterator5.return();
+									}
+								} finally {
+									if (_didIteratorError5) {
+										throw _iteratorError5;
+									}
+								}
+							}
 						};
 						break;
 					default:
-						debugger;
 						throw new Error('unknown HTML aspect: =' + aspect + '=');
 						break;
 				}
@@ -4106,7 +4451,55 @@ module.exports = {
 					_Parser2.default.parse_fexpr(['asyncClosure', function () {
 						var el;
 						return function (cb, val) {
-							func(cb, [el, val]);
+							var old_val;
+							switch (aspect) {
+								case 'getval':
+									var element = val.querySelector(selector);
+									if (element) {
+										var type = element.getAttribute('type');
+										var vl;
+										if (type == 'checkbox') {
+											vl = element.checked;
+										} else if (type == 'radio') {
+											var elements = val.querySelectorAll(selector);
+											var _iteratorNormalCompletion6 = true;
+											var _didIteratorError6 = false;
+											var _iteratorError6 = undefined;
+
+											try {
+												for (var _iterator6 = elements[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+													var _el = _step6.value;
+
+													if (_el.checked) {
+														vl = _el.value;
+														break;
+													}
+												}
+											} catch (err) {
+												_didIteratorError6 = true;
+												_iteratorError6 = err;
+											} finally {
+												try {
+													if (!_iteratorNormalCompletion6 && _iterator6.return) {
+														_iterator6.return();
+													}
+												} finally {
+													if (_didIteratorError6) {
+														throw _iteratorError6;
+													}
+												}
+											}
+										} else {
+											vl = element.value;
+										}
+										old_val = vl;
+										make_resp(cb, vl);
+									}
+									break;
+								default:
+									break;
+							}
+							func(cb, [el, val], old_val);
 							el = val;
 						};
 					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);
@@ -4132,21 +4525,45 @@ var closest_templates = {};
 
 var raw = _utils2.default.raw;
 
-var parse_rec = function parse_rec(app, grid_id, cell) {
+var parse_rec = function parse_rec(app, grid_id, cells) {
 	var grid = app.getGrid(grid_id);
 	var res = {
-		val: grid.cell_values[cell],
 		grid_id: grid_id,
 		children: {}
 	};
+	var _iteratorNormalCompletion = true;
+	var _didIteratorError = false;
+	var _iteratorError = undefined;
+
+	try {
+		for (var _iterator = cells[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+			var cell = _step.value;
+
+			res[cell] = grid.cell_values[cell];
+		}
+	} catch (err) {
+		_didIteratorError = true;
+		_iteratorError = err;
+	} finally {
+		try {
+			if (!_iteratorNormalCompletion && _iterator.return) {
+				_iterator.return();
+			}
+		} finally {
+			if (_didIteratorError) {
+				throw _iteratorError;
+			}
+		}
+	}
+
 	for (var gridname in grid.linked_grids) {
 		var gr_id = grid.linked_grids[gridname];
-		res.children[gridname] = parse_rec(app, gr_id, cell);
+		res.children[gridname] = parse_rec(app, gr_id, cells);
 	}
 	return res;
 };
 var is_list_without_templates = function is_list_without_templates(struct) {
-	return Object.keys(struct.children).length && !struct.children[0].val;
+	return Object.keys(struct.children).length && !struct.children[0].$template;
 };
 
 var get_arr_val = function get_arr_val(app, grid_id) {
@@ -4157,10 +4574,10 @@ var get_arr_val = function get_arr_val(app, grid_id) {
 var render_rec = function render_rec(app, struct, closest_existing_template_path, skip) {
 	var grid = app.getGrid(struct.grid_id);
 	_utils2.default.init_if_empty(rendered, app.id, {}, grid.id, true);
-	if (struct.val) {
+	if (struct.$template) {
 		var context = Object.assign({}, grid.cell_values);
 		_utils2.default.init_if_empty(templates, app.id, {});
-		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.val);
+		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.$template);
 
 		for (var key in struct.children) {
 			if (is_list_without_templates(struct.children[key])) {
@@ -4172,6 +4589,17 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 		}
 		return struct.tmpl.getHTML(context);
 	} else {
+		if (struct.$el) {
+			// just ready HTML
+			_utils2.default.init_if_empty(templates, app.id, {});
+			templates[app.id][grid.path] = {
+				fake: true,
+				$el: struct.$el,
+				set: function set(a, b) {
+					//console.log('FAKE set', a, b);
+				}
+			};
+		}
 
 		if (!skip) {
 			var _res = [];
@@ -4184,13 +4612,13 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 			var path0 = grid.path.replace(closest_existing_template_path, '/');
 			var p0 = path0.split('/');
 			var res = '';
-			var _iteratorNormalCompletion = true;
-			var _didIteratorError = false;
-			var _iteratorError = undefined;
+			var _iteratorNormalCompletion2 = true;
+			var _didIteratorError2 = false;
+			var _iteratorError2 = undefined;
 
 			try {
-				for (var _iterator = p0[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-					var p = _step.value;
+				for (var _iterator2 = p0[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+					var p = _step2.value;
 
 					if (p === '') continue;
 					if (Number(p) == p) {
@@ -4201,16 +4629,16 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 				}
 				//console.log('R', res);
 			} catch (err) {
-				_didIteratorError = true;
-				_iteratorError = err;
+				_didIteratorError2 = true;
+				_iteratorError2 = err;
 			} finally {
 				try {
-					if (!_iteratorNormalCompletion && _iterator.return) {
-						_iterator.return();
+					if (!_iteratorNormalCompletion2 && _iterator2.return) {
+						_iterator2.return();
 					}
 				} finally {
-					if (_didIteratorError) {
-						throw _iteratorError;
+					if (_didIteratorError2) {
+						throw _iteratorError2;
 					}
 				}
 			}
@@ -4237,7 +4665,7 @@ var set_bindings_rec = function set_bindings_rec(app, struct, el, is_root, skip)
 		}
 		grid.set('$real_el', el);
 		for (var key in struct.children) {
-			var _el = struct.tmpl.bindings[key];
+			var _el = get_binding(struct.tmpl, key);
 			if (_el) {
 				set_bindings_rec(app, struct.children[key], _el, false, true);
 			}
@@ -4247,18 +4675,34 @@ var set_bindings_rec = function set_bindings_rec(app, struct, el, is_root, skip)
 			grid.set('$real_el', el);
 			el.setAttribute('data-fr-grid-root', 1);
 		}
-		for (var _key3 in el.children) {
-			if (el.children.hasOwnProperty(_key3) && struct.children[_key3]) {
-				set_bindings_rec(app, struct.children[_key3], el.children[_key3], true, !skip);
+		for (var ch in struct.children) {
+			var child_el;
+			var child_skip = !skip;
+			if (!el) {
+				return;
 			}
+			if (Number(ch) == ch) {
+				// int
+				child_el = el.children[ch];
+			} else {
+				child_el = document.querySelector('[data-fr=' + ch + ']', el);
+				child_skip = false;
+			}
+			set_bindings_rec(app, struct.children[ch], child_el, true, child_skip);
 		}
+		/*for(let key in el.children){
+  	if(el.children.hasOwnProperty(key) && struct.children[key]){
+  		set_bindings_rec(app, struct.children[key], el.children[key], true, !skip);
+  	}
+  }*/
 	}
 };
 var render = function render(app, start, node) {
-	var struct = parse_rec(app, start.id, '$template');
+	var struct = parse_rec(app, start.id, ['$template', '$el']);
 	var html = render_rec(app, struct);
-	if (!node) debugger;
-	node.innerHTML = html;
+	if (html !== '') {
+		node.innerHTML = html;
+	}
 	set_bindings_rec(app, struct, node);
 	//console.log('html', html);
 };
@@ -4272,7 +4716,13 @@ var get_template = function get_template(app, path) {
 };
 
 var get_binding = function get_binding(template, name) {
-	return template.bindings[name];
+	if (template instanceof Firera.Ozenfant) {
+		return template.bindings[name];
+	} else {
+		var bnd = template.$el.querySelector('[data-fr=' + name + ']');
+		// @refactor! too much searches
+		return bnd;
+	}
 };
 
 var container;
@@ -4346,9 +4796,12 @@ module.exports = {
 		}
 		if (rendered[app.id] && rendered[app.id][parent]) {
 			var parent_path = app.getGrid(parent).path;
+			if (!templates[app.id]) {
+				templates[app.id] = {};
+			}
 			var parent_tmpl = templates[app.id][parent_path];
 			if (parent_tmpl) {
-				var _node = parent_tmpl.bindings[self.name];
+				var _node = get_binding(parent_tmpl, self.name);
 				if (!_node) {
 					console.error('No binding found for', self.name, 'in path', parent_path);
 					return;
@@ -4357,13 +4810,20 @@ module.exports = {
 			} else {
 				// it's a list
 				var parpar_template = get_template(app, get_parent_grid(app, parent).path);
-				var parpar_binding = get_binding(parpar_template, app.getGrid(parent).name);
-				if (!parpar_binding) {
-					console.log('parent binding is absent!', get_parent_grid(app, parent).path);
+				if (!parpar_template) {
 					return;
 				}
-				var struct = parse_rec(app, grid_id, '$template');
+				var parpar_binding = get_binding(parpar_template, app.getGrid(parent).name);
+				if (!parpar_binding) {
+					//console.log('parent binding is absent!', get_parent_grid(app, parent).path);
+					return;
+				}
+				var struct = parse_rec(app, grid_id, ['$template', '$el']);
 				var html = render_rec(app, struct);
+				if (html === '') {
+					console.warn('Empty $template!');
+					return;
+				}
 				var _node2 = get_root_node_from_html(html);
 				//parpar_binding.insertAdjacentHTML("beforeend", html);
 				parpar_binding.appendChild(_node2);
@@ -4533,21 +4993,47 @@ _F.throttle = function (thunk, time) {
 		var _arguments = arguments;
 
 		if (!is_throttled) {
-			//console.log('run!');
+			//console.log('run!', arguments);
 			thunk.apply(null, arguments);
 			is_throttled = true;
 			setTimeout(function () {
 				is_throttled = false;
 				if (pending) {
-					//console.log('run pending!');
+					//console.log('run pending!', arguments);
 					thunk.apply(null, _arguments);
 					pending = false;
 				}
 			}, time);
 		} else {
-			//console.log('skip!');
+			//console.log('skip!', arguments);
 			pending = true;
 		}
+	};
+};
+_F.closureThrottle = function (thunk, time) {
+	return function () {
+		var is_throttled = false;
+		var pending = false;
+		var args;
+		return function () {
+			args = arguments;
+			if (!is_throttled) {
+				//console.log('run!', arguments);
+				thunk.apply(null, args);
+				is_throttled = true;
+				setTimeout(function () {
+					is_throttled = false;
+					if (pending) {
+						//console.log('run pending!', args);
+						thunk.apply(null, args);
+						pending = false;
+					}
+				}, time);
+			} else {
+				//console.log('skip!', args);
+				pending = true;
+			}
+		};
 	};
 };
 
@@ -4602,6 +5088,11 @@ _F.not = function (a) {
 _F.ids = function () {
 	return arguments;
 };
+_F.prop = function (name) {
+	return function (a) {
+		return a instanceof Object ? a[name] : null;
+	};
+};
 _F.ifelse = function (cb) {
 	var onTrue = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 	var onFalse = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
@@ -4609,6 +5100,10 @@ _F.ifelse = function (cb) {
 	return function (val) {
 		return cb(val) ? onTrue : onFalse;
 	};
+};
+
+_F.debugger = function () {
+	debugger;
 };
 
 _F.toLocalStorage = function (key) {
@@ -4657,7 +5152,7 @@ _F.arr_common = function (arr1, arr2, cb) {
 	}
 };
 
-_F.arr_deltas = function (old_arr, new_arr) {
+_F.arrDeltas = function (old_arr, new_arr) {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, function (v, k) {
@@ -4868,7 +5363,28 @@ _F.error = function (str) {
 		console.error(str);
 	}
 };
-
+// toString'able version of native bind
+_F.toStringable = function (func) {
+	return func.toString() !== 'function () { [native code] }';
+};
+/* to finish
+_F.bind = function(func, ...args){
+	if(!_F.toStringable(func)){
+		throw new Error('Cannot bind native code function');
+	}
+	const f = func.toString();
+	const fargs = f.match(/\(([^\(]*)\)/)[1].split(',').each((a) => a.trim());
+	const fixed_args = [];
+	for(let i in fargs){
+		if(args[i] !== undefined){
+			fixed_args.push('var ' + fargs[i] + ' = ')
+		}
+	}
+	console.log('Fargs', fargs);
+	
+	return new Function();
+}
+*/
 _F.copy = function (from, to) {
 	for (var i in from) {
 		to.push(from[i]);
@@ -4881,6 +5397,13 @@ _F.kcopy = function (from, to) {
 };
 _F.last = function (arr) {
 	return arr[arr.length - 1];
+};
+_F.logger = function (func, msg) {
+	return function () {
+		var res = func.apply(this, arguments);
+		console.log(':::', msg, arguments, res);
+		return res;
+	};
 };
 module.exports = _F;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
@@ -4900,7 +5423,6 @@ var get_token = function get_token(type) {
 	};
 };
 var match_start = function match_start() {};
-
 var empty_chars_default = [' ', '	', '\n'];
 var head = function head(a) {
 	return a[0];
@@ -5023,7 +5545,6 @@ var parse = function parse(config, str, debug) {
 						var lag = 0;
 						while (++pos) {
 							var char = str[pos - 1];
-							//console.log('parsing free chars', '"' + char + '"', 'as', tt);
 							if (char === undefined) {
 								// we reached the end!
 								if (pos - start_pos > 1) {
@@ -5035,7 +5556,8 @@ var parse = function parse(config, str, debug) {
 								}
 								//return [res, pos + 1];
 							}
-							if (is_empty_char(char) && !started && !tk.can_start_with_space) {
+							//console.log('parsing free chars', '"' + char + '"', 'as', tt);
+							if (is_empty_char(char) && !started) {
 								++lag;
 								continue;
 							}
@@ -5047,7 +5569,7 @@ var parse = function parse(config, str, debug) {
 									var string_to_compare = str.substr(start_pos + lag, pos - start_pos - lag);
 									var a1 = !!char.match(tk.regex);
 									var a2 = !!string_to_compare.match(tk.regex);
-									//console.log('matching regex', tt, tk.regex, 'against', char, a1, string_to_compare, a2);
+									//console.log('matching regex', tk.regex, 'against', string_to_compare, a1, started);
 									//if(a1 !== a2){
 									//console.log('Comparing', start_pos, a1, a2, tt, '"' + char + '"', 'vs.', '"' + string_to_compare + '".match(' + tk.regex + ')');
 									//}
@@ -5072,14 +5594,12 @@ var parse = function parse(config, str, debug) {
 				} else if (tk.str) {
 					// just exact string
 					var test_str = str.substr(pos, tk.str.length);
-					//console.log('test str', test_str, tt)
 					if (test_str === tk.str) {
 						return [res, pos + tk.str.length];
 					} else {
 						return [false, pos];
 					}
 				} else {
-					debugger;
 					console.warn('No chars and no tokens - what to do?', tk);
 				}
 			}
@@ -5317,6 +5837,12 @@ module.exports = {
 			}, {
 				type: 'variable',
 				optional: true
+			}, 'optional'], ['|', {
+				type: 'quoted_str',
+				optional: true
+			}, {
+				type: 'variable',
+				optional: true
 			}, 'optional'], {
 				type: 'bracket',
 				optional: true
@@ -5324,7 +5850,7 @@ module.exports = {
 				type: 'loop',
 				optional: true
 			}, {
-				type: 'str',
+				type: 'trim',
 				optional: true
 			}]], {
 				type: 'lineend'
@@ -5393,6 +5919,11 @@ module.exports = {
 			regex: /^(\t|\s)+$/,
 			free_chars: true
 		},
+		trim: {
+			can_start_with_space: true,
+			regex: /^[\t ]*$/,
+			free_chars: true
+		},
 		classnames: {
 			regex: /^\.[\\.a-zA-Z0-9\-\_]*$/,
 			free_chars: true
@@ -5416,71 +5947,81 @@ module.exports = {
 	},
 	semantics: {
 		root_token: {
-			func: function func(struct, parser) {
-
-				var res = { children: [] };
-				var last_of_level = {
-					"-1": res
-				};
-				var che_results = parser(struct.children);
-				//console.log('Results', che_results);
-				var max_level = 0;
-				var last_if = [];
-				for (var i in che_results) {
-					var child = che_results[i];
-					if (!child.tagname && !child.classnames && !child.quoted_str && !child.variable && !child.type) {
-						continue;
-					}
-					if (child.type === 'IF') {
-						last_if.push(child);
-					}
-					if (child.type === 'ELSE') {
-						var lif = last_if.pop();
-						lif.else_children = child;
-					}
-					var lvl = child.level || 0;
-					if (lvl > max_level) {
-						max_level = lvl;
-					}
-					var put_to = lvl - 1;
-					child.children = [];
-					if (!last_of_level[put_to]) {
-						for (; put_to--; put_to > -2) {
-							if (last_of_level[put_to]) break;
+			func: function () {
+				var nestedComponentCount = 0;
+				return function (struct, parser) {
+					var res = { children: [] };
+					var last_of_level = {
+						"-1": res
+					};
+					var che_results = parser(struct.children);
+					//console.log('Results', che_results);
+					var max_level = 0;
+					var last_if = [];
+					for (var i in che_results) {
+						var child = che_results[i];
+						if (child.tagname && child.tagname.slice(0, 1).toLowerCase() !== child.tagname.slice(0, 1)) {
+							child.component = {
+								name: child.tagname
+							};
+							child.varname = '@nestedComponent' + ++nestedComponentCount;
+							child.tagname = 'div';
 						}
-						if (!last_of_level[put_to]) {
+						if (!child.tagname && !child.classnames && !child.quoted_str && !child.variable && !child.type) {
 							continue;
 						}
-					}
-					// way back
-					for (var y = i; y >= 0; y--) {
-						if (che_results[y].level < lvl) {
-							//console.log('PUT TO', che_results[y], che_results[y].level);
-							break;
+						if (child.type === 'IF') {
+							last_if.push(child);
+						}
+						if (child.type === 'ELSE') {
+							var lif = last_if.pop();
+							lif.else_children = child;
+						}
+						var lvl = child.level || 0;
+						if (lvl > max_level) {
+							max_level = lvl;
+						}
+						var put_to = lvl - 1;
+						child.children = [];
+						if (!last_of_level[put_to]) {
+							for (; put_to--; put_to > -2) {
+								if (last_of_level[put_to]) break;
+							}
+							if (!last_of_level[put_to]) {
+								continue;
+							}
+						}
+						// way back
+						for (var y = i; y >= 0; y--) {
+							if (che_results[y].level < lvl) {
+								//console.log('PUT TO', che_results[y], che_results[y].level);
+								break;
+							}
+						}
+						var parent1 = last_of_level[put_to];
+						var parent2 = che_results[y];
+						if (!che_results[y]) {
+							parent2 = res;
+						}
+						if (parent1 !== parent2) {
+							//console.log('o-ow', parent1, parent2, child);
+						}
+						parent2.children.push(child);
+						console.log('Got child', child);
+						last_of_level[lvl] = child;
+						if (lvl + 1 < max_level) {
+							//console.log('lvl', lvl+1, max_level);
+							var j = lvl + 1;
+							for (var j = lvl + 1; j <= max_level; j++) {
+								if (!last_of_level[j]) break;
+								//console.log('delete', last_of_level[j]);
+								delete last_of_level[j];
+							}
 						}
 					}
-					var parent1 = last_of_level[put_to];
-					var parent2 = che_results[y];
-					if (!che_results[y]) {
-						parent2 = res;
-					}
-					if (parent1 !== parent2) {
-						//console.log('o-ow', parent1, parent2, child);
-					}
-					parent2.children.push(child);
-					last_of_level[lvl] = child;
-					if (lvl + 1 < max_level) {
-						//console.log('lvl', lvl+1, max_level);
-						var j = lvl + 1;
-						for (var j = lvl + 1; j <= max_level; j++) {
-							if (!last_of_level[j]) break;
-							//console.log('delete', last_of_level[j]);
-							delete last_of_level[j];
-						}
-					}
-				}
-				return res.children;
-			}
+					return res.children;
+				};
+			}()
 		},
 		item: {
 			func: function func(struct, parser) {
@@ -5522,7 +6063,11 @@ module.exports = {
 								res.level = count_indent(child.chars, child);
 								break;
 							case 'loop':
-								res.loop = child.chars.match(/\{\$([^\}]*)\}/)[1];
+								var loopvn = child.chars.match(/\{\$([^\}]*)\}/);
+								if (!loopvn) {
+									throw new Error('Ozenfant: Wrong loop var name: ' + child.chars + ', should match /\{\$([^\}]*)\}/');
+								}
+								res.loop = loopvn[1];
 								//console.log('INDEX', res.level);
 								break;
 							case 'bracket':
@@ -5538,7 +6083,7 @@ module.exports = {
 										if (child1.type === 'assign') {
 											var assign = child1.chars.split(':');
 											var key = assign[0].trim();
-											var val = assign[1].trim();
+											var val = assign[1] ? assign[1].trim() : '';
 											if (val[0] === '$') {
 												// its var
 												var varname = val.length === 1 ? key : val.substr(1);
@@ -5642,7 +6187,7 @@ var toggle_class = function toggle_class(el, clas, val) {
 	}
 };
 
-var html_attrs = new Set(["accept", "accept-charset", "accesskey", "action", "align", "alt", "async", "autocomplete", "autofocus", "autoplay", "autosave", "bgcolor", "border", "buffered", "challenge", "charset", "checked", "cite", "class", "code", "codebase", "color", "cols", "colspan", "content", "contenteditable", "contextmenu", "controls", "coords", "data", "data-*", "datetime", "default", "defer", "dir", "dirname", "disabled", "download", "draggable", "dropzone", "enctype", "for", "form", "formaction", "headers", "height", "hidden", "high", "href", "hreflang", "http-equiv", "icon", "id", "integrity", "ismap", "itemprop", "keytype", "kind", "label", "lang", "language", "list", "loop", "low", "manifest", "max", "maxlength", "media", "method", "min", "multiple", "muted", "name", "novalidate", "open", "optimum", "pattern", "ping", "placeholder", "poster", "preload", "radiogroup", "readonly", "rel", "required", "reversed", "rows", "rowspan", "sandbox", "scope", "scoped", "seamless", "selected", "shape", "size", "sizes", "slot", "span", "spellcheck", "src", "srcdoc", "srclang", "srcset", "start", "step", "style", "summary", "tabindex", "target", "title", "type", "usemap", "value", "width", "wrap"]);
+var html_attrs = new Set(["accept", "accept-charset", "accesskey", "action", "align", "alt", "async", "autocomplete", "autofocus", "autoplay", "autosave", "bgcolor", "border", "buffered", "challenge", "charset", "checked", "cite", "class", "code", "codebase", "color", "cols", "colspan", "content", "contenteditable", "contextmenu", "controls", "coords", "data", "data-*", "datetime", "default", "defer", "dir", "dirname", "disabled", "download", "draggable", "dropzone", "enctype", "for", "form", "formaction", "headers", "hidden", "high", "href", "hreflang", "http-equiv", "icon", "id", "integrity", "ismap", "itemprop", "keytype", "kind", "label", "lang", "language", "list", "loop", "low", "manifest", "max", "maxlength", "media", "method", "min", "multiple", "muted", "name", "novalidate", "open", "optimum", "pattern", "ping", "placeholder", "poster", "preload", "radiogroup", "readonly", "rel", "required", "reversed", "rows", "rowspan", "sandbox", "scope", "scoped", "seamless", "selected", "shape", "size", "sizes", "slot", "span", "spellcheck", "src", "srcdoc", "srclang", "srcset", "start", "step", "style", "summary", "tabindex", "target", "title", "type", "usemap", "value", "wrap"]);
 var is_attr = function is_attr(str) {
 	return html_attrs.has(str) || str.match(/^data\-/);
 };
@@ -5669,6 +6214,7 @@ var Ozenfant = function Ozenfant(str) {
 		this.varname_pool = this.struct.varname_pool;
 		this.if_else_tree = this.struct.if_else_tree;
 		this.loop_pool = this.struct.loop_pool;
+		this.var_funcs = this.struct.var_funcs;
 		this.str = this.struct.str;
 	} else {
 		this.str = str;
@@ -5684,11 +6230,12 @@ var Ozenfant = function Ozenfant(str) {
 		this.func = create_func(toFunc({ children: this.struct.semantics }));
 		this.if_else_tree = { str_to_func: {}, var_funcs: {} };
 		this.loop_pool = {};
-		this.get_vars({ children: this.struct.semantics, root: true }
-		//, this.node_vars_paths
-		//, this.text_vars_paths
-		//, this.nodes_vars
-		, '.', this.var_types, [], []
+		this.var_funcs = {};
+		this.get_vars({ children: this.struct.semantics, root: true
+			//, this.node_vars_paths
+			//, this.text_vars_paths
+			//, this.nodes_vars
+		}, '.', this.var_types, []
 		//, this.varname_pool
 		//, this.if_else_tree
 		, []
@@ -5713,7 +6260,13 @@ var create_func = function create_func(str, condition, loop_level) {
 		}
 	}
 	var fbody = 'var res = []; var res2 = []; res.push(' + body + '); return res.join("");';
-	return new Function(args, fbody);
+	try {
+		var f = new Function(args, fbody);
+		return f;
+	} catch (e) {
+		console.error('Cannot create function', body);
+		return new Function('', '');
+	}
 };
 
 Ozenfant.prepare = function (str) {
@@ -5722,6 +6275,7 @@ Ozenfant.prepare = function (str) {
 	struct.text_vars_paths = {};
 	struct.nodes_vars = {};
 	struct.var_types = {};
+	struct.var_funcs = {};
 	struct.varname_pool = {
 		vars: {},
 		var_aliases: {}
@@ -5731,11 +6285,11 @@ Ozenfant.prepare = function (str) {
 	struct.if_else_tree = { str_to_func: {}, var_funcs: {} };
 	struct.loop_pool = {};
 	struct.str = str;
-	struct.get_vars({ children: struct.semantics, root: true }
-	//, struct.node_vars_paths
-	//, struct.text_vars_paths
-	//, struct.nodes_vars
-	, '.', struct.var_types, [], []
+	struct.get_vars({ children: struct.semantics, root: true
+		//, struct.node_vars_paths
+		//, struct.text_vars_paths
+		//, struct.nodes_vars
+	}, '.', struct.var_types, []
 	//, struct.varname_pool
 	//, struct.if_else_tree
 	, []
@@ -5757,23 +6311,38 @@ var get_varname = function get_varname(node) {
 	return key;
 };
 
-var get_dots = function get_dots(loop_level) {
-	return new Array(loop_level + 2).join('.');
+var symb = '_';
+
+var get_loop_varname = function get_loop_varname(loop_level, varname) {
+	var n = new Array(loop_level).join(symb) + varname;
+	return n;
 };
-var get_level = function get_level(varname) {
-	var level = 0;
-	for (var i in varname) {
-		if (varname[i] === '.') {
-			++level;
+
+var test_loop_varname = function test_loop_varname(varname) {
+	return varname[0] === symb;
+};
+
+var parse_loop_varname = function parse_loop_varname(varname) {
+	var dot_counter = 0;
+	for (var cp in varname) {
+		if (varname[cp] === symb) {
+			++dot_counter;
+		} else {
+			break;
 		}
 	}
-	return level - 1;
+	return { name: varname.substr(dot_counter), level: dot_counter };
 };
 
 var prefix = 'ololo@!@!#_';
 
-var register_varname = function register_varname(varname, varname_pool, if_else_deps, if_else_tree, loops, loop_pool) {
+var register_varname = function register_varname(varname, varname_pool, if_else_deps, if_else_tree, loops, loop_pool, var_funcs) {
 	var original_varname = varname;
+	var varfield;
+	if (varname.indexOf('.') !== -1) {
+		varfield = varname.split('.');
+		varname = varfield[0];
+	}
 	if (varname_pool.vars[varname]) {
 		// already exists!
 		//console.log('VAR', varname, 'already exists!');
@@ -5784,8 +6353,10 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 	} else {
 		varname_pool.vars[varname] = true;
 	}
+	if (varfield) {
+		var_funcs[varname] = varfield.slice(1).join('.');
+	}
 	var deps = if_else_deps.length ? '(' + if_else_deps.join(') && (') + ')' : false;
-	console.log('VAR', varname, 'DEPS', deps);
 	if (deps) {
 		if (if_else_tree.str_to_func[deps]) {
 			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps];
@@ -5795,17 +6366,16 @@ var register_varname = function register_varname(varname, varname_pool, if_else_
 	}
 	if (loops.length) {
 		var last_loop = loop_pool[loops[loops.length - 1]];
-		if (original_varname.indexOf(get_dots(last_loop.level)) !== 0) {
-			;
+		if (parse_loop_varname(original_varname).level < last_loop.level + 1) {
 			var curr_loop = last_loop;
-			var var_level = get_level(varname);
+			var var_level = parse_loop_varname(varname).level - 1;
 			while (true) {
 				if (curr_loop === 'root') {
 					init_if_empty(varname_pool, 'loop_var_links', {}, original_varname, {}, varname, last_loop);
 					break;
 				} else {
 					if (curr_loop.level == var_level) {
-						var vrkey = original_varname.indexOf('.') !== -1 ? last(original_varname.split('.')) : original_varname;
+						var vrkey = parse_loop_varname(original_varname).name;
 						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, last_loop);
 						break;
 					}
@@ -5905,18 +6475,86 @@ Ozenfant.prototype.register_path = function (varname, path, pool, loop) {
 };
 
 var special_html_setters = {
-	'hasClass': function hasClass(binding, val, _ref) {
-		var _ref2 = _slicedToArray(_ref, 1),
-		    classname = _ref2[0];
+	'hasClass': {
+		dom: function dom(binding, val, _ref) {
+			var _ref2 = _slicedToArray(_ref, 1),
+			    classname = _ref2[0];
 
-		toggle_class(binding, classname, val);
+			toggle_class(binding, classname, val);
+		},
+		str: function str(val, conf, _ref3) {
+			var _ref4 = _slicedToArray(_ref3, 1),
+			    classname = _ref4[0];
+
+			conf.classnames.push("' + ((" + val + ") ? '" + classname + "' : '') + '");
+		}
 	},
-	'setFocus': function setFocus(binding, val) {
-		console.log('SET FOCUS!', binding);
+	'hasAttr': {
+		dom: function dom(binding, val, _ref5) {
+			var _ref6 = _slicedToArray(_ref5, 1),
+			    attrname = _ref6[0];
+
+			if (val) {
+				binding.setAttribute(attrname, attrname);
+			} else {
+				binding.removeAttribute(attrname);
+			}
+		},
+		str: function str(val, conf, _ref7) {
+			var _ref8 = _slicedToArray(_ref7, 1),
+			    attrname = _ref8[0];
+
+			if (val) {
+				conf.attrs.push(" ' + (" + val + " ? '" + attrname + "' : '' ) + '");
+			}
+		}
+	},
+	'val': {
+		updateAnyway: true,
+		dom: function dom(binding, val) {
+			binding.value = val;
+		},
+		str: function str(val, conf, _ref9) {
+			var _ref10 = _slicedToArray(_ref9, 1),
+			    classname = _ref10[0];
+
+			conf.attrs.push(' value="' + "' + (" + val + " || '') + '" + '"');
+		}
+	},
+	'show': {
+		dom: function dom(binding, val, _ref11) {
+			var _ref12 = _slicedToArray(_ref11, 1),
+			    disp = _ref12[0];
+
+			var shown = disp || 'block';
+			if (!val) {
+				binding.style.display = 'none';
+			} else {
+				binding.style.display = shown;
+			}
+		},
+		str: function str(val, conf, _ref13) {
+			var _ref14 = _slicedToArray(_ref13, 1),
+			    disp = _ref14[0];
+
+			disp = disp || 'block';
+			conf.styles.push("display: ' + ((" + val + ") ? '" + disp + "' : 'none') + '");
+		}
+	},
+	'focus': {
+		updateAnyway: true,
+		dom: function dom(binding, val) {
+			if (val) {
+				binding.focus();
+			}
+		},
+		str: function str(val, conf) {
+			conf.attrs.push(" ' + (" + val + " ? 'autofocus' : '') + '");
+		}
 	}
 };
 
-Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_dependent_vars, loops, parent_has_loop) {
+Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
 	var _this = this;
 
 	var node_pool = this.node_vars_paths;
@@ -5947,31 +6585,31 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_
 			}
 			if (zild.type && (zild.type === 'NEW_IF' || zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE')) {
 				if (zild.type === 'NEW_IF') {
-					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
+					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					resigtered_vars[varname] = true;
 					this.register_path(varname, new_path, node_pool, last_loop);
 					types[varname] = get_partial_func(node);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
 					continue;
 				}
 				if (zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE') {
 					var varname = get_varname(zild);
 					if (!resigtered_vars[varname]) {
-						register_varname(varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
+						register_varname(varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					}
 					types[varname] = get_partial_func(node);
 					this.register_path(varname, new_path, node_pool, last_loop);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.real_expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, parent_dependent_vars, loops);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
 					continue;
 				}
-				this.get_vars(zild, new_path, types, if_else_deps, parent_dependent_vars, loops);
+				this.get_vars(zild, new_path, types, if_else_deps, loops);
 			} else {
 				if (zild.varname !== undefined) {
-					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
+					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					this.register_path(varname, new_path, node_pool, last_loop);
 				}
 				if (zild.attrStyleVars) {
@@ -5985,17 +6623,20 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_
 							    _varname = _step2$value[0],
 							    attrname = _step2$value[1];
 
-							_varname = register_varname(_varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
+							_varname = register_varname(_varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 							this.register_path(_varname, new_path, node_pool, last_loop);
 
-							var pieces = attrname.split('|');
-							var real_name = pieces[0];
+							var _parse_attr_style_nam = parse_attr_style_name(attrname),
+							    _parse_attr_style_nam2 = _slicedToArray(_parse_attr_style_nam, 2),
+							    real_name = _parse_attr_style_nam2[0],
+							    params = _parse_attr_style_nam2[1];
+
 							if (special_html_setters[real_name]) {
 								// its special setter
 								types[_varname] = {
 									type: 'SETTER',
 									name: real_name,
-									params: pieces.slice(1)
+									params: params
 								};
 							} else {
 								var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
@@ -6020,13 +6661,13 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_
 						}
 					}
 
-					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), loops);
+					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops);
 				}
 				if (zild.quoted_str) {
 					//console.log('str!', node.children[i].quoted_str);
 					zild.quoted_str.replace(text_var_regexp, function (_, key) {
 						var text_path = fix_path(path + '/text()[' + (Number(i) + 1 - text_lag) + ']');
-						varname = register_varname(key, _this.varname_pool, if_else_deps, _this.if_else_tree, loops, _this.loop_pool);
+						varname = register_varname(key, _this.varname_pool, if_else_deps, _this.if_else_tree, loops, _this.loop_pool, _this.var_funcs);
 						if (!path_pool[text_path]) {
 							path_pool[text_path] = zild.quoted_str;
 						}
@@ -6036,7 +6677,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_
 				}
 				var new_loops = [].concat(_toConsumableArray(loops));
 				if (zild.loop) {
-					var loopname = register_varname(zild.loop, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool);
+					var loopname = register_varname(zild.loop, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					var loop = register_loop(loopname, loops.length, this.loop_pool, last_loop);
 					this.register_path(loopname, new_path, node_pool, last_loop);
 					types[loopname] = {
@@ -6046,18 +6687,18 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, parent_
 					};
 					new_loops.push(loopname);
 				}
-				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), [].concat(_toConsumableArray(parent_dependent_vars)), new_loops, !!zild.loop);
+				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop);
 			}
 		}
 	}
 };
 
-var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range']);
+var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range', 'file']);
 
 var toHTML = function toHTML(node, context, parent_tag) {};
 
 var getvar = function getvar(key) {
-	return "' + (ctx." + key + " || '') + '";
+	return "' + (ctx['" + key + "'] || '') + '";
 };
 var getvar_raw = function getvar_raw(key) {
 	return "' + (" + key + " || '') + '";
@@ -6094,24 +6735,22 @@ var get_children_html = function get_children_html(childs, parent_tag, if_stack,
 };
 
 var toFuncVarname = function toFuncVarname(a) {
-	var dot_counter = 0;
-	for (var cp in a) {
-		if (a[cp] === '.') {
-			++dot_counter;
-		} else {
-			break;
-		}
-	}
-	var varname;
-	if (dot_counter) {
-		varname = a.substr(dot_counter);
-		varname = varname.length ? '.' + varname : '';
-		a = '__loopvar' + dot_counter + varname;
+	var _parse_loop_varname = parse_loop_varname(a),
+	    name = _parse_loop_varname.name,
+	    level = _parse_loop_varname.level;
+
+	if (level) {
+		var varname = name.length ? '.' + name : '';
+		a = '__loopvar' + level + varname;
 	} else {
-		a = a.length ? '.' + a : '';
-		a = 'ctx' + a;
+		a = "ctx['" + a.split(".").join("']['") + "']";
 	}
 	return a;
+};
+
+var parse_attr_style_name = function parse_attr_style_name(attrname) {
+	var pieces = attrname.split(' ');
+	return [pieces[0], pieces.slice(1)];
 };
 
 var toFunc = function toFunc(node, parent_tag) {
@@ -6231,11 +6870,13 @@ var toFunc = function toFunc(node, parent_tag) {
 		res1.push(childs_html);
 		if (parent_tag) {
 			res2.push(indent + '<' + tag);
+			var styles = [];
+			var attrs = [];
+			var conf = { attrs: attrs, styles: styles, classnames: [] };
 			if (node.classnames && node.classnames.length > 1) {
-				res2.push(' class="' + node.classnames.substr(1).replace(/\./g, " ") + '"');
+				conf.classnames = node.classnames.substr(1).split('.');
 			}
 			if (node.assignments) {
-				var styles = [];
 				var _iteratorNormalCompletion5 = true;
 				var _didIteratorError5 = false;
 				var _iteratorError5 = undefined;
@@ -6254,10 +6895,20 @@ var toFunc = function toFunc(node, parent_tag) {
 							real_key = toFuncVarname(real_key);
 							val = getvar_raw(real_key);
 						}
-						if (is_attr(key)) {
-							res2.push(' ' + key + '="' + val + '"');
+
+						var _parse_attr_style_nam3 = parse_attr_style_name(key),
+						    _parse_attr_style_nam4 = _slicedToArray(_parse_attr_style_nam3, 2),
+						    real_name = _parse_attr_style_nam4[0],
+						    params = _parse_attr_style_nam4[1];
+
+						if (special_html_setters[real_name]) {
+							special_html_setters[real_name].str(real_key, conf, params);
 						} else {
-							styles.push(key + ': ' + val + ';');
+							if (is_attr(real_name)) {
+								conf.attrs.push(' ' + key + '="' + val + '"');
+							} else {
+								conf.styles.push(key + ': ' + val + ';');
+							}
 						}
 					}
 				} catch (err) {
@@ -6274,10 +6925,15 @@ var toFunc = function toFunc(node, parent_tag) {
 						}
 					}
 				}
-
-				if (styles.length) {
-					res2.push(' style="' + styles.join('') + '"');
-				}
+			}
+			if (styles.length) {
+				res2.push(' style="' + styles.join('') + '"');
+			}
+			if (conf.classnames.length) {
+				res2.push(' class="' + conf.classnames.join(' ') + '"');
+			}
+			if (conf.attrs.length) {
+				res2.push(' ' + attrs.join(' ') + ' ');
 			}
 			res2.push('>');
 			if (node.varname !== undefined && !node.type) {
@@ -6300,9 +6956,9 @@ var toFunc = function toFunc(node, parent_tag) {
 	} else {
 		// its var of text node
 		if (node.quoted_str) {
-			res_final = indent + node.quoted_str.replace(text_var_regexp, function (_, key) {
+			res_final = indent + node.quoted_str.replace(/\'/g, "\\'").replace(text_var_regexp, function (_, key) {
 				//console.log('Found!', key, context[key]);
-				return "' + ctx." + key + " + '";
+				return "' + ctx['" + key + "'] + '";
 			});
 		}
 		if (node.variable) {
@@ -6370,18 +7026,6 @@ var toFunc = function toFunc(node, parent_tag) {
 		}
 	}
 	return res_final;
-};
-
-var trim_dots = function trim_dots(str) {
-	var c = 0;
-	for (var i in str) {
-		if (str[i] === '.') {
-			++c;
-		} else {
-			break;
-		}
-	}
-	return str.substr(c);;
 };
 
 Ozenfant.prototype.toHTML = function (context) {
@@ -6526,6 +7170,13 @@ Ozenfant.prototype._setVarVal = function (key, val, binding) {
 			}
 		}
 	}
+	if (this.var_funcs[key]) {
+		if (this.var_funcs[key] instanceof Function) {
+			val = this.var_funcs[key](val);
+		} else {
+			val = val[this.var_funcs[key]];
+		}
+	}
 	if (val instanceof Object) return;
 	binding.textContent = val;
 };
@@ -6534,13 +7185,12 @@ Ozenfant.prototype._setValByPath = function (path, val, root_node) {
 };
 Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, context) {
 	var loop = this.loop_pool[loopname];
-	var prefix = new Array(loop.level + 2).join('.');
 	for (var k in val) {
 		if (val[k] === old_val[k]) {
 			//console.log('skip', k);
 			continue;
 		}
-		var varname = prefix + k;
+		var varname = get_loop_varname(loop.level + 2, k);
 		if (this.varname_pool.var_aliases[varname]) {
 			var _iteratorNormalCompletion9 = true;
 			var _didIteratorError9 = false;
@@ -6585,10 +7235,13 @@ Ozenfant.prototype.removeLoopItem = function (binding, i) {
 Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, binding, context) {
 	var res = [];
 	var func = this.var_types[loop].func;
+	old_val = old_val || [];
 	for (var i = from; i <= to; ++i) {
 		old_val[i] = val[i];
-		var ht = func.apply(null, context.concat(val[i]));
-		res.push(ht);
+		if (val[i]) {
+			var ht = func.apply(null, context.concat(val[i]));
+			res.push(ht);
+		}
 	}
 	// !!! should be rewritten!
 	binding.insertAdjacentHTML("beforeend", res.join(''));
@@ -6597,7 +7250,7 @@ Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, bindin
 Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
 	var skip_removing = false;
 	for (var i in val) {
-		if (old_val[i]) {
+		if (old_val && old_val[i]) {
 			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
 		} else {
 			skip_removing = true;
@@ -6605,8 +7258,12 @@ Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_c
 			break;
 		}
 	}
-	++i;
-	if (old_val[i] && !skip_removing) {
+	if (i) {
+		++i;
+	} else {
+		i = 0;
+	}
+	if (old_val && old_val[i] && !skip_removing) {
 		var init_i = i;
 		var del_count = 0;
 		for (var j = old_val.length - 1; j >= i; j--) {
@@ -6627,8 +7284,8 @@ Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
 			if (!binding) {
 				console.error('Cannot find bindings', bnd, pth);
 			}
-			var llevel = get_level(loop.name);
-			var scope = val_arr[llevel][trim_dots(loop.name)];
+			var llevel = parse_loop_varname(loop.name).level - 1;
+			var scope = val_arr[llevel][parse_loop_varname(loop.name).name];
 			for (var c in binding.children) {
 				if (Number(c) != c) continue;
 				var child = binding.children[c];
@@ -6657,18 +7314,18 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 	var pth = path.split('/');
 	var first = pth[0].match(/([^\[]*)\[([^\]]*)\]/);
 	if (!first) {
-		var keyname = new Array(level + 1).join('.') + pth[0];
+		var keyname = get_loop_varname(level + 1, pth[0]);
 		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
 		if (paths_hash[keyname]) {
 			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
-			old_val = old_val[trim_dots(keyname)];
+			old_val = old_val[parse_loop_varname(keyname).name];
 			if (this.loop_pool[keyname]) {
 				this.setLoop(keyname, val, old_val, binding, context);
 			} else {
 				this.__set(keyname, val, old_val, binding);
 			}
 		} else {
-			var key = new Array(parent_loop.level + 2).join('.') + path;
+			var key = get_loop_varname(parent_loop.level + 2, path);
 			traverse_tree(parent_loop, function (loop) {
 				if (loop.paths[key]) {
 					_this2.eachLoopBinding(loop, function (bnd) {
@@ -6680,9 +7337,9 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 		}
 		return;
 	}
-	var loopname = new Array(level + 1).join('.') + first[1];
+	var loopname = get_loop_varname(level + 1, first[1]);
 	var index = first[2];
-	old_val = old_val[trim_dots(loopname)][index];
+	old_val = old_val[parse_loop_varname(loopname).name][index];
 	var loop = this.loop_pool[loopname];
 	var path_pool = parent_loop === this ? this.node_vars_paths : parent_loop.paths;
 	var loop_binding = Ozenfant.xpOne(path_pool[loopname], el);
@@ -6725,7 +7382,7 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					binding.style[this.var_types[key].name] = val;
 					break;
 				case 'SETTER':
-					special_html_setters[this.var_types[key].name](binding, val, this.var_types[key].params);
+					special_html_setters[this.var_types[key].name].dom(binding, val, this.var_types[key].params);
 					break;
 				case 'LOOP':
 					var ct = loop_context || [this.state];
@@ -6744,8 +7401,6 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 						ctx = [this.state].concat(_toConsumableArray(loop_context));
 					}
 					var html = func.apply(null, ctx);
-					console.log('HTML', html);
-					debugger;
 					binding.innerHTML = html;
 					this.updateBindings();
 					break;
@@ -6754,6 +7409,10 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 			this._setVarVal(key, val, binding);
 		}
 	}
+};
+
+Ozenfant.prototype.updateAnyway = function (key) {
+	return this.var_types[key] && special_html_setters[this.var_types[key].name] && special_html_setters[this.var_types[key].name].updateAnyway;
 };
 
 Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force, loop_context) {
@@ -6769,7 +7428,39 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 		return;
 	}
 	if (this.state[key] === val && !force) {
-		return;
+		if (!this.updateAnyway(key)) {
+			if (this.varname_pool.var_aliases[key]) {
+				var _iteratorNormalCompletion10 = true;
+				var _didIteratorError10 = false;
+				var _iteratorError10 = undefined;
+
+				try {
+					for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+						var k = _step10.value;
+
+						if (this.updateAnyway(k)) {
+							this.set(k, val, loop, loop_binding, old_data, true);
+						}
+					}
+				} catch (err) {
+					_didIteratorError10 = true;
+					_iteratorError10 = err;
+				} finally {
+					try {
+						if (!_iteratorNormalCompletion10 && _iterator10.return) {
+							_iterator10.return();
+						}
+					} finally {
+						if (_didIteratorError10) {
+							throw _iteratorError10;
+						}
+					}
+				}
+			}
+			return;
+		} else {
+			// OK...
+		}
 	}
 	if (val instanceof Object) {
 		// we need to make deep copy
@@ -6780,7 +7471,7 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 		}
 	}
 	var old_val = loop ? old_data : this.state[key];
-	if (!force && key[0] !== '.') {
+	if (!force && !test_loop_varname(key)) {
 		this.state[key] = val;
 	}
 	if (this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop) {
@@ -6792,27 +7483,27 @@ Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force
 		}
 	}
 	if (this.varname_pool.var_aliases[key]) {
-		var _iteratorNormalCompletion10 = true;
-		var _didIteratorError10 = false;
-		var _iteratorError10 = undefined;
+		var _iteratorNormalCompletion11 = true;
+		var _didIteratorError11 = false;
+		var _iteratorError11 = undefined;
 
 		try {
-			for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-				var k = _step10.value;
+			for (var _iterator11 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+				var _k = _step11.value;
 
-				this.set(k, val, loop, loop_binding, old_data, true);
+				this.set(_k, val, loop, loop_binding, old_data, true);
 			}
 		} catch (err) {
-			_didIteratorError10 = true;
-			_iteratorError10 = err;
+			_didIteratorError11 = true;
+			_iteratorError11 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion10 && _iterator10.return) {
-					_iterator10.return();
+				if (!_iteratorNormalCompletion11 && _iterator11.return) {
+					_iterator11.return();
 				}
 			} finally {
-				if (_didIteratorError10) {
-					throw _iteratorError10;
+				if (_didIteratorError11) {
+					throw _iteratorError11;
 				}
 			}
 		}
@@ -7496,6 +8187,8 @@ Chex.prototype.absorb = function (struct, mirror_struct, cellname, value) {
 				if (!mirror_struct.children[i]) {
 					mirror_struct.children[i] = {
 						children: []
+						//type: child.subtype,
+						//parent: mirror_struct,
 					};
 				}
 				return _this.absorb(child, mirror_struct.children[i], cellname, value);
@@ -7724,6 +8417,9 @@ Chex.prototype.get_active_cells_and_funcs = function (parent, parent_mirror, bra
 					if (!mirror.children[_p]) {
 						mirror.children[_p] = {
 							children: []
+							//parent: mirror,
+							//type: branch.subtype,
+							//id: ++mirids
 						};
 					}
 					this.get_active_cells_and_funcs(branch, mirror, branch.children[_p], mirror.children[_p], cells, funcs);

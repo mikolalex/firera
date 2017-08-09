@@ -57,7 +57,7 @@ const root_component = {
 	'~make_completed': ['.make-completed|click'],
 	'all_completed': [_F.eq(0), 'incomplete'],
 	'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete', '$start'],
-	arr_todos: ['arrDeltas', {
+	arr_todos: ['toArrDeltas', {
 		push: 'add_todo', 
 		pop: 'remove_todo',
 	}],
@@ -115,6 +115,6 @@ const app = Firera({
 		trackChangesType: 'imm',
 	}
 );
-app.set('arr_todos', _F.arr_deltas([], init_data));
+app.set('arr_todos', _F.arrDeltas([], init_data));
 
 window.app = app;

@@ -12706,12 +12706,12 @@ module.exports = {
 			}
 			return fnc;
 		},
-		arr_deltas(funcstring) {
+		arrDeltas(funcstring) {
 			var cell = funcstring[0];
 			return ['closure', function(){
 				var val = [];
 				return function(new_arr){
-					var deltas = utils.arr_deltas(val, new_arr);
+					var deltas = utils.arrDeltas(val, new_arr);
 					val = new_arr;
 					//console.info('deltas are', deltas);
 					return deltas;
@@ -13705,7 +13705,7 @@ var arr_common = _F.arr_common = function(arr1, arr2, cb){
 	}
 }
 
-var arr_deltas = _F.arr_deltas = (old_arr, new_arr) => {
+var arrDeltas = _F.arrDeltas = (old_arr, new_arr) => {
 	var new_ones = arr_diff(new_arr, old_arr);
 	var remove_ones = arr_diff(old_arr, new_arr);
 	var changed_ones = Arr.mapFilter(new_arr, (v, k) => {

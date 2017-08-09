@@ -301,7 +301,7 @@ var app = Firera({
 		</div>
                 <div>
                     A lot of modern libraries and frameworks combine the concept of FRP with OOP approach, using classes, methods etc. With Firera, you can write
-                    robust and declarative code using only few powerful concepts: data streams and functions.
+                    robust and declarative code using only few powerful concepts: data streams and functions. Unlike MobX or Vue, you can use pure functions for calculating computed properties.
                 </div>
 	</div>
 <? } if(chapter('Firera basics', 'streams', 'Managing streams')){ ?>
@@ -330,7 +330,7 @@ const base = {
     "form|hasClass(valid)": ['is_form_valid'],
 
     send_form: ['&&', '-is_form_valid', 'button.send|click'],
-    add_comment_request: ['transistAll', (email, name, text) => {
+    add_comment_request: ['relayAll', (email, name, text) => {
         // ... some ajax request here...
         console.log('It works!', email, name, text);
     }, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
@@ -1275,7 +1275,7 @@ const todo_component = {
     })
 </code>
 			We should know the index of an element in the list we want to remove. It's always contained in <span class="mn">$i</span> cell, which is one of the system predefined cells.
-			At the same time, we should listen to it passively (with <span class="mn">-</span> prefix), in order for our <span class="mn">remove_todo</span> event to happen only on click (and not on <span class="mn">$i</span> change).
+			At the same time, we should listen to it passively (with <span class="mn">"-"</span> prefix), in order for our <span class="mn">remove_todo</span> event to happen only on click (and not on <span class="mn">$i</span> change).
 		</div>
 		<div>
 			Then we should link and listen to <span class="mn">remove_todo</span> cells of each grid in the list from root grid.
@@ -1309,7 +1309,7 @@ const todo_component = {
 			</div>					
 		</div>
 	</div>
-<?php } if(chapter('Writing TodoMVC in details', 'arr_deltas', 'Using array deltas')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'arrDeltas', 'Using array deltas')){ ?>
 	<div>
         <h2>
             Using array deltas
@@ -1344,15 +1344,15 @@ const todo_component = {
 			How does the stream of changes will look like?
 			It's a kind of a diff info for the array.
 			In Firera.utils there is a handy function that computes the changes by comparing two arrays.
-			It is <span class="mn">arr_deltas(old_arr, new_arr)</span>.
+			It is <span class="mn">arrDeltas(old_arr, new_arr)</span>.
 <code>
     var arr_1 = ['ene', 'bene', 'raba'];
     var arr_2 = ['ene', 'bene', 'raba', 'kvinter', 'finter'];
     var arr_3 = ['ene', 'bene', 'raba', 'kvinter', '______', 'zhaba'];
 
-    _F.arr_deltas(arr_1, arr_2); // [["add","3","kvinter"],["add","4","finter"]]
-    _F.arr_deltas(arr_2, arr_1); // [["remove","3"],["remove","4"]]
-    _F.arr_deltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
+    _F.arrDeltas(arr_1, arr_2); // [["add","3","kvinter"],["add","4","finter"]]
+    _F.arrDeltas(arr_2, arr_1); // [["remove","3"],["remove","4"]]
+    _F.arrDeltas(arr_2, arr_3); // [["add","5","zhaba"],["change","4","______"]]
 </code>
 			It can produce three type of changes: "add", "remove" and "change".
 			If there is a key in the new array that is absent in the old one, it produces an "add" change.
@@ -1371,7 +1371,7 @@ const root_component = {
         return {text, completed: false};
     }, 'input[name="new-todo"]|enterText'],
     remove_todo: [_F.ind(0), '**/remove_todo'],
-    arr_todos: ['arrDeltas', {
+    arr_todos: ['toArrDeltas', {
         push: 'add_todo', 
         pop: 'remove_todo',
     }],
@@ -1389,9 +1389,9 @@ const app = Firera({
         packages: ['htmlCells', 'neu_ozenfant'],
     }
 );
-app.set('arr_todos', _F.arr_deltas([], init_data));
+app.set('arr_todos', _F.arrDeltas([], init_data));
 </code>
-			Note that instead of using <span class="mn">arr</span> macro for <span class="mn">arr_todos</span>, we use <span class="mn">arrDeltas</span> macro.
+			Note that instead of using <span class="mn">arr</span> macro for <span class="mn">arr_todos</span>, we use <span class="mn">toArrDeltas</span> macro.
 			It does exactly what we need: transforms a stream of new values into "add" array changes, 
 			and "pop" stream is transformed into "remove" changes.
 		</div>
@@ -1400,7 +1400,7 @@ app.set('arr_todos', _F.arr_deltas([], init_data));
 			Now our list will listen to a stream of deltas and make changes appropriately, therefore we don't need to make any diffs anymore.
 		</div>
 		<div>
-			The only transformation of data into changes is for the initial value of <span class="mn">arr_todos</span>. It's done with <span class="mn">_F.arr_deltas</span> function which was mentioned before.
+			The only transformation of data into changes is for the initial value of <span class="mn">arr_todos</span>. It's done with <span class="mn">_F.arrDeltas</span> function which was mentioned before.
 		</div>
 		<hr>
 		<div>
@@ -1554,7 +1554,7 @@ const root_component = {
 
 const todo_component = {
     ...
-    edited_todo: ['transist', '.text|dblclick', '-$i'],
+    edited_todo: ['relay', '.text|dblclick', '-$i'],
     i_am_edited: ['=', '-$i', '../active_todo'],
     isEditing: ['map', {
         'i_am_edited': _F.id,
@@ -1563,7 +1563,7 @@ const todo_component = {
     }],
 }
 </code>
-			A <span class="mn">transist</span> macro returns the value of a second argument if the first one is true.
+			A <span class="mn">relay</span> macro returns the value of a second argument if the first one is true.
 			So when user double clicks on to-do's name it will emit the number of to-do items.
 		</div>
 		<div>
@@ -1577,7 +1577,7 @@ const todo_component = {
 			It will be true only for the actual grid we clicked on.
 		</div>
 		<div>
-			And the last thing we should do is to make <span class="mn">isEditin</span> dependent on <span class="mn">i_am_edited</span> cell instead of directly dependent on double click events.
+			And the last thing we should do is to make <span class="mn">isEditing</span> dependent on <span class="mn">i_am_edited</span> cell instead of directly dependent on double click events.
 		</div>
 	</div>
 <?php } if(chapter('Writing TodoMVC in details', 'check_all_todos', 'Checking all to-dos and counting incompleted')){ ?>
@@ -1654,7 +1654,7 @@ const todo_component = {
 </code>
 		</div>
 	</div>
-<?php } if(chapter('Writing TodoMVC in details', 'clear-completed', 'Clearing completed to-dos')){ ?>
+<?php } if(chapter('Writing TodoMVC in details', 'clear_completed', 'Clearing completed to-dos')){ ?>
 	<div>
 		<h2>
 			Clearing completed to-dos
@@ -1668,7 +1668,7 @@ const todo_component = {
     const todo_component = {
         ...
         remove_todo: [
-            'transist',
+            'relay',
             '.remove|click', 
             '-$name'
         ],
@@ -1684,7 +1684,7 @@ const todo_component = {
 
     const todo_component = {
         remove_todo: [
-            'transist',
+            'relay',
             ['join', 
                 '.remove|click', 
                 [_F.first, '-completed', '^^/clear_completed']
@@ -1708,7 +1708,7 @@ const todo_component = {
                     So, if the cell is completed, it'll be true.
                 </li>
                 <li>
-                    <span class="mn">transist</span> will return <span class="mn">$name</span> value if the first argument (in our case — a nested F-expression) is true. 
+                    <span class="mn">relay</span> will return <span class="mn">$name</span> value if the first argument (in our case — a nested F-expression) is true. 
 					The to-do item will be removed when <span class="mn">clear_completed</span> is triggered and it's completed, or when <span class="mn">.remove</span> button is clicked. 
                 </li>
             </ul>
@@ -1783,7 +1783,7 @@ const root_component = {
     '~make_completed': ['.make-completed|click'],
     'all_completed': [_F.eq(0), 'incomplete'],
     'plural': [_F.ifelse(_F.eq(1), '', 's'), 'incomplete'],
-    arr_todos: ['arrDeltas', {
+    arr_todos: ['toArrDeltas', {
         push: 'add_todo', 
         pop: 'remove_todo',
     }],
@@ -1815,7 +1815,7 @@ const todo_component = {
         '^^/make_completed': true
     }],
     text: ['input[name=todo-text]|enterText'],
-    edited_todo: ['transist', '.text|dblclick', '-$i'],
+    edited_todo: ['relay', '.text|dblclick', '-$i'],
     i_am_edited: ['=', '-$i', '../active_todo'],
     isEditing: ['map', {
         'i_am_edited': _F.id,
@@ -1823,7 +1823,7 @@ const todo_component = {
         'input[name=todo-text]|press(Esc)': false
     }],
     remove_todo: [
-        'transist',
+        'relay',
         ['join', 
             '.remove|click', 
             [_F.first, '-completed', '^^/clear_completed']
@@ -1840,7 +1840,7 @@ const app = Firera({
             packages: ['htmlCells', 'neu_ozenfant']
         }
 );
-app.set('arr_todos', _F.arr_deltas([], init_data));
+app.set('arr_todos', _F.arrDeltas([], init_data));
 </code>
 		</div>
 	</div>
