@@ -185,7 +185,7 @@ module.exports = {
 				var all_subtree = false;
 				var func, params;
 				const setters = new Set(['visibility', 'css', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
-				const getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
+				const getters = new Set(['mousemove', 'keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
                 [aspect, params] = get_params(aspect);
 				if(aspect[0] === '>'){
 					all_subtree = true;
@@ -371,10 +371,9 @@ module.exports = {
 						}
 					break;
 					case 'dblclick':
-						func = get_handler('dblclick', selector, all_subtree, make_resp);
-					break;
 					case 'change':
-						func = get_handler('change', selector, all_subtree, make_resp);
+					case 'mousemove':
+						func = get_handler(aspect, selector, all_subtree, make_resp);
 					break;
 					case 'focus':
 						func = function(cb, vals){
