@@ -1546,23 +1546,31 @@ describe('Firera tests', function () {
 		var app = Firera({
 			__root: {
 				$el: qs(".test-newest-oz"),
+				$init: {
+					conts: [{show_form: true}, {show_form: true}, {show_form: true}],
+				},
 				$template: `
 	.
 		h1
 			"Hello, this is Willy!"
-		.cont
-			? $showForm
-				.
-					? $really_show_form
-						Form(method: post)
-					:
-						.
-							"Nothing"
-			:
-				List(item: Item, list: items)
+		.conts{$conts}
+			.cont
+				? $showForm
+					.
+						? $_show_form
+							.
+								"Some form"
+							.boo$
+							Form(method: post)
+						:
+							.
+								"Nothing"
+				:
+					List(item: Item, list: items)
 		div.foo$
 		footer.bar
 			"Footer"
+		Shmooter.a
 `,
 			},
 			Form: {
@@ -1585,6 +1593,15 @@ describe('Firera tests', function () {
 		console.log(app.get('$template'));
 		console.log('_____________________________');
 		app.set('showForm', true);
+		setTimeout(() => {
+			//app.set('really_show_form', true);
+		}, 1000);
+		setTimeout(() => {
+			app.set('boo', 42);
+		}, 1500);
+		setTimeout(() => {
+			app.set('conts', [{show_form: true}, {show_form: true}, {show_form: false}, {show_form: true}]);
+		}, 2000);
 	})
 	
 	
