@@ -213,7 +213,7 @@ const parse_arr_funcstring = (a, key, pool, packages) => {
 		if(funcname instanceof Function){
 			// it's "is" be default
 			funcstring = ['is'].concat(a);
-		} else if(system_macros.has(cc[0])){
+		} else if(system_macros.has(cc[0])){ 
 			if(cc.indexOf('nested') !== -1){
 				if(a[2] instanceof Array){
 					const dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
