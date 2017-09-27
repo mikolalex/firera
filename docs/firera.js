@@ -213,7 +213,7 @@ var App = function App(config, root_package_pool) {
 						var cell = _step4.value;
 
 						for (var wrong_cell in cell.wrong_links) {
-							_utils2.default.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
+							//utils.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
 						}
 					}
 				} catch (err) {
@@ -627,6 +627,8 @@ module.exports = App;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":12}],2:[function(require,module,exports){
 'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _Parser = require('./Parser');
 
@@ -1446,38 +1448,56 @@ Grid.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '
 Grid.prototype.cell_value = function (cell) {
 	var _this9 = this;
 
-	switch (cell) {
-		case '$real_keys':
-			return [].concat(_toConsumableArray(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))).filter(function (k) {
-				return k.match(/^(\w|\d|\_|\-)*$/);
-			});
-			break;
-		case '$real_values':
-			var res = {};
-			Obj.each([].concat(_toConsumableArray(new Set(Object.keys(this.cell_values).concat(Object.keys(this.init_values))))).filter(function (k) {
-				return k.match(/^(\w|\d|\_|\-)*$/);
-			}), function (k, v) {
-				res[k] = _this9.cell_value(k);
-			});
-			return res;
-			break;
-		case '$path':
-			return this.path;
-			break;
-		case '$app_id':
-			return this.app.id;
-			break;
-		case '$name':
-			return this.name;
-			break;
-		default:
-			if (this.cell_values.hasOwnProperty(cell)) {
-				return this.cell_values[cell];
-			} else {
-				return Firera.undef;
-				//return this.cell_values[cell];
-			}
-	}
+	var _ret = function () {
+		switch (cell) {
+			case '$real_keys':
+				return {
+					v: [].concat(_toConsumableArray(new Set(Object.keys(_this9.plain_base).concat(Object.keys(_this9.plain_base.$init))))).filter(function (k) {
+						return k.match(/^(\w|\d|\_|\-)*$/);
+					})
+				};
+				break;
+			case '$real_values':
+				var res = {};
+				Obj.each([].concat(_toConsumableArray(new Set(Object.keys(_this9.cell_values).concat(Object.keys(_this9.init_values))))).filter(function (k) {
+					return k.match(/^(\w|\d|\_|\-)*$/);
+				}), function (k, v) {
+					res[k] = _this9.cell_value(k);
+				});
+				return {
+					v: res
+				};
+				break;
+			case '$path':
+				return {
+					v: _this9.path
+				};
+				break;
+			case '$app_id':
+				return {
+					v: _this9.app.id
+				};
+				break;
+			case '$name':
+				return {
+					v: _this9.name
+				};
+				break;
+			default:
+				if (_this9.cell_values.hasOwnProperty(cell)) {
+					return {
+						v: _this9.cell_values[cell]
+					};
+				} else {
+					return {
+						v: Firera.undef
+					};
+					//return this.cell_values[cell];
+				}
+		}
+	}();
+
+	if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 };
 Grid.prototype.set_cell_value = function (cell, val) {
 	var _this10 = this;
@@ -1550,6 +1570,8 @@ Grid.prototype.set_cell_value = function (cell, val) {
 module.exports = Grid;
 },{"./Parser":5,"./utils":12}],3:[function(require,module,exports){
 'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _utils = require('./utils');
 
@@ -1812,50 +1834,72 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	var path = link.split('/');
 	if (path.length === 2) {
 		if (!is_special(path[0])) {
-			_utils2.default.init_if_empty(this.linksFromChildToParent, grid_id, {});
-			_utils2.default.init_if_empty(this.linksFromChildToParent[grid_id], path[0], []);
-			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
-			var slave_cn = slave_cellname || link;
-			this.app.eachChild(grid_id, function (child) {
-				_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
-			});
-			return;
+			var _ret = function () {
+				_utils2.default.init_if_empty(_this2.linksFromChildToParent, grid_id, {});
+				_utils2.default.init_if_empty(_this2.linksFromChildToParent[grid_id], path[0], []);
+				_this2.linksFromChildToParent[grid_id][path[0]].push(path[1]);
+				var slave_cn = slave_cellname || link;
+				_this2.app.eachChild(grid_id, function (child) {
+					_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
+				});
+				return {
+					v: void 0
+				};
+			}();
+
+			if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 		}
 	}
 	if (path[0] == '**') {
-		if (path.length > 2) {
-			_utils2.default.error('You cannot listen to such path', path.join('/'));
-			return;
-		}
-		var cellname = path[1];
-		var grid_path = this.app.getGrid(grid_id).path;
-		this.pathToId[grid_path] = grid_id;
-		_utils2.default.init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
-		// check already added grids
-		this.app.eachChild(grid_id, function (child) {
-			_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
-		});
-		return;
+		var _ret2 = function () {
+			if (path.length > 2) {
+				_utils2.default.error('You cannot listen to such path', path.join('/'));
+				return {
+					v: void 0
+				};
+			}
+			var cellname = path[1];
+			var grid_path = _this2.app.getGrid(grid_id).path;
+			_this2.pathToId[grid_path] = grid_id;
+			_utils2.default.init_if_empty(_this2.doubleAsterisk, grid_path, {}, cellname, true);
+			// check already added grids
+			_this2.app.eachChild(grid_id, function (child) {
+				_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
+			});
+			return {
+				v: void 0
+			};
+		}();
+
+		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
 	}
 	if (path[0] == '^^') {
-		if (path.length > 2) {
-			_utils2.default.error('You cannot listen to such path', path.join('/'));
-			return;
-		}
-		var _cellname = path[1];
-		this.app.eachParent(grid_id, function (grid) {
-			_this2.addWorkingLink(grid.id, _cellname, grid_id, '^^/' + _cellname);
-		});
-		return;
+		var _ret3 = function () {
+			if (path.length > 2) {
+				_utils2.default.error('You cannot listen to such path', path.join('/'));
+				return {
+					v: void 0
+				};
+			}
+			var cellname = path[1];
+			_this2.app.eachParent(grid_id, function (grid) {
+				_this2.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
+			});
+			return {
+				v: void 0
+			};
+		}();
+
+		if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
 	}
 	if (path[0] == '') {
 		if (path.length > 2) {
 			_utils2.default.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
-		var _cellname2 = path[1];
-		var _grid_path = this.app.getGrid(grid_id).path;
-		this.addWorkingLink(this.app.grids[1].id, _cellname2, grid_id, '/' + _cellname2);
+		var cellname = path[1];
+		var grid_path = this.app.getGrid(grid_id).path;
+		this.addWorkingLink(this.app.grids[1].id, cellname, grid_id, '/' + cellname);
 		return;
 	}
 	var obj = {
@@ -2173,8 +2217,8 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 			// it's "is" be default
 			funcstring = ['is'].concat(a);
 		} else if (system_macros.has(cc[0])) {
-			switch (funcname) {
-				case 'nested':
+			if (cc.indexOf('nested') !== -1) {
+				if (a[2] instanceof Array) {
 					var dependent_cells = a[2].map(function (cellname) {
 						return key + '.' + cellname;
 					});
@@ -2183,12 +2227,9 @@ var parse_arr_funcstring = function parse_arr_funcstring(a, key, pool, packages)
 						pool.plain_base.$init[name] = null;
 					});
 					a.splice(2, 1);
-					funcstring = a;
-					break;
-				default:
-					funcstring = a;
-					break;
+				}
 			}
+			funcstring = a;
 		} else {
 			if (funcname === 'just') {
 				_utils2.default.init_if_empty(pool.plain_base, '$init', {});
@@ -2425,7 +2466,7 @@ module.exports = App;
 },{"./utils":12}],6:[function(require,module,exports){
 'use strict';
 
-var _ozenfant = require('../ozenfant/ozenfant');
+var _ozenfant = require('../../ozenfant/ozenfant');
 
 var _ozenfant2 = _interopRequireDefault(_ozenfant);
 
@@ -2639,12 +2680,12 @@ Firera._ = _utils2.default;
 var a = 10;
 
 module.exports = Firera;
-},{"../ozenfant/ozenfant":15,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/Ozenfant":10,"./packages/SimpleHtmlTemplates":11,"./utils":12}],7:[function(require,module,exports){
+},{"../../ozenfant/ozenfant":15,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/Ozenfant":10,"./packages/SimpleHtmlTemplates":11,"./utils":12}],7:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _shche = require('../../shche/shche');
+var _shche = require('../../../shche/shche');
 
 var _shche2 = _interopRequireDefault(_shche);
 
@@ -2683,7 +2724,7 @@ module.exports = {
 		}
 	}
 };
-},{"../../shche/shche":17}],8:[function(require,module,exports){
+},{"../../../shche/shche":17}],8:[function(require,module,exports){
 'use strict';
 
 var _macros;
@@ -2874,17 +2915,30 @@ module.exports = {
 				};
 			}, cell];
 		},
-		skipIf: function skipIf(fs) {
+		promise: function promise(fs) {
 			var _fs3 = _toArray(fs),
-			    compare_func = _fs3[0],
-			    func = _fs3[1],
-			    args = _fs3.slice(2);
+			    func = _fs3[0],
+			    args = _fs3.slice(1);
+
+			return ['async', function (cb) {
+				for (var _len = arguments.length, inner_args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+					inner_args[_key - 1] = arguments[_key];
+				}
+
+				func.apply(null, inner_args).then(cb);
+			}].concat(_toConsumableArray(args));
+		},
+		skipIf: function skipIf(fs) {
+			var _fs4 = _toArray(fs),
+			    compare_func = _fs4[0],
+			    func = _fs4[1],
+			    args = _fs4.slice(2);
 
 			return ['asyncClosure', function () {
 				var prev = [];
 				return function (cb) {
-					for (var _len = arguments.length, inner_args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-						inner_args[_key - 1] = arguments[_key];
+					for (var _len2 = arguments.length, inner_args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+						inner_args[_key2 - 1] = arguments[_key2];
 					}
 
 					if (compare_func(prev, inner_args)) {
@@ -2936,8 +2990,8 @@ module.exports = {
 			}].concat(fs);
 		},
 		map: function map(fs) {
-			var _fs4 = _slicedToArray(fs, 1),
-			    map = _fs4[0];
+			var _fs5 = _slicedToArray(fs, 1),
+			    map = _fs5[0];
 
 			var cells = Object.keys(map);
 			var func = function func(cellname, val) {
@@ -2949,9 +3003,9 @@ module.exports = {
 			return ['funnel', func].concat(_toConsumableArray(cells));
 		},
 		mapPrev: function mapPrev(fs) {
-			var _fs5 = _slicedToArray(fs, 2),
-			    map = _fs5[0],
-			    def_value = _fs5[1];
+			var _fs6 = _slicedToArray(fs, 2),
+			    map = _fs6[0],
+			    def_value = _fs6[1];
 
 			var cells = Object.keys(map);
 			var func = function func(init_val) {
@@ -2968,8 +3022,8 @@ module.exports = {
 			return ['closureFunnel', func].concat(_toConsumableArray(cells));
 		},
 		arr: function arr(fs) {
-			var _fs6 = _slicedToArray(fs, 1),
-			    config = _fs6[0];
+			var _fs7 = _slicedToArray(fs, 1),
+			    config = _fs7[0];
 
 			var args = [];
 			if (config.push) {
@@ -2993,8 +3047,8 @@ module.exports = {
 			return st;
 		},
 		toArrDeltas: function toArrDeltas(fs) {
-			var _fs7 = _slicedToArray(fs, 1),
-			    config = _fs7[0];
+			var _fs8 = _slicedToArray(fs, 1),
+			    config = _fs8[0];
 
 			var args = [];
 			if (config.push) {
@@ -3022,8 +3076,8 @@ module.exports = {
 				func = fs.shift();
 			}
 			return [function (cellA) {
-				for (var _len2 = arguments.length, restArgs = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-					restArgs[_key2 - 1] = arguments[_key2];
+				for (var _len3 = arguments.length, restArgs = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+					restArgs[_key3 - 1] = arguments[_key3];
 				}
 
 				if (cellA) {
@@ -3044,8 +3098,8 @@ module.exports = {
 				func = fs.shift();
 			}
 			return [function (cellA) {
-				for (var _len3 = arguments.length, restArgs = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-					restArgs[_key3 - 1] = arguments[_key3];
+				for (var _len4 = arguments.length, restArgs = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+					restArgs[_key4 - 1] = arguments[_key4];
 				}
 
 				if (cellA) {
@@ -3907,7 +3961,7 @@ module.exports = {
 				var all_subtree = false;
 				var func, params;
 				var setters = new Set(['visibility', 'css', 'display', 'setval', 'hasClass', 'hasAttr', 'html', 'setfocus', 'html']);
-				var getters = new Set(['keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
+				var getters = new Set(['mousemove', 'keyup', 'focus', 'blur', 'getval', 'change', 'click', 'dblclick', 'getfocus', '', 'scrollPos', 'press', 'hasClass', 'enterText']);
 
 				var _get_params = get_params(aspect);
 
@@ -4116,10 +4170,9 @@ module.exports = {
 						};
 						break;
 					case 'dblclick':
-						func = get_handler('dblclick', selector, all_subtree, make_resp);
-						break;
 					case 'change':
-						func = get_handler('change', selector, all_subtree, make_resp);
+					case 'mousemove':
+						func = get_handler(aspect, selector, all_subtree, make_resp);
 						break;
 					case 'focus':
 						func = function func(cb, vals) {
@@ -4578,6 +4631,7 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 		var context = Object.assign({}, grid.cell_values);
 		_utils2.default.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.$template);
+		//console.log('____ TMPL', struct.tmpl);
 
 		for (var key in struct.children) {
 			if (is_list_without_templates(struct.children[key])) {
@@ -5410,6 +5464,8 @@ module.exports = _F;
 },{}],13:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 /* 
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -5423,6 +5479,7 @@ var get_token = function get_token(type) {
 	};
 };
 var match_start = function match_start() {};
+
 var empty_chars_default = [' ', '	', '\n'];
 var head = function head(a) {
 	return a[0];
@@ -5545,6 +5602,7 @@ var parse = function parse(config, str, debug) {
 						var lag = 0;
 						while (++pos) {
 							var char = str[pos - 1];
+							//console.log('parsing free chars', '"' + char + '"', 'as', tt);
 							if (char === undefined) {
 								// we reached the end!
 								if (pos - start_pos > 1) {
@@ -5556,8 +5614,7 @@ var parse = function parse(config, str, debug) {
 								}
 								//return [res, pos + 1];
 							}
-							//console.log('parsing free chars', '"' + char + '"', 'as', tt);
-							if (is_empty_char(char) && !started) {
+							if (is_empty_char(char) && !started && !tk.can_start_with_space) {
 								++lag;
 								continue;
 							}
@@ -5569,7 +5626,7 @@ var parse = function parse(config, str, debug) {
 									var string_to_compare = str.substr(start_pos + lag, pos - start_pos - lag);
 									var a1 = !!char.match(tk.regex);
 									var a2 = !!string_to_compare.match(tk.regex);
-									//console.log('matching regex', tk.regex, 'against', string_to_compare, a1, started);
+									//console.log('matching regex', tt, tk.regex, 'against "' + char + '"', a1, '"' + string_to_compare + '"', a2);
 									//if(a1 !== a2){
 									//console.log('Comparing', start_pos, a1, a2, tt, '"' + char + '"', 'vs.', '"' + string_to_compare + '".match(' + tk.regex + ')');
 									//}
@@ -5632,7 +5689,6 @@ var parse = function parse(config, str, debug) {
 							multiple = true;
 						}
 						while (true) {
-							//console.log('parsing multiple', struct_to_parse, 'as', tt, b);
 							var rz = parse_rec(struct_to_parse, str, p);
 							r = rz[0];
 							p = rz[1];
@@ -5710,7 +5766,6 @@ var parse = function parse(config, str, debug) {
 				}
 
 				if (!res.children.length) {
-					//console.log('Nothing found', tt);
 					return [false, pos];
 				}
 				break;
@@ -5733,8 +5788,19 @@ var parse = function parse(config, str, debug) {
 		}
 		return [res, pos];
 	};
-	var struct = parse_rec('root_token', str, 0);
-	struct = flatten(struct[0]);
+
+	var _parse_rec = parse_rec('root_token', str, 0),
+	    _parse_rec2 = _slicedToArray(_parse_rec, 2),
+	    struct = _parse_rec2[0],
+	    pos = _parse_rec2[1];
+
+	if (pos < str.length) {
+		var rest = str.substr(pos);
+		if (!rest.match(/^\s*$/)) {
+			throw new Error('Parse error - cannot parse:\n' + rest);
+		}
+	}
+	struct = flatten(struct);
 	// sematic parsing
 	var semantics = parse_semantics(config.semantics, struct);
 	return { syntax: struct, semantics: semantics };
@@ -6007,7 +6073,6 @@ module.exports = {
 							//console.log('o-ow', parent1, parent2, child);
 						}
 						parent2.children.push(child);
-						console.log('Got child', child);
 						last_of_level[lvl] = child;
 						if (lvl + 1 < max_level) {
 							//console.log('lvl', lvl+1, max_level);
@@ -6231,19 +6296,23 @@ var Ozenfant = function Ozenfant(str) {
 		this.if_else_tree = { str_to_func: {}, var_funcs: {} };
 		this.loop_pool = {};
 		this.var_funcs = {};
-		this.get_vars({ children: this.struct.semantics, root: true
-			//, this.node_vars_paths
-			//, this.text_vars_paths
-			//, this.nodes_vars
-		}, '.', this.var_types, []
+		this.ied = {};
+		this.selection_points = [{ children: [], child_deps: [] }];
+		this.get_vars({ children: this.struct.semantics, root: true }
+		//, this.node_vars_paths
+		//, this.text_vars_paths
+		//, this.nodes_vars
+		, '.', this.var_types, []
 		//, this.varname_pool
 		//, this.if_else_tree
-		, []
+		, [], false, this.selection_points[0]
 		//, this.loop_pool	
 		);
 	}
+	this.component_to_vars = this.component_to_vars || {};
 	this.state = {};
 	this.bindings = {};
+	this.iod = parse_if_else_dependencies(this.selection_points);
 
 	this.getIfElseVarsIndex();
 };
@@ -6269,6 +6338,10 @@ var create_func = function create_func(str, condition, loop_level) {
 	}
 };
 
+var parse_if_else_dependencies = function parse_if_else_dependencies(selps) {
+	//console.log('__________ !!! Parse', selps);
+};
+
 Ozenfant.prepare = function (str) {
 	var struct = Object.assign(Object.create(Ozenfant.prototype, {}), parser(str + '\n'));
 	struct.node_vars_paths = {};
@@ -6285,19 +6358,24 @@ Ozenfant.prepare = function (str) {
 	struct.if_else_tree = { str_to_func: {}, var_funcs: {} };
 	struct.loop_pool = {};
 	struct.str = str;
-	struct.get_vars({ children: struct.semantics, root: true
-		//, struct.node_vars_paths
-		//, struct.text_vars_paths
-		//, struct.nodes_vars
-	}, '.', struct.var_types, []
+	struct.ied = {};
+	struct.selection_points = [{ children: [], child_deps: [] }];
+	struct.get_vars({ children: struct.semantics, root: true }
+	//, struct.node_vars_paths
+	//, struct.text_vars_paths
+	//, struct.nodes_vars
+	, '.', struct.var_types, []
 	//, struct.varname_pool
 	//, struct.if_else_tree
-	, []
+	, [], false, struct.selection_points[0]
 	//, struct.loop_pool
 	);
+	struct.iod = parse_if_else_dependencies(struct.selection_points);
 
 	return struct;
 };
+
+var LOOP_CHAR = '.';
 
 var get_varname = function get_varname(node) {
 	var key = node.varname;
@@ -6557,6 +6635,8 @@ var special_html_setters = {
 Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
 	var _this = this;
 
+	var parent_selp = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
+
 	var node_pool = this.node_vars_paths;
 	var text_pool = this.text_vars_paths;
 	var path_pool = this.nodes_vars;
@@ -6570,6 +6650,12 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 		var resigtered_vars = {};
 		for (var i in node.children) {
 			var zild = node.children[i];
+			if (zild.component) {
+				if (!this.component_to_vars) {
+					this.component_to_vars = {};
+				}
+				this.component_to_vars[zild.varname] = zild.component;
+			}
 			var new_path = path;
 			if (!is_new_if(zild)) {
 				if (!zild.tagname && !zild.classnames) {
@@ -6584,14 +6670,23 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 				}
 			}
 			if (zild.type && (zild.type === 'NEW_IF' || zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE')) {
+				var selp = {
+					children: [],
+					child_deps: []
+				};
+				selp.id = this.selection_points.push(selp) - 1;
 				if (zild.type === 'NEW_IF') {
 					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					resigtered_vars[varname] = true;
 					this.register_path(varname, new_path, node_pool, last_loop);
+					console.log('set to types');
 					types[varname] = get_partial_func(node);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					selp.deps = my_if_else_deps;
+					selp.parent_selp = parent_selp;
+					parent_selp.child_deps.push(selp.id);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
 					continue;
 				}
 				if (zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE') {
@@ -6603,12 +6698,16 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					this.register_path(varname, new_path, node_pool, last_loop);
 					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
 					my_if_else_deps.push(zild.real_expr);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops);
+					selp.deps = my_if_else_deps;
+					selp.parent_selp = parent_selp;
+					parent_selp.child_deps.push(selp.id);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
 					continue;
 				}
-				this.get_vars(zild, new_path, types, if_else_deps, loops);
+				this.get_vars(zild, new_path, types, if_else_deps, loops, false, parent_selp);
 			} else {
 				if (zild.varname !== undefined) {
+					parent_selp.children.push(zild.varname);
 					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
 					this.register_path(varname, new_path, node_pool, last_loop);
 				}
@@ -6661,7 +6760,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 						}
 					}
 
-					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops);
+					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops, false, parent_selp);
 				}
 				if (zild.quoted_str) {
 					//console.log('str!', node.children[i].quoted_str);
@@ -6687,7 +6786,7 @@ Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, 
 					};
 					new_loops.push(loopname);
 				}
-				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop);
+				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop, parent_selp);
 			}
 		}
 	}
@@ -6701,7 +6800,7 @@ var getvar = function getvar(key) {
 	return "' + (ctx['" + key + "'] || '') + '";
 };
 var getvar_raw = function getvar_raw(key) {
-	return "' + (" + key + " || '') + '";
+	return "' + ((" + key + " !== undefined) ? " + key + " : '') + '";
 };
 
 var get_children_html = function get_children_html(childs, parent_tag, if_stack, pp, loop_level) {
@@ -6808,8 +6907,14 @@ var toFunc = function toFunc(node, parent_tag) {
 		switch (node.type) {
 			case 'NEW_IF':
 				//console.log('IF STACK', if_stack);
-				if_stack[node.level] = [toFuncVarname(node.varname), node.expr, []];
-				res1.push(indent + "'); if(" + node.expr + ") { res.push('");
+				var tfv = toFuncVarname(node.varname);
+				var new_expr = node.expr;
+				if (parse_loop_varname(node.varname).name !== node.varname) {
+					// it's loop varname
+					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
+				}
+				if_stack[node.level] = [tfv, new_expr, [], node.varname];
+				res1.push(indent + "'); if(" + new_expr + ") { res.push('");
 				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
 				res1.push(childs_html);
 				res1.push('\'); }\nres.push(\'');
@@ -6820,19 +6925,26 @@ var toFunc = function toFunc(node, parent_tag) {
 				    expr = _if_stack$node$level[1],
 				    elifs = _if_stack$node$level[2];
 
-				if_stack[node.level][2].push(node.expr);
-				node.real_expr = node.expr + " && !(" + expr + ")";
-				res1.push(indent + "'); if(" + node.expr + " && !(" + expr + ")) { res.push('");
+				var new_expr = node.expr;
+				if (parse_loop_varname(node.varname).name !== node.varname) {
+					// it's loop varname
+					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
+				}
+				if_stack[node.level][2].push(new_expr);
+				node.real_expr = new_expr + " && !(" + expr + ")";
+				res1.push(indent + "'); if(" + new_expr + " && !(" + expr + ")) { res.push('");
 				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
 				res1.push(childs_html);
 				res1.push(indent + '\'); }\nres.push(\'');
 				break;
 			case 'NEW_ELSE':
-				var _if_stack$node$level2 = _slicedToArray(if_stack[node.level], 3),
+				var _if_stack$node$level2 = _slicedToArray(if_stack[node.level], 4),
 				    varname = _if_stack$node$level2[0],
 				    expr = _if_stack$node$level2[1],
-				    elifs = _if_stack$node$level2[2];
+				    elifs = _if_stack$node$level2[2],
+				    real_varname = _if_stack$node$level2[3];
 
+				node.real_varname = real_varname;
 				node.varname = varname;
 				node.real_expr = "!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + ")";
 				res1.push(indent + "'); if(!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + ')) { res.push(\'');
@@ -7068,6 +7180,7 @@ Ozenfant.prototype.getIfElseVarsIndex = function () {
 
 Ozenfant.prototype.updateBindings = function () {
 	this.bindings = {};
+	this.components = {};
 	for (var varname in this.node_vars_paths) {
 		if (this.if_else_vars[varname]) {
 			var breaker = false;
@@ -7095,7 +7208,22 @@ Ozenfant.prototype.updateBindings = function () {
 			console.warn('No node found for path:', this.text_vars_paths[_varname2], 'in context', this.root);
 		}
 	}
+	for (var _vn in this.bindings) {
+		if (this.component_to_vars[_vn]) {
+			this.components[_vn] = this.bindings[_vn];
+		}
+	}
 };
+
+Ozenfant.prototype.isVisible = function (varname) {};
+
+Ozenfant.prototype.searchForComponentBindings = function (var_paths, binding) {
+	for (var varname in var_paths) {
+		if (!this.component_to_vars[varname]) continue;
+		console.log('shoud update', varname, binding);
+	}
+};
+
 Ozenfant.prototype.render = function (node) {
 	var context = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
@@ -7178,7 +7306,7 @@ Ozenfant.prototype._setVarVal = function (key, val, binding) {
 		}
 	}
 	if (val instanceof Object) return;
-	binding.textContent = val;
+	binding.innerHTML = val;
 };
 Ozenfant.prototype._setValByPath = function (path, val, root_node) {
 	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
@@ -7245,6 +7373,7 @@ Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, bindin
 	}
 	// !!! should be rewritten!
 	binding.insertAdjacentHTML("beforeend", res.join(''));
+	this.searchForComponentBindings(this.loop_pool[loop].paths, binding);
 };
 
 Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
@@ -7364,6 +7493,7 @@ Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_
 Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_context) {
 	var _this3 = this;
 
+	var lc = loop_context;
 	if (this.nodes_vars[this.text_vars_paths[key]]) {
 		var template = this.nodes_vars[this.text_vars_paths[key]];
 		//console.log('template!', template);
@@ -7371,7 +7501,11 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 			return _this3.state[key];
 		});
 		this._setVarVal(key, new_str, binding);
-		binding.innerHTML = new_str;
+		if (binding.nodeType === Node.TEXT_NODE) {
+			binding.textContent = new_str;
+		} else {
+			binding.innerHTML = new_str;
+		}
 	} else {
 		if (this.var_types[key]) {
 			switch (this.var_types[key].type) {
@@ -7398,7 +7532,8 @@ Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_cont
 					}
 					var ctx = [this.state];
 					if (loop) {
-						ctx = [this.state].concat(_toConsumableArray(loop_context));
+						var _lc = loop_context || [{}];
+						ctx = [this.state].concat(_toConsumableArray(_lc));
 					}
 					var html = func.apply(null, ctx);
 					binding.innerHTML = html;
@@ -8187,8 +8322,6 @@ Chex.prototype.absorb = function (struct, mirror_struct, cellname, value) {
 				if (!mirror_struct.children[i]) {
 					mirror_struct.children[i] = {
 						children: []
-						//type: child.subtype,
-						//parent: mirror_struct,
 					};
 				}
 				return _this.absorb(child, mirror_struct.children[i], cellname, value);
@@ -8417,9 +8550,6 @@ Chex.prototype.get_active_cells_and_funcs = function (parent, parent_mirror, bra
 					if (!mirror.children[_p]) {
 						mirror.children[_p] = {
 							children: []
-							//parent: mirror,
-							//type: branch.subtype,
-							//id: ++mirids
 						};
 					}
 					this.get_active_cells_and_funcs(branch, mirror, branch.children[_p], mirror.children[_p], cells, funcs);

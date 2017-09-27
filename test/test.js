@@ -1592,17 +1592,18 @@ describe('Firera tests', function () {
 			},
 			$packages: ['htmlCells', 'neu_ozenfant']
 		});
-		console.log('Templar', app.get('$template'));
-		console.log('_____________________________');
 		app.set('showForm', true);
 		setTimeout(() => {
 			//app.set('really_show_form', true);
-		}, 1000);
+		}, 100);
 		setTimeout(() => {
 			app.set('boo', 42);
-		}, 1500);
+		}, 200);
 		setTimeout(() => {
 			app.set('conts', [{show_form: true}, {show_form: true}, {show_form: false}, {show_form: true}]);
+		}, 300);
+		setTimeout(() => {
+			app.set('boo', 77);
 		}, 2000);
 	})
 	

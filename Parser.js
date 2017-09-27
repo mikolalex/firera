@@ -213,21 +213,18 @@ const parse_arr_funcstring = (a, key, pool, packages) => {
 		if(funcname instanceof Function){
 			// it's "is" be default
 			funcstring = ['is'].concat(a);
-		} else if(system_macros.has(cc[0])){
-			switch(funcname){
-				case 'nested':
+		} else if(system_macros.has(cc[0])){ 
+			if(cc.indexOf('nested') !== -1){
+				if(a[2] instanceof Array){
 					const dependent_cells = a[2].map((cellname) => (key + '.' + cellname));
 					utils.init_if_empty(pool.plain_base, '$init', {});
 					Obj.each(dependent_cells, (name) => {
 						pool.plain_base.$init[name] = null;
 					})
 					a.splice(2, 1);
-					funcstring = a; 
-				break;
-				default:
-					funcstring = a; 
-				break;
+				}
 			}
+			funcstring = a; 
 		} else {
 			if(funcname === 'just'){
 				utils.init_if_empty(pool.plain_base, '$init', {});
