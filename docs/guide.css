@@ -5,9 +5,12 @@ body {
     line-height: 23px;
     /*background-image: url(bg.jpg);*/
 }
+body.mainPage {
+    background-color: #e0e0e0;
+}
 
 .main-text {
-	position: relative;
+    position: relative;
     max-width: 600px;
     margin: auto;
     font-size: 1.3em;
@@ -16,8 +19,8 @@ body {
     padding: 50px 70px 40px 30px;
     border-color: rgb(249, 238, 78);
     border-style: solid;
-    border: 1px dotted grey;
-	padding: 40px;
+    border: 0;
+    padding: 40px;
     text-align: justify;
     font-size: 19px;
     line-height: 25px;
@@ -119,9 +122,8 @@ a {
 
 h2.fr-title {
     text-align: center;
-    font-style: italic;
-	font-size: 25px;
-	margin: 15px 0px 30px;
+    font-size: 25px;
+    margin: 15px 0px 30px;
 }
 
 .main-copyright {

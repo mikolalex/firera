@@ -1,6 +1,6 @@
 'use strict';
 
-import Ozenfant from '../ozenfant/ozenfant';
+import Ozenfant from '../../ozenfant/ozenfant';
 import Parser from './Parser';
 import App from './App';
 import PackagePool from './PackagePool';

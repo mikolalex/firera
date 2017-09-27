@@ -143,6 +143,12 @@ module.exports = {
 					}
 				}, cell];
 		},
+		promise: (fs) => {
+			const [func, ...args] = fs;
+			return ['async', (cb, ...inner_args) => {
+				func.apply(null, inner_args).then(cb)
+			}, ...args];
+		},
 		skipIf: (fs) => {
 			const [compare_func, func, ...args] = fs;
 			return ['asyncClosure', () => {

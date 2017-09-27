@@ -115,7 +115,7 @@ const App = function(config, root_package_pool){
 			for(let groupname in struct.cells){
 				for(let cell of struct.cells[groupname]){
 					for(let wrong_cell in cell.wrong_links){
-						utils.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
+						//utils.warn('Linking to unexisting cell:', '"' + wrong_cell + '"', 'referred by', '"' + cell.name + '"', 'hash #' + grid_id);
 					}
 				}
 			}

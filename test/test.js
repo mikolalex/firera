@@ -1560,6 +1560,8 @@ describe('Firera tests', function () {
 						? $_show_form
 							.
 								"Some form"
+							.
+								.$_show_form
 							.boo$
 							Form(method: post)
 						:
@@ -1590,7 +1592,7 @@ describe('Firera tests', function () {
 			},
 			$packages: ['htmlCells', 'neu_ozenfant']
 		});
-		console.log(app.get('$template'));
+		console.log('Templar', app.get('$template'));
 		console.log('_____________________________');
 		app.set('showForm', true);
 		setTimeout(() => {
