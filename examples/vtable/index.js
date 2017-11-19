@@ -15,8 +15,8 @@ const $template = `
             .vtable
                 .prokl(margin-top: $top_offset){$data}
                     .row
-                        .id$.id
-                        .num$.num
+                        .id$@id
+                        .num$@num
         form
             .
                 range(name: lh, min: 20, max: 60, step: 1, value: 20)
@@ -42,7 +42,7 @@ const $init = {
 }
 // app itself
 const app = Firera({
-    __root: {
+    $root: {
         $template,
         $init,
         line_height: ['[name=lh]|getval'],
@@ -59,7 +59,7 @@ const app = Firera({
         '.outer|css(height,px)': ['viewport_heigth'],
     }
 }, {
-    packages: ['htmlCells', 'neu_ozenfant'],
+    packages: ['htmlCells', 'ozenfant'],
     //trackChanges: true,//['pos_y', 'top_offset'],
     trackChangesType: 'log',
 })

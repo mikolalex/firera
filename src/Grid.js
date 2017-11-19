@@ -98,7 +98,7 @@ const Grid = function(app, parsed_pb_name, name, free_vals, init_later, parent_i
 	this.id = id;
 	this.parent = parent_id;
 	this.app = app;
-	this.name = name || '__root';
+	this.name = name || '$root';
 	var parsed_pb;
 	this.parsed_pb_name = parsed_pb_name;
 	if(typeof parsed_pb_name === 'string'){

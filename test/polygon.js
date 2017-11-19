@@ -213,7 +213,7 @@ const base = {
     }, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
 }
 const app = Firera({
-	__root: base,
+	$root: base,
 }, {
 	packages: ['htmlCells'],
 	trackChanges: true,//['pos_y', 'top_offset'],

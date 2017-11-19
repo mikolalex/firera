@@ -4,7 +4,7 @@ const isDef = function(n){ return n !== undefined; };
 const root_template = `
 	.
 		.messages{$messages_shown}
-			.$.msg
+			.$@msg
 		h2
 			"Firera file upload example"
 		.

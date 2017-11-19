@@ -50,7 +50,7 @@ window.Firera = function(apps, config = {}){
 	// getting real pbs
 	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), {except: ['$packages']});
 	// now we should instantiate each pb
-	if(!app.cbs.__root){
+	if(!app.cbs.$root){
 		// no root grid
 		throw new Error('Cant find root app!');
 	}
@@ -58,7 +58,7 @@ window.Firera = function(apps, config = {}){
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
 	app.startChange();
-	app.root = new Grid(app, '__root', false, {$app_id: app.id}, null, null, '/');
+	app.root = new Grid(app, '$root', false, {$app_id: app.id}, null, null, '/');
 	app.endChange();
 	app.startChange();
 	app.root.set('$start', true);

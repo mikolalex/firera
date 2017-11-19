@@ -9,17 +9,17 @@ const $template = `
 			label
 				"Select country"
 			select(name: country){$countries}
-				.$.
+				.$@
 		.region(visibility: $country)
 			label
 				"Select region/state"
 			select(name: region){$regions}
-				.$.name
+				.$@name
 		.city(visibility: $region)
 			label
 				"Select city"
 			select(name: city){$cities}
-				.$.name
+				.$@name
 		.address(visibility: $city)
 			label
 				"Enter your address"
@@ -33,7 +33,7 @@ const $init = {
 }
 // app itself
 const app = Firera({
-    __root: {
+    $root: {
         $template,
         $init,
         country: ['[name=country]|getval'],
@@ -48,7 +48,7 @@ const app = Firera({
 		address: ['[name=address|getval']
     }
 }, {
-    packages: ['htmlCells', 'neu_ozenfant'],
+    packages: ['htmlCells', 'ozenfant'],
     //trackChanges: true,//['pos_y', 'top_offset'],
     trackChangesType: 'log',
 })

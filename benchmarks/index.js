@@ -12,7 +12,7 @@ var run_test = (cb, str) => {
 }
 
 window.app = Firera({
-	__root: {
+	$root: {
 		$el: $root,
 		$template: `
 		h2
@@ -32,7 +32,7 @@ window.app = Firera({
 		`
 	},
 	$packages: [
-		'neu_ozenfant', 
+		'ozenfant', 
 		//'ozenfant_new', 
 		'htmlCells'
 	]

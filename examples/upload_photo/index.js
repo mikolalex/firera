@@ -4,10 +4,10 @@ import photoUploadPopupComponent from './components/photo_upload_popup';
 
 
 const app = Firera({
-	__root: rootComponent,
+	$root: rootComponent,
 	popup: photoUploadPopupComponent,
 }, {
-	packages: ['htmlCells', 'neu_ozenfant'],
+	packages: ['htmlCells', 'ozenfant'],
 	//trackChanges: true,
 	trackChangesType: 'imm',
 })

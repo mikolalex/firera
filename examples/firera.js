@@ -2648,7 +2648,7 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 	this.id = id;
 	this.parent = parent_id;
 	this.app = app;
-	this.name = name || '__root';
+	this.name = name || '$root';
 	var parsed_pb;
 	this.parsed_pb_name = parsed_pb_name;
 	if (typeof parsed_pb_name === 'string') {
@@ -4401,7 +4401,7 @@ window.Firera = function (apps) {
 	// getting real pbs
 	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), { except: ['$packages'] });
 	// now we should instantiate each pb
-	if (!app.cbs.__root) {
+	if (!app.cbs.$root) {
 		// no root grid
 		throw new Error('Cant find root app!');
 	}
@@ -4409,7 +4409,7 @@ window.Firera = function (apps) {
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
 	app.startChange();
-	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
+	app.root = new _Grid2.default(app, '$root', false, { $app_id: app.id }, null, null, '/');
 	app.endChange();
 	app.startChange();
 	app.root.set('$start', true);
@@ -4603,7 +4603,7 @@ var get_by_selector = function get_by_selector(name, $el) {
 	var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
 	if (name === null) return null;
-	if (name === '__root') return document.querySelector('body');
+	if (name === '$root') return document.querySelector('body');
 	$el = _utils2.default.raw($el);
 	if (!$el) return null;
 	var _iteratorNormalCompletion = true;

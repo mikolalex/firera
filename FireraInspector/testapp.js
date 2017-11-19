@@ -86,7 +86,7 @@ var todo_template = `
 `;
 
 var app_struct = {
-	__root: {
+	$root: {
 		$template: main_template,
 		$el: $root,
 		$child_todos: ['list', {
@@ -126,7 +126,7 @@ var app_struct = {
 		'c': ['+', 'a', 'b']
 	},
 	$packages: [
-		'neu_ozenfant', 
+		'ozenfant', 
 		//'ozenfant_new', 
 		'htmlCells'
 	]

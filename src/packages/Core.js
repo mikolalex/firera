@@ -6,7 +6,7 @@ const Arr = utils.Arr;
 const get_by_selector = function (name, $el, children = false) {
 	if (name === null)
 		return null;
-	if (name === '__root')
+	if (name === '$root')
 		return document.querySelector('body');
 	$el = utils.raw($el);
 	if (!$el)

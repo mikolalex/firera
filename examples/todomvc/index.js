@@ -107,10 +107,10 @@ const todo_component = {
 }
 
 const app = Firera({
-		__root: root_component,
+		$root: root_component,
 		todo: todo_component
 	}, {
-		packages: ['htmlCells', 'neu_ozenfant'],
+		packages: ['htmlCells', 'ozenfant'],
 		//trackChanges: true,//['completed'],
 		trackChangesType: 'imm',
 	}
