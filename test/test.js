@@ -1,9 +1,9 @@
-var Firera = require('../firera');
 var che = require('shche');
-var Ozenfant = require('../../ozenfant');
+var Ozenfant = require('ozenfant');
 var assert = require('assert');
 var $ = require('jquery');
-var utils = require('../utils');
+var Firera = require('../src/firera');
+var utils = require('../src/utils');
 var Arr = utils.Arr;
 var qsa = document.querySelectorAll.bind(document);
 var qs = document.querySelector.bind(document);
@@ -1456,7 +1456,7 @@ describe('Firera tests', function () {
 						"Locomotives"
 					ul.{$items}
 						li.item
-							.title$_title
+							.title$@title
 				`,
 				$child_items: ['list', {
 					type: 'item',
@@ -1476,8 +1476,8 @@ describe('Firera tests', function () {
 		})
 		var chs = 'ChS11';
 		app.set('title', chs, 'items/0');
+		console.log('app', app);
 		assert.equal(document.querySelector(".test-nested-loops ul > li:nth-child(1) .title").innerHTML, chs);
-		//console.log('app', app);
 	   
 		   
 	})

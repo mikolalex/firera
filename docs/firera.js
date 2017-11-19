@@ -680,6 +680,7 @@ var create_provider = function create_provider(app, self) {
 			var id = this.pool[name];
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
+			self.app.grids[id].set('$end', true);
 			delete self.app.grids[id];
 			app.linkManager.onRemoveGrid(id);
 		},
@@ -4631,7 +4632,7 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 		var context = Object.assign({}, grid.cell_values);
 		_utils2.default.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.$template);
-		//console.log('____ TMPL', struct.tmpl);
+		//console.log('____ TMPL', struct.tmpl); 
 
 		for (var key in struct.children) {
 			if (is_list_without_templates(struct.children[key])) {
@@ -5977,7 +5978,7 @@ module.exports = {
 			free_chars: true
 		},
 		varname: {
-			regex: /^\$[a-zA-Z0-9\-\_\.]*$/,
+			regex: /^\$[a-zA-Z0-9\-\_\.\@]*$/,
 			free_chars: true
 		},
 		indent: {
@@ -6389,7 +6390,7 @@ var get_varname = function get_varname(node) {
 	return key;
 };
 
-var symb = '_';
+var symb = '@';
 
 var get_loop_varname = function get_loop_varname(loop_level, varname) {
 	var n = new Array(loop_level).join(symb) + varname;
@@ -6417,9 +6418,9 @@ var prefix = 'ololo@!@!#_';
 var register_varname = function register_varname(varname, varname_pool, if_else_deps, if_else_tree, loops, loop_pool, var_funcs) {
 	var original_varname = varname;
 	var varfield;
-	if (varname.indexOf('.') !== -1) {
-		varfield = varname.split('.');
-		varname = varfield[0];
+	if (varname.indexOf('.') > 0) {
+		varfield = varname.substr(1).split('.');
+		varname = varname[0] + varfield[0];
 	}
 	if (varname_pool.vars[varname]) {
 		// already exists!

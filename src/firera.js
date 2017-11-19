@@ -11,7 +11,7 @@ import simpleHtmlTemplates from "./packages/SimpleHtmlTemplates";
 import che_package from "./packages/Che";
 import htmlCells from './packages/HtmlCells';
 import core from './packages/Core';
-import neu_ozenfant from './packages/Ozenfant';
+import ozenfant from './packages/Ozenfant';
  
  
 const is_def = (a) => {
@@ -143,7 +143,7 @@ Firera.join = function(...args){
 }
 Firera.loadPackage(core);
 Firera.loadPackage(che_package);
-Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, neu_ozenfant, che: che_package};
+Firera.packagesAvailable = {simpleHtmlTemplates, htmlCells, ozenfant, che: che_package};
 Firera.func_test_export = {parse_pb: Parser.parse_pb, parse_fexpr: Parser.parse_fexpr};
 Firera._ = utils;
 var a = 10;
