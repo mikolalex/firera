@@ -1,6 +1,6 @@
 {
   "name": "firera",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Declarative, functional, FRP",
   "main": "firera.js",
   "scripts": {
