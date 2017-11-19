@@ -4366,6 +4366,7 @@ var Obj = _utils2.default.Obj;
 var is_def = function is_def(a) {
 	return a !== undefined && a !== Firera.undef;
 };
+
 var falsy = function falsy(a) {
 	return !a || a === Firera.undef;
 };

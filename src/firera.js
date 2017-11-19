@@ -17,6 +17,7 @@ import ozenfant from './packages/Ozenfant';
 const is_def = (a) => {
 	return (a !== undefined) && (a !== Firera.undef);
 }
+
 const falsy = (a) => {
 	return (!a) || (a === Firera.undef);
 }
