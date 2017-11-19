@@ -53,7 +53,7 @@ LinkManager.prototype.refreshPointers = function(link_id){
 	}
 }
 
-LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
+LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val, only_slave_grid_id = null){
 	if(this.workingLinks[master_grid_id] && this.workingLinks[master_grid_id][master_cell]){
 		if(val === undefined){
 			val = this.app.getGrid(master_grid_id).get(master_cell);
@@ -63,6 +63,9 @@ LinkManager.prototype.checkUpdate = function(master_grid_id, master_cell, val){
 		}
 		const lnks = this.workingLinks[master_grid_id][master_cell];
 		for(let slave_grid_id in lnks){
+			if(only_slave_grid_id && (Number(only_slave_grid_id) !== Number(slave_grid_id))){
+				continue;
+			}
 			for(let slave_cellname in lnks[slave_grid_id]){
 				var cell_val = val;
 				var cv2 = val;
@@ -113,7 +116,7 @@ LinkManager.prototype.addWorkingLink = function(master_grid_id, master_cellname,
 	}
 	master.initIfSideEffectCell(master_cellname);
 	if(!master.isSignal(master_cellname)){
-		this.checkUpdate(master_grid_id, master_cellname);
+		this.checkUpdate(master_grid_id, master_cellname, undefined, slave_grid_id);
 	}
 }
 
