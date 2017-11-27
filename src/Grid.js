@@ -38,6 +38,7 @@ const create_provider = (app, self) => {
 			const id = this.pool[name];
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
+			self.app.grids[id].set('$end', true);
 			delete self.app.grids[id];
 			app.linkManager.onRemoveGrid(id);
 		},

@@ -1,9 +1,8 @@
-var Firera = require('../firera');
 var che = require('shche');
-var Ozenfant = require('../../ozenfant');
+var Ozenfant = require('ozenfant');
 var assert = require('assert');
-var $ = require('jquery');
-var utils = require('../utils');
+var Firera = require('../src/firera');
+var utils = require('../src/utils');
 var Arr = utils.Arr;
 var qsa = document.querySelectorAll.bind(document);
 var qs = document.querySelector.bind(document);
@@ -715,7 +714,7 @@ describe('Firera tests', function () {
 
 				`
             },
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
         });
 		setTimeout(() => {
 			app.set('text', 'ololo');
@@ -747,7 +746,7 @@ describe('Firera tests', function () {
 					"!"
 					`
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
         });
 		//console.log('app', app);
 		app.set('text', 'ololo');
@@ -759,7 +758,7 @@ describe('Firera tests', function () {
 	it('Testing indices predicate', function(){
 		var $root = $(".test-indices");
 		var app = Firera({
-			$packages: ['neu_ozenfant', 'htmlCells'],
+			$packages: ['ozenfant', 'htmlCells'],
 			__root: {
 				$init: {
 					undone_num: 0,
@@ -869,7 +868,7 @@ describe('Firera tests', function () {
 					`,
 				edit_train: ['second', '.edit|click', '-$real_values']
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('app', app);
 	})
@@ -954,7 +953,7 @@ describe('Firera tests', function () {
 						"todo"
 				`,
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		trigger_click($(".test-new-children .add"));
 		//console.log('app', app);
@@ -1056,7 +1055,7 @@ describe('Firera tests', function () {
 				'c': ['+', 'a', 'b']
 			}
 		}, {
-			packages: ['neu_ozenfant', 'htmlCells'],
+			packages: ['ozenfant', 'htmlCells'],
 			//trackChanges: true,//['pos_y', 'top_offset'],
 			//trackChangesType: 'log',
 		})
@@ -1108,7 +1107,7 @@ describe('Firera tests', function () {
 					}, letter + '1', letter + '2', letter + '3']
 				}, 'flag']
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		assert.equal(app.get('val'), 75);
 		app.set('a1', 12);
@@ -1227,7 +1226,7 @@ describe('Firera tests', function () {
 			block: {
 				$template: block_template,
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		assert.equal(app.get('$template', 'blocks/2'), block_template);
 		assert.equal(app.get('$template', 'blocks/5'), Firera.undef);
@@ -1309,7 +1308,7 @@ describe('Firera tests', function () {
 						"+1"
 				`,
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('**', app);
 		$root.find('.comment .plus-one').click();
@@ -1356,7 +1355,7 @@ describe('Firera tests', function () {
 						"+1"
 				`,
 			},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		//console.log('^^', app);
 		assert.equal($root.find('.comments').children().eq(0).find('.my-comment').length, 1);
@@ -1456,7 +1455,7 @@ describe('Firera tests', function () {
 						"Locomotives"
 					ul.{$items}
 						li.item
-							.title$_title
+							.title$@title
 				`,
 				$child_items: ['list', {
 					type: 'item',
@@ -1472,12 +1471,12 @@ describe('Firera tests', function () {
 				}]
 			},
 			item: {},
-			$packages: ['neu_ozenfant', 'htmlCells']
+			$packages: ['ozenfant', 'htmlCells']
 		})
 		var chs = 'ChS11';
 		app.set('title', chs, 'items/0');
+		console.log('app', app);
 		assert.equal(document.querySelector(".test-nested-loops ul > li:nth-child(1) .title").innerHTML, chs);
-		//console.log('app', app);
 	   
 		   
 	})
@@ -1520,7 +1519,7 @@ describe('Firera tests', function () {
 				
 				`
 			},
-			$packages: ['neu_ozenfant', 'htmlCells'],
+			$packages: ['ozenfant', 'htmlCells'],
 		})
 		trigger_click($root.querySelectorAll("a.item"));
 		trigger_click($root.querySelectorAll("a.foo"));
@@ -1590,7 +1589,7 @@ describe('Firera tests', function () {
 		"This is item"
 `
 			},
-			$packages: ['htmlCells', 'neu_ozenfant']
+			$packages: ['htmlCells', 'ozenfant']
 		});
 		app.set('showForm', true);
 		setTimeout(() => {
@@ -1635,7 +1634,7 @@ describe('Firera tests', function () {
 				y: [Firera._.prop('1'), '../mousepos'],
 			}
 		}, {
-			packages: ['htmlCells', 'neu_ozenfant'],
+			packages: ['htmlCells', 'ozenfant'],
 			trackChanges: true,
 			trackChangesType: 'log',
 		})

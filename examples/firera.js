@@ -1,4 +1,1890 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* 
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+	var get_token = (type) => {
+		return {
+			type: type,
+			children: [],
+		}
+	}
+	var match_start = function(){
+
+	}
+	
+	var empty_chars_default = [' ', '	', `
+`];
+	var head = (a) => {
+		return a[0];
+	}
+	var tail = (a) => {
+		return a.slice(1);
+	}
+
+	var parse_semantics = function(config, struct){
+		if(struct instanceof Array){
+			if(struct.length === 1){
+				struct = struct[0];
+			} else {
+				var r = [];
+				for(var i in struct){
+					r.push(parse_semantics(config, struct[i]));
+				}
+				return r;
+			}
+		}
+		if(!struct){
+			console.warn('oops', config, struct);
+			return;
+		}
+		var type = struct.type;
+		var children = struct.children;
+		var sem = config[type];
+		if(!sem){
+			console.error('No token semantic description', type, struct);
+			return;
+		}
+		if(sem.type){
+			switch(sem.type){
+				case 'door':
+					var to_parse = sem.ret ? children[sem.ret - 1] : children;
+					return parse_semantics(config, to_parse);
+				break;
+				case 'chars':
+					return {chars: struct.chars}
+				break;
+			}
+		}
+		if(sem.func){
+			return sem.func(struct, parse_semantics.bind(null, config));
+		}
+	};
+
+	var flatten = function(struct, arr){
+		var get_children = function(struct, arr){
+			if(struct.children){
+				for(var i in struct.children){
+					if(struct.children[i].type){
+						var child = {
+							type: struct.children[i].type,
+							children: [],
+						}
+						if(struct.children[i].chars){
+							child.chars = struct.children[i].chars;
+						}
+						arr.push(child);
+						get_children(struct.children[i], child.children);
+					} else {
+						get_children(struct.children[i], arr);
+					}
+				}
+			}
+		}
+		var res = [];
+		get_children({children: [struct]}, res);
+		return res[0];
+	}
+
+	var parse = function(config, str, debug){
+		var is_empty_char = (char) => {
+			var empty_chars = config.empty_chars || empty_chars_default;
+			return empty_chars.indexOf(char) !== -1;
+		}
+		var parse_rec = function parse_rec(tt, str, pos){
+			var original_pos = pos;
+			var showpos = function(){
+				return str.substr(0, pos) + '@@@' + str.substr(pos);
+			}
+			//console.log('Parsing', '___' + tt + '___', 'token from', pos, showpos());
+			var children;
+			var res = {
+				children: [],
+			};
+			if(typeof tt === 'string'){
+				res.type = tt;
+				if(!config.syntax[tt]){
+					console.error('Token not found:', tt);
+				}
+				var tk = config.syntax[tt];
+				//console.log('Token props:', tk);
+				if(tk.start !== undefined){
+					var started = false;
+					var start_pos = pos;
+					while(++pos){
+						var char = str[pos - 1];
+						if(is_empty_char(char)){
+							continue;
+						}
+						if(char !== tk.start){
+							//console.log('parsing', tt, 'failed:', pos, 
+							//str[pos], 'instead of', tk.start);
+							return [false, start_pos];
+						} else {
+							break;
+						}
+					}
+				}
+				if(tk.children){
+					children = tk.children;
+				} else {
+					if(tk.free_chars){
+						//console.log('Parsing free chars');
+						var start_pos = pos;
+						if(tk.end || tk.regex){
+							var started = false;
+							var lag = 0;
+							while(++pos){
+								var char = str[pos - 1];
+								//console.log('parsing free chars', '"' + char + '"', 'as', tt);
+								if(char === undefined){
+									// we reached the end!
+									if(pos - start_pos > 1){
+										//console.log('we reached the end!');
+										res.chars = str.substr(start_pos, pos - start_pos - 1);
+										return [res, pos - 1];
+									} else {
+										return false;
+									}
+									//return [res, pos + 1];
+								}
+								if(is_empty_char(char) && !started && !tk.can_start_with_space){
+									++lag;
+									continue;
+								}
+								if(tk.end && char === tk.end){
+									res.chars = str.substr(start_pos, pos - start_pos - 1 + lag);
+									return [res, pos];
+								} else {
+									if(tk.regex){
+										var string_to_compare = str.substr(start_pos + lag, pos - start_pos - lag);
+										var a1 = !!char.match(tk.regex);
+										var a2 = !!string_to_compare.match(tk.regex);
+										//console.log('matching regex', tt, tk.regex, 'against "' + char + '"', a1, '"' + string_to_compare + '"', a2);
+										//if(a1 !== a2){
+										//console.log('Comparing', start_pos, a1, a2, tt, '"' + char + '"', 'vs.', '"' + string_to_compare + '".match(' + tk.regex + ')');
+										//}
+										if(!char || !(string_to_compare.match(tk.regex))){
+											if(started){
+												res.chars = str.substr(start_pos + lag, pos - start_pos - 1 - lag);
+												//console.log('______________ success', res.chars);
+												return [res, pos - 1];
+											} else {
+												//console.log('DED END!', char, tt);
+												return [false, pos - 1 - lag];
+											}
+										}
+									}
+								}
+								started = true;
+							}
+						} else {
+							console.warn('Could not parse free chars without end!');
+							return [false, pos];
+						}
+					} else if(tk.str){
+						// just exact string
+						var test_str = str.substr(pos, tk.str.length);
+						if(test_str === tk.str){
+							return [res, pos + tk.str.length];
+						} else {
+							return [false, pos];
+						}
+					} else {
+						console.warn('No chars and no tokens - what to do?', tk);
+					}
+				}
+			} else {
+				children = tt;
+			}
+			if(!children) return res;
+			var children_type = head(children);
+			var rest_children = tail(children);
+			//console.log('chtype', children_type, rest_children);
+			switch(children_type){
+				case '>':
+					//console.log('parsing > children', tt);
+					var p = pos;
+					for(var b of rest_children){
+						if(typeof b === 'string') continue;
+						var r;
+						var struct_to_parse = b instanceof Array ? b : b.type;
+						var optional = b.optional;
+						var multiple = b.multiple;
+						if(struct_to_parse instanceof Array && typeof struct_to_parse[struct_to_parse.length - 1] === 'string'){
+							optional = true;
+							multiple = true;
+						}
+						while(true){
+							var rz = parse_rec(struct_to_parse, str, p);
+							r = rz[0];
+							p = rz[1];
+							if(!r){
+								if(optional){
+										break;
+								}
+								return [false, p];
+							}	
+							pos = p;
+							res.children.push(r);
+							if(multiple){
+								if(str[p] === undefined){
+									break;
+								}
+							} else {
+								break;
+							}
+						}
+					}
+				break;
+				case '|':
+					//console.log('parsing | children', children);
+					for(var b of rest_children){
+						if(typeof b === 'string') continue;
+						var r;
+						var struct_to_parse = b instanceof Array ? b : b.type;
+						var rz = parse_rec(struct_to_parse, str, pos);
+						r = rz[0];
+						p = rz[1];
+						if(!r){
+							continue;
+						} else {
+							res.children.push(r);
+							pos = p;
+							break;
+						}
+						return [false, pos];
+					}
+					if(!res.children.length){
+						return [false, pos];
+					}
+				break;
+				default:
+					console.error('Unknown children type:', children_type);
+				break;
+			}
+			if(tk && tk.end){
+				var pp = pos;
+				while(++pp){
+					var char = str[pp - 1];
+					if(is_empty_char(char)){
+						continue;
+					}
+					if(char === tk.end){
+						pos = pp;
+					}
+					break;
+				}
+			}
+			return [res, pos];
+		}
+		var [struct, pos] = parse_rec('root_token', str, 0);
+		if(pos < str.length){
+			const rest = str.substr(pos);
+			if(!rest.match(/^\s*$/)){
+				throw new Error(`Parse error - cannot parse:
+` + rest);
+			}
+		}
+		struct = flatten(struct);
+		// sematic parsing
+		var semantics = parse_semantics(config.semantics, struct);
+		return {syntax: struct, semantics};
+	}
+	module.exports = {
+		get_parser: (config) => {
+			return parse.bind(null, config);
+		},
+		dump: function(struct){
+			var rec = function(struct, level){
+				if(!struct) return;
+				var res = [];
+				if(struct.type){
+					res.push('Type: ' + struct.type);
+				}
+				if(struct.chars){
+					res.push('Str: ' + struct.chars);
+				}
+				if(struct.children){
+					var r = [];
+					for(var i in struct.children){
+						r.push(rec(struct.children[i], level+1));
+					}
+					res.push('<div>' + r.join('	') + '</div>');
+				}
+				return '<div>' + res.join('<br>') + '</div>';
+			}
+			return rec(struct, 0);
+		}
+	}
+
+},{}],2:[function(require,module,exports){
+var fields = ['classnames', 'tagname', 'str', 'quoted_str'];
+var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
+	for(let i  = 1; ;i = i + 2){
+		var key = arguments[i];
+		var val = arguments[i + 1];
+		if(!key) break;
+
+		if(obj[key] === undefined){
+			obj[key] = val;
+		}
+		obj = obj[key];
+	}
+	return obj;
+}
+var count_indent = (str, child) => {
+	var spaces = str.match(/[\s^\t]*/g);
+	var spaces_count = 0;
+	if(spaces){
+		for(var i in spaces){
+			spaces_count += spaces[i].length;
+		}
+	}
+	var tabs = str.match(/[\t]*/g);
+	var tabs_count = 0;
+	if(tabs){
+		for(var i in tabs){
+			tabs_count += tabs[i].length;
+		}
+	}
+	spaces_count -= tabs_count;
+	return spaces_count + (tabs_count*4);
+}
+module.exports = {
+	empty_chars: [' '],
+	syntax: {
+		root_token: {
+			children: [
+				'>',
+				{
+					type: 'item',
+					multiple: true,
+					optional: true,
+				},
+			]
+		},
+		item: {
+			children: [
+				'>',
+				{
+					type: 'indent',
+					optional: true,
+				},
+				[
+					'|',
+					{
+						type: 'new_if',
+							optional: true,
+					},
+					{
+						type: 'new_elseif',
+							optional: true,
+					},
+					{
+						type: 'new_else',
+							optional: true,
+					},
+					{
+						type: 'ternary_else',
+					},
+					[
+						'>',
+						{
+							type: 'tagname',
+							optional: true,
+						},
+						{
+							type: 'classnames',
+							optional: true,
+						},
+						[
+							'|', 
+							{
+								type: 'quoted_str',
+								optional: true,
+							}, {
+								type: 'variable',
+								optional: true,
+							},
+							'optional'
+						],
+						[
+							'|', 
+							{
+								type: 'quoted_str',
+								optional: true,
+							}, {
+								type: 'variable',
+								optional: true,
+							},
+							'optional'
+						],
+						{
+							type: 'bracket',
+							optional: true,
+						},
+						{
+							type: 'loop',
+							optional: true,
+						},
+						{
+							type: 'trim',
+							optional: true,
+						},
+					],
+				],
+				{
+					type: 'lineend',
+				}
+			]
+		},
+		comma: {
+			regex: /^\,\s?$/,
+			free_chars: true,
+		},
+		bracket: {
+			start: '(',
+			children: [
+				'>',
+				{
+					type: 'assign',
+					optional: true,
+				},
+				[
+					'>',
+					{
+						type: 'comma',
+					},
+					{
+						type: 'assign'
+					},
+					'optional'
+				]
+
+			],
+			end: ')',
+		},
+		assign: {
+			free_chars: true,
+			regex: /^[^\)^\,]*$/
+		},
+		quoted_str: {
+			can_start_with_space: true,
+			start: '"',
+			end: '"',
+			free_chars: true,
+		},
+		variable: {
+			children: [
+				'>',
+				{
+					type: 'varname',
+				},
+				{
+					type: 'ternary_if',
+					optional: true,
+				}
+			]
+		},
+		ternary_if: {
+			regex: /^\?$/,
+			free_chars: true,
+		},
+		ternary_else: {
+			regex: /^\:$/,
+			free_chars: true,
+		},
+		new_if: {
+			regex: /^\?\s?(.*)?$/,
+			free_chars: true,
+		},
+		new_elseif: {
+			regex: /^\*\s?(.*)?$/,
+			free_chars: true,
+		},
+		new_else: {
+			regex: /^\:$/,
+			free_chars: true,
+		},
+		varname: {
+			regex: /^\$[a-zA-Z0-9\-\_\.\@]*$/,
+			free_chars: true,
+		},
+		indent: {
+			can_start_with_space: true,
+			regex: /^(\t|\s)+$/,
+			free_chars: true,
+		},
+		trim: {
+			can_start_with_space: true,
+			regex: /^[\t ]*$/,
+			free_chars: true,
+		},
+		classnames: {
+			regex: /^\.[\\.a-zA-Z0-9\-\_]*$/,
+			free_chars: true,
+		},
+		tagname: {
+			regex: /^[a-zA-Z0-9]+$/,
+			free_chars: true,
+		},
+		loop: {
+			regex: /\{([^\n]*)?$/,
+			free_chars: true,
+		},
+		str: {
+			regex: /^[^\n]+$/,
+			free_chars: true,
+		},
+		lineend: {
+			regex: /\n$/,
+			free_chars: true,
+		},
+	},
+	semantics: {
+		root_token: {
+			func: (function(){ 
+				var nestedComponentCount = 0;
+				return (struct, parser) => {
+					var res = {children: []};
+					var last_of_level = {
+						"-1": res,
+					}
+					var che_results = parser(struct.children);
+					//console.log('Results', che_results);
+					var max_level = 0;
+					var last_if = [];
+					for(let i in che_results){
+						let child = che_results[i];
+						if(child.tagname && (child.tagname.slice(0, 1).toLowerCase() !== child.tagname.slice(0, 1))){
+							child.component = {
+								name: child.tagname
+							};
+							child.varname = '@nestedComponent' + (++nestedComponentCount);
+							child.tagname = 'div';
+						}
+						if(!child.tagname && !child.classnames && !child.quoted_str && !child.variable && !child.type) {
+							continue;
+						}
+						if(child.type === 'IF'){
+							last_if.push(child);
+						}
+						if(child.type === 'ELSE'){
+							var lif = last_if.pop();
+							lif.else_children = child;
+						}
+						var lvl = child.level || 0;
+						if(lvl > max_level){
+							max_level = lvl;
+						}
+						var put_to = lvl - 1;
+						child.children = [];
+						if(!last_of_level[put_to]){
+							for(;put_to--;put_to > -2){
+								if(last_of_level[put_to]) break;
+							}
+							if(!last_of_level[put_to]){
+								continue;
+							}
+						}
+						// way back
+						for(var y = i; y >= 0; y--){
+							if(che_results[y].level < lvl){
+								//console.log('PUT TO', che_results[y], che_results[y].level);
+								break;
+							}
+						}
+						var parent1 = last_of_level[put_to];
+						var parent2 = che_results[y];
+						if(!che_results[y]){
+							parent2 = res;
+						}
+						if(parent1 !== parent2){
+							//console.log('o-ow', parent1, parent2, child);
+						}
+						parent2.children.push(child);
+						last_of_level[lvl] = child;
+						if(lvl + 1 < max_level){
+							//console.log('lvl', lvl+1, max_level);
+							var j = lvl + 1;
+							for(var j = lvl + 1;j <= max_level;j++){
+								if(!last_of_level[j]) break;
+								//console.log('delete', last_of_level[j]);
+								delete last_of_level[j];
+							}
+						}
+					}
+					return res.children;
+				}
+			})()
+		},
+		item: {
+			func: (struct, parser) => {
+				var res = {};
+				for(let child of struct.children){
+					switch(child.type){
+						case 'variable':
+							res.varname = child.children[0].chars.slice(1);
+							if(child.children[1]){
+								res.type = "IF";
+							}
+						break;
+						case 'ternary_else':
+							res.type = "ELSE";
+						break;
+						case 'new_if':
+							var chars = child.chars;
+							res.varname = chars.match(/\$([A-Za-z0-9\_]*)/)[1];
+							res.expr = chars.replace(/\?\s?/, '').replace('$' + res.varname, 'ctx.' + res.varname);
+							res.type = child.type.toUpperCase();
+						break;
+						case 'new_elseif':
+							var chars = child.chars;
+							res.varname = chars.match(/\$([^\s]*)/)[1];
+							res.expr = chars.replace(/\*\s?/, '').replace('$' + res.varname, 'ctx.' + res.varname);
+							res.type = child.type.toUpperCase();
+						break;
+						case 'new_else':
+							res.type = child.type.toUpperCase();
+						break;
+						case 'indent':
+							res.level = count_indent(child.chars, child)
+						break;
+						case 'loop':
+							const loopvn = child.chars.match(/\{\$([^\}]*)\}/);
+							if(!loopvn){
+								throw new Error('Ozenfant: Wrong loop var name: ' + child.chars + ', should match /\{\$([^\}]*)\}/');
+							}
+								res.loop = loopvn[1];
+							//console.log('INDEX', res.level);
+						break;
+						case 'bracket':
+							res.assignments = [];
+							for(let child1 of child.children){
+								if(child1.type === 'assign'){
+									var assign = child1.chars.split(':');
+									var key = assign[0].trim();
+									var val = assign[1] ? assign[1].trim() : '';
+									if(val[0] === '$'){
+										// its var
+										let varname = val.length === 1 ? key : val.substr(1);
+										init_if_empty(res, 'attrStyleVars', []).push([varname, key]);
+									}
+									res.assignments.push([key, val]);
+								}
+							}
+							//console.log('INDEX', res.level);
+						break;
+					}
+					if(fields.indexOf(child.type) !== -1){
+						res[child.type] = child.chars;
+					}
+				}
+				return res;
+			}
+		},
+		indent: {
+			type: 'chars',
+		}
+	}
+}
+
+},{}],3:[function(require,module,exports){
+var ozenfant_config = require('./config');
+var parser = require('ooo_oo_o').get_parser(ozenfant_config);
+
+var init_if_empty = function(obj/*key, val, key1, val1, ... */) {
+	for(let i  = 1; ;i = i + 2){
+		var key = arguments[i];
+		var val = arguments[i + 1];
+		if(!key) break;
+
+		if(obj[key] === undefined){
+			obj[key] = val;
+		}
+		obj = obj[key];
+	}
+	return obj;
+}
+
+var last = (arr) => {
+	return arr[arr.length - 1];
+}
+
+const toggle_class = (el, clas, val) => {
+	const cls_string = el.getAttribute('class') || '';
+	const cls = cls_string.split(' ');
+	const pos = cls.indexOf(clas);
+	var toggle;
+	if(val !== undefined){
+		toggle = val;
+	} else {
+		toggle = pos === -1;
+	}
+	if(toggle){
+		if(cls.indexOf(clas) === -1){
+			el.setAttribute('class', cls_string + ' ' + clas);
+		}
+	} else {
+		if(pos !== -1){
+			cls.splice(pos, 1);
+		}
+		el.setAttribute('class', cls.join(' '));
+	}
+}
+
+var html_attrs = new Set(["accept","accept-charset","accesskey","action","align","alt","async","autocomplete","autofocus","autoplay","autosave","bgcolor","border","buffered","challenge","charset","checked","cite","class","code","codebase","color","cols","colspan","content","contenteditable","contextmenu","controls","coords","data","data-*","datetime","default","defer","dir","dirname","disabled","download","draggable","dropzone","enctype","for","form","formaction","headers","hidden","high","href","hreflang","http-equiv","icon","id","integrity","ismap","itemprop","keytype","kind","label","lang","language","list","loop","low","manifest","max","maxlength","media","method","min","multiple","muted","name","novalidate","open","optimum","pattern","ping","placeholder","poster","preload","radiogroup","readonly","rel","required","reversed","rows","rowspan","sandbox","scope","scoped","seamless","selected","shape","size","sizes","slot","span","spellcheck","src","srcdoc","srclang","srcset","start","step","style","summary","tabindex","target","title","type","usemap","value","wrap"])
+var is_attr = (str) => {
+	return html_attrs.has(str) || str.match(/^data\-/);
+}
+
+var traverse_tree = (root_node, cb, key = 'children') => {
+	for(var b in root_node[key]){
+		var leaf = root_node[key][b];
+		cb(leaf);
+		traverse_tree(leaf, cb, key);
+	}
+}
+
+var text_var_regexp = /\{\{([a-zA-Z0-9\_]*)\}\}/g;///\$([a-zA-Z0-9]*)/g;
+
+var Ozenfant = function(str){
+	if(str instanceof Object){
+		this.struct = str;// compiled struct
+		this.node_vars_paths = this.struct.node_vars_paths;
+		this.text_vars_paths = this.struct.text_vars_paths;
+		this.nodes_vars = this.struct.nodes_vars;
+		this.var_types = this.struct.var_types;
+		this.varname_pool = this.struct.varname_pool;
+		this.if_else_tree = this.struct.if_else_tree;
+		this.loop_pool = this.struct.loop_pool;
+		this.var_funcs = this.struct.var_funcs;
+		this.str = this.struct.str;
+	} else {
+		this.str = str;
+		this.struct = parser(str + `
+`);
+		this.node_vars_paths = {};
+		this.text_vars_paths = {};
+		this.nodes_vars = {};
+		this.var_types = {};
+		this.varname_pool = {
+			vars: {},
+			var_aliases: {},
+		};
+		this.func = create_func(toFunc({children: this.struct.semantics}));
+		this.if_else_tree = {str_to_func: {}, var_funcs: {}};
+		this.loop_pool = {};
+		this.var_funcs = {};
+		this.ied = {};
+		this.selection_points = [{children: [], child_deps: []}];
+		this.get_vars({children: this.struct.semantics, root: true}
+			//, this.node_vars_paths
+			//, this.text_vars_paths
+			//, this.nodes_vars
+			, '.'
+			, this.var_types
+			, []
+			//, this.varname_pool
+			//, this.if_else_tree
+			, []
+			, false
+			, this.selection_points[0]
+			//, this.loop_pool	
+		);
+	}
+	this.component_to_vars = this.component_to_vars || {};
+	this.state = {};
+	this.bindings = {};
+	this.iod = parse_if_else_dependencies(this.selection_points);
+
+	this.getIfElseVarsIndex();
+};
+
+var create_func = (str, condition, loop_level) => {
+	var body = "'" + str + "'";
+	if(condition){
+		body = condition + ' ? ' + body + ' : false';
+	}
+	var args = 'ctx';
+	if(loop_level){
+		for(var c = 1; c <= loop_level; c++){
+			args += ', __loopvar' + c;
+		}
+	}
+	const fbody = 'var res = []; var res2 = []; res.push(' + body + '); return res.join("");';
+	try {
+		var f = new Function(args, fbody);
+		return f;
+	} catch(e) {
+		console.error('Cannot create function', body);
+		return new Function('', '');
+	}
+}
+
+var parse_if_else_dependencies = function(selps){
+	//console.log('__________ !!! Parse', selps);
+}
+
+Ozenfant.prepare = (str) => {
+	var struct = Object.assign(Object.create(Ozenfant.prototype, {}), parser(str + `
+`));
+	struct.node_vars_paths = {};
+	struct.text_vars_paths = {};
+	struct.nodes_vars = {};
+	struct.var_types = {};
+	struct.var_funcs = {};
+	struct.varname_pool = {
+		vars: {},
+		var_aliases: {},
+	};
+	struct.func = create_func(toFunc({children: struct.semantics}));
+	//console.log('Struct func', struct);
+	struct.if_else_tree = {str_to_func: {}, var_funcs: {}};
+	struct.loop_pool = {};
+	struct.str = str;
+	struct.ied = {};
+	struct.selection_points = [{children: [], child_deps: []}];
+	struct.get_vars(
+		{children: struct.semantics, root: true}
+		//, struct.node_vars_paths
+		//, struct.text_vars_paths
+		//, struct.nodes_vars
+		, '.'
+		, struct.var_types
+		, []
+		//, struct.varname_pool
+		//, struct.if_else_tree
+		, []
+		, false
+		, struct.selection_points[0]
+		//, struct.loop_pool
+	);
+	struct.iod = parse_if_else_dependencies(struct.selection_points);
+	
+	return struct;
+}
+
+var LOOP_CHAR = '.';
+
+var get_varname = (node) => {
+	var key = node.varname;
+	if(!key.length){
+		if(node.classnames){
+			key = node.classnames.substr(1).split('.').pop();
+		} else {
+			console.warn('Incorrect statement: variable without name and default class!');
+		}
+	}
+	return key;
+}
+
+var symb = '@';
+
+var get_loop_varname = (loop_level, varname) => { 
+	var n = new Array(loop_level).join(symb) + varname;
+	return n;
+}
+
+var test_loop_varname = varname => varname[0] === symb;
+
+var parse_loop_varname = varname => {
+	var dot_counter = 0;
+	for(var cp in varname){
+		if(varname[cp] === symb){
+			++dot_counter;
+		} else {
+			break;
+		}
+	}
+	return {name: varname.substr(dot_counter), level: dot_counter};
+}
+
+var prefix = 'ololo@!@!#_';
+
+var register_varname = (varname, varname_pool, if_else_deps, if_else_tree, loops, loop_pool, var_funcs) => {
+	var original_varname = varname;
+	var varfield;
+	if(varname.indexOf('.') > 0){
+		varfield = varname.substr(1).split('.');
+		varname = varname[0] + varfield[0];
+	}
+	if(varname_pool.vars[varname]){
+            // already exists!
+            //console.log('VAR', varname, 'already exists!');
+            init_if_empty(varname_pool.var_aliases, varname, []);
+            var new_name = prefix + varname + '_' + varname_pool.var_aliases[varname].length;
+            varname_pool.var_aliases[varname].push(new_name);
+            varname = new_name;
+	} else {
+		varname_pool.vars[varname] = true;
+	}
+	if(varfield){
+		var_funcs[varname] = varfield.slice(1).join('.');
+	}
+	var deps = if_else_deps.length ? ('(' + if_else_deps.join(') && (') + ')') : false;
+	if(deps){
+		if(if_else_tree.str_to_func[deps]){
+			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps];
+		} else {
+			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps] = new Function('ctx', 'return ' + deps);
+		}
+	}
+	if(loops.length){
+		var last_loop = loop_pool[loops[loops.length - 1]];
+		if(parse_loop_varname(original_varname).level < last_loop.level + 1){
+			var curr_loop = last_loop;
+			var var_level = parse_loop_varname(varname).level - 1;
+			while(true){
+				if(curr_loop === 'root'){
+					init_if_empty(varname_pool, 'loop_var_links', {}, original_varname, {}, varname, last_loop);
+					break;
+				} else {
+					if(curr_loop.level == var_level){
+						var vrkey = parse_loop_varname(original_varname).name;
+						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, last_loop);
+						break;
+					}
+					curr_loop = curr_loop.parent_loop;
+				}
+				
+				if(curr_loop === 'root'){
+					break;
+				}
+				if(!curr_loop){
+					curr_loop = 'root';
+				}
+			}
+		}
+		init_if_empty(last_loop, 'vars', {});
+		last_loop.vars[varname] = true;
+	}
+	return varname;
+}
+
+var add_to_if_else_pool = (pools, varname, path) => {
+	for(var pool of pools){
+		pool[varname] = path;
+	}
+}
+
+var is_new_if = (a) => {
+	return ['NEW_ELSE', 'NEW_ELSEIF', 'NEW_IF'].indexOf(a.type) !== -1;
+}
+
+var get_partial_func = (node) => {
+	if(node.partial_func) {
+		return node.partial_func;
+	} else {
+		if(node.root){
+			return 'USE_ROOT_FUNC';
+		}
+	}
+	
+}
+
+var register_loop = function(varname, level, pool, parent_loop){
+	var lp = {
+		parent_loop,
+		name: varname,
+		level,
+	}
+	if(parent_loop){
+		init_if_empty(parent_loop, 'nested_loops', []);
+		parent_loop.nested_loops.push(lp);
+	}
+	pool[varname] = lp;
+	return lp;
+}
+
+var fix_path = (path) => {
+	return path.replace('./*[1]', '.');
+}
+
+
+Ozenfant.prototype.register_path = function(varname, path, pool, loop){
+	if(loop){
+		init_if_empty(loop, 'paths', {});
+		pool = loop.paths;
+	}
+	var has_loops = false;
+	if(path.indexOf('_{}_') !== -1){
+		var pieces = path.split('_{}_');
+		has_loops = true;
+		path = pieces[pieces.length - 1];
+	}
+	if(path.indexOf('./*[1]') !== 0 && (!has_loops) && path.length){
+		console.error('Template should have only one root node! Given', this.struct.semantics.length);
+	} else {
+		path = fix_path(path);
+	}
+	pool[varname] = path;
+}
+
+var special_html_setters = {
+	'hasClass': {
+		dom: (binding, val, [classname]) => {
+			toggle_class(binding, classname, val);
+		}, 
+		str: (val, conf, [classname]) => {
+			conf.classnames.push("' + ((" + val + ") ? '" + classname + "' : '') + '");
+		}
+	},
+	'hasAttr': {
+		dom: (binding, val, [attrname]) => {
+			if(val){
+				binding.setAttribute(attrname, attrname);
+			} else {
+				binding.removeAttribute(attrname);
+			}
+		}, 
+		str: (val, conf, [attrname]) => {
+			if(val){
+				conf.attrs.push(" ' + (" + val + " ? '" + attrname + "' : '' ) + '");
+			}
+		}
+	},
+	'val': {
+		updateAnyway: true,
+		dom: (binding, val) => {
+			binding.value = val;
+		}, 
+		str: (val, conf, [classname]) => {
+			conf.attrs.push(' value="' + "' + (" + val + " || '') + '" + '"');
+		}
+	},
+	'show': {
+		dom: (binding, val, [disp]) => {
+			var shown = disp || 'block';
+			if(!val){
+				binding.style.display = 'none';
+			} else {
+				binding.style.display = shown;
+			}
+		}, 
+		str: (val, conf, [disp]) => {
+			disp = disp || 'block';
+			conf.styles.push("display: ' + ((" + val + ") ? '" + disp + "' : 'none') + '");
+		}
+	},
+	'focus': {
+		updateAnyway: true,
+		dom: (binding, val) => {
+			if(val){
+				binding.focus();
+			}
+		},
+		str: (val, conf) => {
+			conf.attrs.push(" ' + (" + val + " ? 'autofocus' : '') + '");
+		}
+	}
+}
+
+Ozenfant.prototype.get_vars = function(node, path, types, if_else_deps, loops, parent_has_loop, parent_selp = null){
+	var node_pool = this.node_vars_paths;
+	var text_pool = this.text_vars_paths;
+	var path_pool = this.nodes_vars;
+	var last_loop;
+	if(loops.length){
+		last_loop = this.loop_pool[loops[loops.length - 1]];
+	}
+	if(node.children){
+		var nodes_lag = 0;
+		var text_lag = 0;
+		var resigtered_vars = {};
+		for(var i in node.children){
+			var zild = node.children[i];
+			if(zild.component){
+				if(!this.component_to_vars){
+					this.component_to_vars = {};
+				}
+				this.component_to_vars[zild.varname] = zild.component;
+			}
+			var new_path = path;
+			if(!is_new_if(zild)){
+				if(!zild.tagname && !zild.classnames){
+						++nodes_lag;
+				} else {
+						++text_lag;
+				}
+				if(parent_has_loop){
+					new_path = path + '/_{}_';
+				} else {
+					new_path = path + '/*[' + (Number(i) + 1 - nodes_lag) + ']';
+				}
+			}
+			if(zild.type && (
+					zild.type === 'NEW_IF'
+					|| zild.type === 'NEW_ELSEIF'
+					|| zild.type === 'NEW_ELSE')){
+				var selp = {
+					children: []
+					, child_deps: []
+				};
+				selp.id = this.selection_points.push(selp) - 1;
+				if(zild.type === 'NEW_IF'){
+					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+					resigtered_vars[varname] = true;
+					this.register_path(varname, new_path, node_pool, last_loop);
+					console.log('set to types')
+					types[varname] = get_partial_func(node);
+					var my_if_else_deps = [...if_else_deps];
+					my_if_else_deps.push(zild.expr);
+					selp.deps = my_if_else_deps;
+					selp.parent_selp = parent_selp;
+					parent_selp.child_deps.push(selp.id);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
+					continue;
+				}
+				if(zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE'){
+					var varname = get_varname(zild);
+					if(!resigtered_vars[varname]){
+						register_varname(varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+					}
+					types[varname] = get_partial_func(node);
+					this.register_path(varname, new_path, node_pool, last_loop);
+					var my_if_else_deps = [...if_else_deps];
+					my_if_else_deps.push(zild.real_expr)
+					selp.deps = my_if_else_deps;
+					selp.parent_selp = parent_selp;
+					parent_selp.child_deps.push(selp.id);
+					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
+					continue;
+				}
+				this.get_vars(zild, new_path, types, if_else_deps, loops, false, parent_selp);
+			} else {
+				if(zild.varname !== undefined){
+					parent_selp.children.push(zild.varname);
+					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+					this.register_path(varname, new_path, node_pool, last_loop);
+				}
+				if(zild.attrStyleVars){
+					for(let [varname, attrname] of zild.attrStyleVars){
+						varname = register_varname(varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+						this.register_path(varname, new_path, node_pool, last_loop);
+						
+						const [real_name, params] = parse_attr_style_name(attrname);
+						if(special_html_setters[real_name]){
+							// its special setter
+							types[varname] = {
+								type: 'SETTER',
+								name: real_name,
+								params: params
+							}
+						} else {
+							let as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
+							types[varname] = {
+								type: as_type,
+								name: attrname,
+							}
+						}
+						
+					}
+					this.get_vars(zild, new_path, types, [...if_else_deps], loops, false, parent_selp);
+				} 
+				if(zild.quoted_str){
+					//console.log('str!', node.children[i].quoted_str);
+					zild.quoted_str.replace(text_var_regexp, (_, key) => {
+						var text_path = fix_path(path + '/text()[' + (Number(i) + 1 - text_lag) + ']');
+						varname = register_varname(key, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+						if(!path_pool[text_path]){
+							path_pool[text_path] = zild.quoted_str;
+						}
+						text_pool[varname] = text_path;
+						//console.log('text key found', key, text_path);
+					})
+				} 
+				var new_loops = [...loops];
+				if(zild.loop){
+					let loopname = register_varname(zild.loop, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
+					var loop = register_loop(loopname, loops.length, this.loop_pool, last_loop);
+					this.register_path(loopname, new_path, node_pool, last_loop);
+					types[loopname] = {
+						type: 'LOOP',
+						func: get_partial_func(zild),
+						loop,
+					}
+					new_loops.push(loopname);
+				}
+				this.get_vars(zild, new_path, types, [...if_else_deps], new_loops, !!zild.loop, parent_selp);
+			}
+		}
+	}
+}
+
+var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range', 'file']);
+
+var toHTML = function(node, context, parent_tag){
+}
+
+var getvar = (key) => {
+	return "' + (ctx['" + key + "'] || '') + '";
+}
+var getvar_raw = (key) => {
+	return "' + ((" + key + " !== undefined) ? " + key + " : '') + '";
+}
+
+var get_children_html = (childs, parent_tag, if_stack, pp, loop_level) => {
+	var res1 = [];
+	for(let child of childs){
+		res1.push(toFunc(child, parent_tag, if_stack, pp, loop_level));
+	}
+	return res1.join('');
+}
+
+var toFuncVarname = (a) => {
+	var {name, level} = parse_loop_varname(a);
+	if(level){
+		var varname = name.length ? '.' + name : '';
+		a = '__loopvar' + level + varname ;
+	} else {
+		a = "ctx['" + a.split(".").join("']['") + "']";
+	}
+	return a;
+}
+
+var parse_attr_style_name = (attrname) => {
+    const pieces = attrname.split(' ');
+    return [pieces[0], pieces.slice(1)];
+}
+
+var toFunc = function(node, parent_tag, if_stack = {}, partial_pool = false, loop_level = 0){
+	if(node.loop){
+		++loop_level;
+	}
+	node.parent = parent;
+	var childs = node.children;
+	var indent = ` ' + 
+'` + new Array(node.level).join('	');
+	//indent = '';// !
+	var res1 = [], res2 = [], after = '', res_final;
+	var childs_html = '';
+	var need_partial_func = false;
+	var pp = false;
+	for(let child of childs){
+		if(is_new_if(child)){
+			need_partial_func = true;
+			pp = [];
+			break;
+		}
+	}
+	if(node.loop){
+		need_partial_func = true;
+	}
+	if(is_new_if(node)){
+		switch(node.type){
+			case 'NEW_IF':
+				//console.log('IF STACK', if_stack);
+				var tfv = toFuncVarname(node.varname);
+				var new_expr = node.expr;
+				if(parse_loop_varname(node.varname).name !== node.varname){
+					// it's loop varname
+					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
+				}
+				if_stack[node.level] = [tfv, new_expr, [], node.varname];
+				res1.push(indent + "'); if(" + new_expr + ") { res.push('");
+				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
+				res1.push(childs_html);
+				res1.push(`'); }
+res.push('`);
+			break;
+			case 'NEW_ELSEIF':
+				var [varname, expr, elifs] = if_stack[node.level];
+				var new_expr = node.expr;
+				if(parse_loop_varname(node.varname).name !== node.varname){
+					// it's loop varname
+					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
+				}
+				if_stack[node.level][2].push(new_expr);
+				node.real_expr = new_expr + " && !(" + expr + ")";
+				res1.push(indent + "'); if(" + new_expr + " && !(" + expr + ")) { res.push('");
+				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
+				res1.push(childs_html);
+				res1.push(indent + `'); }
+res.push('`);
+			break;
+			case 'NEW_ELSE':
+				var [varname, expr, elifs, real_varname] = if_stack[node.level];
+				node.real_varname = real_varname;
+				node.varname = varname;
+				node.real_expr = "!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + ")";
+				res1.push(indent + "'); if(!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + `)) { res.push('`);
+				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
+				res1.push(childs_html);
+				res1.push(indent + `'); }
+res.push('`);
+			break;
+		}
+	} else if (node.tagname || node.classnames || !parent_tag){
+		// it's a node
+		var tag;
+		if(node.tagname){
+			if(input_types.has(node.tagname)) {
+				node.assignments = node.assignments || [];
+				node.assignments.push(['type', node.tagname]);
+				tag = 'input';
+			} else {
+				tag = node.tagname;
+			}
+		} else {
+			switch(parent_tag){
+				case 'ol':
+				case 'ul':
+					tag = 'li';
+				break;
+				case 'tr':
+					tag = 'td';
+				break;
+				default:
+					tag = 'div';
+				break;
+			}
+		}
+		childs_html = get_children_html(childs, tag, if_stack, pp, loop_level);
+		res1.push(childs_html);
+		if(parent_tag){
+			res2.push(indent + '<' + tag);
+			var styles = [];
+			var attrs = [];
+			var conf = {attrs, styles, classnames: []};
+			if(node.classnames && node.classnames.length > 1){
+				conf.classnames = node.classnames.substr(1).split('.');
+			}
+			if(node.assignments){
+				for(let ass of node.assignments){
+					var [key, val] = ass;
+					if(val[0] === '$'){
+						// its variable, lets take its val from context
+						var real_key = val.length === 1 ? key : val.substr(1);
+						real_key = toFuncVarname(real_key);
+						val = getvar_raw(real_key);
+					}
+					const [real_name, params] = parse_attr_style_name(key);
+					if(special_html_setters[real_name]){
+						special_html_setters[real_name].str(real_key, conf, params);
+					} else {
+						if(is_attr(real_name)){
+							conf.attrs.push(' ' + key + '="' + val + '"');
+						} else {
+							conf.styles.push(key + ': ' + val + ';');
+						}
+					}
+				}
+			}
+			if(styles.length){
+				res2.push(' style="' + styles.join('') + '"');
+			}
+			if(conf.classnames.length){
+				res2.push(' class="' + conf.classnames.join(' ') + '"');
+			}
+			if(conf.attrs.length){
+				res2.push(' ' + attrs.join(' ') + ' ');
+			}
+			res2.push('>');
+			if(node.varname !== undefined && !node.type){
+				var key = toFuncVarname(get_varname(node));
+				if(childs.length){
+					console.error('Node should have either variable or child nodes, both given. Node: "' + node.tagname + node.classnames + '", variable: "' + key + '"');
+				}
+				res2.push(indent + getvar_raw(key));
+			} else {
+				if(node.loop){
+					var loopvar = toFuncVarname(node.loop);
+					res2.push(`'); 
+					for(var ___k` + loop_level + ` in ` + loopvar + `) { 
+						var __loopvar` + loop_level + ` = ` + loopvar + `[___k` + loop_level + `]; 
+						res.push('` + childs_html + `'); 
+					} 
+					res.push('`);
+				} else {
+					res2.push(res1.join(' '));
+				}
+			}
+			res2.push(indent + '</' + tag + '>');
+			res_final = res2.join('');
+		}
+	} else {
+		// its var of text node
+		if(node.quoted_str){
+			res_final = indent + node.quoted_str
+					.replace(/\'/g, "\\'")
+					.replace(text_var_regexp, function(_, key){
+				//console.log('Found!', key, context[key]);
+				return "' + ctx['" + key + "'] + '";
+			});
+		}
+		if(node.variable){
+			res_final = indent + node.variable;
+		}
+	}
+	res_final = res_final || res1.join('');
+	if(need_partial_func){
+		if(partial_pool){
+			partial_pool.push(node);
+			if(pp){
+				for(let nd of pp){
+					partial_pool.push(nd);
+				}
+			}
+		} else {
+			node.partial_func = create_func(childs_html, false, loop_level);
+			if(pp){
+				for(let nd of pp){
+					nd.partial_func = node.partial_func;
+				}
+			}
+		}
+	}
+	return res_final;
+}
+
+
+Ozenfant.prototype.toHTML = function(context){
+	if(context){
+		this.state = context;
+	} else {
+		context = {};
+	}
+	if(!this.struct.func){
+		this.struct.func = create_func(toFunc({children: this.struct.semantics, root: true}));
+	}
+	var a = this.struct.func(context);
+	//var a = toHTML({children: this.struct.semantics}, context = context);
+	return a;
+}
+
+Ozenfant.prototype.searchByPath = function(path){
+	return Ozenfant.xpOne(path, this.root);
+}
+
+Ozenfant.prototype.getIfElseVarsIndex = function(){
+	this.if_else_vars = {};
+	for(var one in this.var_types){
+		if(!(this.var_types[one] instanceof Object)) continue;
+		for(var varname in this.var_types[one].if_pool){
+			var path = this.var_types[one].if_pool[varname];
+			init_if_empty(this.if_else_vars, varname, {}, one, true);
+		}
+		for(var varname in this.var_types[one].else_pool){
+			var path = this.var_types[one].if_pool[varname];
+			init_if_empty(this.if_else_vars, varname, {}, one, false);
+		}
+		for(var varname in this.var_types[one].my_pool){
+			var path = this.var_types[one].my_pool[varname];
+			var expr = this.var_types[one].struct.real_expr || this.var_types[one].struct.expr;
+			init_if_empty(this.if_else_vars, varname, {}, one, expr);
+		}
+	}
+}
+
+Ozenfant.prototype.updateBindings = function(){
+	this.bindings = {};
+	this.components = {};
+	for(let varname in this.node_vars_paths){
+		if(this.if_else_vars[varname]){
+			var breaker = false;
+			for(let vn in this.if_else_vars[varname]){
+				var expected_val = this.if_else_vars[varname][vn];
+				var real_val = this.state[vn];
+				// XOR
+				if(!((expected_val && real_val) || !(expected_val || real_val))){
+					breaker = true;
+					break;
+				}
+			}
+			if(breaker) { 
+				continue;
+			}
+		}
+		this.bindings[varname] = this.searchByPath(this.node_vars_paths[varname]);
+		if(!this.bindings[varname]){
+			console.warn('No node found for var', varname, 'in path:', this.node_vars_paths[varname], 'in context', this.root, ', context', this.state);
+		}
+	}
+	for(let varname in this.text_vars_paths){
+		this.bindings[varname] = this.searchByPath(this.text_vars_paths[varname]);
+		if(!this.bindings[varname]){
+			console.warn('No node found for path:', this.text_vars_paths[varname], 'in context', this.root);
+		}
+	}
+	for(let vn in this.bindings){
+		if(this.component_to_vars[vn]){
+			this.components[vn] = this.bindings[vn];
+		}
+	}
+}
+
+Ozenfant.prototype.isVisible = function(varname){
+}
+
+Ozenfant.prototype.searchForComponentBindings = function(var_paths, binding){
+	for(let varname in var_paths){
+		if(!this.component_to_vars[varname]) continue;
+		console.log('shoud update', varname, binding);
+	}
+}
+
+Ozenfant.prototype.render = function(node, context = false){
+	if(context){
+		this.state = JSON.parse(JSON.stringify(context));
+	}
+	node.innerHTML = this.toHTML(this.state);
+	this.setRoot(node);
+	this.updateBindings();
+}
+Ozenfant.prototype.getTokenStruct = function(node, level = 1){
+	var start = !node;
+	if(!node){
+		node = this.struct.syntax;
+	}
+	var arr = [new Array(level).join('	') + node.type];
+	if(node.children){
+		for(var child of node.children){
+			arr.push(this.getTokenStruct(child, level + 1));
+		}
+	}
+	return (start ? `
+` : '') + arr.join(`
+`);
+}
+
+Ozenfant.prototype.getHTML = function(context = false){
+	if(context) { 
+		this.state = context;
+	}
+	return this.toHTML(this.state);
+}
+Ozenfant.prototype.setFirstNode = function(node){
+	this.root = node;
+	return this;
+}
+Ozenfant.prototype.setRoot = function(node){
+	this.root = node.children[0];
+	return this;
+}
+Ozenfant.prototype._setVarVal = function(key, val, binding){
+	if(this.if_else_vars[key]){
+		//console.log('ifelsevar', key, this.if_else_vars[key]);
+		for(var varname in this.if_else_vars[key]){
+			var flag = this.if_else_vars[key][varname] ? this.state[varname] : !this.state[varname];
+			if(!flag) {
+				// this var is in inactive block
+				return;
+			}
+		}
+	}
+	if(this.var_funcs[key]){
+		if(this.var_funcs[key] instanceof Function){
+			val = this.var_funcs[key](val);
+		} else {
+			val = val[this.var_funcs[key]];
+		}
+	}
+	if(val instanceof Object) return;
+	binding.innerHTML = val;
+}
+Ozenfant.prototype._setValByPath = function(path, val, root_node){
+	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
+}
+Ozenfant.prototype.updateLoopVals = function(loopname, val, old_val, binding, context){
+	var loop = this.loop_pool[loopname];
+	for(var k in val){
+		if(val[k] === old_val[k]){
+			//console.log('skip', k);
+			continue;
+		}
+		var varname = get_loop_varname(loop.level + 2, k);
+		if(this.varname_pool.var_aliases[varname]){
+			for(let vn of this.varname_pool.var_aliases[varname]){
+				if(loop.paths[vn]){
+					this.set(vn, val[k], loop, binding, old_val[k], false, context);
+				}
+			}
+		}
+		if(loop.paths[varname]){
+			this.set(varname, val[k], loop, binding, old_val[k], false, context);
+		}
+	}
+}
+
+Ozenfant.prototype.removeLoopItem = function(binding, i){
+	if(binding.children[i]){
+		binding.children[i].remove();
+	} else {
+		console.warn('Cannot remove unexisting', i);
+	}
+}
+Ozenfant.prototype.addLoopItems = function(loop, from, to, val, old_val, binding, context){
+	var res = [];
+	var func = this.var_types[loop].func;
+	old_val = old_val || [];
+	for(var i = from; i<= to; ++i){
+		old_val[i] = val[i];
+		if(val[i]){
+			var ht = func.apply(null, context.concat(val[i]));
+			res.push(ht);
+		}
+	}
+	// !!! should be rewritten!
+	binding.insertAdjacentHTML("beforeend", res.join(''));
+	this.searchForComponentBindings(this.loop_pool[loop].paths, binding);
+}
+
+Ozenfant.prototype.setLoop = function(loopname, val, old_val, binding, parent_context){
+	var skip_removing = false;
+	for(var i in val){
+		if(old_val && old_val[i]){
+			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
+		} else {
+			skip_removing = true;
+			this.addLoopItems(loopname, i, val.length - 1, val, old_val, binding, parent_context);
+			break;
+		}
+	}
+	if(i){
+		++i;
+	} else {
+		i = 0;
+	}
+	if(old_val && old_val[i] && !skip_removing){
+		var init_i = i;
+		var del_count = 0;
+		for(let j = old_val.length - 1;j >= i;j--){
+			++del_count;
+			this.removeLoopItem(binding, j);
+		}
+		old_val.splice(init_i, del_count);
+	}
+}
+
+Ozenfant.prototype.eachLoopBinding = function(loop, cb){
+	var parent = loop.parent_loop;
+	var binding;
+	if(parent){
+		this.eachLoopBinding(parent, (bnd, val_arr) => {
+			var pth = parent.paths[loop.name];
+			binding = Ozenfant.xpOne(pth, bnd);
+			if(!binding){
+				console.error('Cannot find bindings', bnd, pth);
+			}
+			var llevel = parse_loop_varname(loop.name).level - 1;
+			var scope = val_arr[llevel][parse_loop_varname(loop.name).name];
+			for(let c in binding.children){
+				if(Number(c) != c) continue;
+				let child = binding.children[c];
+				if(!val_arr) debugger;
+				cb(child, val_arr.concat(scope[c]), c);
+			}
+		})
+		return;
+	} else {
+		// its root
+		var val = this.state[loop.name];
+		binding = this.bindings[loop.name];
+		for(let c in binding.children){
+			if(Number(c) != c) continue;
+			let child = binding.children[c];
+			cb(child, [val[c]], c);
+		}
+	}
+} 
+
+Ozenfant.prototype.rec_set = function(el, parent_loop, path, val, context, old_val, level = 0){
+	var pth = path.split('/');
+	var first = pth[0].match(/([^\[]*)\[([^\]]*)\]/);
+	if(!first){
+		var keyname = get_loop_varname(level + 1, pth[0]);
+		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
+		if(paths_hash[keyname]){
+			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
+			old_val = old_val[parse_loop_varname(keyname).name];
+			if(this.loop_pool[keyname]){
+				this.setLoop(keyname, val, old_val, binding, context);
+			} else {
+				this.__set(keyname, val, old_val, binding);
+			}
+		} else {
+			var key = get_loop_varname(parent_loop.level + 2, path);
+			traverse_tree(parent_loop, (loop) => {
+				if(loop.paths[key]){
+					this.eachLoopBinding(loop, (bnd) => {
+						var bind = Ozenfant.xpOne(loop.paths[key], bnd);
+						this.__set(key, val, null, bind, loop);
+					})
+				}
+			}, 'nested_loops');
+		}
+		return;
+	}
+	var loopname = get_loop_varname(level + 1, first[1]);
+	var index = first[2];
+	old_val = old_val[parse_loop_varname(loopname).name][index];
+	var loop = this.loop_pool[loopname];
+	var path_pool = parent_loop === this ? this.node_vars_paths : parent_loop.paths;
+	var loop_binding = Ozenfant.xpOne(path_pool[loopname], el);
+	var bnd = loop_binding.children[index];
+	var rest = pth.slice(1);
+	if(rest.length){
+		var new_context = last(context)[loopname][index];
+		this.rec_set(bnd, loop, rest.join('/'), val, context.concat(new_context), old_val, ++level);
+	} else {
+		var new_context = last(context)[first[1]][index];
+		if(new_context){
+			// already exists
+			this.updateLoopVals(loopname, val, new_context, bnd, context);
+		} else {
+			// @todO!
+			//this.addLoopItems(loopname, index, index, val, binding);
+		}
+		//console.log('FINAL', bnd, val, new_context);
+	}
+}
+
+Ozenfant.prototype.__set = function(key, val, old_val, binding, loop, loop_context) {
+	var lc = loop_context;
+	if(this.nodes_vars[this.text_vars_paths[key]]){
+		var template = this.nodes_vars[this.text_vars_paths[key]];
+		//console.log('template!', template);
+		var new_str = template.replace(text_var_regexp, (_, key) => {
+			return this.state[key];
+		});
+		this._setVarVal(key, new_str, binding);
+		if(binding.nodeType === Node.TEXT_NODE){
+			binding.textContent = new_str;
+		} else {
+			binding.innerHTML = new_str;
+		}
+	} else {
+		if(this.var_types[key]){
+			switch(this.var_types[key].type){
+				case 'ATTR':
+					binding.setAttribute(this.var_types[key].name, val);
+				break;
+				case 'STYLE':
+					binding.style[this.var_types[key].name] = val;
+				break;
+				case 'SETTER':
+					special_html_setters[this.var_types[key].name].dom(binding, val, this.var_types[key].params);
+				break;
+				case 'LOOP':
+					const ct = loop_context || [this.state];
+					this.setLoop(key, val, old_val, binding, ct);
+				break;
+				default:
+					var func;
+					if(this.var_types[key] === 'USE_ROOT_FUNC'){
+						func = this.struct.func;
+					}
+					if(this.var_types[key] instanceof Function){
+						func = this.var_types[key];
+					}
+					var ctx = [this.state];
+					if(loop){
+						let lc = loop_context || [{}];
+						ctx = [this.state, ...lc];
+					}
+					var html = func.apply(null, ctx);
+					binding.innerHTML = html;
+					this.updateBindings();
+				break;
+			}
+		} else {
+			this._setVarVal(key, val, binding);
+		}
+	}
+}
+
+Ozenfant.prototype.updateAnyway = function(key){
+	return this.var_types[key] 
+		&& special_html_setters[this.var_types[key].name]
+		&& special_html_setters[this.var_types[key].name].updateAnyway;
+}
+
+Ozenfant.prototype.set = function(key, val, loop, loop_binding, old_data, force, loop_context){
+	var binding;
+	if(key.indexOf('/') !== -1){
+		// @todo
+		if(key[0] === '/'){
+			key = key.substr(1);
+		}
+		this.rec_set(this.root, this, key, val, [this.state], this.state);
+		return;
+	}
+	if(this.state[key] === val && !force){
+		if(!this.updateAnyway(key)){
+			if(this.varname_pool.var_aliases[key]){
+				for(let k of this.varname_pool.var_aliases[key]){
+					if(this.updateAnyway(k)){
+						this.set(k, val, loop, loop_binding, old_data, true);
+					}
+				}
+			}
+			return;
+		} else {
+			// OK...
+		}
+	} 
+	if(val instanceof Object){
+		// we need to make deep copy
+		try {
+			val = JSON.parse(JSON.stringify(val));
+		} catch(e) {
+			//let it be ;)
+		}
+	}
+	var old_val = loop ? old_data : this.state[key];
+	if(!force && !test_loop_varname(key)){
+		this.state[key] = val;
+	}
+	if(this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop){
+		for(var cn in this.varname_pool.loop_var_links[key]){
+			var l_loop = this.varname_pool.loop_var_links[key][cn];
+			this.eachLoopBinding(l_loop, (node, loop_ctx, i) => {
+				this.set(cn, val, l_loop, node, old_val, true, loop_ctx);
+			})
+		}
+	}
+	if(this.varname_pool.var_aliases[key]){
+		for(let k of this.varname_pool.var_aliases[key]){
+			this.set(k, val, loop, loop_binding, old_data, true);
+		}
+	}
+	if(loop) {
+		binding = Ozenfant.xpOne(loop.paths[key], loop_binding);
+	} else {
+		if(!this.bindings[key]){
+			return;
+		}
+		binding = this.bindings[key];
+	}
+	if(!this.root) return;
+	//console.log('path', this.text_vars_paths[key], 'vars', this.nodes_vars);
+	if(this.if_else_tree.var_funcs[key]){
+		//console.log('should check the func first!', key);
+		if(!this.if_else_tree.var_funcs[key](this.state)){
+			// no need to update anything in DOM - it's not an active branch
+			return;
+		}
+	}
+	this.__set(key, val, old_val, binding, loop, loop_context);
+}
+Ozenfant.xpOne = (path, node = document) => {
+	if(node !== document && path[0] === '/'){
+		path = path.substr(1);
+	}
+	if(path === '') {
+		return node;
+	}
+	return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext(); 
+}
+
+module.exports = Ozenfant;
+
+
+},{"./config":2,"ooo_oo_o":1}],4:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -625,10 +2511,8 @@ App.apps = apps;
 App.get_app_struct = get_app_struct;
 module.exports = App;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Grid":2,"./LinkManager":3,"./PackagePool":4,"./Parser":5,"./utils":12}],2:[function(require,module,exports){
+},{"./Grid":5,"./LinkManager":6,"./PackagePool":7,"./Parser":8,"./utils":15}],5:[function(require,module,exports){
 'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _Parser = require('./Parser');
 
@@ -680,6 +2564,7 @@ var create_provider = function create_provider(app, self) {
 			var id = this.pool[name];
 			delete this.pool[name];
 			self.app.grids[id].set('$remove', true);
+			self.app.grids[id].set('$end', true);
 			delete self.app.grids[id];
 			app.linkManager.onRemoveGrid(id);
 		},
@@ -1448,56 +3333,38 @@ Grid.prototype.fake_cells = ['$real_keys', '$real_values', '$path', '$app_id', '
 Grid.prototype.cell_value = function (cell) {
 	var _this9 = this;
 
-	var _ret = function () {
-		switch (cell) {
-			case '$real_keys':
-				return {
-					v: [].concat(_toConsumableArray(new Set(Object.keys(_this9.plain_base).concat(Object.keys(_this9.plain_base.$init))))).filter(function (k) {
-						return k.match(/^(\w|\d|\_|\-)*$/);
-					})
-				};
-				break;
-			case '$real_values':
-				var res = {};
-				Obj.each([].concat(_toConsumableArray(new Set(Object.keys(_this9.cell_values).concat(Object.keys(_this9.init_values))))).filter(function (k) {
-					return k.match(/^(\w|\d|\_|\-)*$/);
-				}), function (k, v) {
-					res[k] = _this9.cell_value(k);
-				});
-				return {
-					v: res
-				};
-				break;
-			case '$path':
-				return {
-					v: _this9.path
-				};
-				break;
-			case '$app_id':
-				return {
-					v: _this9.app.id
-				};
-				break;
-			case '$name':
-				return {
-					v: _this9.name
-				};
-				break;
-			default:
-				if (_this9.cell_values.hasOwnProperty(cell)) {
-					return {
-						v: _this9.cell_values[cell]
-					};
-				} else {
-					return {
-						v: Firera.undef
-					};
-					//return this.cell_values[cell];
-				}
-		}
-	}();
-
-	if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	switch (cell) {
+		case '$real_keys':
+			return [].concat(_toConsumableArray(new Set(Object.keys(this.plain_base).concat(Object.keys(this.plain_base.$init))))).filter(function (k) {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			});
+			break;
+		case '$real_values':
+			var res = {};
+			Obj.each([].concat(_toConsumableArray(new Set(Object.keys(this.cell_values).concat(Object.keys(this.init_values))))).filter(function (k) {
+				return k.match(/^(\w|\d|\_|\-)*$/);
+			}), function (k, v) {
+				res[k] = _this9.cell_value(k);
+			});
+			return res;
+			break;
+		case '$path':
+			return this.path;
+			break;
+		case '$app_id':
+			return this.app.id;
+			break;
+		case '$name':
+			return this.name;
+			break;
+		default:
+			if (this.cell_values.hasOwnProperty(cell)) {
+				return this.cell_values[cell];
+			} else {
+				return Firera.undef;
+				//return this.cell_values[cell];
+			}
+	}
 };
 Grid.prototype.set_cell_value = function (cell, val) {
 	var _this10 = this;
@@ -1568,10 +3435,8 @@ Grid.prototype.set_cell_value = function (cell, val) {
 };
 
 module.exports = Grid;
-},{"./Parser":5,"./utils":12}],3:[function(require,module,exports){
+},{"./Parser":8,"./utils":15}],6:[function(require,module,exports){
 'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _utils = require('./utils');
 
@@ -1679,6 +3544,8 @@ LinkManager.prototype.refreshPointers = function (link_id) {
 };
 
 LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) {
+	var only_slave_grid_id = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
 	if (this.workingLinks[master_grid_id] && this.workingLinks[master_grid_id][master_cell]) {
 		if (val === undefined) {
 			val = this.app.getGrid(master_grid_id).get(master_cell);
@@ -1688,6 +3555,9 @@ LinkManager.prototype.checkUpdate = function (master_grid_id, master_cell, val) 
 		}
 		var lnks = this.workingLinks[master_grid_id][master_cell];
 		for (var slave_grid_id in lnks) {
+			if (only_slave_grid_id && Number(only_slave_grid_id) !== Number(slave_grid_id)) {
+				continue;
+			}
 			for (var slave_cellname in lnks[slave_grid_id]) {
 				var cell_val = val;
 				var cv2 = val;
@@ -1736,7 +3606,7 @@ LinkManager.prototype.addWorkingLink = function (master_grid_id, master_cellname
 	}
 	master.initIfSideEffectCell(master_cellname);
 	if (!master.isSignal(master_cellname)) {
-		this.checkUpdate(master_grid_id, master_cellname);
+		this.checkUpdate(master_grid_id, master_cellname, undefined, slave_grid_id);
 	}
 };
 
@@ -1834,72 +3704,50 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 	var path = link.split('/');
 	if (path.length === 2) {
 		if (!is_special(path[0])) {
-			var _ret = function () {
-				_utils2.default.init_if_empty(_this2.linksFromChildToParent, grid_id, {});
-				_utils2.default.init_if_empty(_this2.linksFromChildToParent[grid_id], path[0], []);
-				_this2.linksFromChildToParent[grid_id][path[0]].push(path[1]);
-				var slave_cn = slave_cellname || link;
-				_this2.app.eachChild(grid_id, function (child) {
-					_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
-				});
-				return {
-					v: void 0
-				};
-			}();
-
-			if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+			_utils2.default.init_if_empty(this.linksFromChildToParent, grid_id, {});
+			_utils2.default.init_if_empty(this.linksFromChildToParent[grid_id], path[0], []);
+			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
+			var slave_cn = slave_cellname || link;
+			this.app.eachChild(grid_id, function (child) {
+				_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
+			});
+			return;
 		}
 	}
 	if (path[0] == '**') {
-		var _ret2 = function () {
-			if (path.length > 2) {
-				_utils2.default.error('You cannot listen to such path', path.join('/'));
-				return {
-					v: void 0
-				};
-			}
-			var cellname = path[1];
-			var grid_path = _this2.app.getGrid(grid_id).path;
-			_this2.pathToId[grid_path] = grid_id;
-			_utils2.default.init_if_empty(_this2.doubleAsterisk, grid_path, {}, cellname, true);
-			// check already added grids
-			_this2.app.eachChild(grid_id, function (child) {
-				_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
-			});
-			return {
-				v: void 0
-			};
-		}();
-
-		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
-	}
-	if (path[0] == '^^') {
-		var _ret3 = function () {
-			if (path.length > 2) {
-				_utils2.default.error('You cannot listen to such path', path.join('/'));
-				return {
-					v: void 0
-				};
-			}
-			var cellname = path[1];
-			_this2.app.eachParent(grid_id, function (grid) {
-				_this2.addWorkingLink(grid.id, cellname, grid_id, '^^/' + cellname);
-			});
-			return {
-				v: void 0
-			};
-		}();
-
-		if ((typeof _ret3 === 'undefined' ? 'undefined' : _typeof(_ret3)) === "object") return _ret3.v;
-	}
-	if (path[0] == '') {
 		if (path.length > 2) {
 			_utils2.default.error('You cannot listen to such path', path.join('/'));
 			return;
 		}
 		var cellname = path[1];
 		var grid_path = this.app.getGrid(grid_id).path;
-		this.addWorkingLink(this.app.grids[1].id, cellname, grid_id, '/' + cellname);
+		this.pathToId[grid_path] = grid_id;
+		_utils2.default.init_if_empty(this.doubleAsterisk, grid_path, {}, cellname, true);
+		// check already added grids
+		this.app.eachChild(grid_id, function (child) {
+			_this2.addWorkingLink(child.id, cellname, grid_id, '**/' + cellname, '**', child.path);
+		});
+		return;
+	}
+	if (path[0] == '^^') {
+		if (path.length > 2) {
+			_utils2.default.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var _cellname = path[1];
+		this.app.eachParent(grid_id, function (grid) {
+			_this2.addWorkingLink(grid.id, _cellname, grid_id, '^^/' + _cellname);
+		});
+		return;
+	}
+	if (path[0] == '') {
+		if (path.length > 2) {
+			_utils2.default.error('You cannot listen to such path', path.join('/'));
+			return;
+		}
+		var _cellname2 = path[1];
+		var _grid_path = this.app.getGrid(grid_id).path;
+		this.addWorkingLink(this.app.grids[1].id, _cellname2, grid_id, '/' + _cellname2);
 		return;
 	}
 	var obj = {
@@ -1928,7 +3776,7 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 };
 
 module.exports = LinkManager;
-},{"./Parser":5,"./utils":12}],4:[function(require,module,exports){
+},{"./Parser":8,"./utils":15}],7:[function(require,module,exports){
 'use strict';
 
 var _utils = require('./utils');
@@ -1974,7 +3822,7 @@ PackagePool.prototype.load = function (pack) {
 	}
 };
 module.exports = PackagePool;
-},{"./utils":12}],5:[function(require,module,exports){
+},{"./utils":15}],8:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -2463,10 +4311,10 @@ App.parse_cell_type = parse_cell_type;
 App.findMatcher = findMatcher;
 App.system_macros = system_macros;
 module.exports = App;
-},{"./utils":12}],6:[function(require,module,exports){
+},{"./utils":15}],9:[function(require,module,exports){
 'use strict';
 
-var _ozenfant = require('../../ozenfant/ozenfant');
+var _ozenfant = require('ozenfant');
 
 var _ozenfant2 = _interopRequireDefault(_ozenfant);
 
@@ -2518,6 +4366,7 @@ var Obj = _utils2.default.Obj;
 var is_def = function is_def(a) {
 	return a !== undefined && a !== Firera.undef;
 };
+
 var falsy = function falsy(a) {
 	return !a || a === Firera.undef;
 };
@@ -2674,13 +4523,13 @@ Firera.join = function () {
 };
 Firera.loadPackage(_Core2.default);
 Firera.loadPackage(_Che2.default);
-Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, neu_ozenfant: _Ozenfant2.default, che: _Che2.default };
+Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, ozenfant: _Ozenfant2.default, che: _Che2.default };
 Firera.func_test_export = { parse_pb: _Parser2.default.parse_pb, parse_fexpr: _Parser2.default.parse_fexpr };
 Firera._ = _utils2.default;
 var a = 10;
 
 module.exports = Firera;
-},{"../../ozenfant/ozenfant":15,"./App":1,"./Grid":2,"./PackagePool":4,"./Parser":5,"./packages/Che":7,"./packages/Core":8,"./packages/HtmlCells":9,"./packages/Ozenfant":10,"./packages/SimpleHtmlTemplates":11,"./utils":12}],7:[function(require,module,exports){
+},{"./App":4,"./Grid":5,"./PackagePool":7,"./Parser":8,"./packages/Che":10,"./packages/Core":11,"./packages/HtmlCells":12,"./packages/Ozenfant":13,"./packages/SimpleHtmlTemplates":14,"./utils":15,"ozenfant":3}],10:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -2724,7 +4573,7 @@ module.exports = {
 		}
 	}
 };
-},{"../../../shche/shche":17}],8:[function(require,module,exports){
+},{"../../../shche/shche":18}],11:[function(require,module,exports){
 'use strict';
 
 var _macros;
@@ -3627,7 +5476,7 @@ module.exports = {
 		}, cell];
 	}), _macros)
 };
-},{"../Parser":5,"../utils":12}],9:[function(require,module,exports){
+},{"../Parser":8,"../utils":15}],12:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -4561,7 +6410,7 @@ module.exports = {
 		}
 	}
 };
-},{"../Parser":5,"../utils":12}],10:[function(require,module,exports){
+},{"../Parser":8,"../utils":15}],13:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -4631,7 +6480,7 @@ var render_rec = function render_rec(app, struct, closest_existing_template_path
 		var context = Object.assign({}, grid.cell_values);
 		_utils2.default.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.$template);
-		//console.log('____ TMPL', struct.tmpl);
+		//console.log('____ TMPL', struct.tmpl); 
 
 		for (var key in struct.children) {
 			if (is_list_without_templates(struct.children[key])) {
@@ -4886,7 +6735,7 @@ module.exports = {
 		}
 	}
 };
-},{"../utils":12}],11:[function(require,module,exports){
+},{"../utils":15}],14:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -5012,7 +6861,7 @@ module.exports = {
 		'$writer': ['closureFunnel', write_changes, '$htmlbindings', '*']
 	}
 };
-},{"../utils":12}],12:[function(require,module,exports){
+},{"../utils":15}],15:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -5461,7 +7310,7 @@ _F.logger = function (func, msg) {
 };
 module.exports = _F;
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -5831,1851 +7680,7 @@ module.exports = {
 		return rec(struct, 0);
 	}
 };
-},{}],14:[function(require,module,exports){
-'use strict';
-
-var fields = ['classnames', 'tagname', 'str', 'quoted_str'];
-var init_if_empty = function init_if_empty(obj /*key, val, key1, val1, ... */) {
-	for (var i = 1;; i = i + 2) {
-		var key = arguments[i];
-		var val = arguments[i + 1];
-		if (!key) break;
-
-		if (obj[key] === undefined) {
-			obj[key] = val;
-		}
-		obj = obj[key];
-	}
-	return obj;
-};
-var count_indent = function count_indent(str, child) {
-	var spaces = str.match(/[\s^\t]*/g);
-	var spaces_count = 0;
-	if (spaces) {
-		for (var i in spaces) {
-			spaces_count += spaces[i].length;
-		}
-	}
-	var tabs = str.match(/[\t]*/g);
-	var tabs_count = 0;
-	if (tabs) {
-		for (var i in tabs) {
-			tabs_count += tabs[i].length;
-		}
-	}
-	spaces_count -= tabs_count;
-	return spaces_count + tabs_count * 4;
-};
-module.exports = {
-	empty_chars: [' '],
-	syntax: {
-		root_token: {
-			children: ['>', {
-				type: 'item',
-				multiple: true,
-				optional: true
-			}]
-		},
-		item: {
-			children: ['>', {
-				type: 'indent',
-				optional: true
-			}, ['|', {
-				type: 'new_if',
-				optional: true
-			}, {
-				type: 'new_elseif',
-				optional: true
-			}, {
-				type: 'new_else',
-				optional: true
-			}, {
-				type: 'ternary_else'
-			}, ['>', {
-				type: 'tagname',
-				optional: true
-			}, {
-				type: 'classnames',
-				optional: true
-			}, ['|', {
-				type: 'quoted_str',
-				optional: true
-			}, {
-				type: 'variable',
-				optional: true
-			}, 'optional'], ['|', {
-				type: 'quoted_str',
-				optional: true
-			}, {
-				type: 'variable',
-				optional: true
-			}, 'optional'], {
-				type: 'bracket',
-				optional: true
-			}, {
-				type: 'loop',
-				optional: true
-			}, {
-				type: 'trim',
-				optional: true
-			}]], {
-				type: 'lineend'
-			}]
-		},
-		comma: {
-			regex: /^\,\s?$/,
-			free_chars: true
-		},
-		bracket: {
-			start: '(',
-			children: ['>', {
-				type: 'assign',
-				optional: true
-			}, ['>', {
-				type: 'comma'
-			}, {
-				type: 'assign'
-			}, 'optional']],
-			end: ')'
-		},
-		assign: {
-			free_chars: true,
-			regex: /^[^\)^\,]*$/
-		},
-		quoted_str: {
-			can_start_with_space: true,
-			start: '"',
-			end: '"',
-			free_chars: true
-		},
-		variable: {
-			children: ['>', {
-				type: 'varname'
-			}, {
-				type: 'ternary_if',
-				optional: true
-			}]
-		},
-		ternary_if: {
-			regex: /^\?$/,
-			free_chars: true
-		},
-		ternary_else: {
-			regex: /^\:$/,
-			free_chars: true
-		},
-		new_if: {
-			regex: /^\?\s?(.*)?$/,
-			free_chars: true
-		},
-		new_elseif: {
-			regex: /^\*\s?(.*)?$/,
-			free_chars: true
-		},
-		new_else: {
-			regex: /^\:$/,
-			free_chars: true
-		},
-		varname: {
-			regex: /^\$[a-zA-Z0-9\-\_\.]*$/,
-			free_chars: true
-		},
-		indent: {
-			can_start_with_space: true,
-			regex: /^(\t|\s)+$/,
-			free_chars: true
-		},
-		trim: {
-			can_start_with_space: true,
-			regex: /^[\t ]*$/,
-			free_chars: true
-		},
-		classnames: {
-			regex: /^\.[\\.a-zA-Z0-9\-\_]*$/,
-			free_chars: true
-		},
-		tagname: {
-			regex: /^[a-zA-Z0-9]+$/,
-			free_chars: true
-		},
-		loop: {
-			regex: /\{([^\n]*)?$/,
-			free_chars: true
-		},
-		str: {
-			regex: /^[^\n]+$/,
-			free_chars: true
-		},
-		lineend: {
-			regex: /\n$/,
-			free_chars: true
-		}
-	},
-	semantics: {
-		root_token: {
-			func: function () {
-				var nestedComponentCount = 0;
-				return function (struct, parser) {
-					var res = { children: [] };
-					var last_of_level = {
-						"-1": res
-					};
-					var che_results = parser(struct.children);
-					//console.log('Results', che_results);
-					var max_level = 0;
-					var last_if = [];
-					for (var i in che_results) {
-						var child = che_results[i];
-						if (child.tagname && child.tagname.slice(0, 1).toLowerCase() !== child.tagname.slice(0, 1)) {
-							child.component = {
-								name: child.tagname
-							};
-							child.varname = '@nestedComponent' + ++nestedComponentCount;
-							child.tagname = 'div';
-						}
-						if (!child.tagname && !child.classnames && !child.quoted_str && !child.variable && !child.type) {
-							continue;
-						}
-						if (child.type === 'IF') {
-							last_if.push(child);
-						}
-						if (child.type === 'ELSE') {
-							var lif = last_if.pop();
-							lif.else_children = child;
-						}
-						var lvl = child.level || 0;
-						if (lvl > max_level) {
-							max_level = lvl;
-						}
-						var put_to = lvl - 1;
-						child.children = [];
-						if (!last_of_level[put_to]) {
-							for (; put_to--; put_to > -2) {
-								if (last_of_level[put_to]) break;
-							}
-							if (!last_of_level[put_to]) {
-								continue;
-							}
-						}
-						// way back
-						for (var y = i; y >= 0; y--) {
-							if (che_results[y].level < lvl) {
-								//console.log('PUT TO', che_results[y], che_results[y].level);
-								break;
-							}
-						}
-						var parent1 = last_of_level[put_to];
-						var parent2 = che_results[y];
-						if (!che_results[y]) {
-							parent2 = res;
-						}
-						if (parent1 !== parent2) {
-							//console.log('o-ow', parent1, parent2, child);
-						}
-						parent2.children.push(child);
-						last_of_level[lvl] = child;
-						if (lvl + 1 < max_level) {
-							//console.log('lvl', lvl+1, max_level);
-							var j = lvl + 1;
-							for (var j = lvl + 1; j <= max_level; j++) {
-								if (!last_of_level[j]) break;
-								//console.log('delete', last_of_level[j]);
-								delete last_of_level[j];
-							}
-						}
-					}
-					return res.children;
-				};
-			}()
-		},
-		item: {
-			func: function func(struct, parser) {
-				var res = {};
-				var _iteratorNormalCompletion = true;
-				var _didIteratorError = false;
-				var _iteratorError = undefined;
-
-				try {
-					for (var _iterator = struct.children[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-						var child = _step.value;
-
-						switch (child.type) {
-							case 'variable':
-								res.varname = child.children[0].chars.slice(1);
-								if (child.children[1]) {
-									res.type = "IF";
-								}
-								break;
-							case 'ternary_else':
-								res.type = "ELSE";
-								break;
-							case 'new_if':
-								var chars = child.chars;
-								res.varname = chars.match(/\$([A-Za-z0-9\_]*)/)[1];
-								res.expr = chars.replace(/\?\s?/, '').replace('$' + res.varname, 'ctx.' + res.varname);
-								res.type = child.type.toUpperCase();
-								break;
-							case 'new_elseif':
-								var chars = child.chars;
-								res.varname = chars.match(/\$([^\s]*)/)[1];
-								res.expr = chars.replace(/\*\s?/, '').replace('$' + res.varname, 'ctx.' + res.varname);
-								res.type = child.type.toUpperCase();
-								break;
-							case 'new_else':
-								res.type = child.type.toUpperCase();
-								break;
-							case 'indent':
-								res.level = count_indent(child.chars, child);
-								break;
-							case 'loop':
-								var loopvn = child.chars.match(/\{\$([^\}]*)\}/);
-								if (!loopvn) {
-									throw new Error('Ozenfant: Wrong loop var name: ' + child.chars + ', should match /\{\$([^\}]*)\}/');
-								}
-								res.loop = loopvn[1];
-								//console.log('INDEX', res.level);
-								break;
-							case 'bracket':
-								res.assignments = [];
-								var _iteratorNormalCompletion2 = true;
-								var _didIteratorError2 = false;
-								var _iteratorError2 = undefined;
-
-								try {
-									for (var _iterator2 = child.children[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-										var child1 = _step2.value;
-
-										if (child1.type === 'assign') {
-											var assign = child1.chars.split(':');
-											var key = assign[0].trim();
-											var val = assign[1] ? assign[1].trim() : '';
-											if (val[0] === '$') {
-												// its var
-												var varname = val.length === 1 ? key : val.substr(1);
-												init_if_empty(res, 'attrStyleVars', []).push([varname, key]);
-											}
-											res.assignments.push([key, val]);
-										}
-									}
-									//console.log('INDEX', res.level);
-								} catch (err) {
-									_didIteratorError2 = true;
-									_iteratorError2 = err;
-								} finally {
-									try {
-										if (!_iteratorNormalCompletion2 && _iterator2.return) {
-											_iterator2.return();
-										}
-									} finally {
-										if (_didIteratorError2) {
-											throw _iteratorError2;
-										}
-									}
-								}
-
-								break;
-						}
-						if (fields.indexOf(child.type) !== -1) {
-							res[child.type] = child.chars;
-						}
-					}
-				} catch (err) {
-					_didIteratorError = true;
-					_iteratorError = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion && _iterator.return) {
-							_iterator.return();
-						}
-					} finally {
-						if (_didIteratorError) {
-							throw _iteratorError;
-						}
-					}
-				}
-
-				return res;
-			}
-		},
-		indent: {
-			type: 'chars'
-		}
-	}
-};
-},{}],15:[function(require,module,exports){
-'use strict';
-
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-var ozenfant_config = require('./config');
-var parser = require('../ooo_oo_o/parser').get_parser(ozenfant_config);
-
-var init_if_empty = function init_if_empty(obj /*key, val, key1, val1, ... */) {
-	for (var i = 1;; i = i + 2) {
-		var key = arguments[i];
-		var val = arguments[i + 1];
-		if (!key) break;
-
-		if (obj[key] === undefined) {
-			obj[key] = val;
-		}
-		obj = obj[key];
-	}
-	return obj;
-};
-
-var last = function last(arr) {
-	return arr[arr.length - 1];
-};
-
-var toggle_class = function toggle_class(el, clas, val) {
-	var cls_string = el.getAttribute('class') || '';
-	var cls = cls_string.split(' ');
-	var pos = cls.indexOf(clas);
-	var toggle;
-	if (val !== undefined) {
-		toggle = val;
-	} else {
-		toggle = pos === -1;
-	}
-	if (toggle) {
-		if (cls.indexOf(clas) === -1) {
-			el.setAttribute('class', cls_string + ' ' + clas);
-		}
-	} else {
-		if (pos !== -1) {
-			cls.splice(pos, 1);
-		}
-		el.setAttribute('class', cls.join(' '));
-	}
-};
-
-var html_attrs = new Set(["accept", "accept-charset", "accesskey", "action", "align", "alt", "async", "autocomplete", "autofocus", "autoplay", "autosave", "bgcolor", "border", "buffered", "challenge", "charset", "checked", "cite", "class", "code", "codebase", "color", "cols", "colspan", "content", "contenteditable", "contextmenu", "controls", "coords", "data", "data-*", "datetime", "default", "defer", "dir", "dirname", "disabled", "download", "draggable", "dropzone", "enctype", "for", "form", "formaction", "headers", "hidden", "high", "href", "hreflang", "http-equiv", "icon", "id", "integrity", "ismap", "itemprop", "keytype", "kind", "label", "lang", "language", "list", "loop", "low", "manifest", "max", "maxlength", "media", "method", "min", "multiple", "muted", "name", "novalidate", "open", "optimum", "pattern", "ping", "placeholder", "poster", "preload", "radiogroup", "readonly", "rel", "required", "reversed", "rows", "rowspan", "sandbox", "scope", "scoped", "seamless", "selected", "shape", "size", "sizes", "slot", "span", "spellcheck", "src", "srcdoc", "srclang", "srcset", "start", "step", "style", "summary", "tabindex", "target", "title", "type", "usemap", "value", "wrap"]);
-var is_attr = function is_attr(str) {
-	return html_attrs.has(str) || str.match(/^data\-/);
-};
-
-var traverse_tree = function traverse_tree(root_node, cb) {
-	var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'children';
-
-	for (var b in root_node[key]) {
-		var leaf = root_node[key][b];
-		cb(leaf);
-		traverse_tree(leaf, cb, key);
-	}
-};
-
-var text_var_regexp = /\{\{([a-zA-Z0-9\_]*)\}\}/g; ///\$([a-zA-Z0-9]*)/g;
-
-var Ozenfant = function Ozenfant(str) {
-	if (str instanceof Object) {
-		this.struct = str; // compiled struct
-		this.node_vars_paths = this.struct.node_vars_paths;
-		this.text_vars_paths = this.struct.text_vars_paths;
-		this.nodes_vars = this.struct.nodes_vars;
-		this.var_types = this.struct.var_types;
-		this.varname_pool = this.struct.varname_pool;
-		this.if_else_tree = this.struct.if_else_tree;
-		this.loop_pool = this.struct.loop_pool;
-		this.var_funcs = this.struct.var_funcs;
-		this.str = this.struct.str;
-	} else {
-		this.str = str;
-		this.struct = parser(str + '\n');
-		this.node_vars_paths = {};
-		this.text_vars_paths = {};
-		this.nodes_vars = {};
-		this.var_types = {};
-		this.varname_pool = {
-			vars: {},
-			var_aliases: {}
-		};
-		this.func = create_func(toFunc({ children: this.struct.semantics }));
-		this.if_else_tree = { str_to_func: {}, var_funcs: {} };
-		this.loop_pool = {};
-		this.var_funcs = {};
-		this.ied = {};
-		this.selection_points = [{ children: [], child_deps: [] }];
-		this.get_vars({ children: this.struct.semantics, root: true }
-		//, this.node_vars_paths
-		//, this.text_vars_paths
-		//, this.nodes_vars
-		, '.', this.var_types, []
-		//, this.varname_pool
-		//, this.if_else_tree
-		, [], false, this.selection_points[0]
-		//, this.loop_pool	
-		);
-	}
-	this.component_to_vars = this.component_to_vars || {};
-	this.state = {};
-	this.bindings = {};
-	this.iod = parse_if_else_dependencies(this.selection_points);
-
-	this.getIfElseVarsIndex();
-};
-
-var create_func = function create_func(str, condition, loop_level) {
-	var body = "'" + str + "'";
-	if (condition) {
-		body = condition + ' ? ' + body + ' : false';
-	}
-	var args = 'ctx';
-	if (loop_level) {
-		for (var c = 1; c <= loop_level; c++) {
-			args += ', __loopvar' + c;
-		}
-	}
-	var fbody = 'var res = []; var res2 = []; res.push(' + body + '); return res.join("");';
-	try {
-		var f = new Function(args, fbody);
-		return f;
-	} catch (e) {
-		console.error('Cannot create function', body);
-		return new Function('', '');
-	}
-};
-
-var parse_if_else_dependencies = function parse_if_else_dependencies(selps) {
-	//console.log('__________ !!! Parse', selps);
-};
-
-Ozenfant.prepare = function (str) {
-	var struct = Object.assign(Object.create(Ozenfant.prototype, {}), parser(str + '\n'));
-	struct.node_vars_paths = {};
-	struct.text_vars_paths = {};
-	struct.nodes_vars = {};
-	struct.var_types = {};
-	struct.var_funcs = {};
-	struct.varname_pool = {
-		vars: {},
-		var_aliases: {}
-	};
-	struct.func = create_func(toFunc({ children: struct.semantics }));
-	//console.log('Struct func', struct);
-	struct.if_else_tree = { str_to_func: {}, var_funcs: {} };
-	struct.loop_pool = {};
-	struct.str = str;
-	struct.ied = {};
-	struct.selection_points = [{ children: [], child_deps: [] }];
-	struct.get_vars({ children: struct.semantics, root: true }
-	//, struct.node_vars_paths
-	//, struct.text_vars_paths
-	//, struct.nodes_vars
-	, '.', struct.var_types, []
-	//, struct.varname_pool
-	//, struct.if_else_tree
-	, [], false, struct.selection_points[0]
-	//, struct.loop_pool
-	);
-	struct.iod = parse_if_else_dependencies(struct.selection_points);
-
-	return struct;
-};
-
-var LOOP_CHAR = '.';
-
-var get_varname = function get_varname(node) {
-	var key = node.varname;
-	if (!key.length) {
-		if (node.classnames) {
-			key = node.classnames.substr(1).split('.').pop();
-		} else {
-			console.warn('Incorrect statement: variable without name and default class!');
-		}
-	}
-	return key;
-};
-
-var symb = '_';
-
-var get_loop_varname = function get_loop_varname(loop_level, varname) {
-	var n = new Array(loop_level).join(symb) + varname;
-	return n;
-};
-
-var test_loop_varname = function test_loop_varname(varname) {
-	return varname[0] === symb;
-};
-
-var parse_loop_varname = function parse_loop_varname(varname) {
-	var dot_counter = 0;
-	for (var cp in varname) {
-		if (varname[cp] === symb) {
-			++dot_counter;
-		} else {
-			break;
-		}
-	}
-	return { name: varname.substr(dot_counter), level: dot_counter };
-};
-
-var prefix = 'ololo@!@!#_';
-
-var register_varname = function register_varname(varname, varname_pool, if_else_deps, if_else_tree, loops, loop_pool, var_funcs) {
-	var original_varname = varname;
-	var varfield;
-	if (varname.indexOf('.') !== -1) {
-		varfield = varname.split('.');
-		varname = varfield[0];
-	}
-	if (varname_pool.vars[varname]) {
-		// already exists!
-		//console.log('VAR', varname, 'already exists!');
-		init_if_empty(varname_pool.var_aliases, varname, []);
-		var new_name = prefix + varname + '_' + varname_pool.var_aliases[varname].length;
-		varname_pool.var_aliases[varname].push(new_name);
-		varname = new_name;
-	} else {
-		varname_pool.vars[varname] = true;
-	}
-	if (varfield) {
-		var_funcs[varname] = varfield.slice(1).join('.');
-	}
-	var deps = if_else_deps.length ? '(' + if_else_deps.join(') && (') + ')' : false;
-	if (deps) {
-		if (if_else_tree.str_to_func[deps]) {
-			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps];
-		} else {
-			if_else_tree.var_funcs[varname] = if_else_tree.str_to_func[deps] = new Function('ctx', 'return ' + deps);
-		}
-	}
-	if (loops.length) {
-		var last_loop = loop_pool[loops[loops.length - 1]];
-		if (parse_loop_varname(original_varname).level < last_loop.level + 1) {
-			var curr_loop = last_loop;
-			var var_level = parse_loop_varname(varname).level - 1;
-			while (true) {
-				if (curr_loop === 'root') {
-					init_if_empty(varname_pool, 'loop_var_links', {}, original_varname, {}, varname, last_loop);
-					break;
-				} else {
-					if (curr_loop.level == var_level) {
-						var vrkey = parse_loop_varname(original_varname).name;
-						init_if_empty(curr_loop, 'subordinary_loop_vars', {}, vrkey, last_loop);
-						break;
-					}
-					curr_loop = curr_loop.parent_loop;
-				}
-
-				if (curr_loop === 'root') {
-					break;
-				}
-				if (!curr_loop) {
-					curr_loop = 'root';
-				}
-			}
-		}
-		init_if_empty(last_loop, 'vars', {});
-		last_loop.vars[varname] = true;
-	}
-	return varname;
-};
-
-var add_to_if_else_pool = function add_to_if_else_pool(pools, varname, path) {
-	var _iteratorNormalCompletion = true;
-	var _didIteratorError = false;
-	var _iteratorError = undefined;
-
-	try {
-		for (var _iterator = pools[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-			var pool = _step.value;
-
-			pool[varname] = path;
-		}
-	} catch (err) {
-		_didIteratorError = true;
-		_iteratorError = err;
-	} finally {
-		try {
-			if (!_iteratorNormalCompletion && _iterator.return) {
-				_iterator.return();
-			}
-		} finally {
-			if (_didIteratorError) {
-				throw _iteratorError;
-			}
-		}
-	}
-};
-
-var is_new_if = function is_new_if(a) {
-	return ['NEW_ELSE', 'NEW_ELSEIF', 'NEW_IF'].indexOf(a.type) !== -1;
-};
-
-var get_partial_func = function get_partial_func(node) {
-	if (node.partial_func) {
-		return node.partial_func;
-	} else {
-		if (node.root) {
-			return 'USE_ROOT_FUNC';
-		}
-	}
-};
-
-var register_loop = function register_loop(varname, level, pool, parent_loop) {
-	var lp = {
-		parent_loop: parent_loop,
-		name: varname,
-		level: level
-	};
-	if (parent_loop) {
-		init_if_empty(parent_loop, 'nested_loops', []);
-		parent_loop.nested_loops.push(lp);
-	}
-	pool[varname] = lp;
-	return lp;
-};
-
-var fix_path = function fix_path(path) {
-	return path.replace('./*[1]', '.');
-};
-
-Ozenfant.prototype.register_path = function (varname, path, pool, loop) {
-	if (loop) {
-		init_if_empty(loop, 'paths', {});
-		pool = loop.paths;
-	}
-	var has_loops = false;
-	if (path.indexOf('_{}_') !== -1) {
-		var pieces = path.split('_{}_');
-		has_loops = true;
-		path = pieces[pieces.length - 1];
-	}
-	if (path.indexOf('./*[1]') !== 0 && !has_loops && path.length) {
-		console.error('Template should have only one root node! Given', this.struct.semantics.length);
-	} else {
-		path = fix_path(path);
-	}
-	pool[varname] = path;
-};
-
-var special_html_setters = {
-	'hasClass': {
-		dom: function dom(binding, val, _ref) {
-			var _ref2 = _slicedToArray(_ref, 1),
-			    classname = _ref2[0];
-
-			toggle_class(binding, classname, val);
-		},
-		str: function str(val, conf, _ref3) {
-			var _ref4 = _slicedToArray(_ref3, 1),
-			    classname = _ref4[0];
-
-			conf.classnames.push("' + ((" + val + ") ? '" + classname + "' : '') + '");
-		}
-	},
-	'hasAttr': {
-		dom: function dom(binding, val, _ref5) {
-			var _ref6 = _slicedToArray(_ref5, 1),
-			    attrname = _ref6[0];
-
-			if (val) {
-				binding.setAttribute(attrname, attrname);
-			} else {
-				binding.removeAttribute(attrname);
-			}
-		},
-		str: function str(val, conf, _ref7) {
-			var _ref8 = _slicedToArray(_ref7, 1),
-			    attrname = _ref8[0];
-
-			if (val) {
-				conf.attrs.push(" ' + (" + val + " ? '" + attrname + "' : '' ) + '");
-			}
-		}
-	},
-	'val': {
-		updateAnyway: true,
-		dom: function dom(binding, val) {
-			binding.value = val;
-		},
-		str: function str(val, conf, _ref9) {
-			var _ref10 = _slicedToArray(_ref9, 1),
-			    classname = _ref10[0];
-
-			conf.attrs.push(' value="' + "' + (" + val + " || '') + '" + '"');
-		}
-	},
-	'show': {
-		dom: function dom(binding, val, _ref11) {
-			var _ref12 = _slicedToArray(_ref11, 1),
-			    disp = _ref12[0];
-
-			var shown = disp || 'block';
-			if (!val) {
-				binding.style.display = 'none';
-			} else {
-				binding.style.display = shown;
-			}
-		},
-		str: function str(val, conf, _ref13) {
-			var _ref14 = _slicedToArray(_ref13, 1),
-			    disp = _ref14[0];
-
-			disp = disp || 'block';
-			conf.styles.push("display: ' + ((" + val + ") ? '" + disp + "' : 'none') + '");
-		}
-	},
-	'focus': {
-		updateAnyway: true,
-		dom: function dom(binding, val) {
-			if (val) {
-				binding.focus();
-			}
-		},
-		str: function str(val, conf) {
-			conf.attrs.push(" ' + (" + val + " ? 'autofocus' : '') + '");
-		}
-	}
-};
-
-Ozenfant.prototype.get_vars = function (node, path, types, if_else_deps, loops, parent_has_loop) {
-	var _this = this;
-
-	var parent_selp = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
-
-	var node_pool = this.node_vars_paths;
-	var text_pool = this.text_vars_paths;
-	var path_pool = this.nodes_vars;
-	var last_loop;
-	if (loops.length) {
-		last_loop = this.loop_pool[loops[loops.length - 1]];
-	}
-	if (node.children) {
-		var nodes_lag = 0;
-		var text_lag = 0;
-		var resigtered_vars = {};
-		for (var i in node.children) {
-			var zild = node.children[i];
-			if (zild.component) {
-				if (!this.component_to_vars) {
-					this.component_to_vars = {};
-				}
-				this.component_to_vars[zild.varname] = zild.component;
-			}
-			var new_path = path;
-			if (!is_new_if(zild)) {
-				if (!zild.tagname && !zild.classnames) {
-					++nodes_lag;
-				} else {
-					++text_lag;
-				}
-				if (parent_has_loop) {
-					new_path = path + '/_{}_';
-				} else {
-					new_path = path + '/*[' + (Number(i) + 1 - nodes_lag) + ']';
-				}
-			}
-			if (zild.type && (zild.type === 'NEW_IF' || zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE')) {
-				var selp = {
-					children: [],
-					child_deps: []
-				};
-				selp.id = this.selection_points.push(selp) - 1;
-				if (zild.type === 'NEW_IF') {
-					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
-					resigtered_vars[varname] = true;
-					this.register_path(varname, new_path, node_pool, last_loop);
-					console.log('set to types');
-					types[varname] = get_partial_func(node);
-					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
-					my_if_else_deps.push(zild.expr);
-					selp.deps = my_if_else_deps;
-					selp.parent_selp = parent_selp;
-					parent_selp.child_deps.push(selp.id);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
-					continue;
-				}
-				if (zild.type === 'NEW_ELSEIF' || zild.type === 'NEW_ELSE') {
-					var varname = get_varname(zild);
-					if (!resigtered_vars[varname]) {
-						register_varname(varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
-					}
-					types[varname] = get_partial_func(node);
-					this.register_path(varname, new_path, node_pool, last_loop);
-					var my_if_else_deps = [].concat(_toConsumableArray(if_else_deps));
-					my_if_else_deps.push(zild.real_expr);
-					selp.deps = my_if_else_deps;
-					selp.parent_selp = parent_selp;
-					parent_selp.child_deps.push(selp.id);
-					this.get_vars(zild, new_path, types, my_if_else_deps, loops, false, selp);
-					continue;
-				}
-				this.get_vars(zild, new_path, types, if_else_deps, loops, false, parent_selp);
-			} else {
-				if (zild.varname !== undefined) {
-					parent_selp.children.push(zild.varname);
-					var varname = register_varname(get_varname(zild), this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
-					this.register_path(varname, new_path, node_pool, last_loop);
-				}
-				if (zild.attrStyleVars) {
-					var _iteratorNormalCompletion2 = true;
-					var _didIteratorError2 = false;
-					var _iteratorError2 = undefined;
-
-					try {
-						for (var _iterator2 = zild.attrStyleVars[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-							var _step2$value = _slicedToArray(_step2.value, 2),
-							    _varname = _step2$value[0],
-							    attrname = _step2$value[1];
-
-							_varname = register_varname(_varname, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
-							this.register_path(_varname, new_path, node_pool, last_loop);
-
-							var _parse_attr_style_nam = parse_attr_style_name(attrname),
-							    _parse_attr_style_nam2 = _slicedToArray(_parse_attr_style_nam, 2),
-							    real_name = _parse_attr_style_nam2[0],
-							    params = _parse_attr_style_nam2[1];
-
-							if (special_html_setters[real_name]) {
-								// its special setter
-								types[_varname] = {
-									type: 'SETTER',
-									name: real_name,
-									params: params
-								};
-							} else {
-								var as_type = is_attr(attrname) ? 'ATTR' : 'STYLE';
-								types[_varname] = {
-									type: as_type,
-									name: attrname
-								};
-							}
-						}
-					} catch (err) {
-						_didIteratorError2 = true;
-						_iteratorError2 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion2 && _iterator2.return) {
-								_iterator2.return();
-							}
-						} finally {
-							if (_didIteratorError2) {
-								throw _iteratorError2;
-							}
-						}
-					}
-
-					this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), loops, false, parent_selp);
-				}
-				if (zild.quoted_str) {
-					//console.log('str!', node.children[i].quoted_str);
-					zild.quoted_str.replace(text_var_regexp, function (_, key) {
-						var text_path = fix_path(path + '/text()[' + (Number(i) + 1 - text_lag) + ']');
-						varname = register_varname(key, _this.varname_pool, if_else_deps, _this.if_else_tree, loops, _this.loop_pool, _this.var_funcs);
-						if (!path_pool[text_path]) {
-							path_pool[text_path] = zild.quoted_str;
-						}
-						text_pool[varname] = text_path;
-						//console.log('text key found', key, text_path);
-					});
-				}
-				var new_loops = [].concat(_toConsumableArray(loops));
-				if (zild.loop) {
-					var loopname = register_varname(zild.loop, this.varname_pool, if_else_deps, this.if_else_tree, loops, this.loop_pool, this.var_funcs);
-					var loop = register_loop(loopname, loops.length, this.loop_pool, last_loop);
-					this.register_path(loopname, new_path, node_pool, last_loop);
-					types[loopname] = {
-						type: 'LOOP',
-						func: get_partial_func(zild),
-						loop: loop
-					};
-					new_loops.push(loopname);
-				}
-				this.get_vars(zild, new_path, types, [].concat(_toConsumableArray(if_else_deps)), new_loops, !!zild.loop, parent_selp);
-			}
-		}
-	}
-};
-
-var input_types = new Set(['text', 'submit', 'checkbox', 'radio', 'range', 'file']);
-
-var toHTML = function toHTML(node, context, parent_tag) {};
-
-var getvar = function getvar(key) {
-	return "' + (ctx['" + key + "'] || '') + '";
-};
-var getvar_raw = function getvar_raw(key) {
-	return "' + ((" + key + " !== undefined) ? " + key + " : '') + '";
-};
-
-var get_children_html = function get_children_html(childs, parent_tag, if_stack, pp, loop_level) {
-	var res1 = [];
-	var _iteratorNormalCompletion3 = true;
-	var _didIteratorError3 = false;
-	var _iteratorError3 = undefined;
-
-	try {
-		for (var _iterator3 = childs[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-			var child = _step3.value;
-
-			res1.push(toFunc(child, parent_tag, if_stack, pp, loop_level));
-		}
-	} catch (err) {
-		_didIteratorError3 = true;
-		_iteratorError3 = err;
-	} finally {
-		try {
-			if (!_iteratorNormalCompletion3 && _iterator3.return) {
-				_iterator3.return();
-			}
-		} finally {
-			if (_didIteratorError3) {
-				throw _iteratorError3;
-			}
-		}
-	}
-
-	return res1.join('');
-};
-
-var toFuncVarname = function toFuncVarname(a) {
-	var _parse_loop_varname = parse_loop_varname(a),
-	    name = _parse_loop_varname.name,
-	    level = _parse_loop_varname.level;
-
-	if (level) {
-		var varname = name.length ? '.' + name : '';
-		a = '__loopvar' + level + varname;
-	} else {
-		a = "ctx['" + a.split(".").join("']['") + "']";
-	}
-	return a;
-};
-
-var parse_attr_style_name = function parse_attr_style_name(attrname) {
-	var pieces = attrname.split(' ');
-	return [pieces[0], pieces.slice(1)];
-};
-
-var toFunc = function toFunc(node, parent_tag) {
-	var if_stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-	var partial_pool = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-	var loop_level = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 0;
-
-	if (node.loop) {
-		++loop_level;
-	}
-	node.parent = parent;
-	var childs = node.children;
-	var indent = ' \' + \n\'' + new Array(node.level).join('	');
-	//indent = '';// !
-	var res1 = [],
-	    res2 = [],
-	    after = '',
-	    res_final;
-	var childs_html = '';
-	var need_partial_func = false;
-	var pp = false;
-	var _iteratorNormalCompletion4 = true;
-	var _didIteratorError4 = false;
-	var _iteratorError4 = undefined;
-
-	try {
-		for (var _iterator4 = childs[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-			var child = _step4.value;
-
-			if (is_new_if(child)) {
-				need_partial_func = true;
-				pp = [];
-				break;
-			}
-		}
-	} catch (err) {
-		_didIteratorError4 = true;
-		_iteratorError4 = err;
-	} finally {
-		try {
-			if (!_iteratorNormalCompletion4 && _iterator4.return) {
-				_iterator4.return();
-			}
-		} finally {
-			if (_didIteratorError4) {
-				throw _iteratorError4;
-			}
-		}
-	}
-
-	if (node.loop) {
-		need_partial_func = true;
-	}
-	if (is_new_if(node)) {
-		switch (node.type) {
-			case 'NEW_IF':
-				//console.log('IF STACK', if_stack);
-				var tfv = toFuncVarname(node.varname);
-				var new_expr = node.expr;
-				if (parse_loop_varname(node.varname).name !== node.varname) {
-					// it's loop varname
-					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
-				}
-				if_stack[node.level] = [tfv, new_expr, [], node.varname];
-				res1.push(indent + "'); if(" + new_expr + ") { res.push('");
-				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
-				res1.push(childs_html);
-				res1.push('\'); }\nres.push(\'');
-				break;
-			case 'NEW_ELSEIF':
-				var _if_stack$node$level = _slicedToArray(if_stack[node.level], 3),
-				    varname = _if_stack$node$level[0],
-				    expr = _if_stack$node$level[1],
-				    elifs = _if_stack$node$level[2];
-
-				var new_expr = node.expr;
-				if (parse_loop_varname(node.varname).name !== node.varname) {
-					// it's loop varname
-					new_expr = node.expr.replace(new RegExp('ctx\.' + node.varname, 'g'), tfv);
-				}
-				if_stack[node.level][2].push(new_expr);
-				node.real_expr = new_expr + " && !(" + expr + ")";
-				res1.push(indent + "'); if(" + new_expr + " && !(" + expr + ")) { res.push('");
-				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
-				res1.push(childs_html);
-				res1.push(indent + '\'); }\nres.push(\'');
-				break;
-			case 'NEW_ELSE':
-				var _if_stack$node$level2 = _slicedToArray(if_stack[node.level], 4),
-				    varname = _if_stack$node$level2[0],
-				    expr = _if_stack$node$level2[1],
-				    elifs = _if_stack$node$level2[2],
-				    real_varname = _if_stack$node$level2[3];
-
-				node.real_varname = real_varname;
-				node.varname = varname;
-				node.real_expr = "!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + ")";
-				res1.push(indent + "'); if(!(" + expr + "" + (elifs.length ? ' || ' + elifs.join(' || ') : '') + ')) { res.push(\'');
-				childs_html = get_children_html(childs, parent_tag, if_stack, pp, loop_level);
-				res1.push(childs_html);
-				res1.push(indent + '\'); }\nres.push(\'');
-				break;
-		}
-	} else if (node.tagname || node.classnames || !parent_tag) {
-		// it's a node
-		var tag;
-		if (node.tagname) {
-			if (input_types.has(node.tagname)) {
-				node.assignments = node.assignments || [];
-				node.assignments.push(['type', node.tagname]);
-				tag = 'input';
-			} else {
-				tag = node.tagname;
-			}
-		} else {
-			switch (parent_tag) {
-				case 'ol':
-				case 'ul':
-					tag = 'li';
-					break;
-				case 'tr':
-					tag = 'td';
-					break;
-				default:
-					tag = 'div';
-					break;
-			}
-		}
-		childs_html = get_children_html(childs, tag, if_stack, pp, loop_level);
-		res1.push(childs_html);
-		if (parent_tag) {
-			res2.push(indent + '<' + tag);
-			var styles = [];
-			var attrs = [];
-			var conf = { attrs: attrs, styles: styles, classnames: [] };
-			if (node.classnames && node.classnames.length > 1) {
-				conf.classnames = node.classnames.substr(1).split('.');
-			}
-			if (node.assignments) {
-				var _iteratorNormalCompletion5 = true;
-				var _didIteratorError5 = false;
-				var _iteratorError5 = undefined;
-
-				try {
-					for (var _iterator5 = node.assignments[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var ass = _step5.value;
-
-						var _ass = _slicedToArray(ass, 2),
-						    key = _ass[0],
-						    val = _ass[1];
-
-						if (val[0] === '$') {
-							// its variable, lets take its val from context
-							var real_key = val.length === 1 ? key : val.substr(1);
-							real_key = toFuncVarname(real_key);
-							val = getvar_raw(real_key);
-						}
-
-						var _parse_attr_style_nam3 = parse_attr_style_name(key),
-						    _parse_attr_style_nam4 = _slicedToArray(_parse_attr_style_nam3, 2),
-						    real_name = _parse_attr_style_nam4[0],
-						    params = _parse_attr_style_nam4[1];
-
-						if (special_html_setters[real_name]) {
-							special_html_setters[real_name].str(real_key, conf, params);
-						} else {
-							if (is_attr(real_name)) {
-								conf.attrs.push(' ' + key + '="' + val + '"');
-							} else {
-								conf.styles.push(key + ': ' + val + ';');
-							}
-						}
-					}
-				} catch (err) {
-					_didIteratorError5 = true;
-					_iteratorError5 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion5 && _iterator5.return) {
-							_iterator5.return();
-						}
-					} finally {
-						if (_didIteratorError5) {
-							throw _iteratorError5;
-						}
-					}
-				}
-			}
-			if (styles.length) {
-				res2.push(' style="' + styles.join('') + '"');
-			}
-			if (conf.classnames.length) {
-				res2.push(' class="' + conf.classnames.join(' ') + '"');
-			}
-			if (conf.attrs.length) {
-				res2.push(' ' + attrs.join(' ') + ' ');
-			}
-			res2.push('>');
-			if (node.varname !== undefined && !node.type) {
-				var key = toFuncVarname(get_varname(node));
-				if (childs.length) {
-					console.error('Node should have either variable or child nodes, both given. Node: "' + node.tagname + node.classnames + '", variable: "' + key + '"');
-				}
-				res2.push(indent + getvar_raw(key));
-			} else {
-				if (node.loop) {
-					var loopvar = toFuncVarname(node.loop);
-					res2.push('\'); \n\t\t\t\t\tfor(var ___k' + loop_level + ' in ' + loopvar + ') { \n\t\t\t\t\t\tvar __loopvar' + loop_level + ' = ' + loopvar + '[___k' + loop_level + ']; \n\t\t\t\t\t\tres.push(\'' + childs_html + '\'); \n\t\t\t\t\t} \n\t\t\t\t\tres.push(\'');
-				} else {
-					res2.push(res1.join(' '));
-				}
-			}
-			res2.push(indent + '</' + tag + '>');
-			res_final = res2.join('');
-		}
-	} else {
-		// its var of text node
-		if (node.quoted_str) {
-			res_final = indent + node.quoted_str.replace(/\'/g, "\\'").replace(text_var_regexp, function (_, key) {
-				//console.log('Found!', key, context[key]);
-				return "' + ctx['" + key + "'] + '";
-			});
-		}
-		if (node.variable) {
-			res_final = indent + node.variable;
-		}
-	}
-	res_final = res_final || res1.join('');
-	if (need_partial_func) {
-		if (partial_pool) {
-			partial_pool.push(node);
-			if (pp) {
-				var _iteratorNormalCompletion6 = true;
-				var _didIteratorError6 = false;
-				var _iteratorError6 = undefined;
-
-				try {
-					for (var _iterator6 = pp[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-						var nd = _step6.value;
-
-						partial_pool.push(nd);
-					}
-				} catch (err) {
-					_didIteratorError6 = true;
-					_iteratorError6 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion6 && _iterator6.return) {
-							_iterator6.return();
-						}
-					} finally {
-						if (_didIteratorError6) {
-							throw _iteratorError6;
-						}
-					}
-				}
-			}
-		} else {
-			node.partial_func = create_func(childs_html, false, loop_level);
-			if (pp) {
-				var _iteratorNormalCompletion7 = true;
-				var _didIteratorError7 = false;
-				var _iteratorError7 = undefined;
-
-				try {
-					for (var _iterator7 = pp[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-						var _nd = _step7.value;
-
-						_nd.partial_func = node.partial_func;
-					}
-				} catch (err) {
-					_didIteratorError7 = true;
-					_iteratorError7 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion7 && _iterator7.return) {
-							_iterator7.return();
-						}
-					} finally {
-						if (_didIteratorError7) {
-							throw _iteratorError7;
-						}
-					}
-				}
-			}
-		}
-	}
-	return res_final;
-};
-
-Ozenfant.prototype.toHTML = function (context) {
-	if (context) {
-		this.state = context;
-	} else {
-		context = {};
-	}
-	if (!this.struct.func) {
-		this.struct.func = create_func(toFunc({ children: this.struct.semantics, root: true }));
-	}
-	var a = this.struct.func(context);
-	//var a = toHTML({children: this.struct.semantics}, context = context);
-	return a;
-};
-
-Ozenfant.prototype.searchByPath = function (path) {
-	return Ozenfant.xpOne(path, this.root);
-};
-
-Ozenfant.prototype.getIfElseVarsIndex = function () {
-	this.if_else_vars = {};
-	for (var one in this.var_types) {
-		if (!(this.var_types[one] instanceof Object)) continue;
-		for (var varname in this.var_types[one].if_pool) {
-			var path = this.var_types[one].if_pool[varname];
-			init_if_empty(this.if_else_vars, varname, {}, one, true);
-		}
-		for (var varname in this.var_types[one].else_pool) {
-			var path = this.var_types[one].if_pool[varname];
-			init_if_empty(this.if_else_vars, varname, {}, one, false);
-		}
-		for (var varname in this.var_types[one].my_pool) {
-			var path = this.var_types[one].my_pool[varname];
-			var expr = this.var_types[one].struct.real_expr || this.var_types[one].struct.expr;
-			init_if_empty(this.if_else_vars, varname, {}, one, expr);
-		}
-	}
-};
-
-Ozenfant.prototype.updateBindings = function () {
-	this.bindings = {};
-	this.components = {};
-	for (var varname in this.node_vars_paths) {
-		if (this.if_else_vars[varname]) {
-			var breaker = false;
-			for (var vn in this.if_else_vars[varname]) {
-				var expected_val = this.if_else_vars[varname][vn];
-				var real_val = this.state[vn];
-				// XOR
-				if (!(expected_val && real_val || !(expected_val || real_val))) {
-					breaker = true;
-					break;
-				}
-			}
-			if (breaker) {
-				continue;
-			}
-		}
-		this.bindings[varname] = this.searchByPath(this.node_vars_paths[varname]);
-		if (!this.bindings[varname]) {
-			console.warn('No node found for var', varname, 'in path:', this.node_vars_paths[varname], 'in context', this.root, ', context', this.state);
-		}
-	}
-	for (var _varname2 in this.text_vars_paths) {
-		this.bindings[_varname2] = this.searchByPath(this.text_vars_paths[_varname2]);
-		if (!this.bindings[_varname2]) {
-			console.warn('No node found for path:', this.text_vars_paths[_varname2], 'in context', this.root);
-		}
-	}
-	for (var _vn in this.bindings) {
-		if (this.component_to_vars[_vn]) {
-			this.components[_vn] = this.bindings[_vn];
-		}
-	}
-};
-
-Ozenfant.prototype.isVisible = function (varname) {};
-
-Ozenfant.prototype.searchForComponentBindings = function (var_paths, binding) {
-	for (var varname in var_paths) {
-		if (!this.component_to_vars[varname]) continue;
-		console.log('shoud update', varname, binding);
-	}
-};
-
-Ozenfant.prototype.render = function (node) {
-	var context = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-	if (context) {
-		this.state = JSON.parse(JSON.stringify(context));
-	}
-	node.innerHTML = this.toHTML(this.state);
-	this.setRoot(node);
-	this.updateBindings();
-};
-Ozenfant.prototype.getTokenStruct = function (node) {
-	var level = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
-
-	var start = !node;
-	if (!node) {
-		node = this.struct.syntax;
-	}
-	var arr = [new Array(level).join('	') + node.type];
-	if (node.children) {
-		var _iteratorNormalCompletion8 = true;
-		var _didIteratorError8 = false;
-		var _iteratorError8 = undefined;
-
-		try {
-			for (var _iterator8 = node.children[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-				var child = _step8.value;
-
-				arr.push(this.getTokenStruct(child, level + 1));
-			}
-		} catch (err) {
-			_didIteratorError8 = true;
-			_iteratorError8 = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion8 && _iterator8.return) {
-					_iterator8.return();
-				}
-			} finally {
-				if (_didIteratorError8) {
-					throw _iteratorError8;
-				}
-			}
-		}
-	}
-	return (start ? '\n' : '') + arr.join('\n');
-};
-
-Ozenfant.prototype.getHTML = function () {
-	var context = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-	if (context) {
-		this.state = context;
-	}
-	return this.toHTML(this.state);
-};
-Ozenfant.prototype.setFirstNode = function (node) {
-	this.root = node;
-	return this;
-};
-Ozenfant.prototype.setRoot = function (node) {
-	this.root = node.children[0];
-	return this;
-};
-Ozenfant.prototype._setVarVal = function (key, val, binding) {
-	if (this.if_else_vars[key]) {
-		//console.log('ifelsevar', key, this.if_else_vars[key]);
-		for (var varname in this.if_else_vars[key]) {
-			var flag = this.if_else_vars[key][varname] ? this.state[varname] : !this.state[varname];
-			if (!flag) {
-				// this var is in inactive block
-				return;
-			}
-		}
-	}
-	if (this.var_funcs[key]) {
-		if (this.var_funcs[key] instanceof Function) {
-			val = this.var_funcs[key](val);
-		} else {
-			val = val[this.var_funcs[key]];
-		}
-	}
-	if (val instanceof Object) return;
-	binding.innerHTML = val;
-};
-Ozenfant.prototype._setValByPath = function (path, val, root_node) {
-	document.evaluate(path, root_node, null, XPathResult.ANY_TYPE, null).iterateNext().innerHTML = val;
-};
-Ozenfant.prototype.updateLoopVals = function (loopname, val, old_val, binding, context) {
-	var loop = this.loop_pool[loopname];
-	for (var k in val) {
-		if (val[k] === old_val[k]) {
-			//console.log('skip', k);
-			continue;
-		}
-		var varname = get_loop_varname(loop.level + 2, k);
-		if (this.varname_pool.var_aliases[varname]) {
-			var _iteratorNormalCompletion9 = true;
-			var _didIteratorError9 = false;
-			var _iteratorError9 = undefined;
-
-			try {
-				for (var _iterator9 = this.varname_pool.var_aliases[varname][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-					var vn = _step9.value;
-
-					if (loop.paths[vn]) {
-						this.set(vn, val[k], loop, binding, old_val[k], false, context);
-					}
-				}
-			} catch (err) {
-				_didIteratorError9 = true;
-				_iteratorError9 = err;
-			} finally {
-				try {
-					if (!_iteratorNormalCompletion9 && _iterator9.return) {
-						_iterator9.return();
-					}
-				} finally {
-					if (_didIteratorError9) {
-						throw _iteratorError9;
-					}
-				}
-			}
-		}
-		if (loop.paths[varname]) {
-			this.set(varname, val[k], loop, binding, old_val[k], false, context);
-		}
-	}
-};
-
-Ozenfant.prototype.removeLoopItem = function (binding, i) {
-	if (binding.children[i]) {
-		binding.children[i].remove();
-	} else {
-		console.warn('Cannot remove unexisting', i);
-	}
-};
-Ozenfant.prototype.addLoopItems = function (loop, from, to, val, old_val, binding, context) {
-	var res = [];
-	var func = this.var_types[loop].func;
-	old_val = old_val || [];
-	for (var i = from; i <= to; ++i) {
-		old_val[i] = val[i];
-		if (val[i]) {
-			var ht = func.apply(null, context.concat(val[i]));
-			res.push(ht);
-		}
-	}
-	// !!! should be rewritten!
-	binding.insertAdjacentHTML("beforeend", res.join(''));
-	this.searchForComponentBindings(this.loop_pool[loop].paths, binding);
-};
-
-Ozenfant.prototype.setLoop = function (loopname, val, old_val, binding, parent_context) {
-	var skip_removing = false;
-	for (var i in val) {
-		if (old_val && old_val[i]) {
-			this.updateLoopVals(loopname, val[i], old_val[i], binding.children[i]);
-		} else {
-			skip_removing = true;
-			this.addLoopItems(loopname, i, val.length - 1, val, old_val, binding, parent_context);
-			break;
-		}
-	}
-	if (i) {
-		++i;
-	} else {
-		i = 0;
-	}
-	if (old_val && old_val[i] && !skip_removing) {
-		var init_i = i;
-		var del_count = 0;
-		for (var j = old_val.length - 1; j >= i; j--) {
-			++del_count;
-			this.removeLoopItem(binding, j);
-		}
-		old_val.splice(init_i, del_count);
-	}
-};
-
-Ozenfant.prototype.eachLoopBinding = function (loop, cb) {
-	var parent = loop.parent_loop;
-	var binding;
-	if (parent) {
-		this.eachLoopBinding(parent, function (bnd, val_arr) {
-			var pth = parent.paths[loop.name];
-			binding = Ozenfant.xpOne(pth, bnd);
-			if (!binding) {
-				console.error('Cannot find bindings', bnd, pth);
-			}
-			var llevel = parse_loop_varname(loop.name).level - 1;
-			var scope = val_arr[llevel][parse_loop_varname(loop.name).name];
-			for (var c in binding.children) {
-				if (Number(c) != c) continue;
-				var child = binding.children[c];
-				if (!val_arr) debugger;
-				cb(child, val_arr.concat(scope[c]), c);
-			}
-		});
-		return;
-	} else {
-		// its root
-		var val = this.state[loop.name];
-		binding = this.bindings[loop.name];
-		for (var c in binding.children) {
-			if (Number(c) != c) continue;
-			var child = binding.children[c];
-			cb(child, [val[c]], c);
-		}
-	}
-};
-
-Ozenfant.prototype.rec_set = function (el, parent_loop, path, val, context, old_val) {
-	var _this2 = this;
-
-	var level = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : 0;
-
-	var pth = path.split('/');
-	var first = pth[0].match(/([^\[]*)\[([^\]]*)\]/);
-	if (!first) {
-		var keyname = get_loop_varname(level + 1, pth[0]);
-		var paths_hash = parent_loop.paths || parent_loop.node_vars_paths;
-		if (paths_hash[keyname]) {
-			var binding = Ozenfant.xpOne(paths_hash[keyname], el);
-			old_val = old_val[parse_loop_varname(keyname).name];
-			if (this.loop_pool[keyname]) {
-				this.setLoop(keyname, val, old_val, binding, context);
-			} else {
-				this.__set(keyname, val, old_val, binding);
-			}
-		} else {
-			var key = get_loop_varname(parent_loop.level + 2, path);
-			traverse_tree(parent_loop, function (loop) {
-				if (loop.paths[key]) {
-					_this2.eachLoopBinding(loop, function (bnd) {
-						var bind = Ozenfant.xpOne(loop.paths[key], bnd);
-						_this2.__set(key, val, null, bind, loop);
-					});
-				}
-			}, 'nested_loops');
-		}
-		return;
-	}
-	var loopname = get_loop_varname(level + 1, first[1]);
-	var index = first[2];
-	old_val = old_val[parse_loop_varname(loopname).name][index];
-	var loop = this.loop_pool[loopname];
-	var path_pool = parent_loop === this ? this.node_vars_paths : parent_loop.paths;
-	var loop_binding = Ozenfant.xpOne(path_pool[loopname], el);
-	var bnd = loop_binding.children[index];
-	var rest = pth.slice(1);
-	if (rest.length) {
-		var new_context = last(context)[loopname][index];
-		this.rec_set(bnd, loop, rest.join('/'), val, context.concat(new_context), old_val, ++level);
-	} else {
-		var new_context = last(context)[first[1]][index];
-		if (new_context) {
-			// already exists
-			this.updateLoopVals(loopname, val, new_context, bnd, context);
-		} else {}
-		// @todO!
-		//this.addLoopItems(loopname, index, index, val, binding);
-
-		//console.log('FINAL', bnd, val, new_context);
-	}
-};
-
-Ozenfant.prototype.__set = function (key, val, old_val, binding, loop, loop_context) {
-	var _this3 = this;
-
-	var lc = loop_context;
-	if (this.nodes_vars[this.text_vars_paths[key]]) {
-		var template = this.nodes_vars[this.text_vars_paths[key]];
-		//console.log('template!', template);
-		var new_str = template.replace(text_var_regexp, function (_, key) {
-			return _this3.state[key];
-		});
-		this._setVarVal(key, new_str, binding);
-		if (binding.nodeType === Node.TEXT_NODE) {
-			binding.textContent = new_str;
-		} else {
-			binding.innerHTML = new_str;
-		}
-	} else {
-		if (this.var_types[key]) {
-			switch (this.var_types[key].type) {
-				case 'ATTR':
-					binding.setAttribute(this.var_types[key].name, val);
-					break;
-				case 'STYLE':
-					binding.style[this.var_types[key].name] = val;
-					break;
-				case 'SETTER':
-					special_html_setters[this.var_types[key].name].dom(binding, val, this.var_types[key].params);
-					break;
-				case 'LOOP':
-					var ct = loop_context || [this.state];
-					this.setLoop(key, val, old_val, binding, ct);
-					break;
-				default:
-					var func;
-					if (this.var_types[key] === 'USE_ROOT_FUNC') {
-						func = this.struct.func;
-					}
-					if (this.var_types[key] instanceof Function) {
-						func = this.var_types[key];
-					}
-					var ctx = [this.state];
-					if (loop) {
-						var _lc = loop_context || [{}];
-						ctx = [this.state].concat(_toConsumableArray(_lc));
-					}
-					var html = func.apply(null, ctx);
-					binding.innerHTML = html;
-					this.updateBindings();
-					break;
-			}
-		} else {
-			this._setVarVal(key, val, binding);
-		}
-	}
-};
-
-Ozenfant.prototype.updateAnyway = function (key) {
-	return this.var_types[key] && special_html_setters[this.var_types[key].name] && special_html_setters[this.var_types[key].name].updateAnyway;
-};
-
-Ozenfant.prototype.set = function (key, val, loop, loop_binding, old_data, force, loop_context) {
-	var _this4 = this;
-
-	var binding;
-	if (key.indexOf('/') !== -1) {
-		// @todo
-		if (key[0] === '/') {
-			key = key.substr(1);
-		}
-		this.rec_set(this.root, this, key, val, [this.state], this.state);
-		return;
-	}
-	if (this.state[key] === val && !force) {
-		if (!this.updateAnyway(key)) {
-			if (this.varname_pool.var_aliases[key]) {
-				var _iteratorNormalCompletion10 = true;
-				var _didIteratorError10 = false;
-				var _iteratorError10 = undefined;
-
-				try {
-					for (var _iterator10 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-						var k = _step10.value;
-
-						if (this.updateAnyway(k)) {
-							this.set(k, val, loop, loop_binding, old_data, true);
-						}
-					}
-				} catch (err) {
-					_didIteratorError10 = true;
-					_iteratorError10 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion10 && _iterator10.return) {
-							_iterator10.return();
-						}
-					} finally {
-						if (_didIteratorError10) {
-							throw _iteratorError10;
-						}
-					}
-				}
-			}
-			return;
-		} else {
-			// OK...
-		}
-	}
-	if (val instanceof Object) {
-		// we need to make deep copy
-		try {
-			val = JSON.parse(JSON.stringify(val));
-		} catch (e) {
-			//let it be ;)
-		}
-	}
-	var old_val = loop ? old_data : this.state[key];
-	if (!force && !test_loop_varname(key)) {
-		this.state[key] = val;
-	}
-	if (this.varname_pool.loop_var_links && this.varname_pool.loop_var_links[key] && !loop) {
-		for (var cn in this.varname_pool.loop_var_links[key]) {
-			var l_loop = this.varname_pool.loop_var_links[key][cn];
-			this.eachLoopBinding(l_loop, function (node, loop_ctx, i) {
-				_this4.set(cn, val, l_loop, node, old_val, true, loop_ctx);
-			});
-		}
-	}
-	if (this.varname_pool.var_aliases[key]) {
-		var _iteratorNormalCompletion11 = true;
-		var _didIteratorError11 = false;
-		var _iteratorError11 = undefined;
-
-		try {
-			for (var _iterator11 = this.varname_pool.var_aliases[key][Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-				var _k = _step11.value;
-
-				this.set(_k, val, loop, loop_binding, old_data, true);
-			}
-		} catch (err) {
-			_didIteratorError11 = true;
-			_iteratorError11 = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion11 && _iterator11.return) {
-					_iterator11.return();
-				}
-			} finally {
-				if (_didIteratorError11) {
-					throw _iteratorError11;
-				}
-			}
-		}
-	}
-	if (loop) {
-		binding = Ozenfant.xpOne(loop.paths[key], loop_binding);
-	} else {
-		if (!this.bindings[key]) {
-			return;
-		}
-		binding = this.bindings[key];
-	}
-	if (!this.root) return;
-	//console.log('path', this.text_vars_paths[key], 'vars', this.nodes_vars);
-	if (this.if_else_tree.var_funcs[key]) {
-		//console.log('should check the func first!', key);
-		if (!this.if_else_tree.var_funcs[key](this.state)) {
-			// no need to update anything in DOM - it's not an active branch
-			return;
-		}
-	}
-	this.__set(key, val, old_val, binding, loop, loop_context);
-};
-Ozenfant.xpOne = function (path) {
-	var node = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : document;
-
-	if (node !== document && path[0] === '/') {
-		path = path.substr(1);
-	}
-	if (path === '') {
-		return node;
-	}
-	return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
-};
-
-module.exports = Ozenfant;
-},{"../ooo_oo_o/parser":13,"./config":14}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 var divide = function divide(delim, str) {
@@ -8123,7 +8128,7 @@ module.exports = {
 		}
 	}
 };
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -8322,6 +8327,8 @@ Chex.prototype.absorb = function (struct, mirror_struct, cellname, value) {
 				if (!mirror_struct.children[i]) {
 					mirror_struct.children[i] = {
 						children: []
+						//type: child.subtype,
+						//parent: mirror_struct,
 					};
 				}
 				return _this.absorb(child, mirror_struct.children[i], cellname, value);
@@ -8550,6 +8557,9 @@ Chex.prototype.get_active_cells_and_funcs = function (parent, parent_mirror, bra
 					if (!mirror.children[_p]) {
 						mirror.children[_p] = {
 							children: []
+							//parent: mirror,
+							//type: branch.subtype,
+							//id: ++mirids
 						};
 					}
 					this.get_active_cells_and_funcs(branch, mirror, branch.children[_p], mirror.children[_p], cells, funcs);
@@ -8630,5 +8640,5 @@ module.exports = {
 		return state;
 	}
 };
-},{"../ooo_oo_o/parser":13,"./config":16}]},{},[6])
+},{"../ooo_oo_o/parser":16,"./config":17}]},{},[9])
 

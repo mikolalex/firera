@@ -38,7 +38,7 @@ const render_rec = (app, struct, closest_existing_template_path, skip) => {
 		const context = Object.assign({}, grid.cell_values);
 		utils.init_if_empty(templates, app.id, {});
 		templates[app.id][grid.path] = struct.tmpl = new Firera.Ozenfant(struct.$template);
-		//console.log('____ TMPL', struct.tmpl);
+		//console.log('____ TMPL', struct.tmpl); 
 		
 		for(let key in struct.children){
 			if(is_list_without_templates(struct.children[key])){
