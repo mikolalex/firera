@@ -79,8 +79,7 @@ const get_grid_struct = (grid) => {
 		if(obj.props.funnel){
 			return 'funnel';
 		}
-		return obj.type;
-		
+		return obj.type || 'free';
 	});
 	
 	const childs = grid.linked_grids_provider.pool;

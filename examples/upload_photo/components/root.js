@@ -30,8 +30,10 @@ const message_timer = () => {
 }
 
 module.exports = {
-	$template: root_template,
-	$el: document.querySelector('.test-photo-upload'),
+	$init: {
+		$template: root_template,
+		$el: document.querySelector('.test-photo-upload'),
+	},
 	'show_popup': ['.show-photo-upload-popup|click'],
 	'close_popup': ['join', 'popup/close', '.overlay|click'],
 	'popup_shown': ['map', {

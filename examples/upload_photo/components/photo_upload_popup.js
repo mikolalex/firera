@@ -60,8 +60,8 @@ const base = {
 	$init: {
 		file_selected: false,
 		'$upload_photo.inProgress': false,
+		$template: popup_template,
 	},
-	$template: popup_template,
 	close: ['join', '.close|click', [(a) => {
 		return a && a.success ? true : Firera.skip; 
 	}, 'upload_photo.result']],

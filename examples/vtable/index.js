@@ -38,15 +38,16 @@ const $init = {
     dataRowsLength: 100000,
     viewport_heigth: 600,
     '.outer|scrollPos(Y)': 0,
-    $el: document.querySelector('.test-vgrid')
+    $el: document.querySelector('.test-vgrid'),
+    $template,
 }
 // app itself
 const app = Firera({
+	$log: true,
     $root: {
-        $template,
         $init,
-        line_height: ['[name=lh]|getval'],
-        viewport_heigth: ['[name=th]|getval'],
+        line_height: '[name=lh]|getval',
+        viewport_heigth: '[name=th]|getval',
         pos_y: [Math.min, '.outer|scrollPos(Y)', 'max_scrollTop'],
         top_offset: [top_offset, 'pos_y', 'line_height'],
         max_scrollTop: [max_scrollTop, 'source_data', 'line_height', 'viewport_heigth'],
@@ -55,11 +56,8 @@ const app = Firera({
         data: [arr_slice, 'source_data', 'from', 'items_shown'],
         items_shown: [ceilDiv, 'viewport_heigth', 'line_height'],
         '.inner|css(height,px)': ['*', 'dataRowsLength', 'line_height'],
-        '.vtable|css(top,px)': ['pos_y'],
-        '.outer|css(height,px)': ['viewport_heigth'],
-    }
-}, {
-    packages: ['htmlCells', 'ozenfant'],
-    //trackChanges: true,//['pos_y', 'top_offset'],
-    trackChangesType: 'log',
+        '.vtable|css(top,px)': 'pos_y',
+        '.outer|css(height,px)': 'viewport_heigth',
+    },
+	$packages: ['htmlCells', 'ozenfant']
 })

@@ -386,18 +386,30 @@ const parse_pb = function(res, packages){
 }
 
 const parse_fexpr = function(a, pool, key, packages){
-	var funcstring;
 	key = get_real_cell_name(key);
-	if(a instanceof Array){
-		funcstring = parse_arr_funcstring(a, key, pool, packages);
-		if(funcstring === undefined) return;
-	} else {
-		// it's primitive value
-		utils.init_if_empty(pool.plain_base, '$init', {});
-		parse_cellname(key, pool, 'setter', packages);
-		pool.plain_base.$init[key] = a;
-		return;
+	if(!(a instanceof Array)){
+		if(typeof a === 'string'){
+			// it's a reference to another cell
+			a = [a => a, a];
+		} else {
+			if(a instanceof Object){
+				a = ['map', a];
+			} else {
+				console.warn('Strainge row:', a, key);
+				return;
+			}
+		}
 	}
+	//if(a instanceof Array){
+		var funcstring = parse_arr_funcstring(a, key, pool, packages);
+		if(funcstring === undefined) return;
+	//} else {
+//		// it's primitive value
+//		utils.init_if_empty(pool.plain_base, '$init', {});
+//		parse_cellname(key, pool, 'setter', packages);
+//		pool.plain_base.$init[key] = a;
+//		return;
+	//}
 	if(!funcstring[2]){
 		// function with no dependancy
 		utils.init_if_empty(pool, 'no_args_cells', {}, key, true);

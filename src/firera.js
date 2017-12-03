@@ -41,6 +41,10 @@ window.Firera = function(apps, config = {}){
 	if(apps.$packages){
 		config.packages = apps.$packages;
 	}
+	if(apps.$log){
+		config.trackChanges = apps.$log;
+		config.trackChangesType = 'log';
+	}
 	if(arguments.length > 1){
 		// it's a set of grids we should join
 		apps = Firera.join.apply(null, arguments);
@@ -48,7 +52,7 @@ window.Firera = function(apps, config = {}){
 	const start = performance.now();
 	const app = get_app(config);
 	// getting real pbs
-	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), {except: ['$packages']});
+	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), {except: ['$packages', '$log']});
 	// now we should instantiate each pb
 	if(!app.cbs.$root){
 		// no root grid
@@ -134,6 +138,10 @@ Firera.join = function(...args){
 			if(k === '$packages'){
 				utils.init_if_empty(res, k, []);
 				res.$packages = res.$packages.concat(grid[k]);
+				continue;
+			}
+			if(k === '$log'){
+				
 				continue;
 			}
 			utils.init_if_empty(res, k, {});

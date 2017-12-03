@@ -30,11 +30,12 @@ const $template = `
 
 // init data section
 const $init = {
+    $template,
 }
 // app itself
 const app = Firera({
+    $packages: ['htmlCells', 'ozenfant'],
     $root: {
-        $template,
         $init,
         country: ['[name=country]|getval'],
 		region: ['map', {
@@ -47,8 +48,4 @@ const app = Firera({
 		}],
 		address: ['[name=address|getval']
     }
-}, {
-    packages: ['htmlCells', 'ozenfant'],
-    //trackChanges: true,//['pos_y', 'top_offset'],
-    trackChangesType: 'log',
 })
