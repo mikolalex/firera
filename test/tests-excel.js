@@ -51,7 +51,7 @@ var get_position_determinant = (x, y) => {
 }
 
 var excel_app = {
-	__root: {
+	$root: {
 		$child_cells: ['list', {
 			type: 'cell',
 			deltas: '../cells_diff'
@@ -89,7 +89,7 @@ var excel_app = {
 describe('Excel', ()=>{
 	it('Building table', () => {
 		var app = Firera(excel_app, {
-			__root: {
+			$root: {
 				$el: $('.test-excel'),
 				sizeX: 3,
 				sizeY: 4,

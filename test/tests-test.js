@@ -16,7 +16,7 @@ var second_arg = (a, b) => {
 
 
 var app = Firera({
-		__root: {
+		$root: {
 				$template: `
 								h1
 										"Trains"

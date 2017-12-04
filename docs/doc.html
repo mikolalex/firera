@@ -85,7 +85,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         $child_bar: {
             a: 10,
@@ -114,7 +114,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         $child_bar: {
             a: 10,
@@ -151,7 +151,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         bar: 20,
         res: [(a, b) => {
@@ -172,7 +172,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         bar: 20,
         baz: 40,
@@ -201,7 +201,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         total_sum: ['closure', () => {
             // This function will be run once - on creating each F.Grid
@@ -238,7 +238,7 @@ and open the template in the editor.
                     </div>
                     <div>
 <code>
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
         factorial: ['async', (cb, value) => {
             $.get('/calc_factorial?num=' + value, function(data){
@@ -273,7 +273,7 @@ and open the template in the editor.
             return a;
         }
     }
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         foo: 10,
             nums: ['nested', (cb, value) => {
             if(value%2){
@@ -309,7 +309,7 @@ and open the template in the editor.
                     <div>
 <code>
 
-    var app = Firera({__root: {
+    var app = Firera({$root: {
         a1: 10,
         a2: 20,
         a3: 45,

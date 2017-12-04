@@ -29,7 +29,7 @@ var template = `
 template = Firera.Ozenfant.prepare(template);
 
 var app = Firera({
-	__root: {
+	$root: {
 		$el: $('.list-itself'),
 		$child_names: ['list', {
 				type: 'someName',
@@ -45,7 +45,7 @@ var app = Firera({
 	someName: {
 		$template: template,
 	},
-	$packages: ['neu_ozenfant', 'htmlCells']
+	$packages: ['ozenfant', 'htmlCells']
 })
 
 console.log('app', app);

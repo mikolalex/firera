@@ -139,7 +139,7 @@ var iof = (a) => {
 var toString = (a) => a.toString();
 
 var app_struct_devtool = {
-	__root: {
+	$root: {
 		$el: $("#content-devtool"),
 		$template: templates.main,
 		f_path: '/',
@@ -280,7 +280,7 @@ var app_struct_devtool = {
 			}, '.open|click', '.close|click'],
 	},
 	$packages: [
-		'neu_ozenfant', 
+		'ozenfant', 
 		//'ozenfant_new', 
 		'htmlCells'
 	]

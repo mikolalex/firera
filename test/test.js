@@ -188,9 +188,11 @@ describe('Firera tests', function () {
 
     it('Testing simple grid', function () {
         var app = Firera({
-            __root: {
-				a: 10,
-				b: 32,
+            $root: {
+				$init: {
+					a: 10,
+					b: 32,
+				},
                 'c': ['+', 'a', 'b']
             },
             'todo': {},
@@ -201,10 +203,12 @@ describe('Firera tests', function () {
     });
     it('Testing nested fexpr', function () {
         var app = Firera({
-            __root: {
-				a: 10,
-				b: 20,
-				c: 12,
+            $root: {
+				$init: {
+					a: 10,
+					b: 20,
+					c: 12,	
+				},
                 d: ['+', ['-', 'b', 'c'], 'a']
             },
             'todo': {},
@@ -216,9 +220,11 @@ describe('Firera tests', function () {
 
     it('Testing passive listening', function () {
         var app = Firera({
-            __root: {
-				'a': 10,
-				'b': 32,
+            $root: {
+				$init: {
+					'a': 10,
+					'b': 32,
+				},
                 'c': ['+', 'a', '-b']
             }
         });
@@ -232,9 +238,11 @@ describe('Firera tests', function () {
     });
     it('Testing map dependency', function () {
         var app = Firera({
-            __root: {
-				'a': 10,
-				'b': 32,
+            $root: {
+				$init: {
+					'a': 10,
+					'b': 32,
+				},
                 'c': ['map', {
                     a: function(z){ return z + 1;}, 
                     b: function(z){ return z*(-1);
@@ -248,9 +256,11 @@ describe('Firera tests', function () {
     });
     it('Testing FUNNEL dependency', function () {
         var app = Firera({
-            __root: {
-				'a': 10,
-				'b': 32,
+            $root: {
+				$init: {
+					'a': 10,
+					'b': 32,
+				},
                 'c': ['funnel', function(cellname, val){
                     //console.log('got FUNNEL', arguments); 
                     return cellname + '_' + val;
@@ -264,8 +274,10 @@ describe('Firera tests', function () {
     });
     it('Testing basic html functionality: visibility', function () {
         var app = Firera({
-            __root: {
-                $el: document.querySelector(".test-html"),
+            $root: {
+				$init: {
+					$el: document.querySelector(".test-html"),
+				},
                 'someval': [id, 'input|getval'],
                 '.blinker|visibility': [(a) => (a && a.length%2), 'someval']
             },
@@ -278,8 +290,10 @@ describe('Firera tests', function () {
     it('Testing basic html functionality: click', function () {
 		var c = 0;
         var app = Firera({
-            __root: {
-                $el: $(".test-html"),
+            $root: {
+				$init: {
+					$el: $(".test-html"),
+				},
                 'foo': [() => {
 						++c;
 				}, '.a > *:nth-child(2) div span|click']
@@ -294,10 +308,12 @@ describe('Firera tests', function () {
     it('Testing nested grids', function () {
         var str = false;
         var app = Firera({
-            __root: {
-                $el: $(".test-nested"),
+            $root: {
+				$init: {
+					$el: $(".test-nested"),
+					$child_todo: 'item',
+				},
                 someval: [id, 'todo/completed'],
-                $child_todo: 'item',
             },
             'item': {
 				$init: {
@@ -316,8 +332,10 @@ describe('Firera tests', function () {
     it('Testing multiple children', function () {
 	   var str = false;
         var app = Firera({
-            __root: {
-                $el: $(".test-nested"),
+            $root: {
+				$init: {
+					$el: $(".test-nested"),
+				},
                 completed_counter: ['closure', function(){
                         var c = 0;
                         return function(arr){
@@ -360,8 +378,10 @@ describe('Firera tests', function () {
     });
     it('Testing nested cells', function () {
         var app = Firera({
-            __root: {
-                a: 42,
+            $root: {
+				$init: {
+					a: 42,
+				},
                 foo: ['nested', function(cb, a){
                         if(a % 2){
                             cb('odd', a);
@@ -383,8 +403,10 @@ describe('Firera tests', function () {
 
     it('Testing dynamic $children members', function () {
         var app = Firera({
-        	__root: {
-        		registered: false,
+        	$root: {
+				$init: {
+					registered: false,
+				},
 	        	val: [id, 'block/foo'],
 	        	$child_block: [
 					always(
@@ -406,9 +428,11 @@ describe('Firera tests', function () {
     });
     it('Testing grid linking', function () {
         var app = Firera({
-        	__root: {
-				registered: false,
-				val: null,
+        	$root: {
+				$init: {
+					registered: false,
+					val: null,
+				},
 	        	$child_block: [always(
 						[{
 							$init: {
@@ -432,8 +456,10 @@ describe('Firera tests', function () {
     });
     it('Testing deltas, arrays', function () {
         var app = Firera({
-        	__root: {
-				show: 'all',
+        	$root: {
+				$init: {
+					show: 'all',
+				},
 				numbers: ['just', [1, 2, 3]],
                 arr_changes: ['arrDeltas', 'numbers']
         	}
@@ -471,7 +497,7 @@ describe('Firera tests', function () {
         var $root = qs(".test-list-remove");
         var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
-            __root: {
+            $root: {
                 $child_todos: ['list', {
 					type: 'item',
 					push: [as('text'), '../new_todo'],
@@ -536,7 +562,7 @@ describe('Firera tests', function () {
     
     it('Testing async', function(done){
         var app = Firera({
-            __root: {
+            $root: {
                 b: ['just', 42],
                 a: ['async', function(cb, b){
                         setTimeout(() => {
@@ -560,7 +586,7 @@ describe('Firera tests', function () {
 		}
 		var app = Firera({
 			$packages: ['simpleHtmlTemplates', 'htmlCells'],
-			__root: {
+			$root: {
 				$el: $(".test-trains"),
 				$child_trains: ['list', {
 					type: 'train',
@@ -603,7 +629,7 @@ describe('Firera tests', function () {
 	
 	it('$datasource', function(){
 		var app = Firera({
-			__root: {
+			$root: {
 				$child_people: ['list', {
 					type: 'human',
 					datasource: ['../people'],
@@ -661,7 +687,7 @@ describe('Firera tests', function () {
 	it('Reduce(position-free)', function(){
 		// tbd...
 		var app = Firera({
-			__root: {
+			$root: {
 				$child_people: ['list', {
 					type: 'human', 
 					datasource: ['../people'],
@@ -701,18 +727,20 @@ describe('Firera tests', function () {
 	
 	it('Simple templates with Ozenfant', function(done){
         var app = Firera({
-            __root: {
-				$el: $(".test-ozenfant"),
-				text: 'This is Ozenfant!',
-				$template: `
-				.
-					form
-						h1
-							"Hello!"
-						.
-						.text$
+            $root: {
+				$init: {
+					$el: $(".test-ozenfant"),
+					text: 'This is Ozenfant!',
+					$template: `
+					.
+						form
+							h1
+								"Hello!"
+							.
+							.text$
 
-				`
+					`
+				}
             },
 			$packages: ['ozenfant', 'htmlCells']
         });
@@ -724,7 +752,7 @@ describe('Firera tests', function () {
 	})
 	it('Nested templates with Ozenfant', function(){
         var app = Firera({
-            __root: {
+            $root: {
                 $init: {
                     $el: $(".test-ozenfant-nested"),
 					people_arr: [{name: 'John'}, {name: 'Ivan'}, {name: 'Semen'}],
@@ -739,12 +767,14 @@ describe('Firera tests', function () {
 				$child_people: ['list', {type: 'human', datasource: ['../people_arr']}],
             },
 			human: {
-				$template: `
-				.greeting
-					"Hello, "
-					span$name
-					"!"
-					`
+				$init: { 
+					$template: `
+					.greeting
+						"Hello, "
+						span$name
+						"!"
+						`
+				}
 			},
 			$packages: ['ozenfant', 'htmlCells']
         });
@@ -759,22 +789,22 @@ describe('Firera tests', function () {
 		var $root = $(".test-indices");
 		var app = Firera({
 			$packages: ['ozenfant', 'htmlCells'],
-			__root: {
+			$root: {
 				$init: {
 					undone_num: 0,
-				},
-				$el: $root,
-				add_new: ['.add-todo|click'],
-				$template: `
-					.
-						"todo list"
-						ul$todos
-						.add-todo
-							"Add todo"
+					$el: $root,
+					$template: `
 						.
-							"Undone:"
-							span.undone_num$
-				`,
+							"todo list"
+							ul$todos
+							.add-todo
+								"Add todo"
+							.
+								"Undone:"
+								span.undone_num$
+					`,
+				},
+				add_new: ['.add-todo|click'],
 				undone_num: [prop('size'), 'todos/undone'],
 				$child_todos: ['list', {
 					type: 'todo',
@@ -785,12 +815,14 @@ describe('Firera tests', function () {
 				}]
 			},
 			todo: {
-				$template: `
-					li
-						.$text
-						.complete
-							"Complete!"
-				`,
+				$init: {
+					$template: `
+						li
+							.$text
+							.complete
+								"Complete!"
+					`,
+				},
 				completed: [always(true), '.complete|click'],
 			}
 		})
@@ -807,18 +839,20 @@ describe('Firera tests', function () {
 	
 	it('Getting data from arrays by index', function(){
 		var app = Firera({
-			__root: {
-				$template: `
-					.trainz
-						h1
-							"Trains"
-						.trains$
-						.
+			$root: {
+				$init: {
+					$template: `
+						.trainz
+							h1
+								"Trains"
+							.trains$
 							.
-								"Edit train"
-							.edit-train-form$edit_train_form
-				`,
-				$el: $(".test-trains2"),
+								.
+									"Edit train"
+								.edit-train-form$edit_train_form
+					`,
+					$el: $(".test-trains2"),
+				},
 				trains_arr: ['just', [
 					{
 						number: 117,
@@ -848,16 +882,16 @@ describe('Firera tests', function () {
 				]
 			},
 			edit_train_form: {
-				$template: `
+				$init: { $template: `
 				.
 					"editing train..."
 					a.close(href: ololo)
 						"Close"
-				`,
+				`,},
 				close: ['.close|click']
 			},
 			train: {
-				$template: `
+				$init: { $template: `
 					li
 						.
 							"Train #"
@@ -865,7 +899,7 @@ describe('Firera tests', function () {
 						.
 							a.edit(href: #)
 								"Edit"
-					`,
+					`, },
 				edit_train: ['second', '.edit|click', '-$real_values']
 			},
 			$packages: ['ozenfant', 'htmlCells']
@@ -874,10 +908,12 @@ describe('Firera tests', function () {
 	})
 	it('Testing new $child interface', function(){
 		var app = Firera({
-			__root: {
-				a: 10,
-				b: 20,
-				$child_todo: 'todo',
+			$root: {
+				$init: {
+					a: 10,
+					b: 20,
+					$child_todo: 'todo',
+				},
 				c: ['+', 'a', 'b'],
 			},
 			todo: {
@@ -888,10 +924,12 @@ describe('Firera tests', function () {
 	})
 	it('Testing new $child interface', function(){
 		var app = Firera({
-			__root: {
-				a: 10,
-				b: 20,
-				$child_todo: 'todo',
+			$root: {
+				$init: {
+					a: 10,
+					b: 20,
+					$child_todo: 'todo',
+				},
 				c: ['+', 'a', 'b'],
 			},
 			todo: {
@@ -902,11 +940,13 @@ describe('Firera tests', function () {
 	})
 	it('Testing new $child interface 2', function(){
 		var app = Firera({
-			__root: {
-				a: 10,
-				b: 20,
-				$child_todo: {
-					d: [adder(12), '../c'],
+			$root: {
+				$init: {
+					a: 10,
+					b: 20,
+					$child_todo: {
+						d: [adder(12), '../c'],
+					}
 				},
 				c: ['+', 'a', 'b'],
 			},
@@ -915,24 +955,26 @@ describe('Firera tests', function () {
 	})
 	it('Testing new $child interface 3: add and remove', function(){
 		var app = Firera({
-			__root: {
-				a: 10,
-				b: 20,
-				$el: $(".test-new-children"),
+			$root: {
+				$init: {
+					a: 10,
+					b: 20,
+					$el: $(".test-new-children"),
+					$template: `
+				.
+					.
+						a.add(href: #)
+							"Show todo"
+					.
+						a.remove(href: #)
+							"Hide"
+					.
+						.$someval
+					.
+						.todo$
+					`,
+				},
 				someval: ['todo/ololo'],
-				$template: `
-			.
-				.
-					a.add(href: #)
-						"Show todo"
-				.
-					a.remove(href: #)
-						"Hide"
-				.
-					.$someval
-				.
-					.todo$
-				`,
 				$child_todo: ['map', {
 					'.add|click': 'todo',
 					'.remove|click': false,
@@ -940,18 +982,20 @@ describe('Firera tests', function () {
 				c: ['+', 'a', 'b'],
 			},
 			todo: {
-				ololo: 42,
-				$template: `
-					.todosya( background-color: green, 
-							width: 300px, 
-							height: 50px, 
-							margin: 10px, 
-							border-radius: 10px, 
-							padding: 10px, 
-							color: white 
-						)
-						"todo"
-				`,
+				$init: {
+					ololo: 42,
+					$template: `
+						.todosya( background-color: green, 
+								width: 300px, 
+								height: 50px, 
+								margin: 10px, 
+								border-radius: 10px, 
+								padding: 10px, 
+								color: white 
+							)
+							"todo"
+					`,
+				}
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
@@ -1015,9 +1059,11 @@ describe('Firera tests', function () {
 					"Remove"
 		`;
 		var app = Firera({
-			__root: {
-				$template: main_template,
-				$el: $root,
+			$root: {
+				$init: { 
+						$template: main_template,
+					$el: $root,
+				},
 				$child_todos: ['list', {
 					type: 'todo',
 					push: [
@@ -1048,16 +1094,15 @@ describe('Firera tests', function () {
 				'all_number': ['count', 'todos/*'],
 			},
 			todo: {
+				$init: {
+					$template: todo_template,
+				},
 				'|visibility': ['!=', '../display', 'complete'],
 				'|hasClass(completed)': ['complete'],
-				$template: todo_template,
 				complete: ['.complete|click'],
 				'c': ['+', 'a', 'b']
-			}
-		}, {
-			packages: ['ozenfant', 'htmlCells'],
-			//trackChanges: true,//['pos_y', 'top_offset'],
-			//trackChangesType: 'log',
+			},
+			$packages: ['ozenfant', 'htmlCells'],
 		})
 		//console.log('app', app, $root.find('input[type=text]'));
 		type('Do something useful');
@@ -1092,14 +1137,16 @@ describe('Firera tests', function () {
 	it('Dynamic dependency', () => {
 		// @tbd
 		var app = Firera({
-			__root: {
-				a1: 10,
-				a2: 20,
-				a3: 45,
-				b1: -1,
-				b2: 9,
-				b3: 3,
-				flag: 'a',
+			$root: {
+				$init: {
+					a1: 10,
+					a2: 20,
+					a3: 45,
+					b1: -1,
+					b2: 9,
+					b3: 3,
+					flag: 'a',
+				},
 				val: ['dynamic', (letter) => {
 					return [(a, b, c) => {
 						//console.log('computing sum');
@@ -1117,12 +1164,12 @@ describe('Firera tests', function () {
 	})
 	
 	it('Multi-layer grid benchmark', function(){
-		var grid = {
+		var grid = {$init: {
 			a0: 10,
 			b0: 20,
 			c0: 30,
 			d0: 42
-		}
+		}}
 		for(var i = 1; i <= 1000; i++){
 			var prev = i - 1;
 			grid['a' + i] = ['b' + prev];
@@ -1132,7 +1179,7 @@ describe('Firera tests', function () {
 		}
 		
 		timer('Initing app');
-		var app = Firera({__root: grid});
+		var app = Firera({$root: grid});
 		timer('Initing app').stop();
 		
 		timer('Updating app');
@@ -1147,8 +1194,8 @@ describe('Firera tests', function () {
 	
 	it('Accum', () => {
 		var app = Firera({
-			__root: {
-				a: 42,
+			$root: {
+				$init: { a: 42 },
 				b: [(val) => {
 					return val%2 ? val : Firera.skip;	
 				}, 'a'],
@@ -1163,9 +1210,11 @@ describe('Firera tests', function () {
 	})
 	it('TransistA', () => {
 		var app = Firera({
-			__root: {
-				a: false,
-				b: 42,
+			$root: {
+				$init: { 
+					a: false,
+					b: 42, 
+				},
 				c: ['transist', 'a', '-b']
 			},
 		})
@@ -1181,9 +1230,11 @@ describe('Firera tests', function () {
 	
 	it('Wrong linking', () => {
 		var app = Firera({
-			__root: {
-				a: 42,
-				$child_foo: 'bar'
+			$root: {
+				$init: { 
+					a: 42,
+					$child_foo: 'bar'
+				},
 			},
 			bar: {
 				b: ['z']
@@ -1207,14 +1258,16 @@ describe('Firera tests', function () {
 
 		`;
 		var app = Firera({
-			__root: {
-				$template: `
-					.
+			$root: {
+				$init: { 
+					$template: `
 						.
-							"Blocks"
-						.blocks$   
-				`,
-				$el: $(".test-nested-template-rendering"), 
+							.
+								"Blocks"
+							.blocks$   
+					`,
+					$el: $(".test-nested-template-rendering"), 
+				},
 				$child_blocks: ['list', {
 						type: 'block',
 						data: [{}, {}, {}],
@@ -1224,7 +1277,7 @@ describe('Firera tests', function () {
 				}]
 			},
 			block: {
-				$template: block_template,
+				$init: { $template: block_template },
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
@@ -1233,31 +1286,33 @@ describe('Firera tests', function () {
 	})
 	it('Nested $init', () => {   
 		var app = Firera({
-			__root: {
+			$root: {
 				$init: {
 					a: 10,
 					b: 30,
 					foo: 'bar',
 					aaa: {
-						bar: 'baz',
-						c: 42,
-						bbb: {
-							city: 'New Tsynglok',
+						$init: {
+							bar: 'baz',
+							c: 42,
 						}
 					},
+					$child_aaa: 'nst',
 				},
-				$child_aaa: 'nst',
 				c: ['+', 'a', 'b']
 			},
 			nst: {
 				$init: {
+					bar: 'baz',
 					a: 12,
 					b: 30,
+					$child_bbb: 'nst2',
 				},
-				$child_bbb: 'nst2',
 			},
 			nst2: {
-				
+				$init: {
+					city: 'New Tsynglok',
+				}
 			}
 		})
 		assert.equal(app.get('c'), '40');
@@ -1270,8 +1325,16 @@ describe('Firera tests', function () {
 		var $root =  $(".test-comments");
 		var c = 0;
 		var app = Firera({
-			__root: {
-				'$el': $root,
+			$root: {
+				$init: { 
+					$el: $root ,
+					$template: `
+				.
+					.h1
+						"Comments"
+					ul.comments$
+					`
+				},
 				'clicks': [() => {
 					//console.log('BTN CLC!');
 					++c;	
@@ -1291,22 +1354,18 @@ describe('Firera tests', function () {
 						},
 				]],
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
-				'$template': `
-			.
-				.h1
-					"Comments"
-				ul.comments$
-				`
 			},
 			comment: {
+				$init: {
+					'$template': `
+					li.comment
+						.user$(font-weight: bold)
+						.text$
+						button.plus-one
+							"+1"
+					`,
+				},
 				'btn_click': ['.plus-one|click'],
-				'$template': `
-				li.comment
-					.user$(font-weight: bold)
-					.text$
-					button.plus-one
-						"+1"
-				`,
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
@@ -1318,8 +1377,18 @@ describe('Firera tests', function () {
 		var $root =  $(".test-comments2");
 		var c = 0;
 		var app = Firera({
-			__root: {
-				'$el': $root,
+			$root: {
+				$init: {
+					'$el': $root,
+					selectable: false,
+					username: 'Mikolalex',
+					'$template': `
+				.
+					.h1
+						"Comments"
+					ul.comments$
+					`
+				},
 				'comments_arr': ['just', [
 						{
 							user: 'Mikolalex',
@@ -1334,26 +1403,20 @@ describe('Firera tests', function () {
 							text: 'Like!'
 						},
 				]],
-				selectable: false,
-				username: 'Mikolalex',
 				'$child_comments': ['list', {type: 'comment', datasource: ['../comments_arr']}],
-				'$template': `
-			.
-				.h1
-					"Comments"
-				ul.comments$
-				`
 			},
 			comment: {
+				$init: {
+					'$template': `
+					li.comment
+						.user$(font-weight: bold)
+						.text$
+						button.plus-one
+							"+1"
+					`,
+				},
 				'.text|hasClass(my-comment)': ['==', '^^/username', 'user'],
 				'|hasClass(active)': ['transist', '/selectable', ['valMap', '|click', 'other|click']],
-				'$template': `
-				li.comment
-					.user$(font-weight: bold)
-					.text$
-					button.plus-one
-						"+1"
-				`,
 			},
 			$packages: ['ozenfant', 'htmlCells']
 		})
@@ -1371,8 +1434,10 @@ describe('Firera tests', function () {
 	it('Timer', (done) => {
 		var c = 0;
 		var app = Firera({
-			__root: {
-				'start_stop': false,
+			$root: {
+				$init: {
+					'start_stop': false,
+				},
 				'each100ms': ['interval', 100, 'start_stop'],
 				'ololo': [() => {
 					++c;
@@ -1395,10 +1460,12 @@ describe('Firera tests', function () {
 		var d_counter = 0;
 		var e_counter = 0;
 		var app = Firera({
-			__root: {
-				'a': 10,
-				b: 32,
-				z: 100,
+			$root: {
+				$init: {
+					'a': 10,
+					b: 32,
+					z: 100,
+				},
 				'=c': [function(a, b){
 					return a + b;
 				}, 'a', 'b'],
@@ -1424,9 +1491,11 @@ describe('Firera tests', function () {
 	})
 	it('* subtree', () => {
 		var app = Firera({
-			__root: {
-				a: 10,
-				b: 32,
+			$root: {
+				$init: {
+					a: 10,
+					b: 32,
+				},
 				c: [(a, b) => {
 					//console.log('Something', a, b);
 					return 10;
@@ -1444,19 +1513,21 @@ describe('Firera tests', function () {
 		
 	   
 		var app = Firera({
-			__root: {
-				$el: $(".test-nested-loops"),
-				$template: `
-			.
-				h1
-					"Nested loops"
+			$root: {
+				$init: {
+					$el: $(".test-nested-loops"),
+					$template: `
 				.
+					h1
+						"Nested loops"
 					.
-						"Locomotives"
-					ul.{$items}
-						li.item
-							.title$@title
-				`,
+						.
+							"Locomotives"
+						ul.{$items}
+							li.item
+								.title$@title
+					`,
+				},
 				$child_items: ['list', {
 					type: 'item',
 					data: [{
@@ -1486,38 +1557,42 @@ describe('Firera tests', function () {
 		var c = 0;
 		var d = 0;
 		var app = Firera({
-			__root: {
-				$el: $root,
+			$root: {
+				$init: {
+					$el: $root,
+					$template: `
+				.
+					h1
+						"Dom events"
+					.links
+						a.foo
+							"Foo"
+						a.bar
+							"Bar"
+					.items$
+
+					`,
+				},
 				listen_a_click: [(e) => {
 					++c;
 				}, 'a|click'],
 				listen_any_click: [(e) => {
 					++d;
 				}, 'a|>click'],
-				$template: `
-			.
-				h1
-					"Dom events"
-				.links
-					a.foo
-						"Foo"
-					a.bar
-						"Bar"
-				.items$
-
-				`,
 				$child_items: ['list', {
 						type: 'item',
 						data: [{}, {}, {}]
 				}]
 			},
 			item: {
-				$template: `
-					li
-						a.item(data-num: $name)
-							"item"
-				
-				`
+				$init: {
+					$template: `
+						li
+							a.item(data-num: $name)
+								"item"
+
+					`
+				},
 			},
 			$packages: ['ozenfant', 'htmlCells'],
 		})
@@ -1525,12 +1600,13 @@ describe('Firera tests', function () {
 		trigger_click($root.querySelectorAll("a.foo"));
 		assert.equal(c, 1);
 		assert.equal(d, 4);
-		// no asserts needed - if it doesn't throw an error, it's ok!
 	})
 	it('Che: simple example', function(){
 		var app = Firera({
-			__root: {
-				$el: qs(".test-che"),
+			$root: {
+				$init: {
+					$el: qs(".test-che"),
+				},
 				a: [always('A'), '.a|click'],
 				b: [always('B'), '.b|click'],
 				clicked_both: ['che', '& a, b']
@@ -1543,12 +1619,11 @@ describe('Firera tests', function () {
 	})
 	it('Newest Ozenfant', function(){
 		var app = Firera({
-			__root: {
-				$el: qs(".test-newest-oz"),
+			$root: {
 				$init: {
+					$el: qs(".test-newest-oz"),
 					conts: [{show_form: true}, {show_form: true}, {show_form: true}],
-				},
-				$template: `
+					$template: `
 	.
 		h1
 			"Hello, this is Willy!"
@@ -1572,22 +1647,27 @@ describe('Firera tests', function () {
 		footer.bar
 			"Footer"
 		Shmooter.a
-`,
+	`,
+				},
 			},
 			Form: {
-				$template: `
-	.
-		form
-			h3
-				"This is form"
-	
-`,
+				$init: {
+					$template: `
+		.
+			form
+				h3
+					"This is form"
+
+	`,
+				},
 			},
 			Item: {
-				$template: `
-	.
-		"This is item"
-`
+				$init: {
+					$template: `
+		.
+			"This is item"
+	`
+				}
 			},
 			$packages: ['htmlCells', 'ozenfant']
 		});
@@ -1609,34 +1689,37 @@ describe('Firera tests', function () {
 	
 	it('Testing $children', function(){
 		var app = Firera({
-			__root: {
-				$el: qs(".test-children"),
-				$template: `
-				.az
-					h1
-						"This is Willy"
-					.foo$
-				`,
+			$log: true,
+			$root: {
+				$init: {
+					$el: qs(".test-children"),
+					$template: `
+					.az
+						h1
+							"This is Willy"
+						.foo$
+					`,
+				},
 				mousepos: [(e) => [e.layerX, e.layerY], '.az|mousemove'],
 				$children: [Firera._.id, 'children'],
 			},
 			indicator: {
-				$template: `
-					.
-						h2
-							"This is indicator"
+				$init: {
+					$template: `
 						.
+							h2
+								"This is indicator"
 							.
-								.x$
-								.y$
-				`,
+								.
+									.x$
+									.y$
+					`,
+					foo: 'bar',
+				},
 				x: [Firera._.prop('0'), '../mousepos'],
 				y: [Firera._.prop('1'), '../mousepos'],
-			}
-		}, {
-			packages: ['htmlCells', 'ozenfant'],
-			trackChanges: true,
-			trackChangesType: 'log',
+			},
+			$packages: ['htmlCells', 'ozenfant'],
 		})
 		app.set('a', 10);
 		app.set('children', [['add', 'foo', 'indicator', {$real_el: qs('.indicator')}]]);

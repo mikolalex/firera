@@ -45,10 +45,10 @@ const todos = [
 const init_data = (localStorage.getItem('todos') ? JSON.parse(localStorage.getItem('todos')) : false) || todos;
 
 const root_component = {
-	$el: document.querySelector('#todo-app'),
-	$template: app_template,
 	$init: {
 		incomplete: 0,
+		$el: document.querySelector('#todo-app'),
+		$template: app_template,
 	},
 	'add_todo': [(text) => {
 		return text.length ? {text, completed: false} : Firera.skip;
@@ -82,7 +82,9 @@ const root_component = {
 	}]
 }
 const todo_component = {
-	$template: todo_template,
+	$init: {
+		$template: todo_template,
+	},
 	completed: ['mapPrev', {
 		'.checked|click': (_, prev) => !prev, 
 		'^^/make_completed': true
@@ -107,14 +109,10 @@ const todo_component = {
 }
 
 const app = Firera({
-		__root: root_component,
-		todo: todo_component
-	}, {
-		packages: ['htmlCells', 'neu_ozenfant'],
-		//trackChanges: true,//['completed'],
-		trackChangesType: 'imm',
-	}
-);
+	$packages: ['htmlCells', 'ozenfant'],
+	$root: root_component,
+	todo: todo_component
+});
 app.set('arr_todos', _F.arrDeltas([], init_data));
 
 window.app = app;

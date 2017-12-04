@@ -11,7 +11,7 @@
     }
     // Create a Firera app instance
     const app = Firera({
-            __root: base
+            $root: base
     })
     app.get('c'); // 30
 
@@ -49,7 +49,7 @@
 		and the function used in F-expression is called <i>formula</i>.
 		Cells "a" and "b" relatively to cell "c" are called <i>arguments</i>.
 		Cells which can be manually changed, like a or b, are called <i>free</i>.
-		A set of cells is called <i>grid</i>(in all examples at the beginning we'll have only one grid called "__root". 
+		A set of cells is called <i>grid</i>(in all examples at the beginning we'll have only one grid called "$root". 
 		This is a conventional name which indicates this grid is the root grid of the app).
 	</div><div>
 		How Firera works is pretty easy to understand: when some of the observable cells changes, the values of <i>arguments</i>
@@ -95,7 +95,7 @@
     }
     // Create a Firera app instance
     const app = Firera({
-            __root: base
+            $root: base
     })
     app.get('c'); // 30
 
@@ -109,7 +109,7 @@
 		</div>
 		<div>
 			A sef of cells, described with one plain base, is called <b>grid</b>. In our example we have only one 
-			grid which is called "__root".
+			grid which is called "$root".
 			It can be visualized like this:<br>
 			<img src="img/grid_1.png" alt=""/>
 			The lines display dependencies between cells. Squares mean "free" cells, rounds are "computable".
@@ -127,7 +127,7 @@
 			</div>
 		</li>
 		<li>
-			<div class="q">Why do you write "__root: ..."?</div>
+			<div class="q">Why do you write "$root: ..."?</div>
 			<div class="answer">
 				Because
 			</div>
@@ -157,7 +157,7 @@ var base = {
 	is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
-	__root: base,
+	$root: base,
 });
 // assigning handler that will change the "login" cell
 document.querySelector('input[name=login]')
@@ -183,7 +183,7 @@ var base = {
 	is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
-	__root: base,
+	$root: base,
 }, {
 	packages: ['HtmlCells']
 });
@@ -234,7 +234,7 @@ var base = {
 	"form|hasClass(valid)": ['is_login_valid'],
 }
 var app = Firera({
-	__root: base,
+	$root: base,
 }, {
 	packages: ['HtmlCells']
 });
@@ -334,7 +334,7 @@ const base = {
 	}, 'send_form', '-email', '-login', '-textarea[name=text]|getval'],
 }
 const app = Firera({
-	__root: base,
+	$root: base,
 }, {
 	packages: ['htmlCells']
 });
@@ -417,7 +417,7 @@ const app = Firera({
 			In Firera there are a few ways to calculate the value of cell according to it's arguments.
 			For now we knew only one, default type.
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	a: 30,
 	b: 12,
 	c: [(a, b) => a + b, 'a', 'b']
@@ -431,7 +431,7 @@ app.get('c'); // 130
 			But this way doesn't suit for all cases.
 			Say we need our cell to listen to changes in few cells and console.log them.
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	a: 30,
 	b: 12,
 	c: [(a, b) => {
@@ -449,7 +449,7 @@ app.set('a', 22); // same value
 			Therefore we don't know which one have changed actually.
 			We have a special cell type for such cases called "funnel".
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	a: 30,
 	b: 12,
 	c: ['funnel', (cell_name, cell_value) => {
@@ -475,7 +475,7 @@ app.set('a', 22); // same value
 			This cell type is used when we need to "join" several "streams".
 <code>
 const second = (_, a) => a;
-const app = Firera({__root: {
+const app = Firera({$root: {
 	'input_changed': [
 		'funnel', 
 		second, 
@@ -493,7 +493,7 @@ const app = Firera({__root: {
 			But what if we need to log all the history of changes in cells?
 			We want to get this:
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	a: 30,
 	b: 12,
 	c: ['funnel', (cell, val) => {
@@ -515,7 +515,7 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			In this type, our formula should return another function, which becomes a formula for a cell.
 			It's easier to understand it in code:
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	a: 30,
 	b: 12,
 	c: ['closureFunnel', () => {
@@ -543,7 +543,7 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			</div><div>
 			Another example of pure "closure" type(without "funnel") - a sum of cell values over time:
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	num: 10,
 	sum: ['closure', () => {
 		var sum = 0;
@@ -571,7 +571,7 @@ var get_sum = (() => {
 		return sum;
 	}
 })();
-const app = Firera({__root: {
+const app = Firera({$root: {
 	num: 10,
 	sum: [get_sum, 'num']
 }})
@@ -590,7 +590,7 @@ const app = Firera({__root: {
 			It works like default cell types, but the first argument for our formula will be always
 			callback function used to "return" data when async function finishes.
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	'user': 'Mikolalex',
 	'posts: ['async', (cb, username) => {
 		$.get('/posts/' + username, function(data) {
@@ -603,7 +603,7 @@ const app = Firera({__root: {
 Though 'posts' cell has only one argument, it's formula receives two arguments. First is a callback 
 which we call when our async job is done to return the result.
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	'time': 3,
 	'await': ['async', (cb, time) => {
 		setTimeout(() => {
@@ -639,7 +639,7 @@ const get_sum = () => {
 	}
 }
 const app = Firera({
-	__root: {
+	$root: {
 		num: 1,
 		nums: ['nested', function(cb, a){
 				if(a % 2){
@@ -712,7 +712,7 @@ app.set('num', 4);
 					which name begins with "$child_", will be considered as a plain base for nested grid. 
 				</div>
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	foo: 10,
 	$child_crane: {
 		width: 40,
@@ -748,7 +748,7 @@ console.log(app.get('weight', '/crane')); // 16
 							Let's make another nested level to learn how it works.
 						</div>
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	foo: 10,
 	$child_crane: {
 		width: 40,
@@ -783,7 +783,7 @@ console.log(app.get('name', '/crane/2')); // 'Buska'
 		Isolated gris, even when they are nested, could help us a little though.
 		We need a way to link cells from different grids so the data can flow between them in both direction.
 <code>
-const app = Firera({__root: {
+const app = Firera({$root: {
 	multiplier: 10,
 	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: {
@@ -855,7 +855,7 @@ const cranes = [
 		height: 80,
 	},
 ]
-const app = Firera({__root: {
+const app = Firera({$root: {
 	multiplier: 10,
 	first_crane_weight: ['crane_1/weight'],
 	$child_crane_1: Object.assign({}, cranes[0], crane),
@@ -881,7 +881,7 @@ const cranes = [
 	},
 ]
 const app = Firera({
-	__root: {
+	$root: {
 		multiplier: 10,
 		$child_cranes: ['list', {
 			type: 'crane',
@@ -958,7 +958,7 @@ const cranes = [
 	},
 ]
 const app = Firera({
-	__root: {
+	$root: {
 		multiplier: 10,
 		cranes: ['just', cranes],
 		$child_cranes: ['list', {
@@ -1069,10 +1069,10 @@ const todo_component = {
 }
 
 const app = Firera({
-		__root: root_component,
+		$root: root_component,
 		todo: todo_component
 	}, {
-		packages: ['htmlCells', 'neu_ozenfant'],
+		packages: ['htmlCells', 'ozenfant'],
 	}
 );
 </code>
@@ -1272,10 +1272,10 @@ const todo_component = {
 }
 
 const app = Firera({
-	__root: root_component,
+	$root: root_component,
 	todo: todo_component
 }, {
-	packages: ['htmlCells', 'neu_ozenfant'],
+	packages: ['htmlCells', 'ozenfant'],
 })
 	
 </code>
@@ -1390,10 +1390,10 @@ const root_component = {
 }
 
 const app = Firera({
-		__root: root_component,
+		$root: root_component,
 		todo: todo_component
 	}, {
-		packages: ['htmlCells', 'neu_ozenfant'],
+		packages: ['htmlCells', 'ozenfant'],
 	}
 );
 app.set('arr_todos', _F.arrDeltas([], init_data));
@@ -1834,10 +1834,10 @@ const todo_component = {
 }
 
 const app = Firera({
-        __root: root_component,
+        $root: root_component,
         todo: todo_component
     }, {
-        packages: ['htmlCells', 'neu_ozenfant']
+        packages: ['htmlCells', 'ozenfant']
     }
 );
 app.set('arr_todos', _F.arrDeltas([], init_data));
@@ -1890,7 +1890,7 @@ app.set('arr_todos', _F.arrDeltas([], init_data));
     import my_pack from 'my-package';
     
     const app = Firera({
-        __root: {
+        $root: {
             a: 10, 
             b: 20,
             c: ['some_macros', 'a', 'b']
@@ -1925,7 +1925,7 @@ app.set('arr_todos', _F.arrDeltas([], init_data));
     import my_pack from 'my-package';
     
     const app = Firera({
-        __root: {
+        $root: {
             a: 10, 
             b: 20,
             c: ['getState', 'a', 'b']
@@ -1973,7 +1973,7 @@ app.set('arr_todos', _F.arrDeltas([], init_data));
         }
     }
     const app = Firera({
-        __root: {
+        $root: {
             a: 10, 
             b: 20,
             c: ['closureFunnel', getState, 'a', 'b']
@@ -2103,11 +2103,11 @@ const simpleHtml = {
 				That could be easily done with some config keys.
 <code>
 const app = Firera({
-	__root: {
+	$root: {
 		...
 	}
 }, {
-	packages: ['htmlCells', 'neu_ozenfant'],
+	packages: ['htmlCells', 'ozenfant'],
 	trackChanges: true,
 	trackChangesType: 'log',
 })
@@ -2144,14 +2144,14 @@ const app = Firera({
 				YOu can also track particuar cells. FOr this, you need your trackChanges parametr to be an array of cell you want to track:
 <code>
 	const app = Firera({
-	__root: {
+	$root: {
 		a: ...
 		b: ...
 		c: ...
 		d: ...
 	}
 }, {
-	packages: ['htmlCells', 'neu_ozenfant'],
+	packages: ['htmlCells', 'ozenfant'],
 	trackChanges: ['a', 'c'],
 	trackChangesType: 'log',
 })
@@ -2185,7 +2185,7 @@ const app = Firera({
                 It will fire change on any cell change in a grid.
 <code>
     const app = Firera({
-        __root: {
+        $root: {
             a: 10,
             b: 20,
             c: [(n, m) => n*m, 'a', 'b'],

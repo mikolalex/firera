@@ -6,7 +6,7 @@ const Arr = utils.Arr;
 const get_by_selector = function (name, $el, children = false) {
 	if (name === null)
 		return null;
-	if (name === '__root')
+	if (name === '$root')
 		return document.querySelector('body');
 	$el = utils.raw($el);
 	if (!$el)
@@ -658,7 +658,10 @@ module.exports = {
 				deltas_func = ['closure', get_arr_changes, '$datasource']
 			}
 			const all_lists_mixin = {
-				$no_auto_template: true,
+				$init: { 
+					$no_auto_template: true,
+					$is_list: true, 
+				},
 				$deltas: deltas_func,
 				/*$init: {
 				 $template: "<div>Ololo</div>"
@@ -690,7 +693,6 @@ module.exports = {
 					},
 					'$deltas'
 				],
-				$is_list: true,
 				$children: ['$arr_data.changes']
 			};
 			if (props.push) {

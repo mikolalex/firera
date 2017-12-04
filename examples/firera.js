@@ -2055,7 +2055,7 @@ var get_grid_struct = function get_grid_struct(grid) {
 		if (obj.props.funnel) {
 			return 'funnel';
 		}
-		return obj.type;
+		return obj.type || 'free';
 	});
 
 	var childs = grid.linked_grids_provider.pool;
@@ -2648,7 +2648,7 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 	this.id = id;
 	this.parent = parent_id;
 	this.app = app;
-	this.name = name || '__root';
+	this.name = name || '$root';
 	var parsed_pb;
 	this.parsed_pb_name = parsed_pb_name;
 	if (typeof parsed_pb_name === 'string') {
@@ -4254,18 +4254,32 @@ var parse_pb = function parse_pb(res, packages) {
 };
 
 var parse_fexpr = function parse_fexpr(a, pool, key, packages) {
-	var funcstring;
 	key = get_real_cell_name(key);
-	if (a instanceof Array) {
-		funcstring = parse_arr_funcstring(a, key, pool, packages);
-		if (funcstring === undefined) return;
-	} else {
-		// it's primitive value
-		_utils2.default.init_if_empty(pool.plain_base, '$init', {});
-		parse_cellname(key, pool, 'setter', packages);
-		pool.plain_base.$init[key] = a;
-		return;
+	if (!(a instanceof Array)) {
+		if (typeof a === 'string') {
+			// it's a reference to another cell
+			a = [function (a) {
+				return a;
+			}, a];
+		} else {
+			if (a instanceof Object) {
+				a = ['map', a];
+			} else {
+				console.warn('Strainge row:', a, key);
+				return;
+			}
+		}
 	}
+	//if(a instanceof Array){
+	var funcstring = parse_arr_funcstring(a, key, pool, packages);
+	if (funcstring === undefined) return;
+	//} else {
+	//		// it's primitive value
+	//		utils.init_if_empty(pool.plain_base, '$init', {});
+	//		parse_cellname(key, pool, 'setter', packages);
+	//		pool.plain_base.$init[key] = a;
+	//		return;
+	//}
 	if (!funcstring[2]) {
 		// function with no dependancy
 		_utils2.default.init_if_empty(pool, 'no_args_cells', {}, key, true);
@@ -4392,6 +4406,10 @@ window.Firera = function (apps) {
 	if (apps.$packages) {
 		config.packages = apps.$packages;
 	}
+	if (apps.$log) {
+		config.trackChanges = apps.$log;
+		config.trackChangesType = 'log';
+	}
 	if (arguments.length > 1) {
 		// it's a set of grids we should join
 		apps = Firera.join.apply(null, arguments);
@@ -4399,9 +4417,9 @@ window.Firera = function (apps) {
 	var start = performance.now();
 	var app = get_app(config);
 	// getting real pbs
-	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), { except: ['$packages'] });
+	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), { except: ['$packages', '$log'] });
 	// now we should instantiate each pb
-	if (!app.cbs.__root) {
+	if (!app.cbs.$root) {
 		// no root grid
 		throw new Error('Cant find root app!');
 	}
@@ -4409,7 +4427,7 @@ window.Firera = function (apps) {
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
 	app.startChange();
-	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
+	app.root = new _Grid2.default(app, '$root', false, { $app_id: app.id }, null, null, '/');
 	app.endChange();
 	app.startChange();
 	app.root.set('$start', true);
@@ -4515,6 +4533,10 @@ Firera.join = function () {
 				res.$packages = res.$packages.concat(grid[k]);
 				continue;
 			}
+			if (k === '$log') {
+
+				continue;
+			}
 			_utils2.default.init_if_empty(res, k, {});
 			join(res[k], grid[k]);
 		}
@@ -4603,7 +4625,7 @@ var get_by_selector = function get_by_selector(name, $el) {
 	var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
 	if (name === null) return null;
-	if (name === '__root') return document.querySelector('body');
+	if (name === '$root') return document.querySelector('body');
 	$el = _utils2.default.raw($el);
 	if (!$el) return null;
 	var _iteratorNormalCompletion = true;
@@ -5404,7 +5426,10 @@ module.exports = {
 			deltas_func = ['closure', get_arr_changes, '$datasource'];
 		}
 		var all_lists_mixin = {
-			$no_auto_template: true,
+			$init: {
+				$no_auto_template: true,
+				$is_list: true
+			},
 			$deltas: deltas_func,
 			/*$init: {
     $template: "<div>Ololo</div>"
@@ -5431,7 +5456,6 @@ module.exports = {
 					cb('length', length);
 				};
 			}, '$deltas'],
-			$is_list: true,
 			$children: ['$arr_data.changes']
 		};
 		if (props.push) {
