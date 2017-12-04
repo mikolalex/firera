@@ -1,4 +1,3 @@
-import Parser from '../Parser';
 import utils from '../utils';
 
 /* gator v1.2.4 craig.is/riding/gators */
@@ -162,7 +161,7 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
-			func(matches, pool, context, packages) {
+			func(matches, context) {
 				const get_params = (aspect) => {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if(params && params[1]){
@@ -609,53 +608,56 @@ module.exports = {
 					break;
 				}
 				if(context === 'setter'){
-					Parser.parse_fexpr([func, [(a) => {
-						if(!Firera.is_def(a)) return false;
-						if(!selector) return a;
-						if(selector === 'other') return a;
-						a = raw(a);
-						if(!a){
-							return a;
-						}
-						return a.querySelectorAll(selector);
-						/*var node = a.find(selector) @todo
-								.filter(filter_attr_in_parents.bind(null, a));*/
-					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, Parser.get_random_name(), packages);
-				} else {
-					Parser.parse_fexpr(['asyncClosure', () => {
-						var el;
-						return (cb, val) => {
-							var old_val;
-							switch(aspect){
-								case 'getval':
-									const element = val.querySelector(selector);
-									if(element){
-										var type = element.getAttribute('type');
-										var vl;
-										if(type == 'checkbox'){
-											vl = element.checked;
-										} else if(type == 'radio') {
-											const elements = val.querySelectorAll(selector);
-											for(let el of elements){
-												if(el.checked){
-													vl = el.value;
-													break;
-												}
-											}
-										} else {
-											vl = element.value;
-										}
-										old_val = vl;
-										make_resp(cb, vl);
-									}
-								break;
-								default:
-								break;
+					return {
+						'@random': [func, [(a) => {
+							if(!Firera.is_def(a)) return false;
+							if(!selector) return a;
+							if(selector === 'other') return a;
+							a = raw(a);
+							if(!a){
+								return a;
 							}
-							func(cb, [el, val], old_val);
-							el = val;
-						}
-					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);
+							return a.querySelectorAll(selector);
+							/*var node = a.find(selector) @todo
+									.filter(filter_attr_in_parents.bind(null, a));*/
+						}, '-$real_el', '$html_skeleton_changes'], cellname]};
+				} else {
+					return {
+						[cellname]: ['asyncClosure', () => {
+							var el;
+							return (cb, val) => {
+								var old_val;
+								switch(aspect){
+									case 'getval':
+										const element = val.querySelector(selector);
+										if(element){
+											var type = element.getAttribute('type');
+											var vl;
+											if(type == 'checkbox'){
+												vl = element.checked;
+											} else if(type == 'radio') {
+												const elements = val.querySelectorAll(selector);
+												for(let el of elements){
+													if(el.checked){
+														vl = el.value;
+														break;
+													}
+												}
+											} else {
+												vl = element.value;
+											}
+											old_val = vl;
+											make_resp(cb, vl);
+										}
+									break;
+									default:
+									break;
+								}
+								func(cb, [el, val], old_val);
+								el = val;
+							}
+						}, '-$real_el', '$html_skeleton_changes']
+					};
 				}
 			}
 		}

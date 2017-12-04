@@ -63,11 +63,12 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'PrevValue',
 			regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
-			func(matches, pool, context, packages) {
+			func(matches, context) {
 				if (context == 'setter')
 					return;
 				const cellname = matches[2];
-				Parser.parse_fexpr(['closure', function () {
+				return {
+					['^' + cellname]: ['closure', function () {
 						var val;
 						//console.log('Returning closure func!');
 						return function (a) {
@@ -76,20 +77,24 @@ module.exports = {
 							val = a;
 							return [old_val, a];
 						}
-					}, cellname], pool, '^' + cellname, packages);
+					}, cellname]
+				};
 			}
 		},
 		popstate: {
 			// ^foo -> previous values of 'foo'
 			name: 'popstate',
 			regexp: new RegExp('^history\.popstate$', 'i'),
-			func(matches, pool, context, packages) {
-				if (context == 'setter')
+			func(matches, context) {
+				if (context == 'setter') {
 					return;
+				}
 				const cellname = matches[0];
-				Parser.parse_fexpr(['async', function (cb) {
+				return {
+					[cellname]: ['async', function (cb) {
 						window.onpopstate = cb;
-					}, '$start'], pool, cellname, packages);
+					}, '$start']
+				};
 			}
 		}
 	},

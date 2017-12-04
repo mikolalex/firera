@@ -335,7 +335,14 @@ const parse_cellname = function(cellname, pool, context, packages, isDynamic){
 	}
 	const matched = findMatcher(real_cellname, packages);
 	if(matched){
-		matched[0].func(matched[1], pool, context, packages);
+		const subGrid = matched[0].func(matched[1], context);
+		for(let cell in subGrid){
+			const fexpr = subGrid[cell];
+			if(cell === '@random'){
+				cell = get_random_name();
+			}
+			parse_fexpr(fexpr, pool, cell, packages);
+		}
 	}
 }
 
@@ -395,7 +402,7 @@ const parse_fexpr = function(a, pool, key, packages){
 			if(a instanceof Object){
 				a = ['map', a];
 			} else {
-				console.warn('Strainge row:', a, key);
+				console.warn('Strange row:', a, key);
 				return;
 			}
 		}
