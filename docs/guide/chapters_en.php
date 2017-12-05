@@ -5,13 +5,15 @@
 			<?php
             regshow('1', "   
     const base = {
-            a: 10,
-            b: 20,
+            \$init: { 
+		a: 10,
+		b: 20,
+	    },
             c: [(n, m) => n + m, 'a', 'b']
     }
     // Create a Firera app instance
     const app = Firera({
-            $root: base
+            \$root: base
     })
     app.get('c'); // 30
 
@@ -89,9 +91,11 @@
 			A computable cell can depend on other computable cells too:
 <code>
     const base = {
-        a: 10,
-        b: 20,
-        exp: 2,
+	$init: { 
+	    a: 10,
+	    b: 20,
+	    exp: 2,
+	},
         c: [(n, m) => n + m, 'a', 'b'],
         d: [Math.pow, 'c', 'exp']
     }
@@ -152,7 +156,9 @@
 var is_long = a => a.length > 2;
 
 var base = {
-    login: '',
+    $init: { 
+	login: '',
+    },
     is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
@@ -178,8 +184,10 @@ document.querySelector('input[name=login]')
 var is_long = a => a.length > 2;
 
 var base = {
-    $real_el: document.getElementById('fr-app'),
-    login: ['input[name=login]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
     is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
@@ -226,10 +234,12 @@ var app = Firera({
 var is_long = a => a.length > 2;
 
 var base = {
-    $real_el: document.getElementById('fr-app'),
-    login: ['input[name=login]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
     is_login_valid: [is_long, 'login'],
-    "form|hasClass(valid)": ['is_login_valid'],
+    "form|hasClass(valid)": 'is_login_valid',
 }
 var app = Firera({
     $root: base,
@@ -251,7 +261,9 @@ var app = Firera({
 		</div>
 <code class="js">
 {
-    $real_el: document.getElementById('fr-app'),
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
     "form|hasClass(valid)": [is_long, 'input[name=login]|getval'],
 }
 </code>
@@ -319,15 +331,16 @@ const is_email_valid = (str) => {
 const is_long = a => a.length > 2;
 
 const base = {
-    $real_el: document.getElementById('fr-app'),
-
-    login: ['input[name=login]|getval'],
-    email: ['input[type=email]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
+    email: 'input[type=email]|getval',
 
     is_login_valid: [is_long, 'login'],
     is_email_valid: [is_email_valid, 'email'],
     is_form_valid: ['&&', 'is_email_valid', 'is_login_valid'],
-    "form|hasClass(valid)": ['is_form_valid'],
+    "form|hasClass(valid)": 'is_form_valid',
 
     send_form: ['&&', '-is_form_valid', 'button.send|click'],
     add_comment_request: ['relayAll', (email, name, text) => {
@@ -396,11 +409,11 @@ const app = Firera({
 			<div class="nb">
 				Note, that this feature can be used only when you have at least one active argument.
 <code>
-    foo: ['-bar'],
+    foo: [() => {}, '-bar'],
 </code>
 				or
 <code>
-    foo: ['-bar', '-baz'],
+    foo: [() => {}, '-bar', '-baz'],
 </code>
 				are pointless as <span class="mn">foo</span> will never be computed!
 			</div>
@@ -419,8 +432,10 @@ const app = Firera({
 			For now we saw only one, default type.
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: [(a, b) => a + b, 'a', 'b']
 }})
 app.get('c'); // 42
@@ -433,8 +448,10 @@ app.get('c'); // 130
 			Say we need our cell to listen to changes in several cells and console.log them.
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: [(a, b) => {
         console.log('Some cell changed!', a, b);
     }, 'a', 'b']
@@ -451,8 +468,10 @@ app.set('a', 22); // same value
 			For such cases we have a special cell type called <i>funnel</i>:
 <code>
     const app = Firera({$root: {
-        a: 30,
-        b: 12,
+	$init: {
+	    a: 30,
+	    b: 12,
+	},
         c: ['funnel', (cell_name, cell_value) => {
                 console.log('Cell', cell_name, 'changed to', cell_value);
         }, 'a', 'b']
@@ -494,8 +513,10 @@ app.set('a', 22); // same value
 			We want to get something like this:
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: ['funnel', (cell, val) => {
         // SOME MAGIC!
     }, 'a', 'b']
@@ -516,8 +537,10 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			It's easier to understand in code:
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: ['closureFunnel', () => {
         // this function will run only once, when the grid is initiated.
         const log = [];
@@ -546,7 +569,9 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			Another example of pure closure type (not mixed with funnel type) is a sum of cell values over time:
 <code>
 const app = Firera({$root: {
-    num: 10,
+    $init: {
+	num: 10,
+    },
     sum: ['closure', () => {
         var sum = 0;
         return (n) => {
@@ -593,7 +618,9 @@ const app = Firera({$root: {
 				a callback function used to return data when async function finishes.
 <code>
 const app = Firera({$root: {
-    'user': 'Mikolalex',
+    $init: {
+	'user': 'Mikolalex',
+    },
     'posts: ['async', (cb, username) => {
         $.get('/posts/' + username, function(data) {
             console.log('data received!');
@@ -606,7 +633,9 @@ const app = Firera({$root: {
 				which we call when our async job is done to return the result.
 <code>
 const app = Firera({$root: {
-    'time': 3,
+    $init: {
+	'time': 3,
+    },
     'await': ['async', (cb, time) => {
         setTimeout(() => {
             cb(time);
@@ -645,7 +674,9 @@ const get_sum = () => {
 }
 const app = Firera({
     $root: {
-        num: 1,
+	$init: {
+	    num: 1,
+	},
         nums: ['nested', function(cb, a){
             if(a % 2){
                 cb('odd', a);
@@ -716,19 +747,23 @@ app.set('num', 4);
 const app = Firera({$root: {
     foo: 10,
     $child_crane: {
-        width: 40,
-        height: 120,
+	$init: {
+	    width: 40,
+	    height: 120,
+	},
         weight: [(w, h) => {
             return (w+h)/10;
         }, 'width', 'height'],
     },
     heron: {
-        b: 10,
-        c: 40,
+	$init: {
+	    b: 10,
+	    c: 40,
+	}
     },
 }});
 
-
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 console.log(app.get('weight', '/crane')); // 16
 </code>
 		<div>
