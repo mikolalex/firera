@@ -312,13 +312,15 @@ App.prototype.startChange = function() {
 	this.changeObj = [];
 }
 App.prototype.logChange = ([path, cell, val, level]) => {
-	const pathname = path + (new Array(Math.max(0, 17 - path.length)).join(' '));
 	level = (level || 0) + 1;
-	const cellname = new Array(Number(level)).join('.') + cell + (new Array(Math.max(0, 29 - cell.length - level)).join(' '));
+	const arl = Math.max(0, 22 - (Number(level) + Number(path.length)));
+	const pathname = path + (new Array(arl).join(' ')) + new Array(Number(level)).join('.');
+	const cellname = cell + (new Array(Math.max(0, 29 - cell.length)).join(' '));
 	if(typeof val === 'string' && val.length > 255){
 		val = val.substr(0, 255);
 	}
-	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
+	//console.log('%c ' + pathname + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+	console.log('%c|' + pathname + '| ' + cellname, 'background: #6e71e4; color: white; padding: 1px;',  val);
 }
 App.prototype.endChange = function() {
 	if(!this.changeObj) return;

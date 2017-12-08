@@ -220,6 +220,9 @@ LinkManager.prototype.initLink = function(grid_id, link, slave_cellname){
 			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
 			const slave_cn = slave_cellname || link;
 			this.app.eachChild(grid_id, (child) => {
+				if(child.name !== path[0]){
+					return;
+				}
 				this.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
 			})
 			return;
