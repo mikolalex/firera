@@ -754,7 +754,7 @@ var Grid = function Grid(app, parsed_pb_name, name, free_vals, init_later, paren
 	this.id = id;
 	this.parent = parent_id;
 	this.app = app;
-	this.name = name || '__root';
+	this.name = name || '$root';
 	var parsed_pb;
 	this.parsed_pb_name = parsed_pb_name;
 	if (typeof parsed_pb_name === 'string') {
@@ -2606,10 +2606,10 @@ var _photo_upload_popup2 = _interopRequireDefault(_photo_upload_popup);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var app = (0, _firera2.default)({
-	__root: _root2.default,
+	$root: _root2.default,
 	popup: _photo_upload_popup2.default
 }, {
-	packages: ['htmlCells', 'neu_ozenfant'],
+	packages: ['htmlCells', 'ozenfant'],
 	//trackChanges: true,
 	trackChangesType: 'imm'
 });
@@ -2706,7 +2706,7 @@ window.Firera = function (apps) {
 	// getting real pbs
 	app.cbs = Obj.map(apps, app.parse_cbs.bind(app), { except: ['$packages'] });
 	// now we should instantiate each pb
-	if (!app.cbs.__root) {
+	if (!app.cbs.$root) {
 		// no root grid
 		throw new Error('Cant find root app!');
 	}
@@ -2714,7 +2714,7 @@ window.Firera = function (apps) {
 	//const compilation_finished = performance.now();
 	++app.grid_create_counter;
 	app.startChange();
-	app.root = new _Grid2.default(app, '__root', false, { $app_id: app.id }, null, null, '/');
+	app.root = new _Grid2.default(app, '$root', false, { $app_id: app.id }, null, null, '/');
 	app.endChange();
 	Firera.gridCreated(app, app.root.id, app.root.path, null);
 	--app.grid_create_counter;
@@ -2825,7 +2825,7 @@ Firera.join = function () {
 };
 Firera.loadPackage(_Core2.default);
 Firera.loadPackage(_Che2.default);
-Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, neu_ozenfant: _Ozenfant2.default, che: _Che2.default };
+Firera.packagesAvailable = { simpleHtmlTemplates: _SimpleHtmlTemplates2.default, htmlCells: _HtmlCells2.default, ozenfant: _Ozenfant2.default, che: _Che2.default };
 Firera.func_test_export = { parse_pb: _Parser2.default.parse_pb, parse_fexpr: _Parser2.default.parse_fexpr };
 Firera._ = _utils2.default;
 
@@ -2904,7 +2904,7 @@ var get_by_selector = function get_by_selector(name, $el) {
 	var children = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
 	if (name === null) return null;
-	if (name === '__root') return document.querySelector('body');
+	if (name === '$root') return document.querySelector('body');
 	$el = _utils2.default.raw($el);
 	if (!$el) return null;
 	var _iteratorNormalCompletion = true;
