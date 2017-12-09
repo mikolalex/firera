@@ -5,13 +5,15 @@
 			<?php
             regshow('1', "   
     const base = {
-            a: 10,
-            b: 20,
+            \$init: { 
+		a: 10,
+		b: 20,
+	    },
             c: [(n, m) => n + m, 'a', 'b']
     }
     // Create a Firera app instance
     const app = Firera({
-            $root: base
+            \$root: base
     })
     app.get('c'); // 30
 
@@ -89,9 +91,11 @@
 			A computable cell can depend on other computable cells too:
 <code>
     const base = {
-        a: 10,
-        b: 20,
-        exp: 2,
+	$init: { 
+	    a: 10,
+	    b: 20,
+	    exp: 2,
+	},
         c: [(n, m) => n + m, 'a', 'b'],
         d: [Math.pow, 'c', 'exp']
     }
@@ -152,7 +156,9 @@
 var is_long = a => a.length > 2;
 
 var base = {
-    login: '',
+    $init: { 
+	login: '',
+    },
     is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
@@ -178,8 +184,10 @@ document.querySelector('input[name=login]')
 var is_long = a => a.length > 2;
 
 var base = {
-    $real_el: document.getElementById('fr-app'),
-    login: ['input[name=login]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
     is_login_valid: [is_long, 'login'],
 }
 var app = Firera({
@@ -226,10 +234,12 @@ var app = Firera({
 var is_long = a => a.length > 2;
 
 var base = {
-    $real_el: document.getElementById('fr-app'),
-    login: ['input[name=login]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
     is_login_valid: [is_long, 'login'],
-    "form|hasClass(valid)": ['is_login_valid'],
+    "form|hasClass(valid)": 'is_login_valid',
 }
 var app = Firera({
     $root: base,
@@ -251,7 +261,9 @@ var app = Firera({
 		</div>
 <code class="js">
 {
-    $real_el: document.getElementById('fr-app'),
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
     "form|hasClass(valid)": [is_long, 'input[name=login]|getval'],
 }
 </code>
@@ -319,15 +331,16 @@ const is_email_valid = (str) => {
 const is_long = a => a.length > 2;
 
 const base = {
-    $real_el: document.getElementById('fr-app'),
-
-    login: ['input[name=login]|getval'],
-    email: ['input[type=email]|getval'],
+    $init: {
+	$real_el: document.getElementById('fr-app'),
+    },
+    login: 'input[name=login]|getval',
+    email: 'input[type=email]|getval',
 
     is_login_valid: [is_long, 'login'],
     is_email_valid: [is_email_valid, 'email'],
     is_form_valid: ['&&', 'is_email_valid', 'is_login_valid'],
-    "form|hasClass(valid)": ['is_form_valid'],
+    "form|hasClass(valid)": 'is_form_valid',
 
     send_form: ['&&', '-is_form_valid', 'button.send|click'],
     add_comment_request: ['relayAll', (email, name, text) => {
@@ -396,11 +409,11 @@ const app = Firera({
 			<div class="nb">
 				Note, that this feature can be used only when you have at least one active argument.
 <code>
-    foo: ['-bar'],
+    foo: [() => {}, '-bar'],
 </code>
 				or
 <code>
-    foo: ['-bar', '-baz'],
+    foo: [() => {}, '-bar', '-baz'],
 </code>
 				are pointless as <span class="mn">foo</span> will never be computed!
 			</div>
@@ -419,8 +432,10 @@ const app = Firera({
 			For now we saw only one, default type.
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: [(a, b) => a + b, 'a', 'b']
 }})
 app.get('c'); // 42
@@ -433,8 +448,10 @@ app.get('c'); // 130
 			Say we need our cell to listen to changes in several cells and console.log them.
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: [(a, b) => {
         console.log('Some cell changed!', a, b);
     }, 'a', 'b']
@@ -451,8 +468,10 @@ app.set('a', 22); // same value
 			For such cases we have a special cell type called <i>funnel</i>:
 <code>
     const app = Firera({$root: {
-        a: 30,
-        b: 12,
+	$init: {
+	    a: 30,
+	    b: 12,
+	},
         c: ['funnel', (cell_name, cell_value) => {
                 console.log('Cell', cell_name, 'changed to', cell_value);
         }, 'a', 'b']
@@ -494,8 +513,10 @@ app.set('a', 22); // same value
 			We want to get something like this:
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: ['funnel', (cell, val) => {
         // SOME MAGIC!
     }, 'a', 'b']
@@ -516,8 +537,10 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			It's easier to understand in code:
 <code>
 const app = Firera({$root: {
-    a: 30,
-    b: 12,
+    $init: {
+	a: 30,
+	b: 12,
+    },
     c: ['closureFunnel', () => {
         // this function will run only once, when the grid is initiated.
         const log = [];
@@ -546,7 +569,9 @@ app.get('c'); // [['b', 100], ['a', 22], ['a', 22]]
 			Another example of pure closure type (not mixed with funnel type) is a sum of cell values over time:
 <code>
 const app = Firera({$root: {
-    num: 10,
+    $init: {
+	num: 10,
+    },
     sum: ['closure', () => {
         var sum = 0;
         return (n) => {
@@ -593,7 +618,9 @@ const app = Firera({$root: {
 				a callback function used to return data when async function finishes.
 <code>
 const app = Firera({$root: {
-    'user': 'Mikolalex',
+    $init: {
+	'user': 'Mikolalex',
+    },
     'posts: ['async', (cb, username) => {
         $.get('/posts/' + username, function(data) {
             console.log('data received!');
@@ -606,7 +633,9 @@ const app = Firera({$root: {
 				which we call when our async job is done to return the result.
 <code>
 const app = Firera({$root: {
-    'time': 3,
+    $init: {
+	'time': 3,
+    },
     'await': ['async', (cb, time) => {
         setTimeout(() => {
             cb(time);
@@ -645,7 +674,9 @@ const get_sum = () => {
 }
 const app = Firera({
     $root: {
-        num: 1,
+	$init: {
+	    num: 1,
+	},
         nums: ['nested', function(cb, a){
             if(a % 2){
                 cb('odd', a);
@@ -716,18 +747,21 @@ app.set('num', 4);
 const app = Firera({$root: {
     foo: 10,
     $child_crane: {
-        width: 40,
-        height: 120,
+	$init: {
+	    width: 40,
+	    height: 120,
+	},
         weight: [(w, h) => {
             return (w+h)/10;
         }, 'width', 'height'],
     },
     heron: {
-        b: 10,
-        c: 40,
+	$init: {
+	    b: 10,
+	    c: 40,
+	}
     },
 }});
-
 
 console.log(app.get('weight', '/crane')); // 16
 </code>
@@ -751,19 +785,21 @@ console.log(app.get('weight', '/crane')); // 16
 const app = Firera({$root: {
     foo: 10,
     $child_crane: {
-        width: 40,
-        height: 120,
+        $init: {
+	    width: 40,
+	    height: 120,
+	    $child_1: {
+		name: 'Busol',
+		gender: 'male',
+	    },
+	    $child_2: {
+		name: 'Buska',
+		gender: 'female',
+	    },
+	}
         weight: [(w, h) => {
             return (w+h)/10;
         }, 'width', 'height'],
-        $child_1: {
-            name: 'Busol',
-            gender: 'male',
-        },
-        $child_2: {
-            name: 'Buska',
-            gender: 'female',
-        },
     },
     heron: {
         b: 10,
@@ -784,22 +820,28 @@ console.log(app.get('name', '/crane/2')); // 'Buska'
 		We need a way to link cells from different grids so the data can flow between them in both directions.
 <code>
 const app = Firera({$root: {
-    multiplier: 10,
+    $init: {
+	multiplier: 10,
+	$child_crane_1: {
+	    $init: {
+		width: 40,
+		height: 120,
+	    },
+	    weight: [(w, h, m) => {
+		return (w+h)/m;
+	    }, 'width', 'height', '../multiplier']
+	},
+	$child_crane_2: {
+	    $init: {
+		width: 50,
+		height: 80,
+	    },
+	    weight: [(w, h, m) => {
+		return (w+h)/m;
+	    }, 'width', 'height', '/multiplier']
+	},
+    },
     first_crane_weight: ['crane_1/weight'],
-    $child_crane_1: {
-        width: 40,
-        height: 120,
-        weight: [(w, h, m) => {
-            return (w+h)/m;
-        }, 'width', 'height', '../multiplier']
-    },
-    $child_crane_2: {
-            width: 50,
-            height: 80,
-            weight: [(w, h, m) => {
-                return (w+h)/m;
-            }, 'width', 'height', '/multiplier']
-    },
 }});
 console.log(app.get('weight', '/crane_1')); // 16
 console.log(app.get('first_crane_weight')); // 16
@@ -855,10 +897,12 @@ console.log(app.get('weight', '/crane_2')); // 13
         },
     ]
     const app = Firera({$root: {
-        multiplier: 10,
-        first_crane_weight: ['crane_1/weight'],
-        $child_crane_1: Object.assign({}, cranes[0], crane),
-        $child_crane_2: Object.assign({}, cranes[1], crane),
+	$init: {
+	    multiplier: 10,
+	    $child_crane_1: Object.assign({}, cranes[0], crane),
+	    $child_crane_2: Object.assign({}, cranes[1], crane),
+	},
+        first_crane_weight: 'crane_1/weight',
     }});
 </code>
 		Here we start to divide data and structure.
@@ -881,7 +925,9 @@ console.log(app.get('weight', '/crane_2')); // 13
     ]
     const app = Firera({
         $root: {
-            multiplier: 10,
+	    $init: {
+		multiplier: 10,
+	    },
             $child_cranes: ['list', {
                 type: 'crane',
                 data: cranes, 
@@ -956,8 +1002,10 @@ const cranes = [
 ]
 const app = Firera({
     $root: {
-        multiplier: 10,
-        cranes: ['just', cranes],
+	$init: {
+	    multiplier: 10,
+	    cranes,
+	},
         $child_cranes: ['list', {
             type: 'crane',
             datasource: ['../cranes'], 
@@ -1053,24 +1101,26 @@ const todos = [
 ];
 
 const root_component = {
-    $el: document.querySelector('#todo-app'),
-    $template: app_template,
+    $init: {
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+    },
     $child_todos: ['list', {
         type: 'todo',
         data: todos,
     }]
 }
 const todo_component = {
-    $template: todo_template,
+    $init: {
+	$template: todo_template,
+    },
 }
 
 const app = Firera({
-        $root: root_component,
-        todo: todo_component
-    }, {
-        packages: ['htmlCells', 'ozenfant'],
-    }
-);
+    $packages: ['htmlCells', 'ozenfant'],
+    $root: root_component,
+    todo: todo_component
+});
 </code>
 			This small piece of code already gives us what we want: a list of to-dos is automatically rendered within the ul.todos block of the root grid.
 			How it works:
@@ -1173,13 +1223,13 @@ ul.todos$
 
 const root_component = {
         $init: {
-            arr_todos: todos
+            arr_todos: todos,
+	    $el: document.querySelector('#todo-app'),
+	    $template: app_template,
+		add_todo: [(text) => {
+		    return {text, completed: false};
+	    }, 'input[name="new-todo"]|enterText'],
         },
-        $el: document.querySelector('#todo-app'),
-        $template: app_template,
-            add_todo: [(text) => {
-                return {text, completed: false};
-        }, 'input[name="new-todo"]|enterText'],
         clear_add_todo: [_F.always(''), 'add_todo'],
         arr_todos: ['arr', {
             push: 'add_todo', 
@@ -1243,10 +1293,10 @@ const todo_component = {
 <code>
     const root_component = {
         $init: {
-            arr_todos: todos
+            arr_todos: todos,
+	    $el: document.querySelector('#todo-app'),
+	    $template: app_template,
         },
-        $el: document.querySelector('#todo-app'),
-        $template: app_template,
         add_todo: [(text) => {
             return {text, completed: false};
         }, 'input[name="new-todo"]|enterText'],
@@ -1262,17 +1312,18 @@ const todo_component = {
         }]
     }
     const todo_component = {
-        $template: todo_template,
+	$init: {
+	    $template: todo_template,
+	},
         completed: ['toggle', '.checked|click', false],
         remove_todo: [_F.second, '.remove|click', '-$name'],
     }
 
     const app = Firera({
+	$packages: ['htmlCells', 'ozenfant'],
         $root: root_component,
         todo: todo_component
-    }, {
-        packages: ['htmlCells', 'ozenfant'],
-    })
+    }})
 </code>
 			We should know the index of an element in the list we want to remove. It's always contained in <span class="mn">$i</span> cell, which is one of the system predefined cells.
 			At the same time, we should listen to it passively (with <span class="mn">"-"</span> prefix), in order for our <span class="mn">remove_todo</span> event to happen only on click (and not on <span class="mn">$i</span> change).
@@ -1365,8 +1416,10 @@ const todo_component = {
 			Now our code will look like this:
 <code>
 const root_component = {
-    $el: document.querySelector('#todo-app'),
-    $template: app_template,
+    $init: {
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+    },
     add_todo: [(text) => {
         return {text, completed: false};
     }, 'input[name="new-todo"]|enterText'],
@@ -1383,10 +1436,9 @@ const root_component = {
 }
 
 const app = Firera({
+	$packages: ['htmlCells', 'ozenfant'],
         $root: root_component,
         todo: todo_component
-    }, {
-        packages: ['htmlCells', 'ozenfant'],
     }
 );
 app.set('arr_todos', _F.arrDeltas([], init_data));
@@ -1482,9 +1534,11 @@ const todo_template = `
 `;
 
 const todo_component = {
-    $template: todo_template,
+    $init: {
+	$template: todo_template,
+    },
     completed: ['toggle', '.checked|click', false],
-    text: ['input[name=todo-text]|enterText'],
+    text: 'input[name=todo-text]|enterText',
     isEditing: ['map', {
         '.text|dblclick': true,
         'text': false,
@@ -1774,8 +1828,10 @@ const init_data = (
 ) || todos;
 
 const root_component = {
-    $el: document.querySelector('#todo-app'),
-    $template: app_template,
+    $init: {
+	$el: document.querySelector('#todo-app'),
+	$template: app_template,
+    }
     'add_todo': [(text) => {
         return text.length ? {text, completed: false} : Firera.skip;
     }, 'input[name="new-todo"]|enterText'],
@@ -1794,7 +1850,7 @@ const root_component = {
             done: false,
         }), '.display-buttons > *|click|attr(class)'
     ],
-    '~clear_completed': ['.clear-completed|click'],
+    '~clear_completed': '.clear-completed|click',
     incomplete: ['count', 'todos/completed', _F.not],
     data: ['asArray', 'todos', ['completed', 'text']],
     $toLocalStorage: [_F.throttle((data) => {
@@ -1809,12 +1865,14 @@ const root_component = {
     }]
 }
 const todo_component = {
-    $template: todo_template,
+    $init: {
+	$template: todo_template,
+    },
     completed: ['mapPrev', {
         '.checked|click': (_, prev) => !prev, 
         '^^/make_completed': true
     }],
-    text: ['input[name=todo-text]|enterText'],
+    text: 'input[name=todo-text]|enterText',
     edited_todo: ['relay', '.text|dblclick', '-$i'],
     i_am_edited: ['=', '-$i', '../active_todo'],
     isEditing: ['map', {
@@ -1834,12 +1892,10 @@ const todo_component = {
 }
 
 const app = Firera({
-            $root: root_component,
-            todo: todo_component
-        }, {
-            packages: ['htmlCells', 'ozenfant']
-        }
-);
+    $packages: ['htmlCells', 'ozenfant']
+    $root: root_component,
+    todo: todo_component
+});
 app.set('arr_todos', _F.arrDeltas([], init_data));
 </code>
 		</div>
@@ -2087,7 +2143,7 @@ const simpleHtml = {
     }
 }
 </code>
-			This will write an HTML template of each grid wich has <span class="mn">$el</span> defined.
+			This will write an HTML template of each grid which has <span class="mn">$el</span> defined.
 		</div>
 	</div>
 <?php } if(chapter('Further reading', 'debugging', 'Debugging and common mistakes')){ ?>
@@ -2101,16 +2157,14 @@ const simpleHtml = {
         <div>
 			Due to its specific syntax and structure, it's rather difficult to debug a Firera application.
 			The most useful thing you may need is to track changes to Firera cells.
-			That could be easily done with config keys:
+			That could be easily done with $log parameter in config:
 <code>
 const app = Firera({
+    $log: true,
+    $packages: ['htmlCells', 'ozenfant'],
     $root: {
             ...
     }
-}, {
-    packages: ['htmlCells', 'ozenfant'],
-    trackChanges: true,
-    trackChangesType: 'log',
 })
 </code>
 			A "change" is a set of cascad cell changes caused by one source (it may be DOM event, external call of <span class="mn">set()</span> method etc.)
@@ -2148,16 +2202,14 @@ const app = Firera({
 			You can also track particuar cells. To do this, you need your <span class="mn">trackChanges</span> parameter to be an array of cell names you want to track:
 <code>
 const app = Firera({
+    $packages: ['htmlCells', 'ozenfant'],
+    $log: ['a', 'c'],
     $root: {
             a: ...
             b: ...
             c: ...
             d: ...
     }
-}, {
-    packages: ['htmlCells', 'ozenfant'],
-    trackChanges: ['a', 'c'],
-    trackChangesType: 'log',
 })
 </code>
 			In this case only the changes in cells <span class="mn">a</span> and <span class="mn">c</span> will be shown, which is handy when you have a huge amount of cells.
@@ -2189,8 +2241,10 @@ const app = Firera({
 <code>
 const app = Firera({
     $root: {
-        a: 10,
-        b: 20,
+	$init: {
+	    a: 10,
+	    b: 20,
+	},
         c: [(n, m) => n*m, 'a', 'b'],
         foo: [([cell, val]) => {
             console.log(cell, 'changed to', val);

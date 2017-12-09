@@ -1549,7 +1549,7 @@ describe('Firera tests', function () {
 		console.log('app', app);
 		assert.equal(document.querySelector(".test-nested-loops ul > li:nth-child(1) .title").innerHTML, chs);
 	   
-		   
+	   
 	})
 	
 	it('DOM events - all subtree', () => {
