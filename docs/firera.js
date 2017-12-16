@@ -1922,6 +1922,8 @@ var type_map = {
 	'fake': 'fake'
 };
 
+var logStyle = 'background: #85aecc; color: white; padding: 1px;';
+
 var get_grid_struct = function get_grid_struct(grid) {
 	var cells_1 = Object.keys(grid.cell_types);
 	var cells_2 = Object.keys(grid.cell_values);
@@ -2208,12 +2210,14 @@ App.prototype.set = function (cell, val, child) {
 	this.root.set(cell, val, child);
 	this.endChange();
 };
-App.prototype.eachChild = function (parent_grid_id, cb) {
+App.prototype.eachChild = function (parent_grid_id, cb, cbAfter) {
 	var grid = this.getGrid(parent_grid_id);
 	for (var l in grid.linked_grids) {
 		var child = this.getGrid(grid.linked_grids[l]);
+		if (!child) continue;
 		cb(child);
-		this.eachChild(grid.linked_grids[l], cb);
+		this.eachChild(grid.linked_grids[l], cb, cbAfter);
+		cbAfter && cbAfter(child);
 	}
 };
 App.prototype.eachParent = function (grid_id, cb) {
@@ -2222,6 +2226,41 @@ App.prototype.eachParent = function (grid_id, cb) {
 		cb(grid);
 		grid_id = grid.parent;
 	}
+};
+App.prototype.show = function () {
+	console.group('/');
+	this.eachChild(this.root.id, function (grid) {
+		console.group(grid.name);
+		var cells = Object.keys(grid.cell_values).sort();
+		var _iteratorNormalCompletion7 = true;
+		var _didIteratorError7 = false;
+		var _iteratorError7 = undefined;
+
+		try {
+			for (var _iterator7 = cells[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+				var cell = _step7.value;
+
+				var cellname = cell + new Array(Math.max(0, 29 - cell.length)).join(' ');
+				console.log('%c ' + cellname, logStyle, grid.cell_values[cell]);
+			}
+		} catch (err) {
+			_didIteratorError7 = true;
+			_iteratorError7 = err;
+		} finally {
+			try {
+				if (!_iteratorNormalCompletion7 && _iterator7.return) {
+					_iterator7.return();
+				}
+			} finally {
+				if (_didIteratorError7) {
+					throw _iteratorError7;
+				}
+			}
+		}
+	}, function () {
+		console.groupEnd();
+	});
+	console.groupEnd();
 };
 
 var cb_prot = {
@@ -2257,13 +2296,13 @@ var cb_prot = {
 	},
 	setLevelsIterable: function setLevelsIterable(cellname, pool) {
 		var max_level = 1;
-		var _iteratorNormalCompletion7 = true;
-		var _didIteratorError7 = false;
-		var _iteratorError7 = undefined;
+		var _iteratorNormalCompletion8 = true;
+		var _didIteratorError8 = false;
+		var _iteratorError8 = undefined;
 
 		try {
-			for (var _iterator7 = this.cell_parents(cellname)[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-				var _cell = _step7.value;
+			for (var _iterator8 = this.cell_parents(cellname)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+				var _cell = _step8.value;
 
 				_cell = _Parser2.default.real_cell_name(_cell);
 				if (this.levels[_cell] === undefined) {
@@ -2276,16 +2315,16 @@ var cb_prot = {
 				}
 			}
 		} catch (err) {
-			_didIteratorError7 = true;
-			_iteratorError7 = err;
+			_didIteratorError8 = true;
+			_iteratorError8 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion7 && _iterator7.return) {
-					_iterator7.return();
+				if (!_iteratorNormalCompletion8 && _iterator8.return) {
+					_iterator8.return();
 				}
 			} finally {
-				if (_didIteratorError7) {
-					throw _iteratorError7;
+				if (_didIteratorError8) {
+					throw _iteratorError8;
 				}
 			}
 		}
@@ -2307,13 +2346,13 @@ var cb_prot = {
 	},
 	setLevelsRec: function setLevelsRec(cellname, already_set) {
 		var max_level = 1;
-		var _iteratorNormalCompletion8 = true;
-		var _didIteratorError8 = false;
-		var _iteratorError8 = undefined;
+		var _iteratorNormalCompletion9 = true;
+		var _didIteratorError9 = false;
+		var _iteratorError9 = undefined;
 
 		try {
-			for (var _iterator8 = this.cell_parents(cellname)[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-				var _cell3 = _step8.value;
+			for (var _iterator9 = this.cell_parents(cellname)[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+				var _cell3 = _step9.value;
 
 				_cell3 = _Parser2.default.real_cell_name(_cell3);
 				//if(cell[0] === '-') debugger;
@@ -2325,16 +2364,16 @@ var cb_prot = {
 				}
 			}
 		} catch (err) {
-			_didIteratorError8 = true;
-			_iteratorError8 = err;
+			_didIteratorError9 = true;
+			_iteratorError9 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion8 && _iterator8.return) {
-					_iterator8.return();
+				if (!_iteratorNormalCompletion9 && _iterator9.return) {
+					_iterator9.return();
 				}
 			} finally {
-				if (_didIteratorError8) {
-					throw _iteratorError8;
+				if (_didIteratorError9) {
+					throw _iteratorError9;
 				}
 			}
 		}
@@ -2403,13 +2442,15 @@ App.prototype.logChange = function (_ref) {
 	    val = _ref2[2],
 	    level = _ref2[3];
 
-	var pathname = path + new Array(Math.max(0, 17 - path.length)).join(' ');
 	level = (level || 0) + 1;
-	var cellname = new Array(Number(level)).join('.') + cell + new Array(Math.max(0, 29 - cell.length - level)).join(' ');
+	var arl = Math.max(0, 22 - (Number(level) + Number(path.length)));
+	var pathname = path + new Array(arl).join(' ') + new Array(Number(level)).join('.');
+	var cellname = cell + new Array(Math.max(0, 29 - cell.length)).join(' ');
 	if (typeof val === 'string' && val.length > 255) {
 		val = val.substr(0, 255);
 	}
-	console.log('|', pathname, '|' + level, cellname, '|', val, '|');
+	//console.log('%c ' + pathname + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+	console.log('%c|' + pathname + '| ' + cellname, logStyle, val);
 };
 App.prototype.endChange = function () {
 	if (!this.changeObj) return;
@@ -2423,27 +2464,27 @@ App.prototype.endChange = function () {
 	if (this.config.trackChanges) {
 		if (this.config.trackChangesType === 'log') {
 			console.log('***************************************************');
-			var _iteratorNormalCompletion9 = true;
-			var _didIteratorError9 = false;
-			var _iteratorError9 = undefined;
+			var _iteratorNormalCompletion10 = true;
+			var _didIteratorError10 = false;
+			var _iteratorError10 = undefined;
 
 			try {
-				for (var _iterator9 = this.changeObj[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-					var change = _step9.value;
+				for (var _iterator10 = this.changeObj[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+					var change = _step10.value;
 
 					this.logChange(change);
 				}
 			} catch (err) {
-				_didIteratorError9 = true;
-				_iteratorError9 = err;
+				_didIteratorError10 = true;
+				_iteratorError10 = err;
 			} finally {
 				try {
-					if (!_iteratorNormalCompletion9 && _iterator9.return) {
-						_iterator9.return();
+					if (!_iteratorNormalCompletion10 && _iterator10.return) {
+						_iterator10.return();
 					}
 				} finally {
-					if (_didIteratorError9) {
-						throw _iteratorError9;
+					if (_didIteratorError10) {
+						throw _iteratorError10;
 					}
 				}
 			}
@@ -2462,27 +2503,27 @@ App.prototype.branchCreated = function (grid_id) {
 	var grid = this.getGrid(grid_id);
 	var path = grid.path;
 	if (Firera.onBranchCreatedStack[this.id]) {
-		var _iteratorNormalCompletion10 = true;
-		var _didIteratorError10 = false;
-		var _iteratorError10 = undefined;
+		var _iteratorNormalCompletion11 = true;
+		var _didIteratorError11 = false;
+		var _iteratorError11 = undefined;
 
 		try {
-			for (var _iterator10 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-				var cb = _step10.value;
+			for (var _iterator11 = Firera.onBranchCreatedStack[this.id][Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+				var cb = _step11.value;
 
 				cb(this, grid_id, path, grid.parent);
 			}
 		} catch (err) {
-			_didIteratorError10 = true;
-			_iteratorError10 = err;
+			_didIteratorError11 = true;
+			_iteratorError11 = err;
 		} finally {
 			try {
-				if (!_iteratorNormalCompletion10 && _iterator10.return) {
-					_iterator10.return();
+				if (!_iteratorNormalCompletion11 && _iterator11.return) {
+					_iterator11.return();
 				}
 			} finally {
-				if (_didIteratorError10) {
-					throw _iteratorError10;
+				if (_didIteratorError11) {
+					throw _iteratorError11;
 				}
 			}
 		}
@@ -3709,6 +3750,9 @@ LinkManager.prototype.initLink = function (grid_id, link, slave_cellname) {
 			this.linksFromChildToParent[grid_id][path[0]].push(path[1]);
 			var slave_cn = slave_cellname || link;
 			this.app.eachChild(grid_id, function (child) {
+				if (child.name !== path[0]) {
+					return;
+				}
 				_this2.addWorkingLink(child.id, path[1], grid_id, slave_cn, '~', child.path);
 			});
 			return;
@@ -4196,7 +4240,14 @@ var parse_cellname = function parse_cellname(cellname, pool, context, packages, 
 	}
 	var matched = findMatcher(real_cellname, packages);
 	if (matched) {
-		matched[0].func(matched[1], pool, context, packages);
+		var subGrid = matched[0].func(matched[1], context);
+		for (var cell in subGrid) {
+			var fexpr = subGrid[cell];
+			if (cell === '@random') {
+				cell = get_random_name();
+			}
+			parse_fexpr(fexpr, pool, cell, packages);
+		}
 	}
 };
 
@@ -4265,7 +4316,7 @@ var parse_fexpr = function parse_fexpr(a, pool, key, packages) {
 			if (a instanceof Object) {
 				a = ['map', a];
 			} else {
-				console.warn('Strainge row:', a, key);
+				console.warn('Strange row:', a, key);
 				return;
 			}
 		}
@@ -4612,11 +4663,11 @@ var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var Obj = _utils2.default.Obj;
 var Arr = _utils2.default.Arr;
@@ -4702,10 +4753,10 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'PrevValue',
 			regexp: new RegExp('^(\-|\:)?\\^(.*)', 'i'),
-			func: function func(matches, pool, context, packages) {
+			func: function func(matches, context) {
 				if (context == 'setter') return;
 				var cellname = matches[2];
-				_Parser2.default.parse_fexpr(['closure', function () {
+				return _defineProperty({}, '^' + cellname, ['closure', function () {
 					var val;
 					//console.log('Returning closure func!');
 					return function (a) {
@@ -4714,19 +4765,21 @@ module.exports = {
 						val = a;
 						return [old_val, a];
 					};
-				}, cellname], pool, '^' + cellname, packages);
+				}, cellname]);
 			}
 		},
 		popstate: {
 			// ^foo -> previous values of 'foo'
 			name: 'popstate',
 			regexp: new RegExp('^history\.popstate$', 'i'),
-			func: function func(matches, pool, context, packages) {
-				if (context == 'setter') return;
+			func: function func(matches, context) {
+				if (context == 'setter') {
+					return;
+				}
 				var cellname = matches[0];
-				_Parser2.default.parse_fexpr(['async', function (cb) {
+				return _defineProperty({}, cellname, ['async', function (cb) {
 					window.onpopstate = cb;
-				}, '$start'], pool, cellname, packages);
+				}, '$start']);
 			}
 		}
 	},
@@ -4984,9 +5037,9 @@ module.exports = {
 				}
 			}].concat(fs);
 		},
-		'changed': function changed(_ref) {
-			var _ref2 = _slicedToArray(_ref, 1),
-			    cellname = _ref2[0];
+		'changed': function changed(_ref3) {
+			var _ref4 = _slicedToArray(_ref3, 1),
+			    cellname = _ref4[0];
 
 			return ['closure', function () {
 				var val;
@@ -5501,19 +5554,17 @@ module.exports = {
 	}), _macros)
 };
 },{"../Parser":8,"../utils":15}],12:[function(require,module,exports){
-'use strict';
+"use strict";
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _Parser = require('../Parser');
-
-var _Parser2 = _interopRequireDefault(_Parser);
-
-var _utils = require('../utils');
+var _utils = require("../utils");
 
 var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
@@ -5811,7 +5862,7 @@ module.exports = {
 			// ^foo -> previous values of 'foo'
 			name: 'HTMLAspects',
 			regexp: new RegExp('^(\-|\:)?([^\|]*)?\\|(.*)', 'i'),
-			func: function func(matches, pool, context, packages) {
+			func: function func(matches, context) {
 				var get_params = function get_params(aspect) {
 					var params = aspect.match(/([^\(]*)\(([^\)]*)\)/);
 					if (params && params[1]) {
@@ -6361,20 +6412,21 @@ module.exports = {
 						break;
 				}
 				if (context === 'setter') {
-					_Parser2.default.parse_fexpr([func, [function (a) {
-						if (!Firera.is_def(a)) return false;
-						if (!selector) return a;
-						if (selector === 'other') return a;
-						a = raw(a);
-						if (!a) {
-							return a;
-						}
-						return a.querySelectorAll(selector);
-						/*var node = a.find(selector) @todo
-      		.filter(filter_attr_in_parents.bind(null, a));*/
-					}, '-$real_el', '$html_skeleton_changes'], cellname], pool, _Parser2.default.get_random_name(), packages);
+					return {
+						'@random': [func, [function (a) {
+							if (!Firera.is_def(a)) return false;
+							if (!selector) return a;
+							if (selector === 'other') return a;
+							a = raw(a);
+							if (!a) {
+								return a;
+							}
+							return a.querySelectorAll(selector);
+							/*var node = a.find(selector) @todo
+       		.filter(filter_attr_in_parents.bind(null, a));*/
+						}, '-$real_el', '$html_skeleton_changes'], cellname] };
 				} else {
-					_Parser2.default.parse_fexpr(['asyncClosure', function () {
+					return _defineProperty({}, cellname, ['asyncClosure', function () {
 						var el;
 						return function (cb, val) {
 							var old_val;
@@ -6428,13 +6480,13 @@ module.exports = {
 							func(cb, [el, val], old_val);
 							el = val;
 						};
-					}, '-$real_el', '$html_skeleton_changes'], pool, cellname, packages);
+					}, '-$real_el', '$html_skeleton_changes']);
 				}
 			}
 		}
 	}
 };
-},{"../Parser":8,"../utils":15}],13:[function(require,module,exports){
+},{"../utils":15}],13:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();

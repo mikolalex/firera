@@ -13,6 +13,8 @@ const type_map = {
 	'fake': 'fake',
 }
 
+const logStyle = 'background: #85aecc; color: white; padding: 1px;';
+
 const get_grid_struct = (grid) => {
 	const cells_1 = Object.keys(grid.cell_types);
 	const cells_2 = Object.keys(grid.cell_values);
@@ -167,12 +169,14 @@ App.prototype.set = function(cell, val, child){
 	this.root.set(cell, val, child);
 	this.endChange();
 }
-App.prototype.eachChild = function(parent_grid_id, cb){
+App.prototype.eachChild = function(parent_grid_id, cb, cbAfter){
 	const grid = this.getGrid(parent_grid_id);
 	for(let l in grid.linked_grids){
 		const child = this.getGrid(grid.linked_grids[l]);
+		if(!child) continue;
 		cb(child);
-		this.eachChild(grid.linked_grids[l], cb);
+		this.eachChild(grid.linked_grids[l], cb, cbAfter);
+		cbAfter && cbAfter(child);
 	}
 }
 App.prototype.eachParent = function(grid_id, cb){
@@ -181,6 +185,20 @@ App.prototype.eachParent = function(grid_id, cb){
 		cb(grid);
 		grid_id = grid.parent;
 	}
+}
+App.prototype.show = function(){
+	console.group('/');
+	this.eachChild(this.root.id, (grid) => {
+		console.group(grid.name);
+		const cells = Object.keys(grid.cell_values).sort();
+		for(let cell of cells){
+			const cellname = cell + (new Array(Math.max(0, 29 - cell.length)).join(' '));
+			console.log('%c ' + cellname, logStyle, grid.cell_values[cell]);
+		}
+	}, () => {
+		console.groupEnd();
+	})
+	console.groupEnd();
 }
 
 const cb_prot = {
@@ -320,7 +338,7 @@ App.prototype.logChange = ([path, cell, val, level]) => {
 		val = val.substr(0, 255);
 	}
 	//console.log('%c ' + pathname + ' ', 'background: #898cec; color: white; padding: 1px;', val);
-	console.log('%c|' + pathname + '| ' + cellname, 'background: #6e71e4; color: white; padding: 1px;',  val);
+	console.log('%c|' + pathname + '| ' + cellname, logStyle,  val);
 }
 App.prototype.endChange = function() {
 	if(!this.changeObj) return;
