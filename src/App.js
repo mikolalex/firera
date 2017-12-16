@@ -173,7 +173,7 @@ App.prototype.eachChild = function(parent_grid_id, cb, cbAfter){
 	const grid = this.getGrid(parent_grid_id);
 	for(let l in grid.linked_grids){
 		const child = this.getGrid(grid.linked_grids[l]);
-		if(!child) continue;
+		if(!child) continue
 		cb(child);
 		this.eachChild(grid.linked_grids[l], cb, cbAfter);
 		cbAfter && cbAfter(child);
@@ -187,15 +187,16 @@ App.prototype.eachParent = function(grid_id, cb){
 	}
 }
 App.prototype.show = function(){
-	console.group('/');
-	this.eachChild(this.root.id, (grid) => {
+	const showGrid = (grid) => {
 		console.group(grid.name);
 		const cells = Object.keys(grid.cell_values).sort();
 		for(let cell of cells){
 			const cellname = cell + (new Array(Math.max(0, 29 - cell.length)).join(' '));
 			console.log('%c ' + cellname, logStyle, grid.cell_values[cell]);
 		}
-	}, () => {
+	}
+	showGrid(this.root);
+	this.eachChild(this.root.id, showGrid, () => {
 		console.groupEnd();
 	})
 	console.groupEnd();

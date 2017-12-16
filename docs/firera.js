@@ -2228,8 +2228,7 @@ App.prototype.eachParent = function (grid_id, cb) {
 	}
 };
 App.prototype.show = function () {
-	console.group('/');
-	this.eachChild(this.root.id, function (grid) {
+	var showGrid = function showGrid(grid) {
 		console.group(grid.name);
 		var cells = Object.keys(grid.cell_values).sort();
 		var _iteratorNormalCompletion7 = true;
@@ -2257,7 +2256,9 @@ App.prototype.show = function () {
 				}
 			}
 		}
-	}, function () {
+	};
+	showGrid(this.root);
+	this.eachChild(this.root.id, showGrid, function () {
 		console.groupEnd();
 	});
 	console.groupEnd();
